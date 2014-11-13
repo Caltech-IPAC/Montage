@@ -1,0 +1,38 @@
+# Filename: Makefile.LINUX
+
+# Version  Developer        Date     Change
+# -------  ---------------  -------  -----------------------
+# 1.0      John Good        03Jan11  Original SunOS Makefile
+
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+DATA_DIR = $(shell cd ../../data; pwd)
+
+CC     =        gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+                -DFONT_DIR='"$(DATA_DIR)/fonts/"'
+CFLAGS =	-g -I. -I../../lib/include -I../../lib/freetype/include \
+		-I../../lib/freetype/include/freetype2 -I../../Montage
+LIBS   =        -L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lmtbl \
+                -L../../lib/freetype/lib -lfreetype -lnsl -lm
+
+.c.o:
+		$(CC) $(CFLAGS)  -c  $*.c
+
+all:  mViewer mStretch
+
+mViewer:	mViewer.o graphics.o grid.o
+		$(CC) -o mViewer mViewer.o graphics.o grid.o \
+		../../Montage/checkHdr.o   \
+		../../Montage/checkWCS.o   \
+		$(LIBS)
+
+mStretch:	mStretch.o
+		$(CC) -o mStretch mStretch.o \
+		$(LIBS)
+
+install:
+		cp mViewer ../../bin
+
+clean:
+		rm -f mViewer *.o

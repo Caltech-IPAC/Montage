@@ -1,0 +1,28 @@
+all:
+	(cd cfitsio-3.25; ./configure; make; cp libcfitsio.a ../..; cp *.h ../../include)
+	(cd cmd; make; make install)
+	(cd coord; make; make install)
+	(cd mtbl; make; make install)
+	(cd svc; make; make install)
+	(cd boundaries; make; make install)
+	(cd pixbounds; make; make install)
+	(cd wcstools-3.8.7/libwcs; make; cp libwcs.a ../../..; cp *.h ../../../include)
+	(cd two_plane_v1.1; make; make install)
+	(cd jpeg-8b; ./configure; make; cp .libs/libjpeg.a ../..; cp jpeglib.h jconfig.h jmorecfg.h ../../include)
+	(cd freetype-2.4.4; ./configure --prefix=`pwd`/../../freetype; make; make install)
+	(cd ..; ranlib *.a)
+	chmod 644 ../include/*
+
+clean:
+	rm -rf ../include/* ../freetype ../*.a
+	(cd cfitsio-3.25; make clean; rm -rf config.log config.cache config.status lib)
+	(cd cmd; make clean)
+	(cd coord; make clean)
+	(cd mtbl; make clean)
+	(cd svc; make clean)
+	(cd boundaries; make clean)
+	(cd pixbounds; make clean)
+	(cd wcstools-3.8.7/libwcs; make clean)
+	(cd two_plane_v1.1; make clean)
+	(cd jpeg-8b; make clean)
+	(cd freetype-2.4.4; make clean; rm -rf objs/libfreetype.la  objs/.libs)
