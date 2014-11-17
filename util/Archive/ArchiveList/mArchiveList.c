@@ -30,7 +30,7 @@ int   readline   (int fd, char *line) ;
 
 void parseUrl(char *urlStr, char *hostStr, int *port);
 
-int debug = 1;
+int debug = 0;
 
 
 /********************************************/
