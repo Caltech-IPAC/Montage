@@ -149,8 +149,8 @@ int main(int argc, char **argv)
    double xpos, ypos;
    double lon, lat;
    double oxpix, oypix;
-   int    oxpixMin, oypixMin;
-   int    oxpixMax, oypixMax;
+   double oxpixMin, oypixMin;
+   double oxpixMax, oypixMax;
    int    offscl, mode;
    int    ncols;
    FILE  *fraw;
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s statusfile] images.tbl hdr.template raw.tbl projected.tbl corrected.tbl\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s statusfile] images.tbl hdr.template raw.tbl projected.tbl corrected.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -318,12 +318,12 @@ int main(int argc, char **argv)
       stat = tread();
 
       if(stat < 0)
-	 break;
+         break;
 
       strcpy(input.fname, fileName(tval(ifname)));
 
       if(strlen(input.fname) > namelen)
-	 namelen = strlen(input.fname);
+         namelen = strlen(input.fname);
    }
 
    tseek(0);
@@ -347,38 +347,38 @@ int main(int argc, char **argv)
       sprintf(fmt, "|%%5s|%%8s|%%8s|%%6s|%%6s|%%10s|%%10s|%%10s|%%10s|%%11s|%%11s|%%8s|%%7s|%%10s|%%%ds|\n", namelen+2);
 
       fprintf(fraw, fmt,
-	 "cntr",
-	 "ctype1",
-	 "ctype2",
-	 "naxis1",
-	 "naxis2",
-	 "crval1",
-	 "crval2",
-	 "crpix1",
-	 "crpix2",
-	 "cdelt1",
-	 "cdelt2",
-	 "crota2",
-	 "equinox",
-	 "scale",
-	 "file");
+         "cntr",
+         "ctype1",
+         "ctype2",
+         "naxis1",
+         "naxis2",
+         "crval1",
+         "crval2",
+         "crpix1",
+         "crpix2",
+         "cdelt1",
+         "cdelt2",
+         "crota2",
+         "equinox",
+         "scale",
+         "file");
 
       fprintf(fraw, fmt,
-	 "int",
-	 "char",
-	 "char",
-	 "int",
-	 "int",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "int",
-	 "double",
-	 "char");
+         "int",
+         "char",
+         "char",
+         "int",
+         "int",
+         "double",
+         "double",
+         "double",
+         "double",
+         "double",
+         "double",
+         "double",
+         "int",
+         "double",
+         "char");
    }
    else
    {
@@ -386,36 +386,36 @@ int main(int argc, char **argv)
 
 
       fprintf(fraw, fmt,
-	 "cntr",
-	 "ctype1",
-	 "ctype2",
-	 "naxis1",
-	 "naxis2",
-	 "crval1",
-	 "crval2",
-	 "crpix1",
-	 "crpix2",
-	 "cdelt1",
-	 "cdelt2",
-	 "crota2",
-	 "equinox",
-	 "file");
+         "cntr",
+         "ctype1",
+         "ctype2",
+         "naxis1",
+         "naxis2",
+         "crval1",
+         "crval2",
+         "crpix1",
+         "crpix2",
+         "cdelt1",
+         "cdelt2",
+         "crota2",
+         "equinox",
+         "file");
 
       fprintf(fraw, fmt,
-	 "int",
-	 "char",
-	 "char",
-	 "int",
-	 "int",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "double",
-	 "int",
-	 "char");
+         "int",
+         "char",
+         "char",
+         "int",
+         "int",
+         "double",
+         "double",
+         "double",
+         "double",
+         "double",
+         "double",
+         "double",
+         "int",
+         "char");
    }
 
    if((fproj = (FILE *)fopen(projimg_file, "w+")) == (FILE *)NULL)
@@ -526,7 +526,7 @@ int main(int argc, char **argv)
       stat = tread();
 
       if(stat < 0)
-	 break;
+         break;
       
       ++ntotal;
 
@@ -543,16 +543,16 @@ int main(int argc, char **argv)
 
       if(mode == CDELT)
       {
-	 input.cdelt1    = atof(tval(icdelt1));
-	 input.cdelt2    = atof(tval(icdelt2));
-	 input.crota2    = atof(tval(icrota2));
+         input.cdelt1    = atof(tval(icdelt1));
+         input.cdelt2    = atof(tval(icdelt2));
+         input.crota2    = atof(tval(icrota2));
       }
       else
       {
-	 input.cd11      = atof(tval(icd11));
-	 input.cd12      = atof(tval(icd12));
-	 input.cd21      = atof(tval(icd21));
-	 input.cd22      = atof(tval(icd22));
+         input.cd11      = atof(tval(icd11));
+         input.cd12      = atof(tval(icd12));
+         input.cd21      = atof(tval(icd21));
+         input.cd22      = atof(tval(icd22));
       }
 
       input.epoch     = 2000;
@@ -572,86 +572,86 @@ int main(int argc, char **argv)
 
       if(mode == CDELT)
       {
-	 sprintf(temp, "CDELT1  = %11.6f", input.cdelt1 ); stradd(header, temp);
-	 sprintf(temp, "CDELT2  = %11.6f", input.cdelt2 ); stradd(header, temp);
-	 sprintf(temp, "CROTA2  = %11.6f", input.crota2 ); stradd(header, temp);
+         sprintf(temp, "CDELT1  = %11.6f", input.cdelt1 ); stradd(header, temp);
+         sprintf(temp, "CDELT2  = %11.6f", input.cdelt2 ); stradd(header, temp);
+         sprintf(temp, "CROTA2  = %11.6f", input.crota2 ); stradd(header, temp);
       }
       else
       {
-	 sprintf(temp, "CD1_1   = %11.6f", input.cd11   ); stradd(header, temp);
-	 sprintf(temp, "CD1_2   = %11.6f", input.cd12   ); stradd(header, temp);
-	 sprintf(temp, "CD2_1   = %11.6f", input.cd21   ); stradd(header, temp);
-	 sprintf(temp, "CD2_2   = %11.6f", input.cd22   ); stradd(header, temp);
+         sprintf(temp, "CD1_1   = %11.6f", input.cd11   ); stradd(header, temp);
+         sprintf(temp, "CD1_2   = %11.6f", input.cd12   ); stradd(header, temp);
+         sprintf(temp, "CD2_1   = %11.6f", input.cd21   ); stradd(header, temp);
+         sprintf(temp, "CD2_2   = %11.6f", input.cd22   ); stradd(header, temp);
       }
 
       sprintf(temp, "EQUINOX = %d",     input.equinox); stradd(header, temp);
       sprintf(temp, "END"                            ); stradd(header, temp);
       
       if(iequinox >= 0)
-	 input.equinox = atoi(tval(iequinox));
+         input.equinox = atoi(tval(iequinox));
 
       strcpy(input.fname, fileName(tval(ifname)));
 
       if(iscale >= 0)
-	 strcpy(scale, tval(iscale));
+         strcpy(scale, tval(iscale));
 
       if(strlen(input.fname) > namelen)
-	 namelen = strlen(input.fname);
+         namelen = strlen(input.fname);
 
       input.wcs = wcsinit(header);
 
       checkWCS(input.wcs, 0);
-			     
+                             
       if(input.wcs == (struct WorldCoor *)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad WCS for image %d\"]\n", 
-	    nimages);
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad WCS for image %d\"]\n", 
+            nimages);
+         exit(1);
       }
 
       if(input.wcs->syswcs == WCS_J2000)
       {
-	 input.sys   = EQUJ;
-	 input.epoch = 2000.;
+         input.sys   = EQUJ;
+         input.epoch = 2000.;
 
-	 if(input.wcs->equinox == 1950.)
-	    input.epoch = 1950;
+         if(input.wcs->equinox == 1950.)
+            input.epoch = 1950;
       }
       else if(input.wcs->syswcs == WCS_B1950)
       {
-	 input.sys   = EQUB;
-	 input.epoch = 1950.;
+         input.sys   = EQUB;
+         input.epoch = 1950.;
 
-	 if(input.wcs->equinox == 2000.)
-	    input.epoch = 2000;
+         if(input.wcs->equinox == 2000.)
+            input.epoch = 2000;
       }
       else if(input.wcs->syswcs == WCS_GALACTIC)
       {
-	 input.sys   = GAL;
-	 input.epoch = 2000.;
+         input.sys   = GAL;
+         input.epoch = 2000.;
       }
       else if(input.wcs->syswcs == WCS_ECLIPTIC)
       {
-	 input.sys   = ECLJ;
-	 input.epoch = 2000.;
+         input.sys   = ECLJ;
+         input.epoch = 2000.;
 
-	 if(input.wcs->equinox == 1950.)
-	 {
-	    input.sys   = ECLB;
-	    input.epoch = 1950.;
-	 }
+         if(input.wcs->equinox == 1950.)
+         {
+            input.sys   = ECLB;
+            input.epoch = 1950.;
+         }
       }
       else       
       {
-	 input.sys   = EQUJ;
-	 input.epoch = 2000.;
+         input.sys   = EQUJ;
+         input.epoch = 2000.;
       }
 
 
       if(debug)
       {
          printf("DEBUG> input sys: %d -> output sys: %d\n", input.sys, output.sys);
-	 fflush(stdout);
+         fflush(stdout);
       }
 
 
@@ -660,45 +660,45 @@ int main(int argc, char **argv)
       /* the output region of interest                   */
       /***************************************************/
 
-      oxpixMin =  100000000;
-      oxpixMax = -100000000;
-      oypixMin =  100000000;
-      oypixMax = -100000000;
+      oxpixMin =  100000000.;
+      oxpixMax = -100000000.;
+      oypixMin =  100000000.;
+      oypixMax = -100000000.;
 
 
       /* Check input left and right */
 
       for (j=0; j<input.naxis2+1; ++j)
       {
-	 pix2wcs(input.wcs, 0.5, j+0.5, &xpos, &ypos);
+         pix2wcs(input.wcs, 0.5, j+0.5, &xpos, &ypos);
 
-	 convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			    output.sys, output.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                            output.sys, output.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(oxpix < oxpixMin) oxpixMin = oxpix;
-	    if(oxpix > oxpixMax) oxpixMax = oxpix;
-	    if(oypix < oypixMin) oypixMin = oypix;
-	    if(oypix > oypixMax) oypixMax = oypix;
-	 }
+         if(!offscl)
+         {
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
 
-	 pix2wcs(input.wcs, input.naxis1+0.5, j+0.5, &xpos, &ypos);
+         pix2wcs(input.wcs, input.naxis1+0.5, j+0.5, &xpos, &ypos);
 
-	 convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			    output.sys, output.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                            output.sys, output.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(oxpix < oxpixMin) oxpixMin = oxpix;
-	    if(oxpix > oxpixMax) oxpixMax = oxpix;
-	    if(oypix < oypixMin) oypixMin = oypix;
-	    if(oypix > oypixMax) oypixMax = oypix;
-	 }
+         if(!offscl)
+         {
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
       }
 
 
@@ -706,42 +706,42 @@ int main(int argc, char **argv)
 
       for (i=0; i<input.naxis1+1; ++i)
       {
-	 pix2wcs(input.wcs, i+0.5, 0.5, &xpos, &ypos);
+         pix2wcs(input.wcs, i+0.5, 0.5, &xpos, &ypos);
 
-	 convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			    output.sys, output.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                            output.sys, output.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(oxpix < oxpixMin) oxpixMin = oxpix;
-	    if(oxpix > oxpixMax) oxpixMax = oxpix;
-	    if(oypix < oypixMin) oypixMin = oypix;
-	    if(oypix > oypixMax) oypixMax = oypix;
-	 }
+         if(!offscl)
+         {
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
 
-	 pix2wcs(input.wcs, i+0.5, input.naxis2+0.5, &xpos, &ypos);
+         pix2wcs(input.wcs, i+0.5, input.naxis2+0.5, &xpos, &ypos);
 
-	 convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			    output.sys, output.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                            output.sys, output.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(oxpix < oxpixMin) oxpixMin = oxpix;
-	    if(oxpix > oxpixMax) oxpixMax = oxpix;
-	    if(oypix < oypixMin) oypixMin = oypix;
-	    if(oypix > oypixMax) oypixMax = oypix;
-	 }
+         if(!offscl)
+         {
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
       }
 
       if(debug)
       {
-         printf("DEBUG> Image %d ranges> X: %10d to %10d, Y: %10d to %10d\n", 
-	    ntotal, oxpixMin, oxpixMax, oypixMin, oypixMax);
-	 fflush(stdout);
+         printf("DEBUG> Image %d ranges> X: %.1f to %.1f, Y: %.1f to %.1f\n", 
+            ntotal, oxpixMin, oxpixMax, oypixMin, oypixMax);
+         fflush(stdout);
       }
 
 
@@ -754,37 +754,37 @@ int main(int argc, char **argv)
 
       for (j=0; j<output.wcs->nypix+1; ++j)
       {
-	 pix2wcs(output.wcs, 0.5, j+0.5, &xpos, &ypos);
+         pix2wcs(output.wcs, 0.5, j+0.5, &xpos, &ypos);
 
-	 convertCoordinates(output.sys, output.epoch, xpos, ypos,
-			     input.sys,  input.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(output.sys, output.epoch, xpos, ypos,
+                             input.sys,  input.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(0.5   < oxpixMin) oxpixMin = 0.5;
-	    if(0.5   > oxpixMax) oxpixMax = 0.5;
+         if(!offscl)
+         {
+            if(0.5   < oxpixMin) oxpixMin = 0.5;
+            if(0.5   > oxpixMax) oxpixMax = 0.5;
 
-	    if(j+0.5 < oypixMin) oypixMin = j+0.5;
-	    if(j+0.5 > oypixMax) oypixMax = j+0.5;
-	 }
+            if(j+0.5 < oypixMin) oypixMin = j+0.5;
+            if(j+0.5 > oypixMax) oypixMax = j+0.5;
+         }
 
-	 pix2wcs(output.wcs, output.wcs->nxpix+0.5, j+0.5, &xpos, &ypos);
+         pix2wcs(output.wcs, output.wcs->nxpix+0.5, j+0.5, &xpos, &ypos);
 
-	 convertCoordinates(output.sys, output.epoch, xpos, ypos,
-			     input.sys,  input.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(output.sys, output.epoch, xpos, ypos,
+                             input.sys,  input.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(output.wcs->nxpix+0.5 < oxpixMin) oxpixMin = output.wcs->nxpix+0.5;
-	    if(output.wcs->nxpix+0.5 > oxpixMax) oxpixMax = output.wcs->nxpix+0.5;
+         if(!offscl)
+         {
+            if(output.wcs->nxpix+0.5 < oxpixMin) oxpixMin = output.wcs->nxpix+0.5;
+            if(output.wcs->nxpix+0.5 > oxpixMax) oxpixMax = output.wcs->nxpix+0.5;
 
-	    if(j+0.5 < oypixMin) oypixMin = j+0.5;
-	    if(j+0.5 > oypixMax) oypixMax = j+0.5;
-	 }
+            if(j+0.5 < oypixMin) oypixMin = j+0.5;
+            if(j+0.5 > oypixMax) oypixMax = j+0.5;
+         }
       }
 
 
@@ -792,44 +792,44 @@ int main(int argc, char **argv)
 
       for (i=0; i<output.wcs->nxpix+1; ++i)
       {
-	 pix2wcs(output.wcs, i+0.5, 0.5, &xpos, &ypos);
+         pix2wcs(output.wcs, i+0.5, 0.5, &xpos, &ypos);
 
-	 convertCoordinates(output.sys, output.epoch, xpos, ypos,
-			     input.sys,  input.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(output.sys, output.epoch, xpos, ypos,
+                             input.sys,  input.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(i+0.5 < oxpixMin) oxpixMin = i+0.5;
-	    if(i+0.5 > oxpixMax) oxpixMax = i+0.5;
+         if(!offscl)
+         {
+            if(i+0.5 < oxpixMin) oxpixMin = i+0.5;
+            if(i+0.5 > oxpixMax) oxpixMax = i+0.5;
 
-	    if(0.5   < oypixMin) oypixMin = 0.5  ;
-	    if(0.5   > oypixMax) oypixMax = 0.5  ;
-	 }
+            if(0.5   < oypixMin) oypixMin = 0.5  ;
+            if(0.5   > oypixMax) oypixMax = 0.5  ;
+         }
 
-	 pix2wcs(output.wcs, i+0.5, output.wcs->nypix+0.5, &xpos, &ypos);
+         pix2wcs(output.wcs, i+0.5, output.wcs->nypix+0.5, &xpos, &ypos);
 
-	 convertCoordinates(output.sys, output.epoch, xpos, ypos,
-			     input.sys,  input.epoch, &lon, &lat, 0.0);
-	 
-	 wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
+         convertCoordinates(output.sys, output.epoch, xpos, ypos,
+                             input.sys,  input.epoch, &lon, &lat, 0.0);
+         
+         wcs2pix(input.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-	 if(!offscl)
-	 {
-	    if(i+0.5 < oxpixMin) oxpixMin = i+0.5;
-	    if(i+0.5 > oxpixMax) oxpixMax = i+0.5;
+         if(!offscl)
+         {
+            if(i+0.5 < oxpixMin) oxpixMin = i+0.5;
+            if(i+0.5 > oxpixMax) oxpixMax = i+0.5;
 
-	    if(output.wcs->nypix+0.5 < oypixMin) oypixMin = output.wcs->nypix+0.5;
-	    if(output.wcs->nypix+0.5 > oypixMax) oypixMax = output.wcs->nypix+0.5;
-	 }
+            if(output.wcs->nypix+0.5 < oypixMin) oypixMin = output.wcs->nypix+0.5;
+            if(output.wcs->nypix+0.5 > oypixMax) oypixMax = output.wcs->nypix+0.5;
+         }
       }
 
       if(debug)
       {
-         printf("DEBUG> Image %d ranges> X: %10d to %10d, Y: %10d to %10d (after reverse check)\n", 
-	    ntotal, oxpixMin, oxpixMax, oypixMin, oypixMax);
-	 fflush(stdout);
+         printf("DEBUG> Image %d ranges> X: %.1f to %.1f, Y: %.1f to %.1f (after reverse check)\n", 
+            ntotal, oxpixMin, oxpixMax, oypixMin, oypixMax);
+         fflush(stdout);
       }
 
       if(oxpixMax < oxpixMin) continue;
@@ -841,115 +841,115 @@ int main(int argc, char **argv)
       strcpy(ofile, input.fname);
 
       if(strlen(ofile) > 3 && strcmp(ofile+strlen(ofile)-3, ".gz") == 0)
-	 ofile[strlen(ofile)-3] = '\0';
+         ofile[strlen(ofile)-3] = '\0';
 
       else if(strlen(ofile) > 2 && strcmp(ofile+strlen(ofile)-2, ".Z") == 0)
-	 ofile[strlen(ofile)-2] = '\0';
+         ofile[strlen(ofile)-2] = '\0';
 
       else if(strlen(ofile) > 2 && strcmp(ofile+strlen(ofile)-2, ".z") == 0)
-	 ofile[strlen(ofile)-2] = '\0';
+         ofile[strlen(ofile)-2] = '\0';
 
       else if(strlen(ofile) > 4 && strcmp(ofile+strlen(ofile)-4, ".zip") == 0)
-	 ofile[strlen(ofile)-4] = '\0';
+         ofile[strlen(ofile)-4] = '\0';
 
       else if(strlen(ofile) > 2 && strcmp(ofile+strlen(ofile)-2, "-z") == 0)
-	 ofile[strlen(ofile)-2] = '\0';
+         ofile[strlen(ofile)-2] = '\0';
 
       else if(strlen(ofile) > 3 && strcmp(ofile+strlen(ofile)-3, "-gz") == 0)
-	 ofile[strlen(ofile)-3] = '\0';
+         ofile[strlen(ofile)-3] = '\0';
 
 
       /* Make sure the extension is ".fits" */
 
       if(strlen(ofile) > 5 && strcmp(ofile+strlen(ofile)-5, ".fits") == 0)
-	 ofile[strlen(ofile)-5] = '\0';
+         ofile[strlen(ofile)-5] = '\0';
 
       else if(strlen(ofile) > 5 && strcmp(ofile+strlen(ofile)-5, ".FITS") == 0)
-	 ofile[strlen(ofile)-5] = '\0';
+         ofile[strlen(ofile)-5] = '\0';
 
       else if(strlen(ofile) > 4 && strcmp(ofile+strlen(ofile)-4, ".fit") == 0)
-	 ofile[strlen(ofile)-4] = '\0';
+         ofile[strlen(ofile)-4] = '\0';
 
       else if(strlen(ofile) > 4 && strcmp(ofile+strlen(ofile)-4, ".FIT") == 0)
-	 ofile[strlen(ofile)-4] = '\0';
+         ofile[strlen(ofile)-4] = '\0';
 
       else if(strlen(ofile) > 4 && strcmp(ofile+strlen(ofile)-4, ".fts") == 0)
-	 ofile[strlen(ofile)-4] = '\0';
+         ofile[strlen(ofile)-4] = '\0';
 
       else if(strlen(ofile) > 4 && strcmp(ofile+strlen(ofile)-4, ".FTS") == 0)
-	 ofile[strlen(ofile)-4] = '\0';
+         ofile[strlen(ofile)-4] = '\0';
 
       strcat(ofile, ".fits");
 
       if(iscale >= 0)
       {
-	 fprintf(fraw, rfmt,
-	   nimages+1,
-	   output.wcs->ctype[0],
-	   output.wcs->ctype[1],
-	   oxpixMax - oxpixMin + 1,
-	   oypixMax - oypixMin + 1,
-	   output.wcs->crval[0],
-	   output.wcs->crval[1],
-	   output.wcs->crpix[0] - oxpixMin,
-	   output.wcs->crpix[1] - oypixMin,
-	   output.wcs->cdelt[0],
-	   output.wcs->cdelt[1],
-	   output.wcs->rot,
-	   output.epoch,
-	   scale,
-	   ofile);
+         fprintf(fraw, rfmt,
+           nimages+1,
+           output.wcs->ctype[0],
+           output.wcs->ctype[1],
+           (int)(oxpixMax - oxpixMin + 1),
+           (int)(oypixMax - oypixMin + 1),
+           output.wcs->crval[0],
+           output.wcs->crval[1],
+           output.wcs->crpix[0] - oxpixMin,
+           output.wcs->crpix[1] - oypixMin,
+           output.wcs->cdelt[0],
+           output.wcs->cdelt[1],
+           output.wcs->rot,
+           output.epoch,
+           scale,
+           ofile);
       }
       else
       {
-	 fprintf(fraw, rfmt,
-	   nimages+1,
-	   output.wcs->ctype[0],
-	   output.wcs->ctype[1],
-	   oxpixMax - oxpixMin + 1,
-	   oypixMax - oypixMin + 1,
-	   output.wcs->crval[0],
-	   output.wcs->crval[1],
-	   output.wcs->crpix[0] - oxpixMin,
-	   output.wcs->crpix[1] - oypixMin,
-	   output.wcs->cdelt[0],
-	   output.wcs->cdelt[1],
-	   output.wcs->rot,
-	   output.epoch,
-	   ofile);
+         fprintf(fraw, rfmt,
+           nimages+1,
+           output.wcs->ctype[0],
+           output.wcs->ctype[1],
+           (int)(oxpixMax - oxpixMin + 1),
+           (int)(oypixMax - oypixMin + 1),
+           output.wcs->crval[0],
+           output.wcs->crval[1],
+           output.wcs->crpix[0] - oxpixMin,
+           output.wcs->crpix[1] - oypixMin,
+           output.wcs->cdelt[0],
+           output.wcs->cdelt[1],
+           output.wcs->rot,
+           output.epoch,
+           ofile);
       }
 
       fprintf(fproj, pfmt,
-	nimages+1,
-	output.wcs->ctype[0],
-	output.wcs->ctype[1],
-	oxpixMax - oxpixMin + 1,
-	oypixMax - oypixMin + 1,
-	output.wcs->crval[0],
-	output.wcs->crval[1],
-	output.wcs->crpix[0] - oxpixMin,
-	output.wcs->crpix[1] - oypixMin,
-	output.wcs->cdelt[0],
-	output.wcs->cdelt[1],
-	output.wcs->rot,
-	output.epoch,
-	ofile);
+        nimages+1,
+        output.wcs->ctype[0],
+        output.wcs->ctype[1],
+        (int)(oxpixMax - oxpixMin + 1),
+        (int)(oypixMax - oypixMin + 1),
+        output.wcs->crval[0],
+        output.wcs->crval[1],
+        output.wcs->crpix[0] - oxpixMin,
+        output.wcs->crpix[1] - oypixMin,
+        output.wcs->cdelt[0],
+        output.wcs->cdelt[1],
+        output.wcs->rot,
+        output.epoch,
+        ofile);
 
       fprintf(fcorr, cfmt,
-	nimages+1,
-	output.wcs->ctype[0],
-	output.wcs->ctype[1],
-	oxpixMax - oxpixMin + 1,
-	oypixMax - oypixMin + 1,
-	output.wcs->crval[0],
-	output.wcs->crval[1],
-	output.wcs->crpix[0] - oxpixMin,
-	output.wcs->crpix[1] - oypixMin,
-	output.wcs->cdelt[0],
-	output.wcs->cdelt[1],
-	output.wcs->rot,
-	output.epoch,
-	ofile);
+        nimages+1,
+        output.wcs->ctype[0],
+        output.wcs->ctype[1],
+        (int)(oxpixMax - oxpixMin + 1),
+        (int)(oypixMax - oypixMin + 1),
+        output.wcs->crval[0],
+        output.wcs->crval[1],
+        output.wcs->crpix[0] - oxpixMin,
+        output.wcs->crpix[1] - oypixMin,
+        output.wcs->cdelt[0],
+        output.wcs->cdelt[1],
+        output.wcs->rot,
+        output.epoch,
+        ofile);
 
       ++nimages;
    }
@@ -1013,7 +1013,7 @@ int readTemplate(char *filename)
          line[strlen(line)-1]  = '\0';
       
       if(line[strlen(line)-1] == '\r')
-	 line[strlen(line)-1]  = '\0';
+         line[strlen(line)-1]  = '\0';
 
       if(debug)
       {

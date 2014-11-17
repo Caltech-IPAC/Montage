@@ -851,7 +851,7 @@ int CALLmAdd (char *cmd, char *path, int haveAreas, int coadd, int shrink,
    }
    if (!shrink) strcat(cmd," -e");
    /* do not pass -d N to mAdd, as it will make the svc library unhappy */
-   if (status_file[0] != '\0'
+   if (status_file[0] != '\0')
    {
       strcat(cmd," -s ");
       strcat(cmd,status_file);

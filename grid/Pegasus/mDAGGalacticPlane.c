@@ -200,7 +200,7 @@ int main(int argc, char **argv)
 
    timeval = time(0);
 
-   strcpy(timestr, ctime(&timeval));
+   strcpy(timestr, ctime((const time_t *)(&timeval)));
 
    for(i=0; i<strlen(timestr); ++i)
       if(timestr[i] == '\n')
@@ -688,7 +688,7 @@ int main(int argc, char **argv)
 
       fprintf(fdag, "  <filename file=\"%s\" link=\"output\"/>\n", tval(ifname));
 
-      sprintf(fname, tval(ifname));
+      strcpy(fname, tval(ifname));
 
       fname[strlen(fname)-5] = '\0';
 

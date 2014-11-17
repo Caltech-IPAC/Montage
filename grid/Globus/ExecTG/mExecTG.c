@@ -568,7 +568,7 @@ int main(int argc, char **argv, char **envp)
      fprintf(fmsg, "survey      = [%s]\n",  survey);
      fprintf(fmsg, "band        = [%s]\n",  band);
      fprintf(fmsg, "hdrfile     = [%s]\n",  hdrfile);
-     fprintf(fmsg, "hdrtext     =  %d characters\n",  strlen(hdrtext));
+     fprintf(fmsg, "hdrtext     =  %lu characters\n",  strlen(hdrtext));
      fprintf(fmsg, "workspace   = [%s]\n",  workspace);
      fprintf(fmsg, "levelOnly   =  %d\n",   levelOnly);
      fprintf(fmsg, "keepAll     =  %d\n",   keepAll);
