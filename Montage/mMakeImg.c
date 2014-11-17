@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 1.4      John Good        20Jul07  Add checks for 'short' image sides
 1.3      John Good        24Jun07  Need fix for CAR offset problem 
 1.2      John Good        13Oct06  Add 'region' and 'replace' modes
@@ -31,6 +33,8 @@ int    readTemplate  (char *filename);
 int    parseLine     (char *line);
 double ltqnorm       (double);
 void   fixxy         (double *x, double *y, int *offscl);
+int    swap          (double *x, double *y);
+int    nextStr       (FILE *fin, char *val);
 
 
 char  *tval(int);

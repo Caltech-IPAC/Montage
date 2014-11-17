@@ -1,6 +1,6 @@
 #include "distort.h"
 
-distort(double x, double y, DistCoeff coeff, double *u, double *v)
+void distort(double x, double y, DistCoeff coeff, double *u, double *v)
 {
   int m, n, i, j, k;
   double s[MAXORDER], sum;

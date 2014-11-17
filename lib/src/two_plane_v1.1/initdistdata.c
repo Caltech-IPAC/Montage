@@ -1,7 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 #include <strings.h>
 #include "fitsio.h"
 #include "distort.h"
+
+int parse_str(char *fitsheader, char *value, const char *key);
+int parse_double(char *fitsheader, double *value, const char *key);
+int parse_int(char *fitsheader, int *value, const char *key);
 
 fitsfile        *ffp_FITS_In;
 
@@ -38,8 +43,7 @@ int initdata_byheader(char *fitsheader, DistCoeff *coeff)
   int i, j, m=0, n=0;
   
   int status=0;
-  char    CP_Keyname[FLEN_KEYWORD], CP_Comment[FLEN_COMMENT],
-          CP_Keyvalue[FLEN_VALUE], extension[FLEN_COMMENT];
+  char    CP_Keyname[FLEN_KEYWORD], CP_Keyvalue[FLEN_VALUE], extension[FLEN_COMMENT];
  
   int ival=0;
 
@@ -168,8 +172,7 @@ int initdata_byfile(fitsfile *ffp_FITS_In, DistCoeff *coeff)
   int i, j, m=0, n=0;
   
   int I_fits_return_status=0;
-  char    CP_Keyname[FLEN_KEYWORD], CP_Comment[FLEN_COMMENT],
-          CP_Keyvalue[FLEN_VALUE], extension[FLEN_COMMENT];
+  char    CP_Keyname[FLEN_KEYWORD], CP_Keyvalue[FLEN_VALUE], extension[FLEN_COMMENT];
  
   long ival=0;
 
@@ -429,7 +432,6 @@ int update_distort_keywords(fitsfile *fp_FITS_In, DistCoeff* coeff)
   int i, j, I_fits_return_status=0;
   char CP_Keyname[FLEN_KEYWORD];
   char CP_Comment[FLEN_COMMENT];
-  char CP_Keyvalue[FLEN_VALUE];
 
   sprintf(CP_Keyname, "%s", "A_ORDER");
   sprintf(CP_Comment, "%s", "");

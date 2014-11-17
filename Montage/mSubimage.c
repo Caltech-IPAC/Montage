@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+6.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 5.0      John Good        24Jun07  Add -c (shrinkwrap) mode where the
                                    subimage is chosen based on the range
                                    of non-blank pixels
@@ -526,8 +528,8 @@ int main(int argc, char **argv)
          printf("xsize= [%lf]\n", xsize);
          printf("ysize= [%lf]\n", ysize);
 
-         printf("imin= [%lf] imax = [%lf]\n", imin, imax);
-         printf("jmin= [%lf] jmax = [%lf]\n", jmin, jmax);
+         printf("imin= [%d] imax = [%d]\n", imin, imax);
+         printf("jmin= [%d] jmax = [%d]\n", jmin, jmax);
          fflush(stdout);
       }
  

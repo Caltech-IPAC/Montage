@@ -33,7 +33,9 @@ extern int getopt(int argc, char *const *argv, const char *options);
 
 int tcp_connect(char *hostname, int port);
 
-int parseUrl(char *urlStr, char *hostStr, int *port, char **dataref);
+int checkHdr(char *infile, int hdrflag, int hdu);
+
+void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref);
 
 void archive_sigset();
 
@@ -366,7 +368,7 @@ int tcp_connect(char *hostname, int port)
 }
 
 
-int parseUrl(char *urlStr, char *hostStr, int *port, char **dataref) {
+void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref) {
   
    char  *hostPtr;
    char  *portPtr;

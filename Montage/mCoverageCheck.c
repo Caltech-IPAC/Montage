@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 2.6      John Good        24Jun07  CAR fix should not adjust CRVAL2 
 2.5      John Good        29Mar06  Need spaces in "datatype=fitshdr"
 2.4      John Good        16Feb06  For some reason, the WCS library screws
@@ -688,7 +690,7 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("Header corner %d: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[0], point_dec[0]);
+         printf("Header corner 0: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[0], point_dec[0]);
 	 fflush(stdout);
       }
 
@@ -699,7 +701,7 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("Header corner %d: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[1], point_dec[1]);
+         printf("Header corner 1: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[1], point_dec[1]);
 	 fflush(stdout);
       }
 
@@ -710,7 +712,7 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("Header corner %d: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[2], point_dec[2]);
+         printf("Header corner 2: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[2], point_dec[2]);
 	 fflush(stdout);
       }
 
@@ -721,7 +723,7 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("Header corner %d: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[3], point_dec[3]);
+         printf("Header corner 3: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[3], point_dec[3]);
 	 fflush(stdout);
       }
 
@@ -1019,8 +1021,7 @@ int main(int argc, char **argv)
 
       if(ifname < 0)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CUTOUT mode needs a valid 'fname' or 'file' column\"]\n",
-	    outfile);
+	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CUTOUT mode needs a valid 'fname' or 'file' column\"]\n");
 	 exit(1);
       }
    }

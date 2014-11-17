@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 2.7      John Good        09Dec12  Fix realloc bug (using wrong index variable)
 2.6      John Good        28Apr08  Add flag to turn off rejection 
                                    (e.g. for all-sky CAR)
@@ -433,7 +435,7 @@ int main(int argc, char **argv)
 
    if(debug >= 2)
    {
-      printf("Allocating imgs to %d (size %d) [11]\n", maximages, maximages * sizeof(struct ImgInfo));
+      printf("Allocating imgs to %d (size %lu) [11]\n", maximages, maximages * sizeof(struct ImgInfo));
       fflush(stdout);
    }
 
@@ -471,7 +473,7 @@ int main(int argc, char **argv)
 
 	 if(debug >= 2)
 	 {
-	    printf("Reallocating imgs to %d (size %d) [14]\n", maximages, maximages * sizeof(struct ImgInfo));
+	    printf("Reallocating imgs to %d (size %lu) [14]\n", maximages, maximages * sizeof(struct ImgInfo));
 	    fflush(stdout);
 	 }
 
@@ -560,7 +562,7 @@ int main(int argc, char **argv)
 
    if(debug >= 2)
    {
-      printf("Allocating fits to %d (size %d) [12]\n", maxfits, maxfits * sizeof(struct FitInfo));
+      printf("Allocating fits to %d (size %lu) [12]\n", maxfits, maxfits * sizeof(struct FitInfo));
       fflush(stdout);
    }
 
@@ -624,7 +626,7 @@ int main(int argc, char **argv)
 
 	 if(debug >= 2)
 	 {
-	    printf("Reallocating fits to %d (size %d) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
+	    printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
 	    fflush(stdout);
 	 }
 
@@ -672,7 +674,7 @@ int main(int argc, char **argv)
 
 	 if(debug >= 2)
 	 {
-	    printf("Reallocating fits to %d (size %d) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
+	    printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
 	    fflush(stdout);
 	 }
 
@@ -701,7 +703,7 @@ int main(int argc, char **argv)
 
    if(debug >= 2)
    {
-      printf("Allocating corrs to %d (size %d) [13]\n", maxcorrs, maxcorrs * sizeof(struct CorrInfo));
+      printf("Allocating corrs to %d (size %lu) [13]\n", maxcorrs, maxcorrs * sizeof(struct CorrInfo));
       fflush(stdout);
    }
 
@@ -726,7 +728,7 @@ int main(int argc, char **argv)
 
       if(debug >= 2)
       {
-	 printf("Allocating corrs[%d].neighbors to %d (size %d) [20]\n", i, corrs[i].maxneighbors, 
+	 printf("Allocating corrs[%d].neighbors to %d (size %lu) [20]\n", i, corrs[i].maxneighbors, 
 	   corrs[i].maxneighbors * sizeof(struct FitInfo *));
 	 fflush(stdout);
       }
@@ -771,7 +773,7 @@ int main(int argc, char **argv)
 
 	    if(debug >= 2)
 	    {
-	       printf("Reallocating corrs to %d (size %d) [17]\n", maxcorrs, maxcorrs * sizeof(struct CorrInfo));
+	       printf("Reallocating corrs to %d (size %lu) [17]\n", maxcorrs, maxcorrs * sizeof(struct CorrInfo));
 	       fflush(stdout);
 	    }
 
@@ -796,7 +798,7 @@ int main(int argc, char **argv)
 
 	       if(debug >= 2)
 	       {
-		  printf("Allocating corrs[%d].maxneighbors to %d (size %d) [18]\n", i, corrs[i].maxneighbors, 
+		  printf("Allocating corrs[%d].maxneighbors to %d (size %lu) [18]\n", i, corrs[i].maxneighbors, 
 		     corrs[i].maxneighbors * sizeof(struct FitInfo *));
 		  fflush(stdout);
 	       }
@@ -843,7 +845,7 @@ int main(int argc, char **argv)
 
 	 if(debug >= 2)
 	 {
-	    printf("Reallocating corrs[%d].neighbors to %d (size %d) [19]\n", index, corrs[index].maxneighbors, corrs[index].maxneighbors * sizeof(struct FitInfo *));
+	    printf("Reallocating corrs[%d].neighbors to %d (size %lu) [19]\n", index, corrs[index].maxneighbors, corrs[index].maxneighbors * sizeof(struct FitInfo *));
 	    fflush(stdout);
 	 }
 

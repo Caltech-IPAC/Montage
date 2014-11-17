@@ -1,5 +1,5 @@
 #include "distort.h"
-undistort(double u, double v, DistCoeff coeff, double *x, double *y)
+void undistort(double u, double v, DistCoeff coeff, double *x, double *y)
 {
   int m, n, i, j, k;
   double s[MAXORDER], sum;

@@ -22,6 +22,7 @@ Version  Developer        Date     Change
 #include <fcntl.h>
 
 #include <montage.h>
+#include <cmd.h>
 #include <wcs.h>
 #include <coord.h>
 #include <mtbl.h>
@@ -91,9 +92,12 @@ RectInfo;
 extern char *optarg;
 extern int   optind, opterr;
 
-extern int getopt(int argc, char *const *argv, const char *options);
+extern int getopt (int argc, char *const *argv, const char *options);
+void       pix2wcs(struct WorldCoor*, double, double, double*, double*);
 
-void      pix2wcs   (struct WorldCoor*, double, double, double*, double*);
+int        RTreeConvertToID(struct Node *N);
+int        RTreeReorganize (struct Node *N, int maxlev, struct Node *M, int start);
+int        RTreeParentage  (struct Node *N, int childID, int mode);
 
 double    ra, dec, radius;
 double    prevra, prevdec;
@@ -141,6 +145,7 @@ int       search_type, tmp_type;
 
 int       checkFile (char *filename);
 int       checkWCS  (struct WorldCoor *wcs, int action);
+int       debugCheck(char *debugStr);
 
 int       findBoundary();
 
@@ -610,8 +615,7 @@ int main(int argc, char **argv)
 
       if(fdset < 0)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Cannot open index file. Check path existence/writability.\"]\n", 
-            (long)sizeset);
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open index file. Check path existence/writability.\"]\n");
          fflush(stdout);
          exit(0);
       }
@@ -628,8 +632,8 @@ int main(int argc, char **argv)
 
       if(rdebug)
       {
-         printf("'set' memory mapped at %ld, %ld long (%ld structs of size %d)\n",
-            set, sizeset, nset, sizeof(Set));
+         printf("'set' memory mapped at %ld, %d long (%ld structs of size %lu)\n",
+            (long int)set, sizeset, nset, sizeof(Set));
          fflush(stdout);
       }
 
@@ -658,8 +662,8 @@ int main(int argc, char **argv)
 
       if(rdebug)
       {
-         printf("'rectinfo' memory mapped at %ld, %ld long (%ld structs of size %d)\n",
-            rectinfo, sizerec, nrect, sizeof(RectInfo));
+         printf("'rectinfo' memory mapped at %ld, %ld long (%ld structs of size %lu)\n",
+            (long int)rectinfo, sizerec, nrect, sizeof(RectInfo));
          fflush(stdout);
       }
 
@@ -680,7 +684,7 @@ int main(int argc, char **argv)
       
       if(rdebug)
       {
-         printf("RTree 'Node' memory map at %ld, %ld long (%ld structs of size %d)\n",
+         printf("RTree 'Node' memory map at %ld, %ld long (%ld structs of size %lu)\n",
             (long)mfMemLoc(), size, nindex, sizeof(struct Node));
          fflush(stdout);
       }
@@ -699,7 +703,7 @@ int main(int argc, char **argv)
       {
          for(i=0; i<nset; ++i)
          {
-            printf("SET> %d %s %s\n", 
+            printf("SET> %ld %s %s\n", 
                i, set[i].file, set[i].name);
             fflush(stdout);
          }
@@ -798,8 +802,7 @@ int main(int argc, char **argv)
 
             if(fdset < 0)
             {
-               printf("[struct stat=\"ERROR\", msg=\"Cannot open index file. Check path existence/writability.\"]\n", 
-                  (long)sizeset);
+               printf("[struct stat=\"ERROR\", msg=\"Cannot open index file. Check path existence/writability.\"]\n");
                fflush(stdout);
                exit(0);
             }
@@ -820,8 +823,8 @@ int main(int argc, char **argv)
 
             if(rdebug)
             {
-               printf("'set' memory mapped at %ld, %ld long (%ld structs of size %d)\n",
-                  set, sizeset, nset, sizeof(Set));
+               printf("'set' memory mapped at %ld, %ld long (%d structs of size %lu)\n",
+                  (long int)set, sizeset, nset, sizeof(Set));
                fflush(stdout);
             }
 
@@ -896,8 +899,7 @@ int main(int argc, char **argv)
 
             if(fdset < 0)
             {
-               printf("[struct stat=\"ERROR\", msg=\"Cannot open index file. Check path existence/writability.\"]\n", 
-                  (long)sizeset);
+               printf("[struct stat=\"ERROR\", msg=\"Cannot open index file. Check path existence/writability.\"]\n");
                fflush(stdout);
                exit(0);
             }
@@ -918,8 +920,8 @@ int main(int argc, char **argv)
 
             if(rdebug)
             {
-               printf("'set' memory mapped at %ld, %ld long (%ld structs of size %d)\n",
-                  set, sizeset, nset, sizeof(Set));
+               printf("'set' memory mapped at %ld, %ld long (%d structs of size %ld)\n",
+                  (long int)set, sizeset, nset, sizeof(Set));
                fflush(stdout);
             }
 
@@ -1025,7 +1027,7 @@ int main(int argc, char **argv)
 
          if(rdebug)
          {
-            printf("RTree 'Node' memory map at %ld, %ld long (%ld structs of size %d)\n",
+            printf("RTree 'Node' memory map at %ld, %ld long (%ld structs of size %lu)\n",
                (long)mfMemLoc(), size, nindex, sizeof(struct Node));
             fflush(stdout);
          }
@@ -1080,8 +1082,8 @@ int main(int argc, char **argv)
 
          if(rdebug)
          {
-            printf("'rectinfo' memory mapped at %ld, %ld long (%ld structs of size %d)\n",
-               rectinfo, sizerec, nrect, sizeof(RectInfo));
+            printf("'rectinfo' memory mapped at %ld, %ld long (%d structs of size %lu)\n",
+               (long int)rectinfo, sizerec, nrect, sizeof(RectInfo));
             fflush(stdout);
          }
       }
@@ -1249,7 +1251,7 @@ int main(int argc, char **argv)
 
             if(rdebug > 2)
             {
-               printf("\n\n---------------\nREAD image/point %d\n", nrow);
+               printf("\n\n---------------\nREAD image/point %ld\n", nrow);
                fflush(stdout);
             }
 
@@ -1368,7 +1370,7 @@ int main(int argc, char **argv)
 
                if (nowcs (wcsimg)) 
                {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to create wcs structure for record %d.\"]\n", nrow);
+                  printf("[struct stat=\"ERROR\", msg=\"Failed to create wcs structure for record %ld.\"]\n", nrow);
                   fflush(stdout);
                   exit(0);
                }
@@ -1437,7 +1439,7 @@ int main(int argc, char **argv)
 
             if(blankRec)
             {
-               printf("[struct stat=\"WARNING\", msg=\"Error loading record %d from table %s\"]\n",
+               printf("[struct stat=\"WARNING\", msg=\"Error loading record %ld from table %s\"]\n",
                   nrec, tblfile);
                fflush(stdout);
 
@@ -1522,7 +1524,7 @@ int main(int argc, char **argv)
 
                   for(i=0; i<4; ++i)
                   {
-                     printf("Corner %d:  %11.6f %11.6f  -> %11.8f %11.8f %11.8f\n",
+                     printf("Corner %ld:  %11.6f %11.6f  -> %11.8f %11.8f %11.8f\n",
                         i, corner_ra[i], corner_dec[i], rectinfo[id].corner[i].x, 
                            rectinfo[id].corner[i].y, rectinfo[id].corner[i].z);
                   }
@@ -1566,7 +1568,7 @@ int main(int argc, char **argv)
 
                if(rdebug > 1)
                {
-                  printf("Point %d:  %11.6f %11.6f  -> %11.8f %11.8f %11.8f\n",
+                  printf("Point %ld:  %11.6f %11.6f  -> %11.8f %11.8f %11.8f\n",
                      id, ra, dec, rectinfo[id].center.x, 
                         rectinfo[id].center.y, rectinfo[id].center.z);
 
@@ -1593,19 +1595,19 @@ int main(int argc, char **argv)
             {
                if(xmax-xmin < pad)
                {
-                  printf("[struct stat=\"INFO\", set=%d, rec=%d, xdiff=%-g]\n", iset, nrec, xmax - xmin);
+                  printf("[struct stat=\"INFO\", set=%d, rec=%ld, xdiff=%-g]\n", iset, nrec, xmax - xmin);
                   fflush(stdout);
                }
 
                if(ymax-ymin < pad)
                {
-                  printf("[struct stat=\"INFO\", set=%d, rec=%d, ydiff=%-g]\n", iset, nrec, ymax - ymin);
+                  printf("[struct stat=\"INFO\", set=%d, rec=%ld, ydiff=%-g]\n", iset, nrec, ymax - ymin);
                   fflush(stdout);
                }
 
                if(zmax-zmin < pad)
                {
-                  printf("[struct stat=\"INFO\", set=%d, rec=%d, zdiff=%-g]\n", iset, nrec, zmax - zmin);
+                  printf("[struct stat=\"INFO\", set=%d, rec=%ld, zdiff=%-g]\n", iset, nrec, zmax - zmin);
                   fflush(stdout);
                }
             }
@@ -1615,7 +1617,7 @@ int main(int argc, char **argv)
             
             if(rdebug)
             {
-               printf("\nrect %d:\n", id);
+               printf("\nrect %ld:\n", id);
                printf("setid       %d\n", rectinfo[id].setid);
                printf("catoff      %ld\n", rectinfo[id].catoff);
 
@@ -1623,7 +1625,7 @@ int main(int argc, char **argv)
                   rectinfo[id].center.x, rectinfo[id].center.y, rectinfo[id].center.z);
 
                for(j=0; j<4; ++j)
-                  printf("corner[%d]  %13.10f %13.10f %13.10f\n", 
+                  printf("corner[%ld]  %13.10f %13.10f %13.10f\n", 
                      j, rectinfo[id].corner[j].x, rectinfo[id].corner[j].y, rectinfo[id].corner[j].z);
 
                printf("datatype    %d\n", rectinfo[id].datatype);
@@ -1636,7 +1638,7 @@ int main(int argc, char **argv)
 
                if(refcnt >= refresh)
                {
-                  printf("\rset=%d rec=%d                       ", iset+1, nrec+1);
+                  printf("\rset=%d rec=%ld                       ", iset+1, nrec+1);
                   fflush(stdout);
 
                   refcnt = 0;
@@ -1663,7 +1665,7 @@ int main(int argc, char **argv)
 
          if(info)
          {
-            printf("[struct stat=\"INFO\", time=\"%.4f\", setid=\"%d\", setname=\"%s\", count=\"%d\"]\n",
+            printf("[struct stat=\"INFO\", time=\"%.4f\", setid=\"%d\", setname=\"%s\", count=\"%ld\"]\n",
                loadtime-starttime, iset, set[iset].name, nrow);
             fflush(stdout);
          }
@@ -1689,11 +1691,11 @@ int main(int argc, char **argv)
 
       if(strlen(basefile) > 0)
       {
-         fprintf(finfo, "nset   = %d\n", nset);
-         fprintf(finfo, "nrect  = %d\n", nrect);
-         fprintf(finfo, "nindex = %d\n", nindex);
-         fprintf(finfo, "rootid = %d\n", rootid);
-         fprintf(finfo, "maxlev = %d\n", maxlev);
+         fprintf(finfo, "nset   = %d\n",  nset);
+         fprintf(finfo, "nrect  = %ld\n", nrect);
+         fprintf(finfo, "nindex = %ld\n", nindex);
+         fprintf(finfo, "rootid = %ld\n", rootid);
+         fprintf(finfo, "maxlev = %d\n",  maxlev);
          fclose(finfo);
       }
 
@@ -1774,11 +1776,11 @@ int main(int argc, char **argv)
 
       finfo = fopen(infofile, "w+");
 
-      fprintf(finfo, "nset   = %d\n", nset);
-      fprintf(finfo, "nrect  = %d\n", nrect);
-      fprintf(finfo, "nindex = %d\n", nindex);
-      fprintf(finfo, "rootid = %d\n", 0);
-      fprintf(finfo, "maxlev = %d\n", maxlev);
+      fprintf(finfo, "nset   = %d\n",  nset);
+      fprintf(finfo, "nrect  = %ld\n", nrect);
+      fprintf(finfo, "nindex = %ld\n", nindex);
+      fprintf(finfo, "rootid = %d\n",  0);
+      fprintf(finfo, "maxlev = %d\n",  maxlev);
       fclose(finfo);
 
       if(rdebug)
@@ -1811,7 +1813,7 @@ int main(int argc, char **argv)
       gettimeofday(&tp, &tzp);
       reorgtime = (double)tp.tv_sec + (double)tp.tv_usec/1000000.;
 
-      printf("[struct stat=\"OK\", build=\"%.4f\", reorg=\"%.4f\", nset=\"%d\", count=\"%d\", size=\"%ld\"]\n",
+      printf("[struct stat=\"OK\", build=\"%.4f\", reorg=\"%.4f\", nset=\"%d\", count=\"%ld\", size=\"%ld\"]\n",
          loadtime-begintime, reorgtime-loadtime, nset, id, (long)mfSize());
       fflush(stdout);
 
@@ -1865,7 +1867,7 @@ int main(int argc, char **argv)
       {
          printf("\n");
          for(i=0; i<cmdc; ++i)
-            printf("CMD %d: [%s]\n", i, cmdv[i]);
+            printf("CMD %ld: [%s]\n", i, cmdv[i]);
          printf("\n");
          fflush(stdout);
       }
@@ -1923,7 +1925,7 @@ int main(int argc, char **argv)
 
          if(rdebug)
          {
-            printf("\ndumpcount = %d\n\n");
+            printf("\ndumpcount = %d\n\n", dumpcount);
             fflush(stdout);
          }
         
@@ -1932,7 +1934,7 @@ int main(int argc, char **argv)
 
          for(id=0; id<dumprect; ++id)
          {
-            printf("\nrect %d:\n", id);
+            printf("\nrect %;d:\n", id);
             printf("setid       %d\n", rectinfo[id].setid);
             printf("catoff      %ld\n", rectinfo[id].catoff);
 
@@ -1940,7 +1942,7 @@ int main(int argc, char **argv)
                rectinfo[id].center.x, rectinfo[id].center.y, rectinfo[id].center.z);
 
             for(j=0; j<4; ++j)
-               printf("corner[%d]  %13.10f %13.10f %13.10f\n", 
+               printf("corner[%ld]  %13.10f %13.10f %13.10f\n", 
                   j, rectinfo[id].corner[j].x, rectinfo[id].corner[j].y, rectinfo[id].corner[j].z);
 
             printf("datatype    %d\n", rectinfo[id].datatype);
@@ -1949,7 +1951,7 @@ int main(int argc, char **argv)
 
 
          printf("\n\nNode data @%ld\n", (long)set);
-         printf("Node size: %d\n", sizeof(struct Node));
+         printf("Node size: %lu\n", sizeof(struct Node));
          fflush(stdout);
 
          if(strlen(basefile) > 0)
@@ -2230,7 +2232,7 @@ int main(int argc, char **argv)
 
                if(rdebug > 2)
                {
-                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %d:  ra = %11.6f   dec = %11.6f\n\n",
+                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f\n\n",
                      srcid, prevsrc, ra, dec);
                   fflush(stdout);
                }
@@ -2282,7 +2284,7 @@ int main(int argc, char **argv)
 
             else if(rdebug > 2)
             {
-               printf("Source %8d  [%11.6f %11.6f] not matched in set %3d\n\n", prevsrc, ra, dec, i);
+               printf("Source %8ld  [%11.6f %11.6f] not matched in set %3ld\n\n", prevsrc, ra, dec, i);
                fflush(stdout);
             }
 
@@ -2304,12 +2306,12 @@ int main(int argc, char **argv)
          if(singleMode)
          {
             fprintf(fsum, "\\fixlen = T\n");
-            fprintf(fsum, "|dataset|%10s|\n", outstr, "count");
+            fprintf(fsum, "|dataset|%10s|\n", "count");
             fflush(fsum);
 
             if(setcount[0].srcmatch > 0)
             {
-               fprintf(fsum, " catalog %10d \n", setcount[0].srcmatch);
+               fprintf(fsum, " catalog %10ld \n", setcount[0].srcmatch);
                fflush(fsum);
             }
          }
@@ -2349,13 +2351,13 @@ int main(int argc, char **argv)
 
                if(setcount[i].srcmatch > 0)
                {
-                  fprintf(fsum, "%s %10d \n", outstr, setcount[i].srcmatch);
+                  fprintf(fsum, "%s %10ld \n", outstr, setcount[i].srcmatch);
                   fflush(fsum);
                }
 
                if(info)
                {
-                  printf("[struct stat=\"INFO\", setid=\"%d\", setname=\"%s\", matchedsrcs=\"%d\"]\n",
+                  printf("[struct stat=\"INFO\", setid=\"%ld\", setname=\"%s\", matchedsrcs=\"%ld\"]\n",
                      i, set[i].name, setcount[i].srcmatch);
                   fflush(stdout);
                }
@@ -2469,7 +2471,7 @@ int main(int argc, char **argv)
 
                if(singleMode)
                {
-                  fprintf(fsum, " catalog %10d \n", setcount[i].match);
+                  fprintf(fsum, " catalog %10ld \n", setcount[i].match);
                   fflush(fsum);
                }
                else
@@ -2478,7 +2480,7 @@ int main(int argc, char **argv)
 
                   outstr[offset] = '\0';
 
-                  fprintf(fsum, "%s %10d \n", outstr, setcount[i].match);
+                  fprintf(fsum, "%s %10ld \n", outstr, setcount[i].match);
                   fflush(fsum);
                }
             }
@@ -2487,7 +2489,7 @@ int main(int argc, char **argv)
          if(!singleMode)
             tclose();
 
-         printf("[struct stat=\"OK\", command=\"region\", outfile=\"%s\", count=\"%d\", nsrc=\"%ld\"]\n", 
+         printf("[struct stat=\"OK\", command=\"region\", outfile=\"%s\", count=\"%ld\", nsrc=\"%ld\"]\n", 
             summary, nmatch, nsrc);
          fflush(stdout);
       }
@@ -2619,7 +2621,7 @@ int main(int argc, char **argv)
 
          nhits = RTreeSearch(root, &search_rect, (SearchHitCallback)overlapCallback, 0, storageMode);
 
-         printf("[struct stat=\"OK\", command=\"subset\", dataset=\"%s\", outfile=\"%s\", count=\"%d\"]\n", 
+         printf("[struct stat=\"OK\", command=\"subset\", dataset=\"%s\", outfile=\"%s\", count=\"%ld\"]\n", 
             setName, summary, setcount[subsetSetid].match);
          fflush(stdout);
          fclose(fsum);
@@ -2693,7 +2695,7 @@ int main(int argc, char **argv)
                   continue;
                }
 
-               reffd = open(tblfile, O_RDONLY|O_LARGEFILE);
+               reffd = open(tblfile, O_RDONLY);
 
                if(reffd < 0)
                {
@@ -2902,7 +2904,7 @@ int main(int argc, char **argv)
 
                if(rdebug > 2)
                {
-                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %d:  ra = %11.6f   dec = %11.6f\n\n",
+                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f\n\n",
                      srcid, prevsrc, ra, dec);
                   fflush(stdout);
                }
@@ -2958,7 +2960,7 @@ int main(int argc, char **argv)
 
             else if(rdebug > 2)
             {
-               printf("Source %8d  [%11.6f %11.6f] not matched in set %3d\n\n", prevsrc, ra, dec, i);
+               printf("Source %8ld  [%11.6f %11.6f] not matched in set %3ld\n\n", prevsrc, ra, dec, i);
                fflush(stdout);
             }
 
@@ -3413,7 +3415,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
    {
       if(rdebug > 2)
       {
-         printf("overlapCallback(): isMatch> setid=%d subsetSetid=%d nrec=%d\n", 
+         printf("overlapCallback(): isMatch> setid=%d subsetSetid=%d nrec=%ld\n", 
             setid, subsetSetid, nrec);
          fflush(stdout);
       }
@@ -3426,7 +3428,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
       fgets(refRec, BIGSTR, fref);
       */
 
-      lseek64(reffd, refOffset, SEEK_SET);
+      lseek(reffd, refOffset, SEEK_SET);
 
       read(reffd, (void *)refRec, (size_t)set[setid].reclen);
 
@@ -3434,7 +3436,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
       if(rdebug > 2)
       {
-         printf("overlapCallback(): isMatch> refOffset=%ld refRec=[%s]\n", 
+         printf("overlapCallback(): isMatch> refOffset=%lld refRec=[%s]\n", 
             refOffset, refRec);
          fflush(stdout);
       }
@@ -3477,7 +3479,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
    {
       if(rdebug > 2)
       {
-         printf("overlapCallback(): isSubset> setid=%d subsetSetid=%d nrec=%d\n", 
+         printf("overlapCallback(): isSubset> setid=%d subsetSetid=%d nrec=%ld\n", 
             setid, subsetSetid, nrec);
          fflush(stdout);
       }

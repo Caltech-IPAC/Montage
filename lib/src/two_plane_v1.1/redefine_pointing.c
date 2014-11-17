@@ -281,9 +281,8 @@ int parse_int(char *fitsheader, int *value, const char *key){
 int replace_keyword(char *fitsheader, double value, const char *key){
 
 
-  int i,length, total_length, offset;
+  int i,length, total_length;
   char *temp;
-  char empty[] = " ";
   char char_value[80];
 
   int key_length = KEY_LENTH;

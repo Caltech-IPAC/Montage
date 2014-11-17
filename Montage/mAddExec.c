@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 1.3      Daniel S. Katz   25Jan07  Fixing some small bugs in the MPI version
                                    that were inadvertently introduced in 1.2
 1.2      John Good        11Sep06  Require "tile" subdirectory as argument
@@ -831,7 +833,7 @@ int CALLmAdd (char *cmd, char *path, int haveAreas, int coadd, int shrink,
    char fname[MAXSTR];
 
    sprintf(cmd, "mAdd");
-   if (path[0] != NULL)
+   if (path[0] != (char *)NULL)
    {
       strcat(cmd," -p ");
       strcat(cmd,path);
@@ -849,7 +851,7 @@ int CALLmAdd (char *cmd, char *path, int haveAreas, int coadd, int shrink,
    }
    if (!shrink) strcat(cmd," -e");
    /* do not pass -d N to mAdd, as it will make the svc library unhappy */
-   if (status_file[0] != NULL)
+   if (status_file[0] != (char *)NULL)
    {
       strcat(cmd," -s ");
       strcat(cmd,status_file);

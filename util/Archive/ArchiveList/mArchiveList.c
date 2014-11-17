@@ -28,7 +28,7 @@ char *url_encode (char *s);
 int   tcp_connect(char *hostname, int port);
 int   readline   (int fd, char *line) ;
 
-int parseUrl(char *urlStr, char *hostStr, int *port);
+void parseUrl(char *urlStr, char *hostStr, int *port);
 
 int debug = 1;
 
@@ -334,7 +334,7 @@ char *url_encode(char *s)
 }
 
 
-int parseUrl(char *urlStr, char *hostStr, int *port) {
+void parseUrl(char *urlStr, char *hostStr, int *port) {
   
    char  *hostPtr;
    char  *portPtr;

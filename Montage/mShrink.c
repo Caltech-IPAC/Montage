@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+4.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 3.1      John Good        27Feb09  Add ability to extract HDU
 3.0      John Good        29Dec08  Added separate code for scale factors
                                    less than one (expanding).  The code 
@@ -310,7 +312,7 @@ int main(int argc, char **argv)
       if(haveEpoch)   printf("input.epoch          =  %-g\n",   input.epoch);
       if(haveEquinox) printf("input.equinox        =  %-g\n",   input.equinox);
       if(haveBunit)   printf("input.bunit          =  %s\n",    input.bunit);
-      if(haveBlank)   printf("input.blank          =  %d\n",    input.blank);
+      if(haveBlank)   printf("input.blank          =  %ld\n",   input.blank);
       printf("\n");
 
       fflush(stdout);
@@ -352,8 +354,8 @@ int main(int argc, char **argv)
    
    if(debug >= 1)
    {
-      printf("output.naxes[0] = %d\n",  output.naxes[0]);
-      printf("output.naxes[1] = %d\n",  output.naxes[1]);
+      printf("output.naxes[0] = %ld\n",  output.naxes[0]);
+      printf("output.naxes[1] = %ld\n",  output.naxes[1]);
       fflush(stdout);
    }
 
@@ -684,7 +686,7 @@ int main(int argc, char **argv)
 
                if(debug >= 4)
                {
-                  printf("input: line %5d / pixel %5d: indata[%d][%d] = %10.3e\n",
+                  printf("input: line %5ld / pixel %5d: indata[%d][%d] = %10.3e\n",
                      fpixel[1]-2, i, jbuffer, i, indata[jbuffer][i]);
                   fflush(stdout);
                }

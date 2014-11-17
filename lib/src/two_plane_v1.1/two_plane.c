@@ -11,6 +11,9 @@ coordinate transformation defined
 Definitions of Variables
 ifdefined DISTMAX 
 See two_plane.c
+
+Modified 15Nov2014 by John Good to get rid of compiler
+warnings/error.
 *********************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,14 +24,16 @@ See two_plane.c
 #include "two_plane.h"
 #include "distort.h"
 
+void distort(double x, double y, DistCoeff coeff, double *u, double *v);
+void undistort(double u, double v, DistCoeff coeff, double *x, double *y);
+int  initdata_byheader(char *fitsheader, DistCoeff *coeff);
+int  isnan(double x);
+
+
 int plane1_to_plane2_transform(double x_1, double y_1, double *x_2, double *y_2, 
 			   struct TwoPlane *two_plane){
 
   double x_temp, y_temp;
-  double cos_delta_theta;
-  double sin_delta_theta;
-  double cos_theta_plus_delta_theta;
-  double sin_theta_plus_delta_theta;
   double cos_phi,sin_phi_squared,tan_phi_squared, phi_squared;
   double sin_half_phi_squared, tan_half_phi_squared, conversion;
 
@@ -203,10 +208,6 @@ int plane2_to_plane1_transform(double x_2, double y_2, double *x_1, double *y_1,
  /*  first rotate x_2 and y_2 to the perp and paral coordinate system */
 /*   paral being x and perp y */
   double x_temp, y_temp;
-  double cos_delta_theta;
-  double sin_delta_theta;
-  double cos_theta_plus_delta_theta;
-  double sin_theta_plus_delta_theta;
   double cos_phi,sin_phi_squared,tan_phi_squared, phi_squared;
   double sin_half_phi_squared, tan_half_phi_squared, conversion;
 
@@ -381,7 +382,7 @@ int Initialize_TwoPlane_FirstDistort(struct TwoPlane *two_plane,
   int return_status;
   struct WorldCoor *wcs = NULL;
   wcs = wcsinit(fitsheader);
-  if(return_status = Initialize_TwoPlane(two_plane, wcs,WCS)) 
+  if((return_status = Initialize_TwoPlane(two_plane, wcs,WCS)) != 0) 
       return return_status;
   
   two_plane->first_distorted = initdata_byheader(fitsheader, &(two_plane->DistortCoeffFirst));
@@ -398,7 +399,7 @@ int Initialize_TwoPlane_SecondDistort(struct TwoPlane *two_plane,
   int return_status;
   struct WorldCoor *WCS = NULL;
   WCS = wcsinit(fitsheader);
-  if(return_status = Initialize_TwoPlane(two_plane, wcs,WCS)) 
+  if((return_status = Initialize_TwoPlane(two_plane, wcs,WCS)) != 0)
       return return_status;
 
   two_plane->second_distorted = initdata_byheader(fitsheader, 
@@ -418,7 +419,7 @@ int Initialize_TwoPlane_BothDistort(struct TwoPlane *two_plane,
   struct WorldCoor *WCS = NULL;
   wcs = wcsinit(fitsheader1);
   WCS = wcsinit(fitsheader2);
-  if(return_status = Initialize_TwoPlane(two_plane, wcs,WCS))
+  if((return_status = Initialize_TwoPlane(two_plane, wcs,WCS)) != 0)
       return return_status;
 
   two_plane->first_distorted = initdata_byheader(fitsheader1,
@@ -460,7 +461,6 @@ int SetDistortionPlaneFirst(struct TwoPlane *two_plane,
 			    double xrefpix, double yrefpix){
 
   int i, j, m=0, n=0;
-  int return_status;
   DistCoeff coeff;
 
 /* initialize to 0's */
@@ -518,7 +518,6 @@ int SetDistortionPlaneSecond(struct TwoPlane *two_plane,
 			     double xrefpix, double yrefpix){
   
   int i, j, m=0, n=0;
-  int return_status;
   DistCoeff coeff;
   
   /* initialize to 0's */

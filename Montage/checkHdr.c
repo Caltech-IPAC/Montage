@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 2.3      John Good        07Oct07  Add explicit hdrflag=2 check 
                                    (could be either FITS or HDR)
 2.2      John Good        25Sep07  Added getWCS() call to return WCS structure pointer
@@ -94,7 +96,7 @@ char             *getHdr();
 
 static int hdrStringent = 0;
 
-int checkHdrExact(int stringent)
+void checkHdrExact(int stringent)
 {
    hdrStringent = stringent;
 }

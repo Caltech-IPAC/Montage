@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 2.7      John Good        19Sep06  The area check for including a pixel was
                                    too stringent. Changed from 0.05 to 0.333
 2.6      John Good        09Jul06  Make the WARNINGs into ERRORs
@@ -14,15 +16,15 @@ Version  Developer        Date     Change
 2.0      John Good        16May04  Added "no areas" option
 1.7      John Good        25Nov03  Added extern optarg references
 1.6      John Good        21Nov03  Corrected bug in differencing;
-				   pixels outside the region of 
-				   overlap were sometimes getting
-				   kept.
+                                   pixels outside the region of 
+                                   overlap were sometimes getting
+                                   kept.
 1.5      John Good        15Sep03  Updated fits_read_pix() call
 1.4      John Good        25Aug03  Added status file processing
 1.3      John Good        08Apr03  Also remove <CR> from template lines
 1.2      John Good        19Mar03  Check for no overlap
 1.1      John Good        14Mar03  Modified command-line processing
-				   to use getopt() library.  Added
+                                   to use getopt() library.  Added
                                    specific messages for missing flux
                                    and area files.
 1.0      John Good        29Jan03  Baseline code
@@ -186,7 +188,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level] [-n(o-areas)] [-s statusfile] in1.fits in2.fits out.fits hdr.template\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level] [-n(o-areas)] [-s statusfile] in1.fits in2.fits out.fits hdr.template\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -436,8 +438,8 @@ int main(int argc, char **argv)
 
    if(debug >= 1)
    {
-      printf("%d bytes allocated for image pixels\n", 
-	 ilength * jlength * sizeof(double));
+      printf("%lu bytes allocated for image pixels\n", 
+         ilength * jlength * sizeof(double));
       fflush(stdout);
    }
 
@@ -450,7 +452,7 @@ int main(int argc, char **argv)
    {
       for (i=0; i<ilength; ++i)
       {
-	 data[j][i] = 0.;
+         data[j][i] = 0.;
       }
    }
 
@@ -466,8 +468,8 @@ int main(int argc, char **argv)
 
    if(debug >= 1)
    {
-      printf("%d bytes allocated for pixel areas\n", 
-	 ilength * jlength * sizeof(double));
+      printf("%lu bytes allocated for pixel areas\n", 
+         ilength * jlength * sizeof(double));
       fflush(stdout);
    }
 
@@ -480,7 +482,7 @@ int main(int argc, char **argv)
    {
       for (i=0; i<ilength; ++i)
       {
-	 area[j][i] = 0.;
+         area[j][i] = 0.;
       }
    }
 
@@ -510,20 +512,20 @@ int main(int argc, char **argv)
 
       if(debug >= 1)
       {
-	 printf("\nflux file            =  %s\n",  infile[ifile]);
-	 printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-	 printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-	 printf("input.crpix1         =  %-g\n",   input.crpix1);
-	 printf("input.crpix2         =  %-g\n",   input.crpix2);
-	 printf("\narea file            =  %s\n",  inarea[ifile]);
-	 printf("input_area.naxes[0]  =  %ld\n",   input.naxes[0]);
-	 printf("input_area.naxes[1]  =  %ld\n",   input.naxes[1]);
-	 printf("input_area.crpix1    =  %-g\n",   input.crpix1);
-	 printf("input_area.crpix2    =  %-g\n",   input.crpix2);
-	 printf("\nimin                 =  %d\n",  imin);
-	 printf("jmin                 =  %d\n\n",  jmin);
+         printf("\nflux file            =  %s\n",  infile[ifile]);
+         printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
+         printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
+         printf("input.crpix1         =  %-g\n",   input.crpix1);
+         printf("input.crpix2         =  %-g\n",   input.crpix2);
+         printf("\narea file            =  %s\n",  inarea[ifile]);
+         printf("input_area.naxes[0]  =  %ld\n",   input.naxes[0]);
+         printf("input_area.naxes[1]  =  %ld\n",   input.naxes[1]);
+         printf("input_area.crpix1    =  %-g\n",   input.crpix1);
+         printf("input_area.crpix2    =  %-g\n",   input.crpix2);
+         printf("\nimin                 =  %d\n",  imin);
+         printf("jmin                 =  %d\n\n",  jmin);
 
-	 fflush(stdout);
+         fflush(stdout);
       }
 
 
@@ -550,161 +552,161 @@ int main(int argc, char **argv)
 
       for (j=0; j<input.naxes[1]; ++j)
       {
-	 if(debug >= 2)
-	 {
-	    printf("\rProcessing input row %5d  ", j);
-	    fflush(stdout);
-	 }
+         if(debug >= 2)
+         {
+            printf("\rProcessing input row %5d  ", j);
+            fflush(stdout);
+         }
 
 
-	 /***********************************/
-	 /* Read a line from the input file */
-	 /***********************************/
+         /***********************************/
+         /* Read a line from the input file */
+         /***********************************/
 
-	 if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
-			  buffer, &nullcnt, &status))
-	    printFitsError(status);
-	 
+         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+                          buffer, &nullcnt, &status))
+            printFitsError(status);
          
-	 if(noAreas)
-	 {
-	    for(i=0; i<input.naxes[0]; ++i)
-	       abuffer[i] = 1.;
-	 }
-	 else
-	 {
-	 if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, NULL,
-			  abuffer, &nullcnt, &status))
-	    printFitsError(status);
-	 }
-	 
-	 ++fpixel[1];
+         
+         if(noAreas)
+         {
+            for(i=0; i<input.naxes[0]; ++i)
+               abuffer[i] = 1.;
+         }
+         else
+         {
+         if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, NULL,
+                          abuffer, &nullcnt, &status))
+            printFitsError(status);
+         }
+         
+         ++fpixel[1];
 
 
-	 /************************/
-	 /* For each input pixel */
-	 /************************/
+         /************************/
+         /* For each input pixel */
+         /************************/
 
-	 for (i=0; i<input.naxes[0]; ++i)
-	 {
-	    pixel_value = buffer[i] * abuffer[i];
+         for (i=0; i<input.naxes[0]; ++i)
+         {
+            pixel_value = buffer[i] * abuffer[i];
 
-	    if(debug >= 4)
-	    {
-	       printf("input: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
-		  j, i, buffer[i], abuffer[i], j+jmin-jstart, i+imin-istart);
-	       fflush(stdout);
-	    }
+            if(debug >= 4)
+            {
+               printf("input: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
+                  j, i, buffer[i], abuffer[i], j+jmin-jstart, i+imin-istart);
+               fflush(stdout);
+            }
 
-	    if(i+imin < istart) continue;
-	    if(j+jmin < jstart) continue;
+            if(i+imin < istart) continue;
+            if(j+jmin < jstart) continue;
 
-	    if(i+imin >= iend) continue;
-	    if(j+jmin >= jend) continue;
+            if(i+imin >= iend) continue;
+            if(j+jmin >= jend) continue;
 
-	    if(debug >= 3)
-	    {
-	       printf("keep: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
-		  j, i, buffer[i], abuffer[i], j+jmin-jstart, i+imin-istart);
-	       fflush(stdout);
-	    }
+            if(debug >= 3)
+            {
+               printf("keep: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
+                  j, i, buffer[i], abuffer[i], j+jmin-jstart, i+imin-istart);
+               fflush(stdout);
+            }
 
-	    if(ifile == 0)
-	    {
-	       if(mNaN(buffer[i])
-	       || abuffer[i] <= 0.)
-	       {
-		  if(debug >= 5)
-		  {
-		     printf("First file. Setting data to NaN and area to zero.\n");
-		     fflush(stdout);
-		  }
+            if(ifile == 0)
+            {
+               if(mNaN(buffer[i])
+               || abuffer[i] <= 0.)
+               {
+                  if(debug >= 5)
+                  {
+                     printf("First file. Setting data to NaN and area to zero.\n");
+                     fflush(stdout);
+                  }
 
-		  data[j+jmin-jstart][i+imin-istart] = nan;
-		  area[j+jmin-jstart][i+imin-istart] = 0.;
+                  data[j+jmin-jstart][i+imin-istart] = nan;
+                  area[j+jmin-jstart][i+imin-istart] = 0.;
 
-		  if(debug >= 5)
-		  {
-		     printf("done.\n");
-		     fflush(stdout);
-		  }
+                  if(debug >= 5)
+                  {
+                     printf("done.\n");
+                     fflush(stdout);
+                  }
 
-		  continue;
-	       }
+                  continue;
+               }
                else
-	       {
-		  if(debug >= 5)
-		  {
-		     printf("First file. Setting data to pixel value.\n");
-		     fflush(stdout);
-		  }
+               {
+                  if(debug >= 5)
+                  {
+                     printf("First file. Setting data to pixel value.\n");
+                     fflush(stdout);
+                  }
 
-		  data[j+jmin-jstart][i+imin-istart] = pixel_value;
-		  area[j+jmin-jstart][i+imin-istart] = abuffer[i];
+                  data[j+jmin-jstart][i+imin-istart] = pixel_value;
+                  area[j+jmin-jstart][i+imin-istart] = abuffer[i];
 
-		  ++narea1;
-		  avearea1 += abuffer[i];
+                  ++narea1;
+                  avearea1 += abuffer[i];
 
-		  if(debug >= 5)
-		  {
-		     printf("done.\n");
-		     fflush(stdout);
-		  }
+                  if(debug >= 5)
+                  {
+                     printf("done.\n");
+                     fflush(stdout);
+                  }
 
-	       }
-	    }
-	    else
-	    {
-	      if(mNaN(buffer[i])
-	       || abuffer[i] <= 0.
+               }
+            }
+            else
+            {
+              if(mNaN(buffer[i])
+               || abuffer[i] <= 0.
                || data[j+jmin-jstart][i+imin-istart] == nan
                || area[j+jmin-jstart][i+imin-istart] == 0.)
-	       {
-		  if(debug >= 5)
-		  {
-		     printf("Second file. One or the other value is NaN (or zero area).\n");
-		     fflush(stdout);
-		  }
+               {
+                  if(debug >= 5)
+                  {
+                     printf("Second file. One or the other value is NaN (or zero area).\n");
+                     fflush(stdout);
+                  }
 
-		  data[j+jmin-jstart][i+imin-istart] = nan;
-		  area[j+jmin-jstart][i+imin-istart] = 0.;
+                  data[j+jmin-jstart][i+imin-istart] = nan;
+                  area[j+jmin-jstart][i+imin-istart] = 0.;
 
-		  continue;
-	       }
-	       else
-	       {
-		  if(debug >= 5)
-		  {
-		     printf("Second file. Subtracting pixel value.\n");
-		     fflush(stdout);
-		  }
+                  continue;
+               }
+               else
+               {
+                  if(debug >= 5)
+                  {
+                     printf("Second file. Subtracting pixel value.\n");
+                     fflush(stdout);
+                  }
 
-		  data[j+jmin-jstart][i+imin-istart] -= pixel_value;
-		  area[j+jmin-jstart][i+imin-istart] += abuffer[i];
+                  data[j+jmin-jstart][i+imin-istart] -= pixel_value;
+                  area[j+jmin-jstart][i+imin-istart] += abuffer[i];
 
-		  ++narea2;
-		  avearea2 += abuffer[i];
+                  ++narea2;
+                  avearea2 += abuffer[i];
 
-		  if(debug >= 5)
-		  {
-		     printf("done.\n");
-		     fflush(stdout);
-		  }
-	       }
-	    }
-	 }
+                  if(debug >= 5)
+                  {
+                     printf("done.\n");
+                     fflush(stdout);
+                  }
+               }
+            }
+         }
       }
 
       free(buffer);
       free(abuffer);
 
       if(fits_close_file(input.fptr, &status))
-	 printFitsError(status);
+         printFitsError(status);
 
       if(!noAreas)
       {
-	 if(fits_close_file(input_area.fptr, &status))
-	    printFitsError(status);
+         if(fits_close_file(input_area.fptr, &status))
+            printFitsError(status);
       }
    }
 
@@ -712,7 +714,7 @@ int main(int argc, char **argv)
    {
       time(&currtime);
       printf("\nDone reading data (%.0f seconds)\n", 
-	 (double)(currtime - start));
+         (double)(currtime - start));
       fflush(stdout);
    }
 
@@ -738,18 +740,18 @@ int main(int argc, char **argv)
       for (i=0; i<ilength; ++i)
       {
          if(mNaN(area[j][i]) || area[j][i] == 0.)
-	 {
+         {
             data[j][i] = 0.;
             area[j][i] = 0.;
-	 }
+         }
          else
-	 {
-	    if(fabs(area[j][i] - areamax)/areamax > 0.333)
-	    {
-	       data[j][i] = 0.;
-	       area[j][i] = 0.;
-	    }
-	 }
+         {
+            if(fabs(area[j][i] - areamax)/areamax > 0.333)
+            {
+               data[j][i] = 0.;
+               area[j][i] = 0.;
+            }
+         }
       }
    }
 
@@ -777,34 +779,34 @@ int main(int argc, char **argv)
       for (i=0; i<ilength; ++i)
       {
          if(area[j][i] > 0.)
-	 {
+         {
             data[j][i] = 2. * data[j][i] / area[j][i];
 
-	    if(!haveMinMax)
-	    {
-	       datamin = data[j][i];
-	       datamax = data[j][i];
-	       areamin = area[j][i];
-	       areamax = area[j][i];
+            if(!haveMinMax)
+            {
+               datamin = data[j][i];
+               datamax = data[j][i];
+               areamin = area[j][i];
+               areamax = area[j][i];
 
-	       haveMinMax = 1;
-	    }
+               haveMinMax = 1;
+            }
 
-	    if(data[j][i] < datamin) datamin = data[j][i];
-	    if(data[j][i] > datamax) datamax = data[j][i];
-	    if(area[j][i] < areamin) areamin = area[j][i];
-	    if(area[j][i] > areamax) areamax = area[j][i];
+            if(data[j][i] < datamin) datamin = data[j][i];
+            if(data[j][i] > datamax) datamax = data[j][i];
+            if(area[j][i] < areamin) areamin = area[j][i];
+            if(area[j][i] > areamax) areamax = area[j][i];
 
-	    if(j < jmin) jmin = j;
-	    if(j > jmax) jmax = j;
-	    if(i < imin) imin = i;
-	    if(i > imax) imax = i;
-	 }
+            if(j < jmin) jmin = j;
+            if(j > jmax) jmax = j;
+            if(i < imin) imin = i;
+            if(i > imax) imax = i;
+         }
          else
-	 {
+         {
             data[j][i] = nan;
             area[j][i] = 0.;
-	 }
+         }
       }
    }
 
@@ -896,11 +898,11 @@ int main(int argc, char **argv)
    /***************************/
 
    if(fits_update_key_lng(output.fptr, "BITPIX", -64,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_lng(output_area.fptr, "BITPIX", -64,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
 
@@ -909,43 +911,43 @@ int main(int argc, char **argv)
    /***************************************************/
 
    if(fits_update_key_lng(output.fptr, "NAXIS", 2,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_lng(output.fptr, "NAXIS1", imax-imin+1,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_lng(output.fptr, "NAXIS2", jmax-jmin+1,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_dbl(output.fptr, "CRPIX1", output.crpix1-imin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_dbl(output.fptr, "CRPIX2", output.crpix2-jmin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_lng(output_area.fptr, "NAXIS", 2,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_lng(output_area.fptr, "NAXIS1", imax-imin+1,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_lng(output_area.fptr, "NAXIS2", jmax-jmin+1,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_dbl(output_area.fptr, "CRPIX1", output.crpix1-imin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_dbl(output_area.fptr, "CRPIX2", output.crpix2-jmin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(debug >= 1)
@@ -966,8 +968,8 @@ int main(int argc, char **argv)
    for(j=jmin; j<=jmax; ++j)
    {
       if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements, 
-			 (void *)(&data[j-jstart][imin-istart]), &status))
-	 printFitsError(status);
+                         (void *)(&data[j-jstart][imin-istart]), &status))
+         printFitsError(status);
 
       ++fpixel[1];
    }
@@ -992,8 +994,8 @@ int main(int argc, char **argv)
    for(j=jmin; j<=jmax; ++j)
    {
       if (fits_write_pix(output_area.fptr, TDOUBLE, fpixel, nelements,
-			 (void *)(&area[j-jstart][imin-istart]), &status))
-	 printFitsError(status);
+                         (void *)(&area[j-jstart][imin-istart]), &status))
+         printFitsError(status);
 
       ++fpixel[1];
    }
@@ -1069,22 +1071,22 @@ int readTemplate(char *filename)
    while(1)
    {
       if(fgets(line, MAXSTR, fp) == (char *)NULL)
-	 break;
+         break;
 
       if(line[strlen(line)-1] == '\n')
          line[strlen(line)-1]  = '\0';
       
       if(line[strlen(line)-1] == '\r')
-	 line[strlen(line)-1]  = '\0';
+         line[strlen(line)-1]  = '\0';
 
       if(debug >= 3)
       {
-	 printf("Template line: [%s]\n", line);
-	 fflush(stdout);
+         printf("Template line: [%s]\n", line);
+         fflush(stdout);
       }
 
       for(i=strlen(line); i<80; ++i)
-	 line[i] = ' ';
+         line[i] = ' ';
       
       line[80] = '\0';
 
@@ -1194,8 +1196,8 @@ int readFits(char *fluxfile, char *areafile)
    {
       if(fits_open_file(&input_area.fptr, areafile, READONLY, &status))
       {
-	 sprintf(errstr, "Area file %s missing or invalid FITS", areafile);
-	 printError(errstr);
+         sprintf(errstr, "Area file %s missing or invalid FITS", areafile);
+         printError(errstr);
       }
    }
 

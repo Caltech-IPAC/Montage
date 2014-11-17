@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 1.1      John Good        15Sep06  Cleaned up usage text
 1.0      John Good        30May05  Baseline code
 
@@ -222,10 +224,10 @@ int main(int argc, char **argv)
 
    if(debug >= 1)
    {
-      printf("\nbitpix: %d -> %d\n", bitpix, tbitpix);
-      printf(  "naxis:  %d -> %d\n", naxis, tnaxis);
-      printf(  "naxis1: %d -> %d\n", input.naxes[0], tnaxis1);
-      printf("naxis2: %d -> %d\n\n", input.naxes[1], tnaxis2);
+      printf("\nbitpix: %ld -> %d\n", bitpix, tbitpix);
+      printf(  "naxis:  %ld -> %d\n", naxis, tnaxis);
+      printf(  "naxis1: %ld -> %d\n", input.naxes[0], tnaxis1);
+      printf(  "naxis2: %ld -> %d\n\n", input.naxes[1], tnaxis2);
       fflush(stdout);
    }
 
@@ -244,7 +246,7 @@ int main(int argc, char **argv)
    if(debug >= 1)
    {
       printf("naxis            =  %ld\n", naxis);
-      printf("bitpix           =  %ld\n", tbitpix);
+      printf("bitpix           =  %d\n",  tbitpix);
       printf("output.naxes[0]  =  %ld\n", output.naxes[0]);
       printf("output.naxes[1]  =  %ld\n", output.naxes[1]);
 

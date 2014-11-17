@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+                                   for new development cycle.
 2.4      John Good        15May08  Add -f flag to ensure full region is used
 2.3      John Good        24Jun07  Added correction for CAR projection error
 2.2      John Good        15Jun05  Added -X option to force reprojection
@@ -831,7 +833,7 @@ int main(int argc, char **argv)
 
    if(debug >= 1)
    {
-      printf("\n%d bytes allocated for image pixels\n", 
+      printf("\n%lu bytes allocated for image pixels\n", 
          ilength * jlength * sizeof(double));
       fflush(stdout);
    }
@@ -875,7 +877,7 @@ int main(int argc, char **argv)
 
    if(debug >= 1)
    {
-      printf("%d bytes allocated for pixel areas\n", 
+      printf("%lu bytes allocated for pixel areas\n", 
          ilength * jlength * sizeof(double));
       fflush(stdout);
    }
