@@ -1,6 +1,6 @@
 all:
 	mkdir -p bin
-	mkdir lib/include
+	mkdir -p lib/include
 	(cd lib/src; make)
 	(cd Montage; ./Configure.sh; make; make install)
 	if test -d util; then (cd util; make); fi
@@ -8,7 +8,7 @@ all:
 
 clean:
 	mkdir -p bin
-	mkdir lib/include
+	mkdir -p lib/include
 	rm -f bin/*
 	(cd lib/src; make clean)
 	(cd Montage; make clean)
