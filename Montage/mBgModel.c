@@ -635,7 +635,7 @@ int main(int argc, char **argv)
 
 	 if(fits == (struct FitInfo *)NULL)
 	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%d] [2]\"]\n", 
+	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%lu] [2]\"]\n", 
 	       maxfits * sizeof(struct FitInfo));
 	    exit(1);
 
@@ -683,7 +683,7 @@ int main(int argc, char **argv)
 
 	 if(fits == (struct FitInfo *)NULL)
 	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%d] [3]\"]\n", 
+	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%lu] [3]\"]\n", 
 	       maxfits * sizeof(struct FitInfo));
 	    exit(1);
 	 }

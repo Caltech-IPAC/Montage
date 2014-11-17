@@ -833,7 +833,7 @@ int CALLmAdd (char *cmd, char *path, int haveAreas, int coadd, int shrink,
    char fname[MAXSTR];
 
    sprintf(cmd, "mAdd");
-   if (path[0] != (char *)NULL)
+   if (path[0] != '\0')
    {
       strcat(cmd," -p ");
       strcat(cmd,path);
@@ -851,7 +851,7 @@ int CALLmAdd (char *cmd, char *path, int haveAreas, int coadd, int shrink,
    }
    if (!shrink) strcat(cmd," -e");
    /* do not pass -d N to mAdd, as it will make the svc library unhappy */
-   if (status_file[0] != (char *)NULL)
+   if (status_file[0] != '\0'
    {
       strcat(cmd," -s ");
       strcat(cmd,status_file);

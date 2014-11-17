@@ -3,11 +3,11 @@
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
 3.0      John Good        29Jan07  Add a mode that outputs all warnings
-				   to a file
+                                   to a file
 2.2      John Good        25Aug03  Added status file processing
 2.1      John Good        24Apr03  Added checkFile() check
 2.0      John Good        22Mar03  Changed completly to be just wrapper
-				   around checkHdr() function
+                                   around checkHdr() function
 1.0      John Good        13Mar03  Baseline code
 
 */
@@ -28,9 +28,10 @@ extern char *hdrCheck_outfile;
 
 static char  filename[1024];
 
-int checkFile(char *filename);
-int checkHdr(char *infile, int hdrflag, int hdu);
-int errorOutput(char *msg);
+int  checkFile    (char *filename);
+int  checkHdr     (char *infile, int hdrflag, int hdu);
+void checkHdrExact(int stringent);
+int  errorOutput  (char *msg);
 
 
 /*************************************************************************/
@@ -65,11 +66,11 @@ int main(int argc, char **argv)
    {
       switch (c)
       {
-	 case 'h':
-	    hdu = atoi(optarg);
+         case 'h':
+            hdu = atoi(optarg);
 
-	    if(hdu < 0)
-	       hdu = 0;
+            if(hdu < 0)
+               hdu = 0;
 
             break;
 
@@ -82,13 +83,13 @@ int main(int argc, char **argv)
             }
             break;
 
-	 case 'o':
-	    strcpy(filename, optarg);
-	    hdrCheck_outfile = filename;
+         case 'o':
+            strcpy(filename, optarg);
+            hdrCheck_outfile = filename;
             break;
 
          default:
-	    printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-s statusfile][-o infofile][-h hdu] img.fits\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-s statusfile][-o infofile][-h hdu] img.fits\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -121,37 +122,37 @@ int main(int argc, char **argv)
 
       if(status)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Failure reading file for HDU count.\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Failure reading file for HDU count.\"]\n");
+         exit(1);
       }
 
       if(hdu > 0)
-	 fits_movabs_hdu(infptr, hdu+1, NULL, &status);
+         fits_movabs_hdu(infptr, hdu+1, NULL, &status);
 
       if(status)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Desired HDU does not exist in the file.\", hdu=%d, nhdu=%d]\n",
-	    hdu, nhdu);
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Desired HDU does not exist in the file.\", hdu=%d, nhdu=%d]\n",
+            hdu, nhdu);
+         exit(1);
       }
 
       fits_get_image_wcs_keys(infptr, &header, &status);
 
       if(status)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Failed to find WCS info in this HDU\", hdu=%d, nhdu=%d]\n",
-	    hdu, nhdu);
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Failed to find WCS info in this HDU\", hdu=%d, nhdu=%d]\n",
+            hdu, nhdu);
+         exit(1);
       }
 
       wcs = wcsinit(header);
 
       if(wcs == (struct WorldCoor *)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"WCS initialization failed\", hdu=%d, nhdu=%d]\n",
-	    hdu, nhdu);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"WCS initialization failed\", hdu=%d, nhdu=%d]\n",
+            hdu, nhdu);
 
-	 exit(1);
+         exit(1);
       }
 
       naxes = wcs->naxis;
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
       checkHdr(infile, 0, hdu);
 
       fprintf(fstatus, "[struct stat=\"OK\", msg=\"Valid WCS in FITS file.\", hdu=%d, nhdu=%d, naxes=%d]\n",
-	 hdu, nhdu, naxes);
+         hdu, nhdu, naxes);
    }
 
    fflush(stdout);

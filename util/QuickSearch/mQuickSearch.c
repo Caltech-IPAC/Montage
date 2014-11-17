@@ -147,7 +147,7 @@ int       checkFile (char *filename);
 int       checkWCS  (struct WorldCoor *wcs, int action);
 int       debugCheck(char *debugStr);
 
-int       findBoundary();
+void      findBoundary();
 
 int       pointInPolygon(Vec *point, Vec *corners);
  
@@ -632,7 +632,7 @@ int main(int argc, char **argv)
 
       if(rdebug)
       {
-         printf("'set' memory mapped at %ld, %d long (%ld structs of size %lu)\n",
+         printf("'set' memory mapped at %ld, %lu long (%u structs of size %lu)\n",
             (long int)set, sizeset, nset, sizeof(Set));
          fflush(stdout);
       }
@@ -1082,7 +1082,7 @@ int main(int argc, char **argv)
 
          if(rdebug)
          {
-            printf("'rectinfo' memory mapped at %ld, %ld long (%d structs of size %lu)\n",
+            printf("'rectinfo' memory mapped at %ld, %ld long (%ld structs of size %lu)\n",
                (long int)rectinfo, sizerec, nrect, sizeof(RectInfo));
             fflush(stdout);
          }
@@ -1328,7 +1328,7 @@ int main(int argc, char **argv)
 
                if(rdebug > 1)
                {
-                  printf("nrow     = %d\n",    nrow);
+                  printf("nrow     = %ld\n",   nrow);
                   printf("-------------\n");
                   printf("ctype1   = [%s]\n",  ctype1);
                   printf("ctype2   = [%s]\n",  ctype2);
@@ -1925,7 +1925,7 @@ int main(int argc, char **argv)
 
          if(rdebug)
          {
-            printf("\ndumpcount = %d\n\n", dumpcount);
+            printf("\ndumpcount = %ld\n\n", dumpcount);
             fflush(stdout);
          }
         
@@ -1934,7 +1934,7 @@ int main(int argc, char **argv)
 
          for(id=0; id<dumprect; ++id)
          {
-            printf("\nrect %;d:\n", id);
+            printf("\nrect %ld:\n", id);
             printf("setid       %d\n", rectinfo[id].setid);
             printf("catoff      %ld\n", rectinfo[id].catoff);
 
@@ -3009,7 +3009,7 @@ int main(int argc, char **argv)
 /*                                                 */
 /***************************************************/
 
-int findBoundary()
+void findBoundary()
 {
    int    i;
    double ra, dec;
@@ -3031,7 +3031,7 @@ int findBoundary()
       search_rect.boundary[4] = search_center.y + delta;
       search_rect.boundary[5] = search_center.z + delta;
 
-      return(0);
+      return;
    }
 
    else if(search_type == CONE)

@@ -33,7 +33,7 @@ struct Rect search_rect = {
 int MySearchCallback(long id, void* arg) 
 {
 	/* Note: -1 to make up for the +1 when data was inserted */
-	fprintf (stdout, "Hit data rect %d\n", id-1);
+	fprintf (stdout, "Hit data rect %ld\n", id-1);
 	return 1; /* keep going */
 }
 

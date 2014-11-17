@@ -94,6 +94,14 @@ double label_length      (char *face_path, int fontsize, char *text);
 
 void addOverlay          ();
 
+void labeled_curve       (char *face_path, int fontsize, int showLine,
+                          double *xcurve, double *ycurve, int npt,
+                          char *text, double offset,
+                          double red, double green, double blue);
+
+void curve               (double *xcurve, double *ycurve, int npt,
+                          double red, double green, double blue);
+
 void makeGrid            (struct WorldCoor *wcs,
                           int csysimg,  double epochimg,
                           int csysgrid, double epochgrid,

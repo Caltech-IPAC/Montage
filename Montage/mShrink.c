@@ -829,7 +829,7 @@ int main(int argc, char **argv)
 
                if(debug >= 4)
                {
-                  printf("input: line %5d / pixel %5d: indata[%d][%d] = %10.3e\n",
+                  printf("input: line %5ld / pixel %5d: indata[%d][%d] = %10.3e\n",
                      fpixel[1]-2, i, jbuffer, i, indata[jbuffer][i]);
                   fflush(stdout);
                }

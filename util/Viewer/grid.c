@@ -43,6 +43,17 @@ void symbol          (struct WorldCoor *wcs,
                       double symsize, int symnpnt, int symmax, int symtype, double symang,
                       double red,   double green, double blue);
 
+void curve           (double *xcurve, double *ycurve, int npt,
+                      double red, double green, double blue);
+
+void latitude_line   (double lat, double lonmin, double lonmax,
+                      int csysimg, double epochimg, int csysgrid, double epochgrid,
+                      double red, double green, double blue);
+
+void longitude_line  (double lon, double latmin, double latmax,
+                      int csysimg, double epochimg, int csysgrid, double epochgrid,
+                      double red, double green, double blue);
+
 extern char fontfile[];
 
 struct Pix
