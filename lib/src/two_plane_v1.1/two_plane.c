@@ -27,7 +27,6 @@ warnings/error.
 void distort(double x, double y, DistCoeff coeff, double *u, double *v);
 void undistort(double u, double v, DistCoeff coeff, double *x, double *y);
 int  initdata_byheader(char *fitsheader, DistCoeff *coeff);
-int  isnan(double x);
 
 
 int plane1_to_plane2_transform(double x_1, double y_1, double *x_2, double *y_2, 
