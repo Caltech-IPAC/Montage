@@ -1,0 +1,10 @@
+while test $1
+    do
+    a=$1
+    b=$1x
+    mv $a $b
+    sed -f nameup.sed $b >$a
+    echo $1 updated
+    /bin/rm $b
+    shift
+    done

@@ -1,3 +1,11 @@
+/* Module: mFixNaN.c
+
+Version  Developer        Date     Change
+-------  ---------------  -------  -----------------------
+1.0      John Good        31Jan06  Baseline code
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

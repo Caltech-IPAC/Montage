@@ -15,10 +15,11 @@ Version  Developer        Date     Change
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
+#include <strings.h>
 #include <sys/types.h>
 #include <errno.h>
 
+#include <lodepng.h>
 #include <jpeglib.h>
 #include <fitsio.h>
 #include <wcs.h>
@@ -53,6 +54,9 @@ Version  Developer        Date     Change
 #define  MAG         1
 #define  LOGFLUX     2
 
+#define  PNG         0
+#define  JPEG        1
+
 
 int    hexVal            (char c);
 double asinh             (double x);
@@ -65,7 +69,7 @@ double erfinv            (double p);
 void   printFitsError    (int);
 
 void    createColorTable (int itable);
-int     make_comment     (char *header, char *comment);
+int     vamp_comment     (char *comment);
 
 void    parseRange       (char const *str, char const *kind,
                           double *val, double *extra, int *type);
@@ -137,12 +141,15 @@ void draw_label          (char *fontfile, int fontsize,
                           int xlab, int ylab, char *text, 
                           double red, double green, double blue);
 
+int  writePNG            (const char* filename, const unsigned char* image, 
+                          unsigned w, unsigned h, char *comment);
+
 
 char fontfile[1024];
 
 int color_table[256][3];
 
-int hdu;
+int hdu, redhdu, greenOff;
 int grayPlaneCount;
 int redPlaneCount;
 int greenPlaneCount;
@@ -154,6 +161,8 @@ int greenPlanes[256];
 int bluePlanes[256];
 
 int    naxis1, naxis2;
+int    outType;
+
 double crpix1, crpix2;
 double crval1, crval2;
 double cdelt1, cdelt2;
@@ -167,12 +176,26 @@ double ycorrection;
 
 struct WorldCoor *wcs;
 
-JSAMPROW *jpegdata;
-JSAMPROW *jpegovly;
-double  **ovlymask;
 
-int       nx;
-int       ny;
+// We'll handle PNG/JPEG variables separately
+// rather than trying to share for clarity.
+// Only one set will actually be used.     
+
+// JPEG
+
+JSAMPROW *jpegData;
+JSAMPROW *jpegOvly;
+
+// PNG
+
+unsigned char *pngData;
+unsigned char *pngOvly;
+
+double **ovlymask;
+
+
+int nx;
+int ny;
 
 double mynan;
 
@@ -313,7 +336,7 @@ int main(int argc, char **argv)
 
    double    graydiff, reddiff, greendiff, bluediff;
    double    grayval, redval, greenval, blueval;
-   double    grayjpeg, redjpeg, greenjpeg, bluejpeg, maxjpeg;
+   double    grayImVal, redImVal, greenImVal, blueImVal, maxImVal;
 
    double    redxoff, greenxoff, bluexoff;
    double    redyoff, greenyoff, blueyoff;
@@ -344,6 +367,7 @@ int main(int argc, char **argv)
    int       noflip = 0;
 
    int       colortable = 0;
+   int       pngError;
 
    char      statusfile [1024];
    char      grayfile   [1024];
@@ -351,6 +375,7 @@ int main(int argc, char **argv)
    char      greenfile  [1024];
    char      bluefile   [1024];
    char      jpegfile   [1024];
+   char      pngfile    [1024];
 
    char      grayminstr  [256];
    char      graymaxstr  [256];
@@ -496,6 +521,7 @@ int main(int argc, char **argv)
    strcpy(greenfile,  "");
    strcpy(bluefile,   "");
    strcpy(jpegfile,   "");
+   strcpy(pngfile,    "");
 
    ngrid = 0;
 
@@ -1314,6 +1340,8 @@ int main(int argc, char **argv)
 
          if(hdu > 0)
          {
+            redhdu = hdu;
+
             if(fits_movabs_hdu(redfptr, hdu+1, NULL, &status))
             {
                printf("[struct stat=\"ERROR\", msg=\"Can't find HDU %d\"]\n", hdu);
@@ -1510,7 +1538,24 @@ int main(int argc, char **argv)
 
       /* OUTPUT FILE */
 
-      else if(strcmp(argv[i], "-out") == 0)
+      else if(strcmp(argv[i], "-out") == 0
+           || strcmp(argv[i], "-png") == 0)
+      {
+         if(i+1 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -out flag\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         strcpy(pngfile, argv[i+1]);
+
+         outType = PNG;
+
+         ++i;
+      }
+
+      else if(strcmp(argv[i], "-jpeg") == 0)
       {
          if(i+1 >= argc)
          {
@@ -1531,8 +1576,46 @@ int main(int argc, char **argv)
             exit(1);
          }
 
+         outType = JPEG;
+
          ++i;
       }
+   }
+
+
+   /***************************************************/
+   /* In order to make "red/blue" images, we need to  */
+   /* fake out the non-existent green image.  We'll   */
+   /* make it the same as red but with a stretch that */
+   /* sets all pixels black                           */
+   /***************************************************/
+
+   greenOff = 0;
+
+   if(strlen(grayfile) == 0 && strlen(greenfile) == 0)
+   {
+      greenOff = 1;
+
+      strcpy(greenfile, redfile);
+
+      greenPlaneCount = redPlaneCount;
+
+      for(i=0; i<redPlaneCount; ++i)
+         greenPlanes[i] = redPlanes[i];
+
+      strcpy(greenminstr, redminstr);
+      strcpy(greenmaxstr, redmaxstr);
+
+      greenType = redType;
+
+      strcpy(greenbetastr, redbetastr);
+
+      greenlogpower = redlogpower;
+
+      fits_open_file(&greenfptr, greenfile, READONLY, &status);
+
+      if(redhdu > 0)
+         fits_movabs_hdu(greenfptr, redhdu+1, NULL, &status);
    }
 
    if(debug)
@@ -1623,6 +1706,7 @@ int main(int argc, char **argv)
       }
 
       printf("\n");
+      printf("DEBUG> pngfile         = [%s]\n", pngfile);
       printf("DEBUG> jpegfile        = [%s]\n", jpegfile);
       fflush(stdout);
    }
@@ -1670,9 +1754,10 @@ int main(int argc, char **argv)
    }
 
       
-   if(strlen(jpegfile) == 0)
+   if(strlen(pngfile)  == 0
+   && strlen(jpegfile) == 0)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"No output JPEG file name given\"]\n");
+      printf ("[struct stat=\"ERROR\", msg=\"No output PNG or JPEG file name given\"]\n");
       fflush(stdout);
       exit(1);
    }
@@ -1695,6 +1780,12 @@ int main(int argc, char **argv)
 
    if(isRGB)
    {
+      if(debug)
+      {
+         printf("DEBUG> Processing RGB mode\n");
+         fflush(stdout);
+      }
+
       /* First make sure that the WCS info is OK */
       /* and is the same for all three images    */
 
@@ -2154,7 +2245,7 @@ int main(int argc, char **argv)
          }
       }
 
-      make_comment(header, comment);
+      vamp_comment(comment);
 
 
       /* Now adjust the data range if the limits */
@@ -2299,27 +2390,48 @@ int main(int argc, char **argv)
       /* Set up the JPEG library info  */
       /* and start the JPEG compressor */
 
-      cinfo.err = jpeg_std_error(&jerr);
+      if(outType == JPEG)
+      {
+         cinfo.err = jpeg_std_error(&jerr);
 
-      jpeg_create_compress(&cinfo);
+         jpeg_create_compress(&cinfo);
 
-      jpeg_stdio_dest(&cinfo, jpegfp);
+         jpeg_stdio_dest(&cinfo, jpegfp);
 
-      cinfo.image_width      = nx;
-      cinfo.image_height     = ny;
-      cinfo.input_components = 3;
-      cinfo.in_color_space   = JCS_RGB;
+         cinfo.image_width      = nx;
+         cinfo.image_height     = ny;
+         cinfo.input_components = 3;
+         cinfo.in_color_space   = JCS_RGB;
 
-      quality = 85;
+         quality = 85;
 
-      jpeg_set_defaults(&cinfo);
+         jpeg_set_defaults(&cinfo);
 
-      jpeg_set_quality (&cinfo, quality, TRUE);
+         jpeg_set_quality (&cinfo, quality, TRUE);
 
-      jpeg_start_compress(&cinfo, TRUE);
+         jpeg_start_compress(&cinfo, TRUE);
 
-      jpeg_write_marker(&cinfo, JPEG_COM, 
-         (const JOCTET *)comment, strlen(comment));
+         jpeg_write_marker(&cinfo, JPEG_COM, 
+            (const JOCTET *)comment, strlen(comment));
+      }
+
+      else if(outType == PNG)
+      {
+         pngData = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
+         pngOvly = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
+
+         for(i=0; i<(4 * nx * ny); ++i)
+         {
+            pngData[i] = 0;
+            pngOvly[i] = 0;
+         }
+      }
+
+      if(debug)
+      {
+         printf("Image (PNG/JPEG) space allocated\n");
+         fflush(stdout);
+      }
 
 
       /* Now, loop over the parts of the images we want */
@@ -2357,14 +2469,22 @@ int main(int argc, char **argv)
       gfitsbuf = (double *)malloc(nelements * sizeof(double));
       bfitsbuf = (double *)malloc(nelements * sizeof(double));
 
-      jpegdata = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
-      jpegovly = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
+      if(outType == JPEG)
+      {
+         jpegData = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
+         jpegOvly = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
+      }
+
       ovlymask = (double  **)malloc(ny * sizeof (double *));
 
       for(jj=0; jj<ny; ++jj)
       {
-         jpegdata[jj] = (JSAMPROW)malloc(3*nelements);
-         jpegovly[jj] = (JSAMPROW)malloc(3*nelements);
+         if(outType == JPEG)
+         {
+            jpegData[jj] = (JSAMPROW)malloc(3*nelements);
+            jpegOvly[jj] = (JSAMPROW)malloc(3*nelements);
+         }
+
          ovlymask[jj] = (double *)malloc(nelements * sizeof(double));
       }
 
@@ -2376,13 +2496,16 @@ int main(int argc, char **argv)
             gfitsbuf[i] = mynan;
             bfitsbuf[i] = mynan;
 
-            jpegdata[jj][3*i  ] = 0;
-            jpegdata[jj][3*i+1] = 0;
-            jpegdata[jj][3*i+2] = 0;
+            if(outType == JPEG)
+            {
+               jpegData[jj][3*i  ] = 0;
+               jpegData[jj][3*i+1] = 0;
+               jpegData[jj][3*i+2] = 0;
 
-            jpegovly[jj][3*i  ] = 0;
-            jpegovly[jj][3*i+1] = 0;
-            jpegovly[jj][3*i+2] = 0;
+               jpegOvly[jj][3*i  ] = 0;
+               jpegOvly[jj][3*i+1] = 0;
+               jpegOvly[jj][3*i+2] = 0;
+            }
 
             ovlymask[jj][i] = 0.;
          }
@@ -2444,7 +2567,7 @@ int main(int argc, char **argv)
             /* Special case: blank pixel */
 
             if(mNaN(redval))
-               redjpeg = 0.;
+               redImVal = 0.;
 
 
             /* Gaussian histogram equalization */
@@ -2461,7 +2584,7 @@ int main(int argc, char **argv)
                if(index <   0) index =   0;
                if(index > 255) index = 255;
 
-               redjpeg = index;
+               redImVal = index;
             }
 
 
@@ -2469,20 +2592,20 @@ int main(int argc, char **argv)
 
             else if(redType == ASINH)
             {
-               redjpeg  = (redval - redminval)/(redmaxval - redminval);
+               redImVal  = (redval - redminval)/(redmaxval - redminval);
 
-               if(redjpeg < 0.0)
-                  redjpeg = 0.;
+               if(redImVal < 0.0)
+                  redImVal = 0.;
                else
-                  redjpeg = 255. * asinh(redbetaval * redjpeg)/redbetaval;
+                  redImVal = 255. * asinh(redbetaval * redImVal)/redbetaval;
 
-               if(redjpeg < 0.)
-                  redjpeg = 0.;
+               if(redImVal < 0.)
+                  redImVal = 0.;
 
-               if(redjpeg > 255.)
-                  redjpeg = 255.;
+               if(redImVal > 255.)
+                  redImVal = 255.;
 
-               index = (int)(redjpeg+0.5);
+               index = (int)(redImVal+0.5);
             }
 
 
@@ -2496,16 +2619,16 @@ int main(int argc, char **argv)
                if(redval > redmaxval)
                   redval = redmaxval;
 
-               redjpeg = (redval - redminval)/reddiff;
+               redImVal = (redval - redminval)/reddiff;
 
                for(k=1; k<redlogpower; ++k)
-                  redjpeg = log(9.*redjpeg+1.);
+                  redImVal = log(9.*redImVal+1.);
                
-               redjpeg = 255. * redjpeg;
+               redImVal = 255. * redImVal;
             }
 
-            if(redjpeg < 0.)
-               redjpeg = 0.;
+            if(redImVal < 0.)
+               redImVal = 0.;
 
 
 
@@ -2522,7 +2645,13 @@ int main(int argc, char **argv)
             /* Special case: blank pixel */
 
             if(mNaN(greenval))
-               greenjpeg = 0.;
+               greenImVal = 0.;
+
+
+            /* Special case: blank pixel */
+
+            else if(greenOff)
+               greenImVal = 0.;
 
 
             /* Gaussian histogram equalization */
@@ -2539,27 +2668,27 @@ int main(int argc, char **argv)
                if(index <   0) index =   0;
                if(index > 255) index = 255;
 
-               greenjpeg = index;
+               greenImVal = index;
             }
 
             /* ASIHN stretch */
 
             else if(greenType == ASINH)
             {
-               greenjpeg  = (greenval - greenminval)/(greenmaxval - greenminval);
+               greenImVal  = (greenval - greenminval)/(greenmaxval - greenminval);
 
-               if(greenjpeg < 0.0)
-                  greenjpeg = 0.;
+               if(greenImVal < 0.0)
+                  greenImVal = 0.;
                else
-                  greenjpeg = 255. * asinh(greenbetaval * greenjpeg)/greenbetaval;
+                  greenImVal = 255. * asinh(greenbetaval * greenImVal)/greenbetaval;
 
-               if(greenjpeg < 0.)
-                  greenjpeg = 0.;
+               if(greenImVal < 0.)
+                  greenImVal = 0.;
 
-               if(greenjpeg > 255.)
-                  greenjpeg = 255.;
+               if(greenImVal > 255.)
+                  greenImVal = 255.;
 
-               index = (int)(greenjpeg+0.5);
+               index = (int)(greenImVal+0.5);
             }
 
 
@@ -2573,16 +2702,16 @@ int main(int argc, char **argv)
                if(greenval > greenmaxval)
                   greenval = greenmaxval;
 
-               greenjpeg = (greenval - greenminval)/greendiff;
+               greenImVal = (greenval - greenminval)/greendiff;
 
                for(k=1; k<greenlogpower; ++k)
-                  greenjpeg = log(9.*greenjpeg+1.);
+                  greenImVal = log(9.*greenImVal+1.);
                
-               greenjpeg = 255. * greenjpeg;
+               greenImVal = 255. * greenImVal;
             }
 
-            if(greenjpeg < 0.)
-               greenjpeg = 0.;
+            if(greenImVal < 0.)
+               greenImVal = 0.;
 
 
 
@@ -2599,7 +2728,7 @@ int main(int argc, char **argv)
             /* Special case: blank pixel */
 
             if(mNaN(blueval))
-               bluejpeg = 0.;
+               blueImVal = 0.;
 
 
             /* Gaussian histogram equalization */
@@ -2616,7 +2745,7 @@ int main(int argc, char **argv)
                if(index <   0) index =   0;
                if(index > 255) index = 255;
 
-               bluejpeg = index;
+               blueImVal = index;
             }
 
 
@@ -2624,20 +2753,20 @@ int main(int argc, char **argv)
 
             else if(blueType == ASINH)
             {
-               bluejpeg  = (blueval - blueminval)/(bluemaxval - blueminval);
+               blueImVal  = (blueval - blueminval)/(bluemaxval - blueminval);
 
-               if(bluejpeg < 0.0)
-                  bluejpeg = 0.;
+               if(blueImVal < 0.0)
+                  blueImVal = 0.;
                else
-                  bluejpeg = 255. * asinh(bluebetaval * bluejpeg)/bluebetaval;
+                  blueImVal = 255. * asinh(bluebetaval * blueImVal)/bluebetaval;
 
-               if(bluejpeg < 0.)
-                  bluejpeg = 0.;
+               if(blueImVal < 0.)
+                  blueImVal = 0.;
 
-               if(bluejpeg > 255.)
-                  bluejpeg = 255.;
+               if(blueImVal > 255.)
+                  blueImVal = 255.;
 
-               index = (int)(bluejpeg+0.5);
+               index = (int)(blueImVal+0.5);
             }
 
 
@@ -2651,71 +2780,92 @@ int main(int argc, char **argv)
                if(blueval > bluemaxval)
                   blueval = bluemaxval;
 
-               bluejpeg = (blueval - blueminval)/bluediff;
+               blueImVal = (blueval - blueminval)/bluediff;
 
                for(k=1; k<bluelogpower; ++k)
-                  bluejpeg = log(9.*bluejpeg+1.);
+                  blueImVal = log(9.*blueImVal+1.);
                
-               bluejpeg = 255. * bluejpeg;
+               blueImVal = 255. * blueImVal;
             }
 
-            if(bluejpeg < 0.)
-               bluejpeg = 0.;
+            if(blueImVal < 0.)
+               blueImVal = 0.;
 
 
             /* If we wish to preserve "color" */
 
             if(truecolor > 0.)
             {
-               if(bluejpeg  >= 255.
-               || greenjpeg >= 255.
-               || redjpeg   >= 255.)
+               if(blueImVal  >= 255.
+               || greenImVal >= 255.
+               || redImVal   >= 255.)
                {
-                  maxjpeg = redjpeg;
+                  maxImVal = redImVal;
 
-                  if(greenjpeg > maxjpeg) maxjpeg = greenjpeg;
-                  if(bluejpeg  > maxjpeg) maxjpeg = bluejpeg;
+                  if(greenImVal > maxImVal) maxImVal = greenImVal;
+                  if(blueImVal  > maxImVal) maxImVal = blueImVal;
 
-                  redjpeg   = pow(redjpeg   / maxjpeg, truecolor) * 255.;
-                  greenjpeg = pow(greenjpeg / maxjpeg, truecolor) * 255.;
-                  bluejpeg  = pow(bluejpeg  / maxjpeg, truecolor) * 255.;
+                  redImVal   = pow(redImVal   / maxImVal, truecolor) * 255.;
+                  greenImVal = pow(greenImVal / maxImVal, truecolor) * 255.;
+                  blueImVal  = pow(blueImVal  / maxImVal, truecolor) * 255.;
                }
                else
                {
-                  maxjpeg = redjpeg;
+                  maxImVal = redImVal;
 
-                  if(greenjpeg > maxjpeg) maxjpeg = greenjpeg;
-                  if(bluejpeg  > maxjpeg) maxjpeg = bluejpeg;
+                  if(greenImVal > maxImVal) maxImVal = greenImVal;
+                  if(blueImVal  > maxImVal) maxImVal = blueImVal;
 
-                  if(maxjpeg > 0.)
+                  if(maxImVal > 0.)
                   {
-                     redjpeg   = pow(redjpeg   / maxjpeg, truecolor) * maxjpeg;
-                     greenjpeg = pow(greenjpeg / maxjpeg, truecolor) * maxjpeg;
-                     bluejpeg  = pow(bluejpeg  / maxjpeg, truecolor) * maxjpeg;
+                     redImVal   = pow(redImVal   / maxImVal, truecolor) * maxImVal;
+                     greenImVal = pow(greenImVal / maxImVal, truecolor) * maxImVal;
+                     blueImVal  = pow(blueImVal  / maxImVal, truecolor) * maxImVal;
                   }
                }
             }
             else
             {
-               if(bluejpeg  > 255.) bluejpeg  = 255.;
-               if(greenjpeg > 255.) greenjpeg = 255.;
-               if(redjpeg   > 255.) redjpeg   = 255.;
+               if(blueImVal  > 255.) blueImVal  = 255.;
+               if(greenImVal > 255.) greenImVal = 255.;
+               if(redImVal   > 255.) redImVal   = 255.;
             }
 
             
             /* Populate the output JPEG array */
 
-            if(flipX)
+            if(outType == JPEG)
             {
-               jpegdata[jj][3*(nx-1-i)  ] = (int)redjpeg;
-               jpegdata[jj][3*(nx-1-i)+1] = (int)greenjpeg;
-               jpegdata[jj][3*(nx-1-i)+2] = (int)bluejpeg;
+               if(flipX)
+               {
+                  jpegData[jj][3*(nx-1-i)  ] = (int)redImVal;
+                  jpegData[jj][3*(nx-1-i)+1] = (int)greenImVal;
+                  jpegData[jj][3*(nx-1-i)+2] = (int)blueImVal;
+               }
+               else
+               {
+                  jpegData[jj][3*i  ] = (int)redImVal;
+                  jpegData[jj][3*i+1] = (int)greenImVal;
+                  jpegData[jj][3*i+2] = (int)blueImVal;
+               }
             }
-            else
+
+            else if (outType == PNG)
             {
-               jpegdata[jj][3*i  ] = (int)redjpeg;
-               jpegdata[jj][3*i+1] = (int)greenjpeg;
-               jpegdata[jj][3*i+2] = (int)bluejpeg;
+               if(flipX)
+               {
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 0] = (int)redImVal;
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 1] = (int)greenImVal;
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 2] = (int)blueImVal;
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 3] = 255;
+               }
+               else
+               {
+                  pngData[4 * nx * jj + 4 * i + 0] = (int)redImVal;
+                  pngData[4 * nx * jj + 4 * i + 1] = (int)greenImVal;
+                  pngData[4 * nx * jj + 4 * i + 2] = (int)blueImVal;
+                  pngData[4 * nx * jj + 4 * i + 3] = 255;
+               }
             }
          }
       }
@@ -2726,6 +2876,12 @@ int main(int argc, char **argv)
 
    else
    {
+      if(debug)
+      {
+         printf("DEBUG> Processing Gray mode\n");
+         fflush(stdout);
+      }
+
       /* First make sure that the WCS info is OK */
 
       if(strlen(grayfile) == 0)
@@ -2916,7 +3072,7 @@ int main(int argc, char **argv)
          }
       }
 
-      make_comment(header, comment);
+      vamp_comment(comment);
 
 
       /* Now adjust the data range if the limits */
@@ -3006,27 +3162,30 @@ int main(int argc, char **argv)
       /* Set up the JPEG library info  */
       /* and start the JPEG compressor */
 
-      cinfo.err = jpeg_std_error(&jerr);
+      if(outType == JPEG)
+      {
+         cinfo.err = jpeg_std_error(&jerr);
 
-      jpeg_create_compress(&cinfo);
+         jpeg_create_compress(&cinfo);
 
-      jpeg_stdio_dest(&cinfo, jpegfp);
+         jpeg_stdio_dest(&cinfo, jpegfp);
 
-      cinfo.image_width      = nx;
-      cinfo.image_height     = ny;
-      cinfo.input_components = 3;
-      cinfo.in_color_space = JCS_RGB;
+         cinfo.image_width      = nx;
+         cinfo.image_height     = ny;
+         cinfo.input_components = 3;
+         cinfo.in_color_space = JCS_RGB;
 
-      jpeg_set_defaults(&cinfo);
+         jpeg_set_defaults(&cinfo);
 
-      quality = 85;
+         quality = 85;
 
-      jpeg_set_quality (&cinfo, quality, TRUE);
+         jpeg_set_quality (&cinfo, quality, TRUE);
 
-      jpeg_start_compress(&cinfo, TRUE);
+         jpeg_start_compress(&cinfo, TRUE);
 
-      jpeg_write_marker(&cinfo, JPEG_COM, 
-         (const JOCTET *)comment, strlen(comment));
+         jpeg_write_marker(&cinfo, JPEG_COM, 
+            (const JOCTET *)comment, strlen(comment));
+      }
 
 
       /* Now, loop over the part of the image we want */
@@ -3044,16 +3203,40 @@ int main(int argc, char **argv)
 
       fitsbuf = (double *)malloc(nelements * sizeof(double));
 
-      jpegdata = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
-      jpegovly = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
-      ovlymask = (double  **)malloc(ny * sizeof (double *));
+      if(outType == JPEG)
+      {
+         jpegData = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
+         jpegOvly = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
+      }
 
-      jpegdata = (JSAMPROW *)malloc(ny * sizeof(JSAMPROW));
+      else if(outType == PNG)
+      {
+         pngData = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
+         pngOvly = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
+
+         for(i=0; i<(4 * nx * ny); ++i)
+         {
+            pngData[i] = 0;
+            pngOvly[i] = 0;
+         }
+      }
+      
+      if(debug)
+      {
+         printf("Image (PNG/JPEG) space allocated\n");
+         fflush(stdout);
+      }
+
+      ovlymask = (double  **)malloc(ny * sizeof (double *));
 
       for(jj=0; jj<ny; ++jj)
       {
-         jpegdata[jj] = (JSAMPROW)malloc(3*nelements);
-         jpegovly[jj] = (JSAMPROW)malloc(3*nelements);
+         if(outType == JPEG)
+         {
+            jpegData[jj] = (JSAMPROW)malloc(3*nelements);
+            jpegOvly[jj] = (JSAMPROW)malloc(3*nelements);
+         }
+
          ovlymask[jj] = (double *)malloc(nelements * sizeof(double));
       }
 
@@ -3063,13 +3246,16 @@ int main(int argc, char **argv)
          {
             fitsbuf[i] = mynan;
 
-            jpegdata[jj][3*i  ] = 0;
-            jpegdata[jj][3*i+1] = 0;
-            jpegdata[jj][3*i+2] = 0;
+            if(outType == JPEG)
+            {
+               jpegData[jj][3*i  ] = 0;
+               jpegData[jj][3*i+1] = 0;
+               jpegData[jj][3*i+2] = 0;
 
-            jpegovly[jj][3*i  ] = 0;
-            jpegovly[jj][3*i+1] = 0;
-            jpegovly[jj][3*i+2] = 0;
+               jpegOvly[jj][3*i  ] = 0;
+               jpegOvly[jj][3*i+1] = 0;
+               jpegOvly[jj][3*i+2] = 0;
+            }
 
             ovlymask[jj][i] = 0.;
          }
@@ -3114,20 +3300,20 @@ int main(int argc, char **argv)
             {
                grayval = fitsbuf[i-istart];
 
-               grayjpeg  = (grayval - grayminval)/(graymaxval - grayminval);
+               grayImVal  = (grayval - grayminval)/(graymaxval - grayminval);
 
-               if(grayjpeg < 0.0)
-                  grayjpeg = 0.;
+               if(grayImVal < 0.0)
+                  grayImVal = 0.;
                else
-                  grayjpeg = 255. * asinh(graybetaval * grayjpeg)/graybetaval;
+                  grayImVal = 255. * asinh(graybetaval * grayImVal)/graybetaval;
 
-               if(grayjpeg < 0.)
-                  grayjpeg = 0.;
+               if(grayImVal < 0.)
+                  grayImVal = 0.;
 
-               if(grayjpeg > 255.)
-                  grayjpeg = 255.;
+               if(grayImVal > 255.)
+                  grayImVal = 255.;
 
-               index = (int)(grayjpeg+0.5);
+               index = (int)(grayImVal+0.5);
             }
 
 
@@ -3143,37 +3329,54 @@ int main(int argc, char **argv)
                if(grayval > graymaxval)
                   grayval = graymaxval;
 
-               grayjpeg = (grayval - grayminval)/graydiff;
+               grayImVal = (grayval - grayminval)/graydiff;
 
-/*
-               for(k=1; k<graylogpower; ++k)
-                  grayjpeg = log(9.*grayjpeg+1.);
-*/
                for(k=0; k<graylogpower; ++k)
-                  grayjpeg = log(9.*grayjpeg+1.);
+                  grayImVal = log(9.*grayImVal+1.);
 
-               grayjpeg = 255. * grayjpeg;
+               grayImVal = 255. * grayImVal;
 
-               if(grayjpeg <   0.)
-                  grayjpeg =   0.;
+               if(grayImVal <   0.)
+                  grayImVal =   0.;
 
-               if(grayjpeg > 255.)
-                  grayjpeg = 255.;
+               if(grayImVal > 255.)
+                  grayImVal = 255.;
 
-               index = (int)(grayjpeg+0.5);
+               index = (int)(grayImVal+0.5);
             }
 
-            if(flipX)
+            if(outType == JPEG)
             {
-               jpegdata[jj][3*(nx-1-i)  ] = color_table[index][0];
-               jpegdata[jj][3*(nx-1-i)+1] = color_table[index][1];
-               jpegdata[jj][3*(nx-1-i)+2] = color_table[index][2];
+               if(flipX)
+               {
+                  jpegData[jj][3*(nx-1-i)  ] = color_table[index][0];
+                  jpegData[jj][3*(nx-1-i)+1] = color_table[index][1];
+                  jpegData[jj][3*(nx-1-i)+2] = color_table[index][2];
+               }
+               else
+               {
+                  jpegData[jj][3*i  ] = color_table[index][0];
+                  jpegData[jj][3*i+1] = color_table[index][1];
+                  jpegData[jj][3*i+2] = color_table[index][2];
+               }
             }
-            else
+
+            else if(outType == PNG)
             {
-               jpegdata[jj][3*i  ] = color_table[index][0];
-               jpegdata[jj][3*i+1] = color_table[index][1];
-               jpegdata[jj][3*i+2] = color_table[index][2];
+               if(flipX)
+               {
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 0] = color_table[index][0];
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 1] = color_table[index][1];
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 2] = color_table[index][2];
+                  pngData[4 * nx * jj + 4 * (nx-1-i) + 3] = 255;
+               }
+               else
+               {
+                  pngData[4 * nx * jj + 4 * i + 0] = color_table[index][0];
+                  pngData[4 * nx * jj + 4 * i + 1] = color_table[index][1];
+                  pngData[4 * nx * jj + 4 * i + 2] = color_table[index][2];
+                  pngData[4 * nx * jj + 4 * i + 3] = 255;
+               }
             }
          }
       }
@@ -3395,28 +3598,49 @@ int main(int argc, char **argv)
 
    for(i=0; i<nlabel; ++i)
    {
-      draw_label(fontfile, 8, labelx[i], labely[i], labeltext[i], labelred[i], labelgreen[i], labelblue[i]);
+      draw_label(fontfile, 14, labelx[i], labely[i], labeltext[i], labelred[i], labelgreen[i], labelblue[i]);
       addOverlay();
    }
 
 
    /* Write data to JPEG file */
       
-   for(jj=0; jj<ny; ++jj)
+   if(outType == JPEG)
    {
-      jpegptr = (JSAMPARRAY) &jpegdata[jj];
+      for(jj=0; jj<ny; ++jj)
+      {
+         jpegptr = (JSAMPARRAY) &jpegData[jj];
 
-      jpeg_write_scanlines(&cinfo, jpegptr, 1);
+         jpeg_write_scanlines(&cinfo, jpegptr, 1);
+      }
    }
 
 
-   /* Close up the JPEG file and get out */
+   /* Close up the image file and get out */
 
-   jpeg_finish_compress(&cinfo);
+   if(outType == JPEG)
+   {
+      jpeg_finish_compress(&cinfo);
 
-   fclose(jpegfp);
+      fclose(jpegfp);
 
-   jpeg_destroy_compress(&cinfo);
+      jpeg_destroy_compress(&cinfo);
+   }
+
+   else if(outType == PNG)
+   {
+      // pngError = lodepng_encode32_file(pngfile, pngData, nx, ny);
+
+      pngError =  writePNG(pngfile, pngData, nx, ny, comment);
+
+      if(pngError)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", lodepng_error_text(pngError));
+         fflush(stdout);
+         exit(0);
+      }
+   }
+
 
    if(isRGB)
       printf("[struct stat=\"OK\", bmin=%-g, bminpercent=%.2f, bminsigma=%2f, bmax=%-g, bmaxpercent=%.2f, bmaxsigma=%.2f, gmin=%-g, gminpercent=%.2f, gminsigma=%.2f, gmax=%-g, gmaxpercent=%.2f, gmaxsigma=%.2f, rmin=%-g, rminpercent=%.2f, rminsigma=%.2f, rmax=%-g, rmaxpercent=%.2f, rmaxsigma=%.2f, rdatamin=%-g, rdatamax=%-g, gdatamin=%-g, gdatamax=%-g, bdatamin=%-g, bdatamax=%-g, xflip=%d, yflip=%d]\n",
@@ -4406,7 +4630,7 @@ double valuePercentile(double value)
 /* comment block (newline delimited) */
 /*************************************/
 
-int make_comment(char *header, char *comment)
+int fits_comment(char *header, char *comment)
 {
    int   i, j, count;
    char *ptr, *end;
@@ -4489,6 +4713,138 @@ int make_comment(char *header, char *comment)
       ptr += 80;
    }
 
+   return 0;
+}
+
+
+
+/*****************************************/
+/* Turn FITS header info into a SAMP/AVM */
+/* comment block (newline delimited)     */
+/*****************************************/
+
+int vamp_comment(char *comment)
+{
+   char  line[1024];
+
+   int    naxis1, naxis2;
+   double crval1, crval2;
+   double crpix1, crpix2;
+   double xinc, yinc;
+   double crota2;
+
+   char   proj[64];
+   char   csys[64];
+   double equinox;
+
+        if(wcs->prjcode == WCS_PIX)  strcpy(proj, "PIX");
+   else if(wcs->prjcode == WCS_LIN)  strcpy(proj, "LIN");
+   else if(wcs->prjcode == WCS_AZP)  strcpy(proj, "AZP");
+   else if(wcs->prjcode == WCS_SZP)  strcpy(proj, "SZP");
+   else if(wcs->prjcode == WCS_TAN)  strcpy(proj, "TAN");
+   else if(wcs->prjcode == WCS_SIN)  strcpy(proj, "SIN");
+   else if(wcs->prjcode == WCS_STG)  strcpy(proj, "STG");
+   else if(wcs->prjcode == WCS_ARC)  strcpy(proj, "ARC");
+   else if(wcs->prjcode == WCS_ZPN)  strcpy(proj, "ZPN");
+   else if(wcs->prjcode == WCS_ZEA)  strcpy(proj, "ZEA");
+   else if(wcs->prjcode == WCS_AIR)  strcpy(proj, "AIR");
+   else if(wcs->prjcode == WCS_CYP)  strcpy(proj, "CYP");
+   else if(wcs->prjcode == WCS_CAR)  strcpy(proj, "CAR");
+   else if(wcs->prjcode == WCS_MER)  strcpy(proj, "MER");
+   else if(wcs->prjcode == WCS_CEA)  strcpy(proj, "CEA");
+   else if(wcs->prjcode == WCS_COP)  strcpy(proj, "COP");
+   else if(wcs->prjcode == WCS_COD)  strcpy(proj, "COD");
+   else if(wcs->prjcode == WCS_COE)  strcpy(proj, "COE");
+   else if(wcs->prjcode == WCS_COO)  strcpy(proj, "COO");
+   else if(wcs->prjcode == WCS_BON)  strcpy(proj, "BON");
+   else if(wcs->prjcode == WCS_PCO)  strcpy(proj, "PCO");
+   else if(wcs->prjcode == WCS_SFL)  strcpy(proj, "SFL");
+   else if(wcs->prjcode == WCS_PAR)  strcpy(proj, "PAR");
+   else if(wcs->prjcode == WCS_AIT)  strcpy(proj, "AIT");
+   else if(wcs->prjcode == WCS_MOL)  strcpy(proj, "MOL");
+   else if(wcs->prjcode == WCS_CSC)  strcpy(proj, "CSC");
+   else if(wcs->prjcode == WCS_QSC)  strcpy(proj, "QSC");
+   else if(wcs->prjcode == WCS_TSC)  strcpy(proj, "TSC");
+   else if(wcs->prjcode == WCS_NCP)  strcpy(proj, "NCP");
+   else if(wcs->prjcode == WCS_GLS)  strcpy(proj, "GLS");
+   else if(wcs->prjcode == WCS_DSS)  strcpy(proj, "DSS");
+   else if(wcs->prjcode == WCS_PLT)  strcpy(proj, "PLT");
+   else if(wcs->prjcode == WCS_TNX)  strcpy(proj, "TNX");
+   else if(wcs->prjcode == WCS_ZPX)  strcpy(proj, "ZPX");
+   else if(wcs->prjcode == WCS_TPV)  strcpy(proj, "TPV");
+   else if(wcs->prjcode == NWCSTYPE) strcpy(proj, "NWCSTYPE");
+   
+   naxis1  = wcs->nxpix;
+   naxis2  = wcs->nypix;
+
+   crval1  = wcs->crval[0];
+   crval2  = wcs->crval[1];
+
+   crpix1  = wcs->xrefpix;
+   crpix2  = wcs->yrefpix;
+
+   xinc    = wcs->xinc;
+   yinc    = wcs->yinc;
+   crota2  = wcs->rot;
+
+   equinox = wcs->equinox;
+
+        if(wcs->syswcs == WCS_J2000)    strcpy(csys, "ICRS");
+   else if(wcs->syswcs == WCS_B1950)    strcpy(csys, "FK4");
+   else if(wcs->syswcs == WCS_GALACTIC) strcpy(csys, "GAL");
+   else if(wcs->syswcs == WCS_ECLIPTIC) strcpy(csys, "ECL");
+   else                                 strcpy(csys, "ICRS");
+
+   strcpy(comment, "");
+
+   sprintf(line, "<?xpacket begin=\" \" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n");
+   strcat(comment, line);
+
+   sprintf(line, "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 4.2-c020 1.124078, Tue Sep 11 2007 23:21:40        \">\n");
+   strcat(comment, line);
+
+   sprintf(line, " <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n");                 strcat(comment, line);
+   sprintf(line, "  <rdf:Description rdf:about=\"\"\n");                                                    strcat(comment, line);
+   sprintf(line, "    xmlns:avm=\"http://www.communicatingastronomy.org/avm/1.0/\">\n");                    strcat(comment, line);
+   sprintf(line, "   <avm:MetadataVersion>1.1</avm:MetadataVersion>\n");                                    strcat(comment, line);
+   sprintf(line, "   <avm:Type>Observation</avm:Type>\n");                                                  strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.Quality>Full</avm:Spatial.Quality>\n");                                   strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.CoordinateFrame>%s</avm:Spatial.CoordinateFrame>\n", csys);               strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.Equinox>%.1f</avm:Spatial.Equinox>\n", equinox);                          strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.CoordsystemProjection>%s</avm:Spatial.CoordsystemProjection>\n", proj);   strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.Rotation>%.10e</avm:Spatial.Rotation>\n", crota2);                        strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.ReferenceDimension>\n");                                                  strcat(comment, line);
+   sprintf(line, "    <rdf:Seq>\n");                                                                        strcat(comment, line);
+   sprintf(line, "     <rdf:li>%d</rdf:li>\n", naxis1);                                                     strcat(comment, line);
+   sprintf(line, "     <rdf:li>%d</rdf:li>\n", naxis2);                                                     strcat(comment, line);
+   sprintf(line, "    </rdf:Seq>\n");                                                                       strcat(comment, line);
+   sprintf(line, "   </avm:Spatial.ReferenceDimension>\n");                                                 strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.ReferenceValue>\n");                                                      strcat(comment, line);
+   sprintf(line, "    <rdf:Seq>\n");                                                                        strcat(comment, line);
+   sprintf(line, "     <rdf:li>%.10e</rdf:li>\n", crval1);                                                  strcat(comment, line);
+   sprintf(line, "     <rdf:li>%.10e</rdf:li>\n", crval2);                                                  strcat(comment, line);
+   sprintf(line, "    </rdf:Seq>\n");                                                                       strcat(comment, line);
+   sprintf(line, "   </avm:Spatial.ReferenceValue>\n");                                                     strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.ReferencePixel>\n");                                                      strcat(comment, line);
+   sprintf(line, "    <rdf:Seq>\n");                                                                        strcat(comment, line);
+   sprintf(line, "     <rdf:li>%.10e</rdf:li>\n", crpix1);                                                  strcat(comment, line);
+   sprintf(line, "     <rdf:li>%.10e</rdf:li>\n", crpix2);                                                  strcat(comment, line);
+   sprintf(line, "    </rdf:Seq>\n");                                                                       strcat(comment, line);
+   sprintf(line, "   </avm:Spatial.ReferencePixel>\n");                                                     strcat(comment, line);
+   sprintf(line, "   <avm:Spatial.Scale>\n");                                                               strcat(comment, line);
+   sprintf(line, "    <rdf:Seq>\n");                                                                        strcat(comment, line);
+   sprintf(line, "     <rdf:li>%.10e</rdf:li>\n", xinc);                                                    strcat(comment, line);
+   sprintf(line, "     <rdf:li>%.10e</rdf:li>\n", yinc);                                                    strcat(comment, line);
+   sprintf(line, "    </rdf:Seq>\n");                                                                       strcat(comment, line);
+   sprintf(line, "   </avm:Spatial.Scale>\n");                                                              strcat(comment, line);
+   sprintf(line, "  </rdf:Description>\n");                                                                 strcat(comment, line);
+   sprintf(line, " </rdf:RDF>\n");                                                                          strcat(comment, line);
+   sprintf(line, "</x:xmpmeta>\n");                                                                         strcat(comment, line);
+      
+   // Padding? 
+
+   sprintf(line, "<?xpacket end=\"r\"?>");
+   strcat(comment, line);
    return 0;
 }
 
@@ -4665,6 +5021,7 @@ double erfinv (double p)
 
 int setPixel(int i, int j, double brightness, double red, double green, double blue, int force)
 {
+   int offset;
    int rval, gval, bval;
 
    if(i < 0 || i >= nx)
@@ -4680,9 +5037,24 @@ int setPixel(int i, int j, double brightness, double red, double green, double b
    gval = green * 255;
    bval = blue  * 255;
 
-   jpegovly[ny - 1 - j][3*i]   = rval; 
-   jpegovly[ny - 1 - j][3*i+1] = gval;
-   jpegovly[ny - 1 - j][3*i+2] = bval;
+   if(outType == JPEG)
+   {
+      jpegOvly[ny - 1 - j][3*i]   = rval; 
+      jpegOvly[ny - 1 - j][3*i+1] = gval;
+      jpegOvly[ny - 1 - j][3*i+2] = bval;
+   }
+
+   else if(outType == PNG)
+   {
+      offset = 4 * nx * (ny-1-j) + 4 * i;
+
+      if(brightness > 0)
+      {
+         pngOvly[offset + 0] = rval; 
+         pngOvly[offset + 1] = gval;
+         pngOvly[offset + 2] = bval;
+      }
+   }
 
    if(brightness < 1.e-9)
       ovlymask[ny - 1 - j][i] = 1.e-9;
@@ -4706,7 +5078,11 @@ int getPixel(int i, int j, int color)
    if(color > 2)
       return 0;
 
-   val = jpegdata[ny - 1 - j][3*i+color];
+   if(outType == JPEG)
+      val = jpegData[ny - 1 - j][3*i+color];
+
+   else if(outType == PNG)
+      val = pngData[4 * nx * (ny - 1 - j) + 4 * i + color];
 
    return val;
 }
@@ -4721,7 +5097,7 @@ int getPixel(int i, int j, int color)
 
 void addOverlay()
 {
-   int    i, j;
+   int    i, j, offset;
    double brightness;
 
    for(j=0; j<ny; ++j)
@@ -4730,9 +5106,24 @@ void addOverlay()
       {
          brightness = ovlymask[j][i];
 
-         jpegdata[j][3*i  ] = brightness * jpegovly[j][3*i  ] + (1. - brightness) * jpegdata[j][3*i  ];
-         jpegdata[j][3*i+1] = brightness * jpegovly[j][3*i+1] + (1. - brightness) * jpegdata[j][3*i+1];
-         jpegdata[j][3*i+2] = brightness * jpegovly[j][3*i+2] + (1. - brightness) * jpegdata[j][3*i+2];
+         if(outType == JPEG)
+         {
+            jpegData[j][3*i  ] = brightness * jpegOvly[j][3*i+0] + (1. - brightness) * jpegData[j][3*i  ];
+            jpegData[j][3*i+1] = brightness * jpegOvly[j][3*i+1] + (1. - brightness) * jpegData[j][3*i+1];
+            jpegData[j][3*i+2] = brightness * jpegOvly[j][3*i+2] + (1. - brightness) * jpegData[j][3*i+2];
+         }
+
+         else if(outType == PNG)
+         {
+            offset = 4 * nx * j + 4 * i;
+
+            if(brightness > 0.)
+            {
+               pngData[offset + 0] = brightness * pngOvly[offset + 0] + (1. - brightness) * pngData[offset + 0];
+               pngData[offset + 1] = brightness * pngOvly[offset + 1] + (1. - brightness) * pngData[offset + 1];
+               pngData[offset + 2] = brightness * pngOvly[offset + 2] + (1. - brightness) * pngData[offset + 2];
+            }
+         }
 
          ovlymask[j][i] = 0.;
       }
@@ -4752,7 +5143,7 @@ void coord_label(char *face_path, int fontsize,
                  int csysimg, double epochimg, int csysgrid, double epochgrid,
                  double red, double green, double blue)
 {
-   int     ii, offscl, convert;
+   int     i, ii, offscl, convert;
 
    double  dlon, dpix;
    double  lon, lat;
@@ -4781,12 +5172,15 @@ void coord_label(char *face_path, int fontsize,
    if(csysgrid != csysimg || epochgrid != epochimg)
       convert = 1;
 
-   dlon = fabs(cdelt2) * 10;
+   dlon = fabs(cdelt2);
 
    lablen = label_length(face_path, fontsize, label);
 
    lon = lonlab;
    lat = latlab;
+
+
+   // Find the XY location of the label center 
 
    reflon = lon;
    reflat = lat;
@@ -4803,6 +5197,9 @@ void coord_label(char *face_path, int fontsize,
 
    if(wcs->imflip)
       yprev = wcs->nypix - yprev;
+
+
+   // Find the XY of a small offset from this in longitude
 
    lon -= dlon;
 
@@ -4822,15 +5219,24 @@ void coord_label(char *face_path, int fontsize,
    if(wcs->imflip)
       yval = wcs->nypix - yval;
 
-   xprev = xval;
-   yprev = yval;
+
+   // Compare the two to determine which direction gives
+   // correctly oriented characters
 
    if(xprev < xval)
       dlon = -dlon;
 
+
+   // Starting again at the label center, move in longitude in small steps 
+   // until we have gone half the length of the string (this is where 
+   // we want to start drawing the string).
+
    lon = lonlab;
 
    laboffset = 0.;
+
+   xprev = xval;
+   yprev = yval;
 
    while(1)
    {
@@ -4857,11 +5263,21 @@ void coord_label(char *face_path, int fontsize,
          break;
 
       if(laboffset > lablen/2.)
+      {
+         xprev = xval;
+         yprev = yval;
+
          break;
+      }
 
       xprev = xval;
       yprev = yval;
    }
+
+
+   // Create an array of XY points, starting at the start point
+   // we just found and going far enough to define the full arc
+   // of the string we want to draw.
 
    xlab = (double *)malloc(NLAB * sizeof(double));
    ylab = (double *)malloc(NLAB * sizeof(double));
@@ -4871,9 +5287,6 @@ void coord_label(char *face_path, int fontsize,
 
    xlab[ii] = xval;
    ylab[ii] = yval;
-
-   xprev = xval;
-   yprev = yval;
 
    laboffset = 0.;
 
@@ -4917,6 +5330,9 @@ void coord_label(char *face_path, int fontsize,
       yprev = yval;
    }
 
+
+   // Use this arc of points to control placement of the string characters
+
    labeled_curve(face_path, fontsize, 0, xlab, ylab, ii, label, 0., red, green, blue);
 
    free(xlab);
@@ -4946,7 +5362,6 @@ void longitude_line(double lon, double latmin, double latmax,
    double *xlin;
    double *ylin;
    int     nlin;
-
 
    if(debug)
    {
@@ -5223,4 +5638,48 @@ void draw_label(char *fontfile, int fontsize,
 
    free(xcurve);
    free(ycurve);
+}
+
+
+
+// ORIGINAL CODE:  lodepng_encode32_file(pngfile, pngData, nx, ny);
+//
+//            ->   writePNG(pngfile, pngData, nx, ny, comment);
+
+
+int writePNG(const char* filename, const unsigned char* image, unsigned w, unsigned h, char *comment)
+{
+   LodePNGColorType colortype;
+   unsigned         bitdepth;
+   unsigned char*   buffer;
+   size_t           buffersize;
+   unsigned         error;
+   LodePNGState     state;
+
+   colortype = LCT_RGBA;
+   bitdepth  = 8;
+
+   lodepng_state_init(&state);
+
+   state.info_raw.colortype       = colortype;
+   state.info_raw.bitdepth        = bitdepth;
+   state.info_png.color.colortype = colortype;
+   state.info_png.color.bitdepth  = bitdepth;
+
+   //XXX> lodepng_add_text(LodePNGInfo* info, "/iTXt/XML:com.adobe.xmp", comment);
+
+   lodepng_add_itext(&state.info_png, "XML:com.adobe.xmp", "", "", comment);
+
+   lodepng_encode(&buffer, &buffersize, image, w, h, &state);
+
+   error = state.error;
+
+   lodepng_state_cleanup(&state);
+
+   if(!error)
+      error = lodepng_save_file(buffer, buffersize, filename);
+
+   free(buffer);
+
+   return error;
 }

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
-#include <ft2build.h>
-#include <freetype/freetype.h>
+#include <freetype2/ft2build.h>
+#include <freetype.h>
 
 void labeled_curve (char *face_path, int fontsize, int showLine,
                     double *xcurve, double *ycurve, int npt,  
@@ -529,7 +529,7 @@ void curve(double *xcurve, double *ycurve, int npt,
    while(1)
    {
       if(fabs(xcurve[i]-xcurve[i-1]) < 10.)
-      smooth_line(xcurve[i-1], ycurve[i-1], xcurve[i], ycurve[i], red, green, blue);
+         smooth_line(xcurve[i-1], ycurve[i-1], xcurve[i], ycurve[i], red, green, blue);
 
       ++i;
       if(i >= npt)
@@ -912,6 +912,9 @@ double label_length( char *face_path, int fontsize, char *text)
 
 
    int n;
+
+   string_length = 0.;
+
    for ( n = 0; n < num_chars; n++ )
    {
       /* Convert character code to glyph index */

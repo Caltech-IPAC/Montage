@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.9      John Good        29Oct13  Invalid WCS keywords can cause
+                                   library to seg fault. Check.
 1.8      John Good        09Oct12  Fixed "clockwise" processing.
 1.7      John Good        14Jan04  Added "bad image" output option.
 1.6.1    Anastasia Laity  03Sep03  Fixed read_fits_keyword problem

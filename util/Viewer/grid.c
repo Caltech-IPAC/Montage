@@ -76,7 +76,17 @@ double grid_space[] = {0.1/3600.,   0.2/3600.,  0.5/3600.,   1./3600.,   2./3600
                          3 -> 6       3 -> 6      3 -> 7.5    3 -> 6     3 - > 6       4 -> 6    4 -> 12 
 */
 
-int ngrid = 19;
+int ngrid = 190;
+
+double compass_segments[9][4] = {{ 0.0,  0.0,  0.0,  8.0},
+                                 { 0.0,  0.0, -4.0,  0.0},
+                                 {-4.0,  0.0, -3.0, -0.5},
+                                 {-4.0,  0.0, -3.0,  0.5},
+                                 { 0.0,  8.0,  0.5,  7.0},
+                                 { 0.0,  8.0, -0.5,  7.0},
+                                 {-0.7,  9.0, -0.7, 11.0},
+                                 {-0.7, 11.0,  0.7,  9.0},
+                                 { 0.7,  9.0,  0.7, 11.0}};
 
 int gdebug = 0;
 
@@ -155,11 +165,11 @@ void makeGrid(struct WorldCoor *wcs,
    ns = wcs->nxpix;
    nl = wcs->nypix;
 
-   fontsize = 10;
+   fontsize = 11;
    if(ns < 600)
-      fontsize = 8;
+      fontsize = 9;
    if(ns < 400)
-      fontsize = 6;
+      fontsize = 8;
 
    corner[0].x = -0.5;
    corner[0].y = -0.5;
@@ -866,9 +876,9 @@ char *latitude_label(double lat)
    }
 
    if(isign)
-      strcpy(label, "-");
+      strcat(label, "-");
    else
-      strcpy(label, "");
+      strcat(label, "+");
 
    strcat(label, dstr);
    strcat(label, "d");
@@ -1121,8 +1131,7 @@ void great_circle(struct WorldCoor *wcs,
 
 /*****************************************************/
 /*                                                   */
-/* Draw a compass "rose", a line segment running     */
-/* N-S and a shorter one running E-W.                */
+/* Draw symbols, including a compass rose.           */
 /*                                                   */
 /*****************************************************/
 
@@ -1133,12 +1142,18 @@ void symbol(struct WorldCoor *wcs,
             double radius, int symnpnt, int symmax, int symtype, double symang,
             double red,   double green, double blue)
 {
-   int    k;
+   int    i, k;
    double cosc, colat, sina, dlon, vang, dvang, vangmax, lat, lon;
    double rad, type, lonprev, latprev;
    double xpix, ypix;
    double clon, clat;
    int    naxis1, naxis2;
+
+   double x1, y1;
+   double x2, y2;
+
+   double lon1, lat1;
+   double lon2, lat2;
 
    double dtr;
 
@@ -1281,41 +1296,49 @@ void symbol(struct WorldCoor *wcs,
 
    else if(type == 3)
    {
-      // N-S segment
+      for(i=0; i<9; ++i)
+      {
+         y1 = -compass_segments[i][0];
+         x1 = -compass_segments[i][1];
 
-      vang = 180.;
+         vang = atan2(y1, x1) / dtr;
 
-      cosc = cos(radius*dtr) * cos((90. - clat)*dtr) - sin(radius*dtr) * sin((90. - clat)*dtr) * cos(vang*dtr);
+         rad  = radius * sqrt(x1*x1 + y1*y1)/12.;
 
-      colat = acos(cosc) / dtr;
+         cosc = cos(rad*dtr) * cos((90. - clat)*dtr) - sin(rad*dtr) * sin((90. - clat)*dtr) * cos(vang*dtr);
 
-      sina = sin(radius*dtr) * sin(vang*dtr) / sin(colat*dtr);
+         colat = acos(cosc) / dtr;
 
-      dlon = asin(sina)/dtr;
+         sina = sin(rad*dtr) * sin(vang*dtr) / sin(colat*dtr);
 
-      lat = 90. - colat;
+         dlon = asin(sina)/dtr;
 
-      lon = clon + dlon;
+         lat1 = 90. - colat;
 
-      great_circle(wcs, csysimg, epochimg, csyssym, epochsym, clon, clat, lon, lat, red, green, blue);
+         lon1 = clon + dlon;
 
 
-      // E-W segment
+         y2 = -compass_segments[i][2];
+         x2 = -compass_segments[i][3];
 
-      vang = 90.;
 
-      cosc = cos(0.5*radius*dtr) * cos((90. - clat)*dtr) - sin(0.5*radius*dtr) * sin((90. - clat)*dtr) * cos(vang*dtr);
+         vang = atan2(y2, x2) / dtr;
 
-      colat = acos(cosc) / dtr;
+         rad  = radius * sqrt(x2*x2 + y2*y2)/12.;
 
-      sina = sin(0.5*radius*dtr) * sin(vang*dtr) / sin(colat*dtr);
+         cosc = cos(rad*dtr) * cos((90. - clat)*dtr) - sin(rad*dtr) * sin((90. - clat)*dtr) * cos(vang*dtr);
 
-      dlon = asin(sina)/dtr;
+         colat = acos(cosc) / dtr;
 
-      lat = 90. - colat;
+         sina = sin(rad*dtr) * sin(vang*dtr) / sin(colat*dtr);
 
-      lon = clon + dlon;
+         dlon = asin(sina)/dtr;
 
-      great_circle(wcs, csysimg, epochimg, csyssym, epochsym, clon, clat, lon, lat, red, green, blue);
+         lat2 = 90. - colat;
+
+         lon2 = clon + dlon;
+
+         great_circle(wcs, csysimg, epochimg, csyssym, epochsym, lon1, lat1, lon2, lat2, red, green, blue);
+      }
    }
 }

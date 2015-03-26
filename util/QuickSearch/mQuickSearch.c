@@ -1,4 +1,5 @@
-/*
+/* Module: mQuickSearch.c
+
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
 4.0      John Good        11Jan12  Add tree compression and enforce memset()
@@ -642,6 +643,39 @@ int main(int argc, char **argv)
       memset((void *)setcount, 0, (long)nset * (long)sizeof(SetCount));
 
 
+
+      /* Override file name if there is only one */
+      /* and it came from the command line.      */
+
+      if(singleMode)
+      {
+         set = (Set *)malloc(1 * sizeof(Set));
+
+         strcpy(set[0].file, infile);
+         strcpy(set[0].name, "single_catalog");
+
+         ncol = topen(infile);
+
+         nrec = (long)tlen();
+
+         set[0].headbytes = tbl_headbytes;
+         set[0].reclen    = tbl_reclen;
+         
+         if(rdebug)
+         {
+            printf("\nSingle file sizes`:\n");
+            printf("%s tlen() = %ld\n", tblfile, nrec);
+            printf("ncol      = %d\n",  ncol);
+            printf("headbytes = %d\n",  tbl_headbytes);
+            printf("reclen    = %d\n",  tbl_reclen);
+            fflush(stdout);
+         }
+
+         tclose();
+      }
+
+
+
       /* Attach the bounding rectangle data memory file */
 
       strcpy(memfile, basefile);
@@ -699,15 +733,30 @@ int main(int argc, char **argv)
          loadtime-begintime, nset, nrect, size);
       fflush(stdout);
 
-      if(rdebug > 3)
+
+      /* Override file name if there is only one */
+      /* and it came from the command line.      */
+
+      if(singleMode)
+      {
+         strcpy(set[0].file, infile);
+         strcpy(set[0].name, "single_catalog");
+      }
+
+
+
+      if(rdebug > 2)
       {
          for(i=0; i<nset; ++i)
          {
-            printf("SET> %ld %s %s\n", 
+            printf("SET> set[%ld] file=[%s] name=[%s]\n", 
                i, set[i].file, set[i].name);
             fflush(stdout);
          }
+      }
 
+      if(rdebug > 3)
+      {
          for(i=0; i<nrect; ++i)
          {
             printf("RECT> %ld %d %ld %-g %-g %-g\n", 
@@ -932,7 +981,7 @@ int main(int argc, char **argv)
          memset((void *)setcount, 0, nset * sizeof(SetCount));
 
          strcpy(set[0].file, infile);
-         strcpy(set[0].name, "catalog");
+         strcpy(set[0].name, "single_catalog");
       }
     
 
@@ -2533,7 +2582,7 @@ int main(int argc, char **argv)
          }
          
          if(singleMode)
-            strcpy(setName, "catalog");
+            strcpy(setName, "single_catalog");
          else
             strcpy(setName, cmdv[1]);
 
@@ -2660,7 +2709,7 @@ int main(int argc, char **argv)
          strcpy(filename, cmdv[1]);
 
          if(singleMode)
-            strcpy(setName, "catalog");
+            strcpy(setName, "single_catalog");
          else
             strcpy(setName, cmdv[2]);
 

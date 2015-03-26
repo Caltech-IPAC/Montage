@@ -83,14 +83,14 @@ int main(int argc, char **argv)
 
       if(strncasecmp(source, "gf", 2) == 0
       || strncasecmp(source, "gr", 2) == 0)
-	 strcpy(type, "gftp");
+         strcpy(type, "gftp");
 
       if(strncasecmp(source, "gp", 2) == 0)
-	 strcpy(type, "gpfs");
+         strcpy(type, "gpfs");
 
       if(strncasecmp(source, "nvo", 3) == 0
       || strncasecmp(source, "uri", 3) == 0)
-	 strcpy(type, "uri");
+         strcpy(type, "uri");
    }
 
    if(argc < 7)
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
    if(fout == (FILE *)NULL)
    {
       printf("[struct stat=\"ERROR\", msg=\"Can't open output file %s\"]\n", 
-	 argv[6]);
+         argv[6]);
       exit(0);
    }
 
@@ -129,12 +129,13 @@ int main(int argc, char **argv)
    
    if(proxy) {
      parseUrl(proxy, pserver, &pport);
+
      if(debug)
        {
-	 printf("DEBUG> proxy = [%s]\n", proxy);
-	 printf("DEBUG> pserver = [%s]\n", pserver);
-	 printf("DEBUG> pport = [%d]\n", pport);
-	 fflush(stdout);
+         printf("DEBUG> proxy = [%s]\n", proxy);
+         printf("DEBUG> pserver = [%s]\n", pserver);
+         printf("DEBUG> pport = [%d]\n", pport);
+         fflush(stdout);
        }
      socket = tcp_connect(pserver, pport);
    } else {
@@ -146,10 +147,10 @@ int main(int argc, char **argv)
 
    if(proxy) {
      sprintf(request, "GET http://%s:%d%s%s HTTP/1.0\r\n\r\n",
-	     server, port, base, constraint);
+             server, port, base, constraint);
    } else {
      sprintf(request, "GET %s%s HTTP/1.0\r\nHOST: %s:%d\r\n\r\n",
-	     base, constraint, server, port);
+             base, constraint, server, port);
    }
 
    if(debug)
@@ -170,30 +171,30 @@ int main(int argc, char **argv)
       /* Read lines returning from service */
 
       if(readline (socket, line) == 0)
-	 break;
+         break;
 
       if(debug)
       {
-	 printf("DEBUG> return; [%s]\n", line);
-	 fflush(stdout);
+         printf("DEBUG> return; [%s]\n", line);
+         fflush(stdout);
       }
 
       if(strncmp(line, "ERROR: ", 7) == 0)
       {
-	 if(line[strlen(line)-1] == '\n')
-	    line[strlen(line)-1]  = '\0';
+         if(line[strlen(line)-1] == '\n')
+            line[strlen(line)-1]  = '\0';
 
-	 printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", line+7);
-	 exit(0);
+         printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", line+7);
+         exit(0);
       }
       else
       {
-	 fprintf(fout, "%s", line);
-	 fflush(fout);
+         fprintf(fout, "%s", line);
+         fflush(fout);
 
-	 if(line[0] != '|'
-	 && line[0] != '\\')
-	    ++count;
+         if(line[0] != '|'
+         && line[0] != '\\')
+            ++count;
       }
    }
       
@@ -264,20 +265,20 @@ int readline (int fd, char *line)
    {
       if ((rc == read (fd, &c, 1)) != 1)
       {
-	 *line++ = c ;
-	 if (c == '\n')
-	    break ;
+         *line++ = c ;
+         if (c == '\n')
+            break ;
       }
 
       else if (rc == 0)
       {
-	 if (n == 1)
-	    return 0 ; /* EOF */
-	 else
-	    break ;    /* unexpected EOF */
+         if (n == 1)
+            return 0 ; /* EOF */
+         else
+            break ;    /* unexpected EOF */
       }
       else 
-	 return -1 ;
+         return -1 ;
    }
 
    *line = 0 ;
@@ -354,7 +355,7 @@ void parseUrl(char *urlStr, char *hostStr, int *port) {
    while(1)
    {
       if(*dataref == ':' || *dataref == '/' || *dataref == '\0')
-	 break;
+         break;
       
       ++dataref;
    }
@@ -376,10 +377,10 @@ void parseUrl(char *urlStr, char *hostStr, int *port) {
 
       while(1)
       {
-	 if(*dataref == '/' || *dataref == '\0')
-	    break;
-	 
-	 ++dataref;
+         if(*dataref == '/' || *dataref == '\0')
+            break;
+         
+         ++dataref;
       } 
 
       *dataref = '\0';
@@ -390,8 +391,8 @@ void parseUrl(char *urlStr, char *hostStr, int *port) {
 
       if(*port <= 0)
       {
-	 printf("[struct stat=\"ERROR\", msg=\"Illegal port number in URL\"]\n");
-	 exit(0);
+         printf("[struct stat=\"ERROR\", msg=\"Illegal port number in URL\"]\n");
+         exit(0);
       }
    }
 }

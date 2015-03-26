@@ -5,28 +5,28 @@ Version  Developer        Date     Change
 4.0      John Good        21Jun07  Trying to match CAR projections away
                                    from the equator led to the following
                                    changes:  correction for 360 degree
-				   offset that sometimes happens with 
-				   WCS library handling of CAR; initialization
-				   of CDELT in distorted header based on
-				   local spacing (for CAR this effectively
-				   adds a cos(lat) correction; and a correction
-				   to the reporting of maximum pixel error
-				   (it was being reported in reverse sense
-				   to the definitions in the code).
+                                   offset that sometimes happens with 
+                                   WCS library handling of CAR; initialization
+                                   of CDELT in distorted header based on
+                                   local spacing (for CAR this effectively
+                                   adds a cos(lat) correction; and a correction
+                                   to the reporting of maximum pixel error
+                                   (it was being reported in reverse sense
+                                   to the definitions in the code).
 3.0      John Good        26Jun06  Made several changes to the code:  
-				   Scaling/rotation now inherited verbatim
-				   from the input header; stepsize was
-				   used inconsistently (and slowed things
-				   down); increased the number of points
-				   used in fit; and checked fit for "all
-				   off-scale" condition.
+                                   Scaling/rotation now inherited verbatim
+                                   from the input header; stepsize was
+                                   used inconsistently (and slowed things
+                                   down); increased the number of points
+                                   used in fit; and checked fit for "all
+                                   off-scale" condition.
 2.0      John Good        24Mar06  Added correlation matrix checking (to
-				   remove coefficients if they are too
-				   correlated and we are getting a singular
-				   matrix).
+                                   remove coefficients if they are too
+                                   correlated and we are getting a singular
+                                   matrix).
 1.3      John Good        21Sep04  A_ORDER, etc. should have been the maximum
-				   index number, not the count (i.e. we were
-				   off by 1).
+                                   index number, not the count (i.e. we were
+                                   off by 1).
 1.2      John Good        27Aug04  Added "[-e equinox]" to Usage statement
 1.1      John Good        11Aug04  Checking -c, -i, -o, -e, and -t arguments
                                    for valid values
@@ -220,45 +220,45 @@ int main(int argc, char **argv)
             break;
 
          case 'i':
-	    maxiter = strtol(optarg, &end, 0);
+            maxiter = strtol(optarg, &end, 0);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"-i (iterations) argument \"%s\" not an integer\"]\n", optarg);
-	       fflush(stdout);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"-i (iterations) argument \"%s\" not an integer\"]\n", optarg);
+               fflush(stdout);
+               exit(1);
+            }
 
-	    if(maxiter < 1)
-	       maxiter = 1;
+            if(maxiter < 1)
+               maxiter = 1;
             break;
 
          case 'o':
-	    order = strtol(optarg, &end, 0);
+            order = strtol(optarg, &end, 0);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"-o (order) argument \"%s\" not an integer\"]\n", optarg);
-	       fflush(stdout);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"-o (order) argument \"%s\" not an integer\"]\n", optarg);
+               fflush(stdout);
+               exit(1);
+            }
 
-	    if(order < 0)
-	       order = 0;
+            if(order < 0)
+               order = 0;
             break;
 
          case 't':
-	    tolerance = strtod(optarg, &end);
+            tolerance = strtod(optarg, &end);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"-t (tolerance) argument \"%s\" not a real number\"]\n", optarg);
-	       fflush(stdout);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"-t (tolerance) argument \"%s\" not a real number\"]\n", optarg);
+               fflush(stdout);
+               exit(1);
+            }
 
-	    if(tolerance < 0)
-	       tolerance = 0;
+            if(tolerance < 0)
+               tolerance = 0;
             break;
 
          case 's':
@@ -271,8 +271,8 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-o order][-i maxiter][-t tolerance][-s statusfile] orig.hdr new.hdr (default: order = 5, maxiter = 50, tolerance = 0.01)\"]\n", 
-	       argv[0]);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-o order][-i maxiter][-t tolerance][-s statusfile] orig.hdr new.hdr (default: order = 5, maxiter = 50, tolerance = 0.01)\"]\n", 
+               argv[0]);
             exit(1);
             break;
       }
@@ -281,7 +281,7 @@ int main(int argc, char **argv)
    if (argc - optind < 2) 
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-o order][-i maxiter][-t tolerance][-s statusfile] orig.hdr new.hdr (default: order = 5, maxiter = 50, tolerance = 0.01)\"]\n", 
-	 argv[0]);
+         argv[0]);
       exit(1);
    }
 
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
    if(fout == (FILE *)NULL)
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot open output template file %s\"]\n", 
-	 newtmpl);
+         newtmpl);
       fflush(stdout);
 
       exit(1);
@@ -326,8 +326,8 @@ int main(int argc, char **argv)
 
       for(jorder=0; jorder<order; ++jorder)
       {
-	 a [iorder][jorder] = 0.;
-	 ap[iorder][jorder] = 0.;
+         a [iorder][jorder] = 0.;
+         ap[iorder][jorder] = 0.;
       }
    }
 
@@ -341,8 +341,8 @@ int main(int argc, char **argv)
 
       for(jorder=0; jorder<order; ++jorder)
       {
-	 b [iorder][jorder] = 0.;
-	 bp[iorder][jorder] = 0.;
+         b [iorder][jorder] = 0.;
+         bp[iorder][jorder] = 0.;
       }
    }
 
@@ -471,69 +471,69 @@ int main(int argc, char **argv)
 
       for(i=0; i<2*n; ++i)
       {
-	 vector[i][0] = 0.;
-	 
-	 for(j=0; j<2*n; ++j)
-	    matrix[i][j] = 0.;
+         vector[i][0] = 0.;
+         
+         for(j=0; j<2*n; ++j)
+            matrix[i][j] = 0.;
       }
 
       if(debug > 1)
       {
-	 printf("\nDEBUG> FWD: A (x-direction) distortions [%d]\n", iter); 
-	 fflush(stdout);
+         printf("\nDEBUG> FWD: A (x-direction) distortions [%d]\n", iter); 
+         fflush(stdout);
       }
 
       for (ipix=0; ipix<wcs->nxpix+1; ipix+=stepsize)
       {
-	 for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
-	 {
-	    ix = ipix - 0.5;
-	    iy = jpix - 0.5;
+         for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
+         {
+            ix = ipix - 0.5;
+            iy = jpix - 0.5;
 
-	    pix2wcs(wcs, ix, iy, &xpos, &ypos);
+            pix2wcs(wcs, ix, iy, &xpos, &ypos);
 
             offscl = 0;
 
-	    wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
+            wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
 
             z = ix - x;
 
-	    if(debug > 1)
-	    {
-	       printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
-		  ix, iy, xpos, ypos, x, y, z, offscl);
-	       fflush(stdout);
-	    }
+            if(debug > 1)
+            {
+               printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
+                  ix, iy, xpos, ypos, x, y, z, offscl);
+               fflush(stdout);
+            }
             
-	    if(useOffscl || !offscl)
-	    {
-	       for(ii=0; ii<order; ++ii)
-	       {
-		  for(ij=0; ij<order; ++ij)
-		  {
-		     i = ii*m + ij;
+            if(useOffscl || !offscl)
+            {
+               for(ii=0; ii<order; ++ii)
+               {
+                  for(ij=0; ij<order; ++ij)
+                  {
+                     i = ii*m + ij;
 
-		     xpow = ii;
-		     ypow = ij;
+                     xpow = ii;
+                     ypow = ij;
 
-		     vector[i][0] += pow(ix, xpow) * pow(iy, ypow) * z;
+                     vector[i][0] += pow(ix, xpow) * pow(iy, ypow) * z;
 
-		     for(jj=0; jj<order; ++jj)
-		     {
-			for(ji=0; ji<order; ++ji)
-			{
-			   j = jj*m + ji;
+                     for(jj=0; jj<order; ++jj)
+                     {
+                        for(ji=0; ji<order; ++ji)
+                        {
+                           j = jj*m + ji;
 
-			   xpow = ii + jj;
-			   ypow = ij + ji;
+                           xpow = ii + jj;
+                           ypow = ij + ji;
 
-			   matrix[i][j] += pow(ix, xpow) * pow(iy, ypow);
-			}
-		     }
-		  }
-	       }
-	    }
-	 }
+                           matrix[i][j] += pow(ix, xpow) * pow(iy, ypow);
+                        }
+                     }
+                  }
+               }
+            }
+         }
       }
 
 
@@ -543,61 +543,61 @@ int main(int argc, char **argv)
 
       if(debug > 1)
       {
-	 printf("\nDEBUG> FWD: B (y-direction) distortions [%d]\n", iter); 
-	 fflush(stdout);
+         printf("\nDEBUG> FWD: B (y-direction) distortions [%d]\n", iter); 
+         fflush(stdout);
       }
 
       for (ipix=0; ipix<wcs->nxpix+1; ipix+=stepsize)
       {
-	 for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
-	 {
-	    ix = ipix - 0.5;
-	    iy = jpix - 0.5;
+         for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
+         {
+            ix = ipix - 0.5;
+            iy = jpix - 0.5;
 
-	    pix2wcs(wcs, ix, iy, &xpos, &ypos);
+            pix2wcs(wcs, ix, iy, &xpos, &ypos);
 
             offscl = 0;
 
-	    wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
+            wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
 
-	    z = iy - y;
+            z = iy - y;
 
-	    if(debug > 1)
-	    {
-	       printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
-		  ix, iy, xpos, ypos, x, y, z, offscl);
-	       fflush(stdout);
-	    }
+            if(debug > 1)
+            {
+               printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
+                  ix, iy, xpos, ypos, x, y, z, offscl);
+               fflush(stdout);
+            }
 
-	    if(useOffscl || !offscl)
-	    {
-	       for(ii=0; ii<order; ++ii)
-	       {
-		  for(ij=0; ij<order; ++ij)
-		  {
-		     i = ii*m + ij;
+            if(useOffscl || !offscl)
+            {
+               for(ii=0; ii<order; ++ii)
+               {
+                  for(ij=0; ij<order; ++ij)
+                  {
+                     i = ii*m + ij;
 
-		     xpow = ii;
-		     ypow = ij;
+                     xpow = ii;
+                     ypow = ij;
 
-		     vector[i+n][0] += pow(x, xpow) * pow(y, ypow) * z;
+                     vector[i+n][0] += pow(x, xpow) * pow(y, ypow) * z;
 
-		     for(jj=0; jj<order; ++jj)
-		     {
-			for(ji=0; ji<order; ++ji)
-			{
-			   j = jj*m + ji;
+                     for(jj=0; jj<order; ++jj)
+                     {
+                        for(ji=0; ji<order; ++ji)
+                        {
+                           j = jj*m + ji;
 
-			   xpow = ii + jj;
-			   ypow = ij + ji;
+                           xpow = ii + jj;
+                           ypow = ij + ji;
 
-			   matrix[i+n][j+n] += pow(x, xpow) * pow(y, ypow);
-			}
-		     }
-		  }
-	       }
-	    }
-	 }
+                           matrix[i+n][j+n] += pow(x, xpow) * pow(y, ypow);
+                        }
+                     }
+                  }
+               }
+            }
+         }
       }
 
 
@@ -607,91 +607,91 @@ int main(int argc, char **argv)
 
       if(matrix[n-1][n-1] == 0.0)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"All points offscale in forward transform\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"All points offscale in forward transform\"]\n");
+         exit(1);
       }
 
       if(debug)
       {
-	 printf("\n\nFWD: Before gaussj():\n");
+         printf("\n\nFWD: Before gaussj():\n");
 
-	 for(i=0; i<n; ++i)
-	 {
-	    printf("matrix:\n");
-	    for(j=0; j<n; ++j)
-	       printf("%12.5e ", matrix[i][j]);
+         for(i=0; i<n; ++i)
+         {
+            printf("matrix:\n");
+            for(j=0; j<n; ++j)
+               printf("%12.5e ", matrix[i][j]);
 
-	    printf("\nvector:\n");
-	    printf("  %12.5e\n", vector[i][0]);
-	 }
+            printf("\nvector:\n");
+            printf("  %12.5e\n", vector[i][0]);
+         }
 
-	 printf("\n");
+         printf("\n");
       }
 
       gaussj(matrix, 2*n, vector, 1);
 
       if(debug)
       {
-	 printf("\n\nAfter gaussj():\n");
+         printf("\n\nAfter gaussj():\n");
 
-	 for(i=0; i<n; ++i)
-	 {
-	    printf("matrix:\n");
-	    for(j=0; j<n; ++j)
-	       printf("%12.5e ", matrix[i][j]);
+         for(i=0; i<n; ++i)
+         {
+            printf("matrix:\n");
+            for(j=0; j<n; ++j)
+               printf("%12.5e ", matrix[i][j]);
 
-	    printf("\nvector:\n");
-	    printf("  %12.5e\n", vector[i][0]);
-	 }
+            printf("\nvector:\n");
+            printf("  %12.5e\n", vector[i][0]);
+         }
 
-	 printf("\n");
+         printf("\n");
       }
 
       for(ii=0; ii<order; ++ii)
       {
-	 for(ij=0; ij<order; ++ij)
-	 {
-	    i = ii*m + ij;
+         for(ij=0; ij<order; ++ij)
+         {
+            i = ii*m + ij;
 
-	    ap[ii][ij] += vector[i][0]/2.;
+            ap[ii][ij] += vector[i][0]/2.;
 
-	    if(ap[ii][ij] != 0)
-	       change = vector[i][0]/ap[ii][ij] * 100.;
-	    else
-	       change = -999.;
-	    
-	    if(debug)
-	    {
-	       printf("ap[%d][%d] = %12.5e (%5.1f%%)\n", 
-		  ii, ij, ap[ii][ij], change);
-	       fflush(stdout);
-	    }
-	 }
+            if(ap[ii][ij] != 0)
+               change = vector[i][0]/ap[ii][ij] * 100.;
+            else
+               change = -999.;
+            
+            if(debug)
+            {
+               printf("ap[%d][%d] = %12.5e (%5.1f%%)\n", 
+                  ii, ij, ap[ii][ij], change);
+               fflush(stdout);
+            }
+         }
       }
 
       if(debug)
-	 printf("\n");
+         printf("\n");
 
       for(ii=0; ii<order; ++ii)
       {
-	 for(ij=0; ij<order; ++ij)
-	 {
-	    i = ii*m + ij;
+         for(ij=0; ij<order; ++ij)
+         {
+            i = ii*m + ij;
 
-	    bp[ii][ij] += vector[i+n][0]/2.;
+            bp[ii][ij] += vector[i+n][0]/2.;
 
-	    if(bp[ii][ij] != 0)
-	       change = vector[i+n][0]/bp[ii][ij] * 100.;
-	    else
-	       change = -999.;
-	    
-	    if(debug)
-	    {
-	       printf("bp[%d][%d] = %12.5e (%5.1f%%)\n", 
-		  ii, ij, bp[ii][ij], change);
-	       fflush(stdout);
-	    }
-	 }
+            if(bp[ii][ij] != 0)
+               change = vector[i+n][0]/bp[ii][ij] * 100.;
+            else
+               change = -999.;
+            
+            if(debug)
+            {
+               printf("bp[%d][%d] = %12.5e (%5.1f%%)\n", 
+                  ii, ij, bp[ii][ij], change);
+               fflush(stdout);
+            }
+         }
       }
 
 
@@ -707,51 +707,51 @@ int main(int argc, char **argv)
 
       if(debug > 1)
       {
-	 printf("\nDEBUG> FWD: maximum positional error [%d]\n", iter); 
-	 fflush(stdout);
+         printf("\nDEBUG> FWD: maximum positional error [%d]\n", iter); 
+         fflush(stdout);
       }
 
       for (ipix=0; ipix<wcs->nxpix+1; ipix+=stepsize)
       {
-	 for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
-	 {
-	    ix = ipix - 0.5;
-	    iy = jpix - 0.5;
+         for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
+         {
+            ix = ipix - 0.5;
+            iy = jpix - 0.5;
 
-	    pix2wcs(wcs, ix, iy, &xpos, &ypos);
+            pix2wcs(wcs, ix, iy, &xpos, &ypos);
 
             offscl = 0;
 
-	    wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
+            wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
 
-	    if(debug > 1)
-	    {
-	       printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
-		  ix, iy, xpos, ypos, x, y, offscl);
-	       fflush(stdout);
-	    }
+            if(debug > 1)
+            {
+               printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
+                  ix, iy, xpos, ypos, x, y, offscl);
+               fflush(stdout);
+            }
 
-	    if(useOffscl || !offscl)
-	    {
-	       if(fabs(ix-x) > fwdmaxx)
-		  fwdmaxx = fabs(ix-x);
+            if(useOffscl || !offscl)
+            {
+               if(fabs(ix-x) > fwdmaxx)
+                  fwdmaxx = fabs(ix-x);
 
-	       if(fabs(iy-y) > fwdmaxy)
-		  fwdmaxy = fabs(iy-y);
-	    }
-	 }
+               if(fabs(iy-y) > fwdmaxy)
+                  fwdmaxy = fabs(iy-y);
+            }
+         }
       }
 
       if(debug)
       {
-	 printf("fwdmaxx = %-g [%d]\n", fwdmaxx, iter);
-	 printf("fwdmaxy = %-g [%d]\n", fwdmaxy, iter);
-	 fflush(stdout);
+         printf("fwdmaxx = %-g [%d]\n", fwdmaxx, iter);
+         printf("fwdmaxy = %-g [%d]\n", fwdmaxy, iter);
+         fflush(stdout);
       }
 
       if(fwdmaxx < tolerance
       && fwdmaxy < tolerance)
-	 break;
+         break;
    }
 
    fwditer = iter;
@@ -771,71 +771,71 @@ int main(int argc, char **argv)
 
       for(i=0; i<2*n; ++i)
       {
-	 vector[i][0] = 0.;
-	 
-	 for(j=0; j<2*n; ++j)
-	    matrix[i][j] = 0.;
+         vector[i][0] = 0.;
+         
+         for(j=0; j<2*n; ++j)
+            matrix[i][j] = 0.;
       }
 
       if(debug > 1)
       {
-	 printf("\nDEBUG> REV: A (x-direction) distortions [%d]\n", iter); 
-	 fflush(stdout);
+         printf("\nDEBUG> REV: A (x-direction) distortions [%d]\n", iter); 
+         fflush(stdout);
       }
 
       for (ipix=0; ipix<wcs->nxpix+1; ipix+=stepsize)
       {
-	 for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
-	 {
-	    ix = ipix - 0.5;
-	    iy = jpix - 0.5;
+         for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
+         {
+            ix = ipix - 0.5;
+            iy = jpix - 0.5;
 
-	    pix2wcs(WCS, ix, iy, &xpos, &ypos);
+            pix2wcs(WCS, ix, iy, &xpos, &ypos);
 
             offscl = 0;
 
-	    wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
+            wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
             fixxy(&x, &y, &offscl);
 
-	    z = ix - x;
+            z = ix - x;
 
-	    if(debug > 1)
-	    {
-	       printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
-		  ix, iy, xpos, ypos, x, y, z, offscl);
-	       fflush(stdout);
-	    }
+            if(debug > 1)
+            {
+               printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
+                  ix, iy, xpos, ypos, x, y, z, offscl);
+               fflush(stdout);
+            }
 
-	    if(useOffscl || !offscl)
-	    {
-	       for(ii=0; ii<order; ++ii)
-	       {
-		  for(ij=0; ij<order; ++ij)
-		  {
-		     i = ii*m + ij;
+            if(useOffscl || !offscl)
+            {
+               for(ii=0; ii<order; ++ii)
+               {
+                  for(ij=0; ij<order; ++ij)
+                  {
+                     i = ii*m + ij;
 
-		     xpow = ii;
-		     ypow = ij;
+                     xpow = ii;
+                     ypow = ij;
 
-		     vector[i][0] += pow(ix, xpow) * pow(iy, ypow) * z;
+                     vector[i][0] += pow(ix, xpow) * pow(iy, ypow) * z;
 
-		     for(jj=0; jj<order; ++jj)
-		     {
-			for(ji=0; ji<order; ++ji)
-			{
-			   j = jj*m + ji;
+                     for(jj=0; jj<order; ++jj)
+                     {
+                        for(ji=0; ji<order; ++ji)
+                        {
+                           j = jj*m + ji;
 
-			   xpow = ii + jj;
-			   ypow = ij + ji;
+                           xpow = ii + jj;
+                           ypow = ij + ji;
 
-			   matrix[i][j] += pow(ix, xpow) * pow(iy, ypow);
-			}
-		     }
-		  }
-	       }
-	    }
-	 }
+                           matrix[i][j] += pow(ix, xpow) * pow(iy, ypow);
+                        }
+                     }
+                  }
+               }
+            }
+         }
       }
 
 
@@ -845,64 +845,64 @@ int main(int argc, char **argv)
 
       if(debug > 1)
       {
-	 printf("\nDEBUG> REV: B (y-direction) distortions [%d]\n", iter); 
-	 fflush(stdout);
+         printf("\nDEBUG> REV: B (y-direction) distortions [%d]\n", iter); 
+         fflush(stdout);
       }
 
       for (ipix=0; ipix<wcs->nxpix+1; ipix+=stepsize)
       {
-	 for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
-	 {
-	    ix = ipix - 0.5;
-	    iy = jpix - 0.5;
+         for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
+         {
+            ix = ipix - 0.5;
+            iy = jpix - 0.5;
 
-	    pix2wcs(WCS, ix, iy, &xpos, &ypos);
+            pix2wcs(WCS, ix, iy, &xpos, &ypos);
 
             offscl = 0;
 
-	    wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
+            wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
             fixxy(&x, &y, &offscl);
 
-	    z = iy - y;
+            z = iy - y;
 
-	    if(debug > 1)
-	    {
-	       printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
-		  ix, iy, xpos, ypos, x, y, z, offscl);
-	       fflush(stdout);
-	    }
+            if(debug > 1)
+            {
+               printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f -> %10.2f (%d)\n", 
+                  ix, iy, xpos, ypos, x, y, z, offscl);
+               fflush(stdout);
+            }
 
 
-	    if(useOffscl || !offscl)
-	    {
-	       for(ii=0; ii<order; ++ii)
-	       {
-		  for(ij=0; ij<order; ++ij)
-		  {
-		     i = ii*m + ij;
+            if(useOffscl || !offscl)
+            {
+               for(ii=0; ii<order; ++ii)
+               {
+                  for(ij=0; ij<order; ++ij)
+                  {
+                     i = ii*m + ij;
 
-		     xpow = ii;
-		     ypow = ij;
+                     xpow = ii;
+                     ypow = ij;
 
-		     vector[i+n][0] += pow(x, xpow) * pow(y, ypow) * z;
+                     vector[i+n][0] += pow(x, xpow) * pow(y, ypow) * z;
 
-		     for(jj=0; jj<order; ++jj)
-		     {
-			for(ji=0; ji<order; ++ji)
-			{
-			   j = jj*m + ji;
+                     for(jj=0; jj<order; ++jj)
+                     {
+                        for(ji=0; ji<order; ++ji)
+                        {
+                           j = jj*m + ji;
 
-			   xpow = ii + jj;
-			   ypow = ij + ji;
+                           xpow = ii + jj;
+                           ypow = ij + ji;
 
-			   matrix[i+n][j+n] += pow(x, xpow) * pow(y, ypow);
-			}
-		     }
-		  }
-	       }
-	    }
-	 }
+                           matrix[i+n][j+n] += pow(x, xpow) * pow(y, ypow);
+                        }
+                     }
+                  }
+               }
+            }
+         }
       }
 
 
@@ -912,91 +912,91 @@ int main(int argc, char **argv)
 
       if(matrix[n-1][n-1] == 0.0)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"All points offscale in reverse transform\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"All points offscale in reverse transform\"]\n");
+         exit(1);
       }
 
       if(debug)
       {
-	 printf("\n\nREV: Before gaussj():\n");
+         printf("\n\nREV: Before gaussj():\n");
 
-	 for(i=0; i<n; ++i)
-	 {
-	    printf("matrix:\n");
-	    for(j=0; j<n; ++j)
-	       printf("%12.5e ", matrix[i][j]);
+         for(i=0; i<n; ++i)
+         {
+            printf("matrix:\n");
+            for(j=0; j<n; ++j)
+               printf("%12.5e ", matrix[i][j]);
 
-	    printf("\nvector:\n");
-	    printf("  %12.5e\n", vector[i][0]);
-	 }
+            printf("\nvector:\n");
+            printf("  %12.5e\n", vector[i][0]);
+         }
 
-	 printf("\n");
+         printf("\n");
       }
 
       gaussj(matrix, 2*n, vector, 1);
 
       if(debug)
       {
-	 printf("\n\nAfter gaussj():\n");
+         printf("\n\nAfter gaussj():\n");
 
-	 for(i=0; i<n; ++i)
-	 {
-	    printf("matrix:\n");
-	    for(j=0; j<n; ++j)
-	       printf("%12.5e ", matrix[i][j]);
+         for(i=0; i<n; ++i)
+         {
+            printf("matrix:\n");
+            for(j=0; j<n; ++j)
+               printf("%12.5e ", matrix[i][j]);
 
-	    printf("\nvector:\n");
-	    printf("  %12.5e\n", vector[i][0]);
-	 }
+            printf("\nvector:\n");
+            printf("  %12.5e\n", vector[i][0]);
+         }
 
-	 printf("\n");
+         printf("\n");
       }
 
       for(ii=0; ii<order; ++ii)
       {
-	 for(ij=0; ij<order; ++ij)
-	 {
-	    i = ii*m + ij;
+         for(ij=0; ij<order; ++ij)
+         {
+            i = ii*m + ij;
 
-	    a[ii][ij] += vector[i][0]/2.;
+            a[ii][ij] += vector[i][0]/2.;
 
-	    if(a[ii][ij] != 0)
-	       change = vector[i][0]/a[ii][ij] * 100.;
-	    else
-	       change = -999.;
-	    
-	    if(debug)
-	    {
-	       printf("a[%d][%d] = %12.5e (%5.1f%%)\n", 
-		  ii, ij, a[ii][ij], change);
-	       fflush(stdout);
-	    }
-	 }
+            if(a[ii][ij] != 0)
+               change = vector[i][0]/a[ii][ij] * 100.;
+            else
+               change = -999.;
+            
+            if(debug)
+            {
+               printf("a[%d][%d] = %12.5e (%5.1f%%)\n", 
+                  ii, ij, a[ii][ij], change);
+               fflush(stdout);
+            }
+         }
       }
 
       if(debug)
-	 printf("\n");
+         printf("\n");
 
       for(ii=0; ii<order; ++ii)
       {
-	 for(ij=0; ij<order; ++ij)
-	 {
-	    i = ii*m + ij;
+         for(ij=0; ij<order; ++ij)
+         {
+            i = ii*m + ij;
 
-	    b[ii][ij] += vector[i+n][0]/2.;
+            b[ii][ij] += vector[i+n][0]/2.;
 
-	    if(b[ii][ij] != 0)
-	       change = vector[i+n][0]/b[ii][ij] * 100.;
-	    else
-	       change = -999.;
-	    
-	    if(debug)
-	    {
-	       printf("b[%d][%d] = %12.5e (%5.1f%%)\n", 
-		  ii, ij, b[ii][ij], change);
-	       fflush(stdout);
-	    }
-	 }
+            if(b[ii][ij] != 0)
+               change = vector[i+n][0]/b[ii][ij] * 100.;
+            else
+               change = -999.;
+            
+            if(debug)
+            {
+               printf("b[%d][%d] = %12.5e (%5.1f%%)\n", 
+                  ii, ij, b[ii][ij], change);
+               fflush(stdout);
+            }
+         }
       }
 
 
@@ -1012,53 +1012,53 @@ int main(int argc, char **argv)
 
       if(debug > 1)
       {
-	 printf("\nDEBUG> REV: maximum positional error [%d]\n", iter); 
-	 fflush(stdout);
+         printf("\nDEBUG> REV: maximum positional error [%d]\n", iter); 
+         fflush(stdout);
       }
 
       for (ipix=0; ipix<wcs->nxpix+1; ipix+=stepsize)
       {
-	 for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
-	 {
-	    ix = ipix - 0.5;
-	    iy = jpix - 0.5;
+         for (jpix=0; jpix<wcs->nypix+1; jpix+=stepsize)
+         {
+            ix = ipix - 0.5;
+            iy = jpix - 0.5;
 
-	    pix2wcs(WCS, ix, iy, &xpos, &ypos);
+            pix2wcs(WCS, ix, iy, &xpos, &ypos);
 
             offscl = 0;
 
-	    wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
+            wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
             fixxy(&x, &y, &offscl);
 
-	    if(debug > 1)
-	    {
-	       printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
-		  ix, iy, xpos, ypos, x, y, offscl);
-	       fflush(stdout);
-	    }
+            if(debug > 1)
+            {
+               printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
+                  ix, iy, xpos, ypos, x, y, offscl);
+               fflush(stdout);
+            }
 
-	    if(useOffscl || !offscl)
-	    {
-	       if(fabs(ix-x) > revmaxx)
-		  revmaxx = fabs(ix-x);
+            if(useOffscl || !offscl)
+            {
+               if(fabs(ix-x) > revmaxx)
+                  revmaxx = fabs(ix-x);
 
-	       if(fabs(iy-y) > revmaxy)
-		  revmaxy = fabs(iy-y);
-	    }
-	 }
+               if(fabs(iy-y) > revmaxy)
+                  revmaxy = fabs(iy-y);
+            }
+         }
       }
 
       if(debug)
       {
-	 printf("revmaxx = %-g [%d]\n", revmaxx, iter);
-	 printf("revmaxy = %-g [%d]\n", revmaxy, iter);
-	 fflush(stdout);
+         printf("revmaxx = %-g [%d]\n", revmaxx, iter);
+         printf("revmaxy = %-g [%d]\n", revmaxy, iter);
+         fflush(stdout);
       }
 
       if(revmaxx < tolerance
       && revmaxy < tolerance)
-	 break;
+         break;
    }
 
    reviter = iter;
@@ -1086,30 +1086,30 @@ int main(int argc, char **argv)
    {
       for (jpix=0; jpix<wcs->nypix+1; jpix+=smallstep)
       {
-	 ix = ipix - 0.5;
-	 iy = jpix - 0.5;
+         ix = ipix - 0.5;
+         iy = jpix - 0.5;
 
-	 pix2wcs(wcs, ix, iy, &xpos, &ypos);
+         pix2wcs(wcs, ix, iy, &xpos, &ypos);
 
          offscl = 0;
 
-	 wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
+         wcs2pix(WCS, xpos, ypos, &x, &y, &offscl);
 
-	 if(debug > 1)
-	 {
-	    printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
-	       ix, iy, xpos, ypos, x, y, offscl);
-	    fflush(stdout);
-	 }
+         if(debug > 1)
+         {
+            printf("DEBUG> FWD %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
+               ix, iy, xpos, ypos, x, y, offscl);
+            fflush(stdout);
+         }
 
-	 if(useOffscl || !offscl)
-	 {
-	    if(fabs(ix-x) > fwdmaxx)
-	       fwdmaxx = fabs(ix-x);
+         if(useOffscl || !offscl)
+         {
+            if(fabs(ix-x) > fwdmaxx)
+               fwdmaxx = fabs(ix-x);
 
-	    if(fabs(iy-y) > fwdmaxy)
-	       fwdmaxy = fabs(iy-y);
-	 }
+            if(fabs(iy-y) > fwdmaxy)
+               fwdmaxy = fabs(iy-y);
+         }
       }
    }
 
@@ -1141,32 +1141,32 @@ int main(int argc, char **argv)
    {
       for (jpix=0; jpix<wcs->nypix+1; jpix+=smallstep)
       {
-	 ix = ipix - 0.5;
-	 iy = jpix - 0.5;
+         ix = ipix - 0.5;
+         iy = jpix - 0.5;
 
-	 pix2wcs(WCS, ix, iy, &xpos, &ypos);
+         pix2wcs(WCS, ix, iy, &xpos, &ypos);
 
          offscl = 0;
 
-	 wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
+         wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
          fixxy(&x, &y, &offscl);
 
-	 if(debug > 1)
-	 {
-	    printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
-	       ix, iy, xpos, ypos, x, y, offscl);
-	    fflush(stdout);
-	 }
+         if(debug > 1)
+         {
+            printf("DEBUG> REV %10.2f %10.2f -> %.5f %.5f -> %10.2f %10.2f (%d)\n", 
+               ix, iy, xpos, ypos, x, y, offscl);
+            fflush(stdout);
+         }
 
-	 if(useOffscl || !offscl)
-	 {
-	    if(fabs(ix-x) > revmaxx)
-	       revmaxx = fabs(ix-x);
+         if(useOffscl || !offscl)
+         {
+            if(fabs(ix-x) > revmaxx)
+               revmaxx = fabs(ix-x);
 
-	    if(fabs(iy-y) > revmaxy)
-	       revmaxy = fabs(iy-y);
-	 }
+            if(fabs(iy-y) > revmaxy)
+               revmaxy = fabs(iy-y);
+         }
       }
    }
 
@@ -1242,7 +1242,7 @@ int extractCD(char *template)
    if(fp == (FILE *)NULL)
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad template: %s\"]\n", 
-	 template);
+         template);
       exit(1);
    }
 
@@ -1284,96 +1284,96 @@ int extractCD(char *template)
       keyword = line;
 
       while(*keyword == ' ' && keyword < line+len)
-	 ++keyword;
+         ++keyword;
 
       end = keyword;
 
       while(*end != ' ' && *end != '=' && end < line+len)
-	 ++end;
+         ++end;
 
       value = end;
 
       while((*value == '=' || *value == ' ' || *value == '\'')
-	    && value < line+len)
-	 ++value;
+            && value < line+len)
+         ++value;
 
       *end = '\0';
       end = value;
 
       if(*end == '\'')
-	 ++end;
+         ++end;
 
       while(   *end != ' '  && *end != '\'' 
-	    && *end != '\r' && *end != '\n'
+            && *end != '\r' && *end != '\n'
             &&  end < line+len)
-	 ++end;
+         ++end;
 
       *end = '\0';
 
       if(strcmp(keyword, "CDELT1") == 0)
       {
-	 haveCdelt1 = 1;
-	 strcpy(cdelt1, value);
+         haveCdelt1 = 1;
+         strcpy(cdelt1, value);
       }
       else if(strcmp(keyword, "CDELT2") == 0)
       {
-	 haveCdelt2 = 1;
-	 strcpy(cdelt2, value);
+         haveCdelt2 = 1;
+         strcpy(cdelt2, value);
       }
       else if(strcmp(keyword, "CROTA2") == 0)
       {
-	 haveCrota2 = 1;
-	 strcpy(crota2, value);
+         haveCrota2 = 1;
+         strcpy(crota2, value);
       }
       else if(strcmp(keyword, "CD1_1") == 0)
       {
-	 haveCD11 = 1;
-	 strcpy(cd11, value);
+         haveCD11 = 1;
+         strcpy(cd11, value);
       }
       else if(strcmp(keyword, "CD1_2") == 0)
       {
-	 haveCD12 = 1;
-	 strcpy(cd12, value);
+         haveCD12 = 1;
+         strcpy(cd12, value);
       }
       else if(strcmp(keyword, "CD2_1") == 0)
       {
-	 haveCD21 = 1;
-	 strcpy(cd21, value);
+         haveCD21 = 1;
+         strcpy(cd21, value);
       }
       else if(strcmp(keyword, "CD2_2") == 0)
       {
-	 haveCD22 = 1;
-	 strcpy(cd22, value);
+         haveCD22 = 1;
+         strcpy(cd22, value);
       }
       else if(strcmp(keyword, "PC1_1") == 0)
       {
-	 havePC11 = 1;
-	 strcpy(pc11, value);
+         havePC11 = 1;
+         strcpy(pc11, value);
       }
       else if(strcmp(keyword, "PC1_2") == 0)
       {
-	 havePC12 = 1;
-	 strcpy(pc12, value);
+         havePC12 = 1;
+         strcpy(pc12, value);
       }
       else if(strcmp(keyword, "PC2_1") == 0)
       {
-	 havePC21 = 1;
-	 strcpy(pc21, value);
+         havePC21 = 1;
+         strcpy(pc21, value);
       }
       else if(strcmp(keyword, "PC2_2") == 0)
       {
-	 havePC22 = 1;
-	 strcpy(pc22, value);
+         havePC22 = 1;
+         strcpy(pc22, value);
       }
       else if(strcmp(keyword, "EPOCH") == 0)
       {
-	 haveEpoch = 1;
-	 strcpy(epoch, value);
+         haveEpoch = 1;
+         strcpy(epoch, value);
       }
       else if(strcmp(keyword, "EQUINOX") == 0)
       {
-	 haveEquinox = 1;
-	 strcpy(equinox, value);
+         haveEquinox = 1;
+         strcpy(equinox, value);
       }
    }
 
@@ -1427,7 +1427,7 @@ int readTemplate(char *template)
    if(fp == (FILE *)NULL)
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad template: %s\"]\n", 
-	 template);
+         template);
       exit(1);
    }
 
@@ -1442,7 +1442,7 @@ int readTemplate(char *template)
          line[strlen(line)-1]  = '\0';
       
       if(line[strlen(line)-1] == '\r')
-	 line[strlen(line)-1]  = '\0';
+         line[strlen(line)-1]  = '\0';
 
       stradd(header, line);
    }
@@ -1717,14 +1717,14 @@ int makeWCS()
    {
       for(jorder=0; jorder<order; ++jorder)
       {
-	 /* if(a[iorder][jorder] != 0.0) */
-	 {
-	    sprintf(temp, "A_%d_%d   = %10.3e",
-	       iorder, jorder, a[iorder][jorder]);
-	    stradd(header, temp); 
+         /* if(a[iorder][jorder] != 0.0) */
+         {
+            sprintf(temp, "A_%d_%d   = %10.3e",
+               iorder, jorder, a[iorder][jorder]);
+            stradd(header, temp); 
 
-	    fprintf(fout, "%s\n", temp);
-	 }
+            fprintf(fout, "%s\n", temp);
+         }
       }
    }
 
@@ -1737,14 +1737,14 @@ int makeWCS()
    {
       for(jorder=0; jorder<order; ++jorder)
       {
-	 /* if(b[iorder][jorder] != 0.0) */
-	 {
-	    sprintf(temp, "B_%d_%d   = %10.3e",
-	       iorder, jorder, b[iorder][jorder]);
-	    stradd(header, temp); 
+         /* if(b[iorder][jorder] != 0.0) */
+         {
+            sprintf(temp, "B_%d_%d   = %10.3e",
+               iorder, jorder, b[iorder][jorder]);
+            stradd(header, temp); 
 
-	    fprintf(fout, "%s\n", temp);
-	 }
+            fprintf(fout, "%s\n", temp);
+         }
       }
    }
 
@@ -1758,14 +1758,14 @@ int makeWCS()
    {
       for(jorder=0; jorder<order; ++jorder)
       {
-	 /* if(ap[iorder][jorder] != 0.0) */
-	 {
-	    sprintf(temp, "AP_%d_%d  = %10.3e",
-	       iorder, jorder, ap[iorder][jorder]);
-	    stradd(header, temp); 
+         /* if(ap[iorder][jorder] != 0.0) */
+         {
+            sprintf(temp, "AP_%d_%d  = %10.3e",
+               iorder, jorder, ap[iorder][jorder]);
+            stradd(header, temp); 
 
-	    fprintf(fout, "%s\n", temp);
-	 }
+            fprintf(fout, "%s\n", temp);
+         }
       }
    }
 
@@ -1778,14 +1778,14 @@ int makeWCS()
    {
       for(jorder=0; jorder<order; ++jorder)
       {
-	 /* if(bp[iorder][jorder] != 0.0) */
-	 {
-	    sprintf(temp, "BP_%d_%d  = %10.3e",
-	       iorder, jorder, bp[iorder][jorder]);
-	    stradd(header, temp); 
+         /* if(bp[iorder][jorder] != 0.0) */
+         {
+            sprintf(temp, "BP_%d_%d  = %10.3e",
+               iorder, jorder, bp[iorder][jorder]);
+            stradd(header, temp); 
 
-	    fprintf(fout, "%s\n", temp);
-	 }
+            fprintf(fout, "%s\n", temp);
+         }
       }
    }
 
@@ -1934,13 +1934,13 @@ void gaussj(double **a, int n, double **b, int m)
       for (j=0; j<n; j++)
       {
          if (ipiv[j] != 1)
-	 {
+         {
             for (k=0; k<n; k++) 
-	    {
+            {
                if (ipiv[k] == 0) 
-	       {
+               {
                   if (fabs(a[j][k]) >= big) 
-		  {
+                  {
                      big = fabs(a[j][k]);
 
                      irow = j;
@@ -1948,10 +1948,10 @@ void gaussj(double **a, int n, double **b, int m)
                   }
                }
 
-	       else if (ipiv[k] > 1) 
-		  nrerror("Singular Matrix-1");
+               else if (ipiv[k] > 1) 
+                  nrerror("Singular Matrix-1");
             }
-	 }
+         }
       }
 
       ++(ipiv[icol]);
@@ -1966,7 +1966,7 @@ void gaussj(double **a, int n, double **b, int m)
       indxc[i] = icol;
 
       if (a[icol][icol] == 0.0)
-	 nrerror("Singular Matrix-2");
+         nrerror("Singular Matrix-2");
 
       pivinv=1.0/a[icol][icol];
 
@@ -1978,7 +1978,7 @@ void gaussj(double **a, int n, double **b, int m)
       for (ll=0; ll<n; ll++)
       {
          if (ll != icol) 
-	 {
+         {
             dum=a[ll][icol];
 
             a[ll][icol]=0.0;
@@ -2008,29 +2008,29 @@ void gaussj(double **a, int n, double **b, int m)
 
       for(j=0; j<n; ++j)
       {
-	 for(i=0; i<n; ++i)
-	 {
-	    corr = a[i][j] /sqrt(fabs(a[i][i] * a[j][j]));
+         for(i=0; i<n; ++i)
+         {
+            corr = a[i][j] /sqrt(fabs(a[i][i] * a[j][j]));
 
-	    printf("%5.2f ", corr);
+            printf("%5.2f ", corr);
 
-	    if(i != j)
-	    {
-	       if(fabs(corr) > maxcor)
-	       {
-		  maxcor = fabs(corr);
+            if(i != j)
+            {
+               if(fabs(corr) > maxcor)
+               {
+                  maxcor = fabs(corr);
 
-		  maxi = i;
-		  maxj = j;
-	       }
-	    }
-	 }
+                  maxi = i;
+                  maxj = j;
+               }
+            }
+         }
       
-	 printf("\n");
+         printf("\n");
       }
 
       printf("\nMaximum correlation: %.5f at (%d,%d)\n\n",
-	 maxcor, maxi, maxj);
+         maxcor, maxi, maxj);
    }
 
    free_ivector(ipiv);
@@ -2043,8 +2043,8 @@ void gaussj(double **a, int n, double **b, int m)
 
 void nrerror(char *error_text)
 {
-	fprintf(fstatus, "[struct stat=\"ERROR\" msg=\"%s\"]\n", error_text);
-	exit(1);
+        fprintf(fstatus, "[struct stat=\"ERROR\" msg=\"%s\"]\n", error_text);
+        exit(1);
 }
 
 
@@ -2052,14 +2052,14 @@ void nrerror(char *error_text)
 
 int *ivector(int nh)
 {
-	int *v;
+        int *v;
 
-	v=(int *)malloc((size_t) (nh*sizeof(int)));
+        v=(int *)malloc((size_t) (nh*sizeof(int)));
 
-	if (!v) 
-	   nrerror("Allocation failure in ivector()");
+        if (!v) 
+           nrerror("Allocation failure in ivector()");
 
-	return v;
+        return v;
 }
 
 
@@ -2067,5 +2067,5 @@ int *ivector(int nh)
 
 void free_ivector(int *v)
 {
-	free((char *) v);
+        free((char *) v);
 }

@@ -1,0 +1,33 @@
+cp -p \
+wcs.h \
+wcsinit.c \
+wcs.c \
+wcscon.c \
+worldpos.c \
+platepos.c \
+dsspos.c \
+tnxpos.c \
+zpxpos.c \
+poly.c \
+fitshead.h \
+hget.c \
+iget.c \
+hput.c \
+wcslib.h \
+wcslib.c \
+lin.c \
+cel.c \
+proj.c \
+sph.c \
+wcstrig.c \
+fitsfile.h \
+fitsfile.c \
+imhfile.c \
+dateutil.c \
+fileutil.c \
+imio.h \
+imio.c \
+distort.c \
+NEWS \
+Files \
+../../Saoimage/Src/wcssubs
