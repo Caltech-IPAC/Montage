@@ -52,9 +52,9 @@ LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		-lboundaries -lpixbounds -ltwoplane -lsocket -lnsl -lm
 
 SBINS  =	mAdd mAddExec mBackground mBgExec mBgModel mConvert                   \
-		mCoverageCheck mDiff mDiffExec mDiffFitExec mFitExec mFitplane        \
-	        mFlattenExec mGetHdr mHdrCheck mHdrtbl mImgtbl mMakeHdr               \
-		mMakeImg mOverlaps mProject mProjectPP mProjExec mPutHdr              \
+		mCoverageCheck mCubeProj mDiff mDiffExec mDiffFitExec mFitExec mFitplane \
+		mFlattenExec mGetHdr mHdrCheck mHdrtbl mImgtbl mMakeHdr                  \
+		mMakeImg mOverlaps mProject mProjectPP mProjExec mPutHdr                 \
 		mShrink mSubimage mSubset mTANHdr mTblSort mTileHdr mTileImage
 
 MBINS  = 	mProjExecMPI mFitExecMPI mDiffExecMPI mBgExecMPI mAddMPI \
