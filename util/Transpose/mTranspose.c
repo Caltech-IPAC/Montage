@@ -297,10 +297,10 @@ int main(int argc, char **argv)
       printf("*lt = %d*i + %d*j + %d*k + %d*l + %d\n", At[3][0], At[3][1], At[3][2], At[0][3], Bt[3]);
       printf("\n");
 
-      printf("reorder[0]  =  %ld\n", reorder[0]);
-      printf("reorder[1]  =  %ld\n", reorder[1]);
-      printf("reorder[2]  =  %ld\n", reorder[2]);
-      printf("reorder[3]  =  %ld\n", reorder[3]);
+      printf("reorder[0]  =  %d\n", reorder[0]);
+      printf("reorder[1]  =  %d\n", reorder[1]);
+      printf("reorder[2]  =  %d\n", reorder[2]);
+      printf("reorder[3]  =  %d\n", reorder[3]);
       printf("\n");
       fflush(stdout);
    }

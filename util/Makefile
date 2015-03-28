@@ -15,7 +15,7 @@ all:
 	(cd Rotate; ./Configure.sh; make; make install)
 	(cd ShrinkHdr; ./Configure.sh; make; make install)
 	(cd TblExec; make; make install)
-	(cd Transpose; make; make install)
+	(cd Transpose; ./Configure.sh; make; make install)
 	(cd Viewer; ./Configure.sh; make; make install)
 
 clean:
