@@ -120,6 +120,10 @@ mCoverageCheck:	mCoverageCheck.o checkHdr.o checkWCS.o checkFile.o
 		checkWCS.o checkFile.o                              \
 		$(LIBS)
 
+mCubeProj:	mCubeProj.o overlapArea.o debugCheck.o checkHdr.o checkWCS.o
+		$(CC) -o mCubeProj mCubeProj.o overlapArea.o debugCheck.o \
+		checkHdr.o checkWCS.o $(LIBS)
+
 mDiff:		mDiff.o debugCheck.o checkHdr.o checkWCS.o
 		$(CC) -o mDiff mDiff.o debugCheck.o checkHdr.o checkWCS.o \
 		$(LIBS)
