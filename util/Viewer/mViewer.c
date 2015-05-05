@@ -290,8 +290,9 @@ int main(int argc, char **argv)
 
    int       nlabel;
    char      labeltext [4096][MAXSTR];
-   int       labelx    [4096];
-   int       labely    [4096];
+   double    labelx    [4096];
+   double    labely    [4096];
+   int       labelinpix[4096];
    double    labelred  [4096], labelgreen[4096], labelblue[4096];
 
    int       ncat;
@@ -351,6 +352,8 @@ int main(int argc, char **argv)
 
    double    xmin, xmax;
    double    ymin, ymax;
+
+   double    xpix, ypix;
 
    double    lon, lat;
    double    lonlab, latlab;
@@ -458,6 +461,8 @@ int main(int argc, char **argv)
    double   *rfitsbuf;
    double   *gfitsbuf;
    double   *bfitsbuf;
+
+   char      bunit[256];
 
    char     *end;
 
@@ -588,6 +593,9 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-color") == 0)
       {
          strcpy(colorstr, argv[i+1]);
+
+         if(argv[i+1][0] == '#')
+            strcpy(colorstr, argv[i+1]+1);
 
          ++i;
 
@@ -810,8 +818,13 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         labelx[nlabel] = atoi(argv[i+1]);
-         labely[nlabel] = atoi(argv[i+2]);
+         labelinpix[nlabel] = 0;
+         if(strstr(argv[i+1], "p") != (char *)NULL
+         || strstr(argv[i+2], "p") != (char *)NULL)
+            labelinpix[nlabel] = 1;
+
+         labelx[nlabel] = atof(argv[i+1]);
+         labely[nlabel] = atof(argv[i+2]);
 
          strcpy(labeltext[nlabel], argv[i+3]);
 
@@ -1700,9 +1713,9 @@ int main(int argc, char **argv)
 
       for(i=0; i<nlabel; ++i)
       {
-         printf("DEBUG> labelx   [%d]    = [%d]\n", i, labelx   [i]);
-         printf("DEBUG> labely   [%d]    = [%d]\n", i, labely   [i]);
-         printf("DEBUG> labeltext[%d]    = [%s]\n", i, labeltext[i]);
+         printf("DEBUG> labelx   [%d]    = [%-g]\n", i, labelx   [i]);
+         printf("DEBUG> labely   [%d]    = [%-g]\n", i, labely   [i]);
+         printf("DEBUG> labeltext[%d]    = [%s]\n",  i, labeltext[i]);
       }
 
       printf("\n");
@@ -2058,9 +2071,16 @@ int main(int argc, char **argv)
       if(fits_get_hdrpos(bluefptr, &keysexist, &keynum, &status))
          printFitsError(status);
 
+      status = 0;
+      fits_read_key(bluefptr, TSTRING, "BUNIT", bunit, (char *)NULL, &status);
+
+      if(status == KEY_NO_EXIST)
+         strcpy(bunit, "");
+
       header  = malloc(keysexist * 80 + 1024);
       comment = malloc(keysexist * 80 + 1024);
 
+      status = 0;
       if(fits_get_image_wcs_keys(bluefptr, &header, &status))
          printFitsError(status);
 
@@ -2894,9 +2914,19 @@ int main(int argc, char **argv)
       if(fits_get_hdrpos(grayfptr, &keysexist, &keynum, &status))
          printFitsError(status);
 
+      status = 0;
+      if(fits_get_hdrpos(grayfptr, &keysexist, &keynum, &status))
+
+      status = 0;
+      fits_read_key(grayfptr, TSTRING, "BUNIT", bunit, (char *)NULL, &status);
+
+      if(status == KEY_NO_EXIST)
+         strcpy(bunit, "");
+
       header  = malloc(keysexist * 80 + 1024);
       comment = malloc(keysexist * 80 + 1024);
 
+      status = 0;
       if(fits_get_image_wcs_keys(grayfptr, &header, &status))
          printFitsError(status);
 
@@ -3598,7 +3628,27 @@ int main(int argc, char **argv)
 
    for(i=0; i<nlabel; ++i)
    {
-      draw_label(fontfile, 14, labelx[i], labely[i], labeltext[i], labelred[i], labelgreen[i], labelblue[i]);
+      if(labelinpix[i] == 0)
+      {
+         ra  = labelx[i];
+         dec = labely[i];
+
+         wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
+
+         labelx[i] = xpix;
+         labely[i] = ypix;
+
+         if(debug)
+         {
+            printf("DEBUG> label [%s]: (%-g,%-g) -> (%-g,%-g)\n", labeltext[i], ra, dec, labelx[i], labely[i]);
+            fflush(stdout);
+         }
+      }
+
+      ix = labelx[i];
+      iy = labely[i];
+
+      draw_label(fontfile, 14, ix, iy, labeltext[i], labelred[i], labelgreen[i], labelblue[i]);
       addOverlay();
    }
 
@@ -3643,7 +3693,7 @@ int main(int argc, char **argv)
 
 
    if(isRGB)
-      printf("[struct stat=\"OK\", bmin=%-g, bminpercent=%.2f, bminsigma=%2f, bmax=%-g, bmaxpercent=%.2f, bmaxsigma=%.2f, gmin=%-g, gminpercent=%.2f, gminsigma=%.2f, gmax=%-g, gmaxpercent=%.2f, gmaxsigma=%.2f, rmin=%-g, rminpercent=%.2f, rminsigma=%.2f, rmax=%-g, rmaxpercent=%.2f, rmaxsigma=%.2f, rdatamin=%-g, rdatamax=%-g, gdatamin=%-g, gdatamax=%-g, bdatamin=%-g, bdatamax=%-g, xflip=%d, yflip=%d]\n",
+      printf("[struct stat=\"OK\", bmin=%-g, bminpercent=%.2f, bminsigma=%2f, bmax=%-g, bmaxpercent=%.2f, bmaxsigma=%.2f, gmin=%-g, gminpercent=%.2f, gminsigma=%.2f, gmax=%-g, gmaxpercent=%.2f, gmaxsigma=%.2f, rmin=%-g, rminpercent=%.2f, rminsigma=%.2f, rmax=%-g, rmaxpercent=%.2f, rmaxsigma=%.2f, rdatamin=%-g, rdatamax=%-g, gdatamin=%-g, gdatamax=%-g, bdatamin=%-g, bdatamax=%-g, xflip=%d, yflip=%d, bunit=\"%s\"]\n",
          blueminval,  blueminpercent,  blueminsigma,
          bluemaxval,  bluemaxpercent,  bluemaxsigma,
          greenminval, greenminpercent, greenminsigma,
@@ -3653,13 +3703,16 @@ int main(int argc, char **argv)
          rdatamin,    rdatamax,
          gdatamin,    gdatamax,
          bdatamin,    bdatamax,
-         flipX,       flipY);
+         flipX,       flipY,
+         bunit);
    else
-      printf("[struct stat=\"OK\", min=%-g, minpercent=%.2f, minsigma=%.2f, max=%-g, maxpercent=%.2f, maxsigma=%.2f, datamin=%-g, datamax=%-g, xflip=%d, yflip=%d]\n",
+      printf("[struct stat=\"OK\", min=%-g, minpercent=%.2f, minsigma=%.2f, max=%-g, maxpercent=%.2f, maxsigma=%.2f, datamin=%-g, datamax=%-g, xflip=%d, yflip=%d, bunit=\"%s\", colortable=%d]\n",
          grayminval,  grayminpercent, grayminsigma,
          graymaxval,  graymaxpercent, graymaxsigma,
          graydatamin, graydatamax,
-         flipX,       flipY);
+         flipX,       flipY,
+         bunit,       colortable);
+
    fflush(stdout);
    exit(0);
 }

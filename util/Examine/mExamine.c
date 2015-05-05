@@ -1,17 +1,22 @@
+
 /* Module: mExamine.c
 
 Version  Developer        Date     Change
--------  ---------------  -------  -----------------------
-1.0      John Good        13Feb08  Baseline code
 
+1.0      John Good        13Feb08  Baseline code
+2.0      John Good        15Apr15  Complete revamp, with more image info 
+                                   and region statistics.
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
+#include <sys/param.h>
 #include <sys/types.h>
 #include <time.h>
+#include <errno.h>
 #include <math.h>
 #include <fitsio.h>
 #include <wcs.h>
@@ -20,751 +25,640 @@ Version  Developer        Date     Change
 #include "montage.h"
 #include "mNaN.h"
 
-#define MAXSTR  1024
-#define MAXFILE 1024
+#define STRLEN  1024
 
-extern char *optarg;
-extern int optind, opterr;
 
-char input_file [MAXSTR];
 
-char  *input_header;
+/*************************************************************************/
+/*                                                                       */
+/*  mExamine                                                             */
+/*                                                                       */
+/*  Opens a FITS file (using the cfitsio library), finds the coordinates */
+/*  on the sky of the corners (using the WCS library) and converts them  */
+/*  to equatorial J2000 (using the coord library).                       */
+/*                                                                       */
+/*  Outputs these corners plus all the image projection information.     */
+/*                                                                       */
+/*************************************************************************/
 
-struct WorldCoor *wcs;
-
-int  readFits      (char *fluxfile);
-void printFitsError(int);
-void printError    (char *);
-
-int  checkHdr      (char *infile, int hdrflag, int hdu);
-int  checkWCS      (struct WorldCoor *wcs, int action);
-void fixxy         (double *x, double *y, int *offscl);
-
-double xcorrection;
-double ycorrection;
-
-int  debug;
-
-struct
+int main(int argc, char **argv) 
 {
+   int    debug = 0;
+
+   int    i, j, offscl, nullcnt;
+   int    status, clockwise;
+   int    locinpix, radinpix;
+   int    npix, nnull, first;
+   int    ixpix, iypix;
+
+   char   infile[1024];
+
+   char  *header;
+
+   char   proj[32];
+   int    csys;
+   char   csys_str[64];
+
+   char   ctype1[256];
+   char   ctype2[256];
+
+   double equinox;
+
+   double naxis1;
+   double naxis2;
+
+   double crval1;
+   double crval2;
+
+   double crpix1;
+   double crpix2;
+
+   double cdelt1;
+   double cdelt2;
+
+   double crota2;
+
+   double lon, lat;
+   double lonc, latc;
+   double ra, dec, radius;
+   double rac, decc;
+   double racp, deccp;
+   double ra1, dec1, ra2, dec2, ra3, dec3, ra4, dec4;
+   double xpix, ypix, rpix;
+
+   double x, y, z;
+   double xp, yp, zp;
+
+   double rot, beta, dtr;
+   double dx, dy, r;
+
+   double sumflux, sumflux2, mean, rms, dot;
+   double sigmaref, sigmamax, sigmamin;
+   double val, valx, valy, valra, valdec;
+   double min, minx, miny, minra, mindec;
+   double max, maxx, maxy, maxra, maxdec;
+   double xc, yc, zc;
+   double x0, y0, z0;
+
+   struct WorldCoor *wcs;
+
    fitsfile *fptr;
-   long      naxes[2];
-   double    crpix1, crpix2;
-   double    cd11, cd12, cd21, cd22;
-   double    cdelt1, cdelt2;
-   double    crota2;
-}
-   input;
-
-int haveCDELT1;
-int haveCDELT2;
-int haveCROTA2;
-
-int haveCD1_1;
-int haveCD1_2;
-int haveCD2_1;
-int haveCD2_2;
-
-
-/*****************************************************/
-/*                                                   */
-/*  mExamine                                         */
-/*                                                   */
-/*  Determine pixel statistics for a region on the   */
-/*  sky in the given image.                          */
-/*                                                   */
-/*****************************************************/
-
-int main(int argc, char **argv)
-{
-   int       i, j, nullcnt, status, lines;
-   int       use, nnull, first, offscl, sys;
    int       ibegin, iend, jbegin, jend;
-   char     *end;
    long      fpixel[4], nelements;
-   double    epoch;
-   double    ra, dec;
-   double    lon, lat;
-   double    xpix, ypix;
-   double    radius;
-   double    xoff, yoff;
+   double   *data;
 
-   double  **data;
-
-   double    flux;
-
-   double    ramax, decmax;
-   double    fluxmax;
-
-   double    ramin, decmin;
-   double    fluxmin;
-
-   double    raref, decref;
-   double    fluxref;
-
-   double    fluxave;
-   double    fluxsq;
-   int       npixel;
-
-   double    dist, distmax, distmin;
-   double    xc, yc, zc;
-   double    x, y, z;
-
-   double    dtr;
 
    dtr = atan(1.)/45.;
 
 
-   /***************************************/
-   /* Process the command-line parameters */
-   /***************************************/
+   /* Process basic command-line arguments */
 
-   debug   = 0;
-   fstatus = stdout;
+   radius = 0.;
+
+   locinpix = 0;
+   radinpix = 0;
 
    for(i=0; i<argc; ++i)
    {
-      if(strcmp(argv[i], "-s") == 0)
+      if(strcmp(argv[i], "-p") == 0)
       {
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No status file name given\"]\n");
-	    exit(1);
-	 }
+         if(i+4 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No ra, dec, radius location given or file name missing\"]\n");
+            exit(1);
+         }
 
-	 if((fstatus = fopen(argv[i+1], "w+")) == (FILE *)NULL)
-	 {
-	    printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-	       argv[i+1]);
-	    exit(1);
-	 }
+         ra     = atof(argv[i+1]);
+         dec    = atof(argv[i+2]);
+         radius = atof(argv[i+3]);
 
-	 argv += 2;
-	 argc -= 2;
+         if(strstr(argv[i+1], "p") != 0) locinpix = 1;
+         if(strstr(argv[i+2], "p") != 0) locinpix = 1;
+         if(strstr(argv[i+3], "p") != 0) radinpix = 1;
+
+         i += 3;
       }
 
-      if(strcmp(argv[i], "-d") == 0)
+      else if(strcmp(argv[i], "-d") == 0)
       {
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"File name missing\"]\n");
+            exit(1);
+         }
 
-	 debug = strtol(argv[i+1], &end, 0);
-
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
-
-	 if(debug < 0)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
-	    exit(1);
-	 }
-
-	 argv += 2;
-	 argc -= 2;
+         debug = 1;
       }
    }
+
+   if(radius > 0.)
+   {
+      argv += 4;
+      argc -= 4;
+   }
+
+   if(debug)
+   {
+      argv += 1;
+      argc -= 1;
+   }
+
+   if(argc < 2)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-p ra dec radius] image.fits\"]\n", argv[0]);
+      exit(1);
+   }
+
    
-   if (argc < 5) 
+   strcpy(infile,  argv[1]);
+
+   if(debug)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: mExamine [-d level] [-s statusfile] in.fits ra dec radius\"]\n");
-      exit(1);
-   }
-
-   strcpy(input_file, argv[1]);
-
-   if(input_file[0] == '-')
-   {
-      printf ("[struct stat=\"ERROR\", msg=\"Invalid input file '%s'\"]\n", input_file);
-      exit(1);
-   }
-
-   ra  = strtod(argv[2], &end);
-
-   if(end < argv[2] + (int)strlen(argv[2]))
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Center RA string (%s) cannot be interpreted as a real number\"]\n",
-	 argv[3]);
-      exit(1);
-   }
-
-   dec = strtod(argv[3], &end);
-
-   if(end < argv[3] + (int)strlen(argv[3]))
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Center Dec string (%s) cannot be interpreted as a real number\"]\n",
-	 argv[4]);
-      exit(1);
-   }
-
-   radius = strtod(argv[4], &end);
-
-   if(end < argv[4] + (int)strlen(argv[4]))
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Radius string (%s) cannot be interpreted as a real number\"]\n",
-	 argv[5]);
-      exit(1);
-   }
-
-   if(radius <= 0.)
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid region radius\"]\n");
-      exit(1);
-   }
-
-   if(debug >= 1)
-   {
-      printf("debug      = %d\n",   debug);
-      printf("input_file = [%s]\n", input_file);
-      printf("ra         = %-g\n",  ra);
-      printf("dec        = %-g\n",  dec);
-      printf("radius     = %-g\n",  radius);
-
-      fflush(stdout);
-   }
-
-   xc = cos(ra*dtr) * cos(dec*dtr);
-   yc = sin(ra*dtr) * cos(dec*dtr);
-   zc = sin(dec*dtr);
-
-   if(debug >= 1)
-   {
-      printf("xc         = %-g\n",  xc);
-      printf("yc         = %-g\n",  yc);
-      printf("zc         = %-g\n",  zc);
-
+      printf("DEBUG> infile = %s\n", infile);
       fflush(stdout);
    }
 
 
-   /************************/
-   /* Read the input image */
-   /************************/
+   /* Open the FITS file and initialize the WCS transform */
 
-   readFits(input_file);
-
-   if(debug >= 1)
+   status = 0;
+   if(fits_open_file(&fptr, infile, READONLY, &status))
    {
-      printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-      printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-      printf("input.crpix1         =  %-g\n",   input.crpix1);
-      printf("input.crpix2         =  %-g\n",   input.crpix2);
-      printf("input.cd11           =  %-g\n",   input.cd11);
-      printf("input.cd12           =  %-g\n",   input.cd12);
-      printf("input.cd21           =  %-g\n",   input.cd21);
-      printf("input.cd22           =  %-g\n",   input.cd22);
-      printf("input.cdelt1         =  %-g\n",   input.cdelt1);
-      printf("input.cdelt2         =  %-g\n",   input.cdelt2);
-      printf("input.crota2         =  %-g\n",   input.crota2);
-      printf("input.coorflip       =  %d\n",    wcs->coorflip);
+      printf("[struct stat=\"ERROR\", msg=\"Cannot open FITS file %s\"]\n", infile);
+      exit(1);
+   }
+
+   status = 0;
+   if(fits_get_image_wcs_keys(fptr, &header, &status))
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Cannot find WCS keys in FITS file %s\"]\n", infile);
+      exit(1);
+   }
+
+
+   wcs = wcsinit(header);
+
+   if(wcs == (struct WorldCoor *)NULL)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"WCS initialization failed.\"]\n");
+      fflush(stdout);
+      exit(1);
+   }
+
+
+   /* A bunch of the parameters we want are in the WCS structure */
+
+   clockwise = 0;
+
+   strcpy(ctype1, wcs->ctype[0]);
+   strcpy(ctype2, wcs->ctype[1]);
+
+   naxis1 = wcs->nxpix;
+   naxis2 = wcs->nypix;
+
+   crval1 = wcs->xref;
+   crval2 = wcs->yref;
+
+   crpix1 = wcs->xrefpix;
+   crpix2 = wcs->yrefpix;
+
+   cdelt1 = wcs->xinc;
+   cdelt2 = wcs->yinc;
+
+   crota2 = wcs->rot;
+
+   if((cdelt1 < 0 && cdelt2 < 0)
+   || (cdelt1 > 0 && cdelt2 > 0)) clockwise = 1;
+
+   strcpy(proj, "");
+
+   if(strlen(ctype1) > 5)
+   strcpy (proj, ctype1+5);  
+
+
+   /* We get the Equinox from the WCS.  If not    */
+   /* there we take the command-line value. We    */
+   /* then infer Julian/Besselian as best we can. */
+
+   equinox = wcs->equinox;
+
+   csys = EQUJ;
+   strcpy(csys_str, "EQUJ");
+
+   if(strncmp(ctype1, "RA--", 4) == 0)
+   {
+      csys = EQUJ;
+
+      strcpy(csys_str, "EQUJ");
+
+      if(equinox < 1975.)
+      {
+         csys = EQUB;
+
+         strcpy(csys_str, "EQUB");
+      }
+   }
+   if(strncmp(ctype1, "LON-", 4) == 0)
+   {
+      csys = GAL;
+      strcpy(csys_str, "GAL");
+   }
+   if(strncmp(ctype1, "GLON", 4) == 0)
+   {
+      csys = GAL;
+      strcpy(csys_str, "GAL");
+   }
+   if(strncmp(ctype1, "ELON", 4) == 0)
+   {
+      csys = ECLJ;
+
+      strcpy(csys_str, "ECLJ");
+
+      if(equinox < 1975.)
+      {
+         csys = ECLB;
+
+         strcpy(csys_str, "ECLB");
+      }
+   }
+
+   if(debug)
+   {
+      printf("DEBUG> proj      = [%s]\n", proj);
+      printf("DEBUG> csys      = %d\n",   csys);
+      printf("DEBUG> clockwise = %d\n",   clockwise);
+      printf("DEBUG> ctype1    = [%s]\n", ctype1);
+      printf("DEBUG> ctype2    = [%s]\n", ctype2);
+      printf("DEBUG> equinox   = %-g\n",  equinox);
+
       printf("\n");
       fflush(stdout);
    }
 
 
-   /**********************************/
-   /* Find the pixel location of the */
-   /* sky coordinate specified       */
-   /**********************************/
+   /* To get corners and rotation in EQUJ we need the     */
+   /* locations of the center pixel and the one above it. */
 
-   /* Extract the coordinate system and epoch info */
+   pix2wcs(wcs, wcs->nxpix/2.+0.5, wcs->nypix/2.+0.5, &lonc, &latc);
+   convertCoordinates (csys, equinox, lonc, latc, 
+                       EQUJ, 2000., &rac, &decc, 0.);
 
-   if(wcs->syswcs == WCS_J2000)
+   pix2wcs(wcs, wcs->nxpix/2.+0.5, wcs->nypix/2.+1.5, &lonc, &latc);
+   convertCoordinates (csys, equinox, lonc, latc, 
+                       EQUJ, 2000., &racp, &deccp, 0.);
+
+
+   /* Use spherical trig to get the Equatorial rotation angle */
+
+   x = cos(decc*dtr) * cos(rac*dtr);
+   y = cos(decc*dtr) * sin(rac*dtr);
+   z = sin(decc*dtr);
+
+   xp = cos(deccp*dtr) * cos(racp*dtr);
+   yp = cos(deccp*dtr) * sin(racp*dtr);
+   zp = sin(deccp*dtr);
+
+   beta = acos(x*xp + y*yp + z*zp) / dtr;
+
+   rot = asin(cos(deccp*dtr) * sin((rac-racp)*dtr)/sin(beta*dtr)) / dtr;
+
+
+   /* And for the four corners we want them uniformly clockwise */
+
+   if(!clockwise)
    {
-      sys   = EQUJ;
-      epoch = 2000.;
+      pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra1, &dec1, 0.);
 
-      if(wcs->equinox == 1950.)
-	 epoch = 1950;
-   }
-   else if(wcs->syswcs == WCS_B1950)
-   {
-      sys   = EQUB;
-      epoch = 1950.;
 
-      if(wcs->equinox == 2000.)
-	 epoch = 2000;
-   }
-   else if(wcs->syswcs == WCS_GALACTIC)
-   {
-      sys   = GAL;
-      epoch = 2000.;
-   }
-   else if(wcs->syswcs == WCS_ECLIPTIC)
-   {
-      sys   = ECLJ;
-      epoch = 2000.;
+      pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra2, &dec2, 0.);
 
-      if(wcs->equinox == 1950.)
-      {
-	 sys   = ECLB;
-	 epoch = 1950.;
-      }
+
+      pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra3, &dec3, 0.);
+
+
+      pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra4, &dec4, 0.);
    }
    else
    {
-      sys   = EQUJ;
-      epoch = 2000.;
+      pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra2, &dec2, 0.);
+
+
+      pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra1, &dec1, 0.);
+
+
+      pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra4, &dec4, 0.);
+
+
+      pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+      convertCoordinates (csys, equinox, lon, lat, 
+                          EQUJ, 2000., &ra3, &dec3, 0.);
    }
-   if(debug)
+
+
+   /* If a location was given, get region statistics */
+
+   // First find the pixel center/radius
+
+   if(radius > 0.)
    {
-      printf("input coordinate system = %d\n", EQUJ);
-      printf("input epoch             = %-g\n", 2000.);
-      printf("image coordinate system = %d\n", sys);
-      printf("image epoch             = %-g\n", epoch);
-      fflush(stdout);
+      if(radinpix) 
+      {
+         rpix   = radius;
+         radius = rpix * fabs(cdelt2);
+      }
+      else
+         rpix = radius / fabs(cdelt2);
+
+      if(locinpix)
+      {
+         xpix = ra;
+         ypix = dec;
+
+         pix2wcs(wcs, xpix, ypix, &lon, &lat);
+
+         convertCoordinates (csys, equinox, lon, lat,
+                             EQUJ, 2000., &ra, &dec, 0);
+      }
+      else
+      {
+         convertCoordinates (EQUJ, 2000., ra, dec,  
+                             csys, equinox, &lon, &lat, 0.);
+
+         wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
+
+         if(offscl)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Location off the image.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         if(debug)
+         {
+            printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g)\n", rpix, xpix, ypix);
+            fflush(stdout);
+         }
+      }
+
+      x0 = cos(ra*dtr) * cos(dec*dtr);
+      y0 = sin(ra*dtr) * cos(dec*dtr);
+      z0 = sin(dec*dtr);
+
+      ixpix = (int)(xpix+0.5);
+      iypix = (int)(ypix+0.5);
+
+      if(debug)
+      {
+         printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d]\n", rpix, xpix, ypix, ixpix, iypix);
+         fflush(stdout);
+      }
    }
 
-   /* Find the location in the image coordinate system */
+   // Then read the data
 
-   convertCoordinates(EQUJ, 2000., ra, dec, sys, epoch, &lon, &lat, 0.);
+   jbegin = iypix - rpix - 1;
+   jend   = iypix + rpix + 1;
 
-   offscl = 0;
+   ibegin = ixpix - rpix - 1;
+   iend   = ixpix + rpix + 1;
 
-   wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
-
-   fixxy(&xpix, &ypix, &offscl);
-
-   if(offscl)
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Location is off image\"]\n");
-      fflush(stdout);
-      exit(1);
-   }
-
-   if(debug)
-   {
-      printf("   ra   = %-g\n", ra);
-      printf("   dec  = %-g\n", dec);
-      printf("-> lon  = %-g\n", lon);
-      printf("   lat  = %-g\n", lat);
-      printf("-> xpix = %-g\n", xpix);
-      printf("   ypix = %-g\n", ypix);
-      fflush(stdout);
-   }
-
-
-   /***************************************/
-   /* Find the range of pixels to analyze */
-   /***************************************/
-
-   xoff = fabs(radius/input.cdelt1);
-   yoff = fabs(radius/input.cdelt2);
-
-   distmax = radius;
-
-   ibegin = xpix - 2.* xoff - 1.0;
-   iend   = xpix + 2.* xoff + 1.0;
-
-   jbegin = ypix - 2.* yoff - 1.0;
-   jend   = ypix + 2.* yoff + 1.0;
-
-   if(ibegin < 1             ) ibegin = 1;
-   if(ibegin > input.naxes[0]) ibegin = input.naxes[0];
-   if(iend   > input.naxes[0]) iend   = input.naxes[0];
-   if(iend   < 0             ) iend   = input.naxes[0];
-
-   if(jbegin < 1             ) jbegin = 1;
-   if(jbegin > input.naxes[1]) jbegin = input.naxes[1];
-   if(jend   > input.naxes[1]) jend   = input.naxes[1];
-   if(jend   < 0             ) jend   = input.naxes[1];
-
-   if(debug)
-   {
-      printf("xoff    = %-g\n", xoff);
-      printf("yoff    = %-g\n", yoff);
-      printf("ibegin  = %d\n",  ibegin);
-      printf("iend    = %d\n",  iend);
-      printf("jbegin  = %d\n",  jbegin);
-      printf("jend    = %d\n",  jend);
-      printf("distmax = %-g\n", distmax);
-      fflush(stdout);
-   }
-
-   if(ibegin >= iend
-   || jbegin >= jend)
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"No pixels match output area.\"]\n");
-      fflush(stdout);
-      exit(1);
-   }
-
-   nelements =  iend -  ibegin + 1;
-   lines     =  jend -  jbegin + 1;
-
-
-   /**********************************************/ 
-   /* Allocate memory for the input image pixels */ 
-   /**********************************************/ 
-
-   data = (double **)malloc(lines * sizeof(double *));
-
-   for(j=0; j<lines; ++j)
-      data[j] = (double *)malloc(nelements * sizeof(double));
-
-   if(debug >= 1)
-   {
-      printf("%ld bytes allocated for input image pixels\n", 
-	 nelements * lines * sizeof(double));
-      fflush(stdout);
-   }
-
-
-   /************************/
-   /* Read the input lines */
-   /************************/
+   nelements = iend - ibegin + 1;
 
    fpixel[0] = ibegin;
    fpixel[1] = jbegin;
    fpixel[2] = 1;
    fpixel[3] = 1;
 
+   data = (double *)malloc(nelements * sizeof(double));
+
    status = 0;
 
-   if(debug >= 3)
-      printf("\n");
+   sumflux  = 0.;
+   sumflux2 = 0.;
+   npix     = 0;
+   nnull    = 0;
 
-   for (j=jbegin; j<jend; ++j)
-   {
-      if(debug >= 2)
-      {
-	 if(debug >= 3)
-	    printf("Reading input row %5d\n", j);
-	 else
-	    printf("\rReading input row %5d     ", j);
+   val      = 0.;
+   valx     = 0.;
+   valy     = 0.;
+   valra    = 0.;
+   valdec   = 0.;
 
-	 fflush(stdout);
-      }
+   max      = 0.;
+   maxx     = 0.;
+   maxy     = 0.;
+   maxra    = 0.;
+   maxdec   = 0.;
 
+   min      = 0.;
+   minx     = 0.;
+   miny     = 0.;
+   minra    = 0.;
+   mindec   = 0.;
 
-      /***********************************/
-      /* Read a line from the input file */
-      /***********************************/
-
-      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
-		       (void *)data[j-jbegin], &nullcnt, &status))
-	 printFitsError(status);
-      
-      ++fpixel[1];
-   }
-
-
-   /*****************************************************/
-   /* Loop over the pixels, computing region parameters */
-   /*****************************************************/
+   xc = cos(rac*dtr) * cos(decc*dtr);
+   yc = sin(rac*dtr) * cos(decc*dtr);
+   zc = sin(decc*dtr);
 
    first = 1;
 
-   fluxave = 0.;
-   fluxsq  = 0.;
-   npixel  = 0;
-   nnull   = 0;
-
-   raref   = 0.;
-   decref  = 0;
-   fluxref = 0;
-   distmin = 1.e50;
-
-   for (j=jbegin; j<jend; ++j)
+   if(radius > 0.)
    {
-      if(debug >= 2)
-	 printf("\n");
+      if(debug)
+         printf("\nDEBUG> (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
 
-      for(i=ibegin; i<iend; ++i)
+      for (j=jbegin; j<=jend; ++j)
       {
-	 offscl = 0;
+         status = 0;
+         if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+                          (void *)data, &nullcnt, &status))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Error reading FITS data.\"]\n");
+            exit(1);
+         }
 
-	 xpix = i;
-	 ypix = j;
+         for(i=0; i<nelements; ++i)
+         {
+            if(mNaN(data[i]))
+            {
+               ++nnull;
+               continue;
+            }
 
-	 pix2wcs(wcs, xpix, ypix, &lon, &lat);
+            sumflux  += data[i];
+            sumflux2 += data[i]*data[i];
+            ++npix;
 
-	 convertCoordinates(sys, epoch, lon, lat, EQUJ, 2000., &ra, &dec, 0.);
-	 
-	 x = cos(ra*dtr) * cos(dec*dtr);
-	 y = sin(ra*dtr) * cos(dec*dtr);
-	 z = sin(dec*dtr);
+            x  = ibegin + i;
+            y  = j;
 
-	 dist = acos(x*xc + y*yc + z*zc)/dtr;
+            pix2wcs(wcs, x, y, &lon, &lat);
 
-	 use = 0;
-	 if(dist < distmax)
-	    use = 1;
+            convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &ra, &dec, 0.);
 
-	 flux = data[j-jbegin][i-ibegin];
+            xp = cos(ra*dtr) * cos(dec*dtr);
+            yp = sin(ra*dtr) * cos(dec*dtr);
+            zp = sin(dec*dtr);
 
-	 if(debug >= 2)
-	 {
-	    printf("i=%d j=%d data=%.6f (%.6f,%.6f) %.2f %d\n",
-	       i, j, flux, ra, dec, dist*3600., use);
+            dot = xp*x0 + yp*y0 + zp*z0;
 
-	    fflush(stdout);
-	 }
+            if(dot > 1.)
+               dot = 1.;
 
-	 if(use && mNaN(flux))
-	    ++nnull;
+            r = acos(dot)/dtr / fabs(cdelt2);
 
-	 if(use && !mNaN(flux))
-	 {
-	    if(first)
-	    {
-	       ramax   = ra;
-	       ramin   = ra;
-	       decmax  = dec;
-	       decmin  = dec;
-	       fluxmax = flux;
-	       fluxmin = flux;
+            if(debug)
+            {
+               if(r <= rpix)
+                  printf("%10.3f ", data[i]);
+               else
+                  printf("           ");
+            }
 
-	       first = 0;
-	    }
+            if(r > rpix)
+               continue;
 
-	    if(flux > fluxmax)
-	    {
-	       ramax   = ra;
-	       decmax  = dec;
-	       fluxmax = flux;
-	    }
+            if(x == ixpix && y == iypix)
+            {
+               val = data[i];
 
-	    if(flux < fluxmin)
-	    {
-	       ramin   = ra;
-	       decmin  = dec;
-	       fluxmin = flux;
-	    }
+               valx = x;
+               valy = y;
+            }
+            
+            if(first)
+            {
+               first = 0;
 
-	    fluxave += flux;
+               min = data[i];
 
-	    fluxsq  += flux * flux;
+               minx = x;
+               miny = y;
 
-	    ++npixel;
+               max = data[i];
 
-	    if(dist < distmin)
-	    {
-	       raref   = ra;
-	       decref  = dec;
-	       fluxref = flux;
+               maxx = x;
+               maxy = y;
+            }
+            
+            if(data[i] > max)
+            {
+               max = data[i];
 
-	       distmin = dist;
-	    }
-	 }
+               maxx = x;
+               maxy = y;
+            }
+            
+            if(data[i] < min)
+            {
+               min = data[i];
+
+               minx = x;
+               miny = y;
+            }
+         }
+
+         pix2wcs(wcs, valx, valy, &lon, &lat);
+         convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &valra, &valdec, 0.);
+
+         pix2wcs(wcs, minx, miny, &lon, &lat);
+         convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &minra, &mindec, 0.);
+
+         pix2wcs(wcs, maxx, maxy, &lon, &lat);
+         convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &maxra, &maxdec, 0.);
+
+         if(debug)
+            printf("\n");
+
+         ++fpixel[1];
       }
+
+      mean = sumflux / npix;
+      rms  = sqrt(sumflux2/npix - mean*mean);
+
+      sigmaref = (val - mean) / rms; 
+      sigmamin = (min - mean) / rms; 
+      sigmamax = (max - mean) / rms; 
    }
-
-   if(npixel > 0)
-   {
-      fluxave = fluxave/npixel;
-
-      fluxsq = sqrt(fluxsq/(double)npixel - fluxave*fluxave);
-   }
-
-   if(debug >= 1)
-   {
-      printf("Input image read complete.\n\n");
-      fflush(stdout);
-   }
-
-   fprintf(fstatus, "[struct stat=\"OK\", fluxmin=%-g, ramin=%.6f, decmin=%.6f, fluxmax=%-g, ramax=%.6f, decmax=%.6f, fluxref=%-g, raref=%.6f, decref=%.6f, aveflux=%-g, rmsflux=%-g, npixel=%d, nnull=%d]\n",
-      fluxmin, ramin, decmin,
-      fluxmax, ramax, decmax,
-      fluxref, raref, decref,
-      fluxave, fluxsq, npixel, nnull);
-   fflush(fstatus);
-
-   exit(0);
-}
-
-
-/**************************************************/
-/*  Projections like CAR sometimes add an extra   */
-/*  360 degrees worth of pixels to the return     */
-/*  and call it off-scale.                        */
-/**************************************************/
-
-void fixxy(double *x, double *y, int *offscl)
-{
-   *x = *x - xcorrection;
-   *y = *y - ycorrection;
-
-   *offscl = 0;
-
-   if(*x < 0.
-   || *x > wcs->nxpix+1.
-   || *y < 0.
-   || *y > wcs->nypix+1.)
-      *offscl = 1;
-
-   return;
-}
-
-
-/*******************************************/
-/*                                         */
-/*  Open a FITS file pair and extract the  */
-/*  pertinent header information.          */
-/*                                         */
-/*******************************************/
-
-int readFits(char *fluxfile)
-{
-   int    status, nfound;
-   long   naxes[2];
-   double crpix[2];
-   double cd11, cd12, cd21, cd22;
-   double cdelt1, cdelt2, crota2;
-   char   errstr[MAXSTR];
-   double x, y;
-   double ix, iy;
-   double xpos, ypos;
-   int    offscl;
-
-
-   status = 0;
-
-   checkHdr(fluxfile, 0, 0);
-
-   if(fits_open_file(&input.fptr, fluxfile, READONLY, &status))
-   {
-      sprintf(errstr, "Image file %s missing or invalid FITS", fluxfile);
-      printError(errstr);
-   }
-
-   if(fits_get_image_wcs_keys(input.fptr, &input_header, &status))
-      printFitsError(status);
-
-   wcs = wcsinit(input_header);
-
-   if(wcs == (struct WorldCoor *)NULL)
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"wcsinit() failed.\"]\n");
-      exit(1);
-   }
-
-   checkWCS(wcs, 0);
-
-
-   /* Kludge to get around bug in WCS library:   */
-   /* 360 degrees sometimes added to pixel coord */
-
-   ix = 0.5;
-   iy = 0.5;
-
-   offscl = 0;
-
-   pix2wcs(wcs, ix, iy, &xpos, &ypos);
-   wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
-
-   xcorrection = x-ix;
-   ycorrection = y-iy;
-
-
-   haveCDELT1 = 1;
-   haveCDELT2 = 1;
-   haveCROTA2 = 1;
-
-   haveCD1_1  = 1;
-   haveCD1_2  = 1;
-   haveCD2_1  = 1;
-   haveCD2_2  = 1;
-
-   if(fits_read_keys_lng(input.fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
-      printFitsError(status);
    
-   input.naxes[0] = naxes[0];
-   input.naxes[1] = naxes[1];
 
-   if(fits_read_keys_dbl(input.fptr, "CRPIX", 1, 2, crpix, &nfound, &status))
-      printFitsError(status);
+   /* Finally, print out parameters */
 
-   input.crpix1 = crpix[0];
-   input.crpix2 = crpix[1];
+   printf("[struct stat=\"OK\","); 
 
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CDELT1", &cdelt1, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCDELT1 = 0;
-   else
-      input.cdelt1 = cdelt1;
+   printf(" proj=\"%s\",",     proj);
+   printf(" csys=\"%s\",",     csys_str);
+   printf(" equinox=%.1f,",    equinox);
+   printf(" naxis1=%d,",       (int)naxis1);
+   printf(" naxis2=%d,",       (int)naxis2);
+   printf(" crval1=%.7f,",     crval1);
+   printf(" crval2=%.7f,",     crval2);
+   printf(" crpix1=%-g,",      crpix1);
+   printf(" crpix2=%-g,",      crpix2);
+   printf(" cdelt1=%.7f,",     fabs(cdelt1));
+   printf(" cdelt2=%.7f,",     fabs(cdelt2));
+   printf(" crota2=%.4f,",     crota2);
+   printf(" lonc=%.7f,",       lonc);
+   printf(" latc=%.7f,",       latc);
+   printf(" ximgsize=%.6f,",   fabs(naxis1*cdelt1));
+   printf(" yimgsize=%.6f,",   fabs(naxis1*cdelt2));
+   printf(" rotequ=%.4f,",     rot);
+   printf(" rac=%.7f,",        rac);
+   printf(" decc=%.7f,",       decc);
+   printf(" ra1=%.7f,",        ra1);
+   printf(" dec1=%.7f,",       dec1);
+   printf(" ra2=%.7f,",        ra2);
+   printf(" dec2=%.7f,",       dec2);
+   printf(" ra3=%.7f,",        ra3);
+   printf(" dec3=%.7f,",       dec3);
+   printf(" ra4=%.7f,",        ra4);
+   printf(" dec4=%.7f",        dec4);
 
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CDELT2", &cdelt2, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCDELT2 = 0;
-   else
-      input.cdelt2 = cdelt2;
+   if(radius > 0)
+   {
+      printf(", radius=%.7f,", radius);
+      printf(" radpix=%.2f,",  rpix);
+      printf(" npixel=%d,",    npix);
+      printf(" nnull=%d,",     nnull);
+      printf(" aveflux=%-g,",  mean);
+      printf(" rmsflux=%-g,",  rms);
+      printf(" fluxref=%-g,",  val);
+      printf(" sigmaref=%-g,", sigmaref);
+      printf(" xref=%.0f,",    valx);
+      printf(" yref=%.0f,",    valy);
+      printf(" raref=%.7f,",   valra);
+      printf(" decref=%.7f,",  valdec);
+      printf(" fluxmin=%-g,",  min);
+      printf(" sigmamin=%-g,", sigmamin);
+      printf(" xmin=%.0f,",    minx);
+      printf(" ymin=%.0f,",    miny);
+      printf(" ramin=%.7f,",   minra);
+      printf(" decmin=%.7f,",  mindec);
+      printf(" fluxmax=%-g,",  max);
+      printf(" sigmamax=%-g,", sigmamax);
+      printf(" xmax=%.0f,",    maxx);
+      printf(" ymax=%.0f,",    maxy);
+      printf(" ramax=%.7f,",   maxra);
+      printf(" decmax=%.7f",   maxdec);
+   }
 
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CROTA2", &crota2, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCROTA2 = 0;
-   else
-      input.crota2 = crota2;
+   printf("]\n");
 
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CD1_1", &cd11, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCD1_1 = 0;
-   else
-      input.cd11 = cd11;
+   fflush(stdout);
 
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CD1_2", &cd12, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCD1_2 = 0;
-   else
-      input.cd12 = cd12;
-
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CD2_1", &cd21, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCD2_1 = 0;
-   else
-      input.cd21 = cd21;
-
-   status = 0;
-   fits_read_key(input.fptr, TDOUBLE, "CD2_2", &cd22, (char *)NULL, &status);
-   if(status == KEY_NO_EXIST)
-      haveCD2_2 = 0;
-   else
-      input.cd22 = cd22;
-
-   return 0;
-}
-
-
-
-/******************************/
-/*                            */
-/*  Print out general errors  */
-/*                            */
-/******************************/
-
-void printError(char *msg)
-{
-   fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-   exit(1);
-}
-
-
-
-
-/***********************************/
-/*                                 */
-/*  Print out FITS library errors  */
-/*                                 */
-/***********************************/
-
-void printFitsError(int status)
-{
-   char status_str[FLEN_STATUS];
-
-   fits_get_errstatus(status, status_str);
-
-   fprintf(fstatus, "[struct stat=\"ERROR\", status=%d, msg=\"%s\"]\n", status, status_str);
-
-   exit(1);
+   return (0);
 }

@@ -33,14 +33,17 @@ char  *input_header;
 
 int At[4][4];
 int Bt[4];
-int reorder[4];
+
+int  order  [4];
+int  reorder[4];
 
 
 void  printFitsError  (int);
 void  printError      (char *);
 char *checkKeyword    (char *keyname, char *card);
-int   initTransform   (int *order, long *naxis, long *NAXIS);
+int   initTransform   (long *naxis, long *NAXIS);
 void  transform       (int i, int j, int k, int l, int *it, int *jt, int *kt, int *lt);
+int   analyzeCTYPE    (fitsfile *inFptr);
 
 int  debug;
 
@@ -62,7 +65,6 @@ int main(int argc, char **argv)
    int        bitpix, first;
    int        nullcnt, status, nfound, keynum;
    long       fpixel[4];
-   int        order [4];
 
    long       naxis;
    long       nAxisIn [4];
@@ -160,9 +162,9 @@ int main(int argc, char **argv)
       }
    }
    
-   if (argc < 5) 
+   if (argc < 3 || argc == 4) 
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: mRotate [-d level] [-s statusfile] in.fits out.fits outaxis1 outaxis2 [outaxis3 [outaxis4]]\"]\n");
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: mTranspose [-d level] [-s statusfile] in.fits out.fits [outaxis1 outaxis2 [outaxis3 [outaxis4]]]\"]\n");
       exit(1);
    }
 
@@ -182,65 +184,6 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   order[0] = strtol(argv[3], &end, 0);
-
-   if(end < argv[3] + (int)strlen(argv[3]))
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 1 cannot be interpreted as an integer.\"]\n");
-      exit(1);
-   }
-
-   order[1] = strtol(argv[4], &end, 0);
-
-   if(end < argv[4] + (int)strlen(argv[4]))
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 cannot be interpreted as an integer.\"]\n");
-      exit(1);
-   }
-
-   if(argc > 5)
-   {
-      order[2] = strtol(argv[5], &end, 0);
-
-      if(end < argv[5] + (int)strlen(argv[5]))
-      {
-         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 cannot be interpreted as an integer.\"]\n");
-         exit(1);
-      }
-   }
-   else
-      order[2] = 3;
-
-   if(argc > 6)
-   {
-      order[3] = strtol(argv[6], &end, 0);
-
-      if(end < argv[6] + (int)strlen(argv[6]))
-      {
-         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 cannot be interpreted as an integer.\"]\n");
-         exit(1);
-      }
-   }
-   else
-      order[3] = 4;
-
-   if(debug >= 1)
-   {
-      printf("\n");
-      printf("debug       = %d\n",   debug);
-      printf("\n");
-      printf("inputFile   = [%s]\n", inputFile);
-      printf("outputFile  = [%s]\n", outputFile);
-      printf("\n");
-      printf("order[0]    = [%d]\n", order[0]);
-      printf("order[1]    = [%d]\n", order[1]);
-      printf("order[2]    = [%d]\n", order[2]);
-      printf("order[3]    = [%d]\n", order[3]);
-      printf("\n");
-
-      fflush(stdout);
-   }
-
 
    /************************/
    /* Open the input image */
@@ -253,10 +196,12 @@ int main(int argc, char **argv)
       printError(errstr);
    }
 
+   analyzeCTYPE(inFptr);
+   
    status = 0;
    if(fits_read_keys_lng(inFptr, "NAXIS", 1, 4, nAxisIn, &nfound, &status))
       printFitsError(status);
-   
+
    if(nfound < 4)
       nAxisIn[3] = 1;
 
@@ -277,11 +222,80 @@ int main(int argc, char **argv)
    }
 
 
+   /****************************************************/
+   /* We analyzed the image for lat/lot and initialize */
+   /* the transpose order.  Here we optionally set it  */
+   /* manually with command-line arguments.            */
+   /****************************************************/
+
+   if(argc > 3)
+   {
+      order[0] = strtol(argv[3], &end, 0);
+
+      if(end < argv[3] + (int)strlen(argv[3]))
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 1 cannot be interpreted as an integer.\"]\n");
+         exit(1);
+      }
+
+      order[1] = strtol(argv[4], &end, 0);
+
+      if(end < argv[4] + (int)strlen(argv[4]))
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 cannot be interpreted as an integer.\"]\n");
+         exit(1);
+      }
+
+      if(argc > 5)
+      {
+         order[2] = strtol(argv[5], &end, 0);
+
+         if(end < argv[5] + (int)strlen(argv[5]))
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 cannot be interpreted as an integer.\"]\n");
+            exit(1);
+         }
+      }
+      else
+         order[2] = 3;
+
+      if(argc > 6)
+      {
+         order[3] = strtol(argv[6], &end, 0);
+
+         if(end < argv[6] + (int)strlen(argv[6]))
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 cannot be interpreted as an integer.\"]\n");
+            exit(1);
+         }
+      }
+      else
+         order[3] = 4;
+   }
+
+   if(debug >= 1)
+   {
+      printf("\n");
+      printf("debug       = %d\n",   debug);
+      printf("\n");
+      printf("inputFile   = [%s]\n", inputFile);
+      printf("outputFile  = [%s]\n", outputFile);
+      printf("\n");
+      printf("order[0]    = [%d]\n", order[0]);
+      printf("order[1]    = [%d]\n", order[1]);
+      printf("order[2]    = [%d]\n", order[2]);
+      printf("order[3]    = [%d]\n", order[3]);
+      printf("\n");
+
+      fflush(stdout);
+   }
+
+
    /***********************************/
    /* Initialize the transform matrix */
    /***********************************/
 
-   initTransform(order, nAxisIn, nAxisOut);
+   initTransform(nAxisIn, nAxisOut);
 
    if(debug)
    {
@@ -540,7 +554,7 @@ int main(int argc, char **argv)
       if(status)
          break;
 
-      printf("Header keyword %d: [%s][%s][%s]\n", keynum, keyname, value, comment);
+      // printf("Header keyword %d: [%s][%s][%s]\n", keynum, keyname, value, comment);
 
       ++keynum;
    }
@@ -620,11 +634,100 @@ int main(int argc, char **argv)
 
 
 
-/******************************/
-/*                            */
-/*  Print out general errors  */
-/*                            */
-/******************************/
+/*******************************************/
+/*                                         */
+/* Analyze the CTYPE keywords to determine */
+/* the default reordering.                 */
+/*                                         */
+/*******************************************/
+
+int analyzeCTYPE(fitsfile *inFptr)
+{
+   int  i, status, lonaxis, lataxis;
+
+   char ctype[4][16];
+
+   status = 0;
+   fits_read_key(inFptr, TSTRING, "CTYPE1", ctype[0], (char *)NULL, &status);
+
+   if(status) strcpy(ctype[0], "NONE");
+
+   status = 0;
+   fits_read_key(inFptr, TSTRING, "CTYPE2", ctype[1], (char *)NULL, &status);
+
+   if(status) strcpy(ctype[1], "NONE");
+
+   status = 0;
+   fits_read_key(inFptr, TSTRING, "CTYPE3", ctype[2], (char *)NULL, &status);
+
+   if(status) strcpy(ctype[2], "NONE");
+
+   status = 0;
+   fits_read_key(inFptr, TSTRING, "CTYPE4", ctype[3], (char *)NULL, &status);
+
+   if(status) strcpy(ctype[3], "NONE");
+
+
+   for(i=0; i<4; ++i)
+      order[i] = -1;
+
+   lonaxis = -1;
+   lataxis = -1;
+
+   for(i=0; i<4; ++i)
+   {
+      if(strncmp(ctype[i], "RA--", 4) == 0
+      || strncmp(ctype[i], "GLON", 4) == 0
+      || strncmp(ctype[i], "ELON", 4) == 0
+      || strncmp(ctype[i], "LON-", 4) == 0)
+      {
+         if(lonaxis == -1)
+            lonaxis = i;
+         else
+            printError("Multiple 'longitude' axes.");
+      }
+
+      if(strncmp(ctype[i], "DEC-", 4) == 0
+      || strncmp(ctype[i], "GLAT", 4) == 0
+      || strncmp(ctype[i], "ELAT", 4) == 0
+      || strncmp(ctype[i], "LAT-", 4) == 0)
+      {
+         if(lataxis == -1)
+            lataxis = i;
+         else
+            printError("Multiple 'latitude' axes.");
+      }
+   }
+
+   if(lonaxis == -1 || lataxis == -1)
+      printError("Need both longitude and latitude axes.");
+
+   order[0] = lonaxis;
+   order[1] = lataxis;
+
+   for(i=0; i<4; ++i)
+   {
+      if(i != lonaxis && i != lataxis)
+      {
+         if(order[2] == -1)
+            order[2] = i;
+         else
+            order[3] = i;
+      }
+   }
+      
+   for(i=0; i<4; ++i)
+      ++order[i];
+
+   return 0;
+}
+
+
+/*****************************************************/
+/*                                                   */
+/*  Check which keywords we know need to be switched */
+/*                                                   */
+/*****************************************************/
 
 char *wcs[9] = { "NAXISn", "CRVALn", "CRPIXn",
                  "CTYPEn", "CDELTn", "CDn_n", 
@@ -739,7 +842,7 @@ void printFitsError(int status)
 /*                 */
 /*******************/
 
-int initTransform(int *order, long *naxis, long *NAXIS)
+int initTransform(long *naxis, long *NAXIS)
 {
    int i, j;
    int index;
@@ -767,6 +870,8 @@ int initTransform(int *order, long *naxis, long *NAXIS)
 
       NAXIS[i] = naxis[index];
    }
+
+   return 0;
 }
 
 void transform(int  i,  int  j,  int  k,  int  l,
