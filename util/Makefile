@@ -8,7 +8,6 @@ all:
 	(cd Exec; ./Configure.sh; make; make install)
 	(cd FixNaN; ./Configure.sh; make; make install)
 	(cd Hdr; ./Configure.sh; make; make install)
-	(cd ImgInfo; ./Configure.sh; make; make install)
 	(cd JPEG; ./Configure.sh; make; make install)
 	(cd Pad; ./Configure.sh; make; make install)
 	(cd Pix2Coord; ./Configure.sh; make; make install)
