@@ -1,0 +1,28 @@
+.layerDiv{ background-color: #D8D8D8; }
+
+.ovlyTbl    { padding: 0px; border:0px; font: 8px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.ovlyTbl td { padding: 1px 3px; border: 1px solid #606060; }
+
+.ovlyCellTbl    { padding: 0px; border: 0px; font: 8px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+.ovlyCellTbl td { padding: 0px 2px; border: 0px; font: 12px "Helvetica Neue",Helvetica,Arial,sans-serif; }
+
+.ovlyhd      { background-color: #808080; color: #ffff50; font-size: 11px; text-align: center; }
+.ovlyhdSmall { background-color: #808080; color: #ffff50; font-size:  8px; text-align: center; }
+
+.dragOff{ background-color: #eeffee; color: #000000; width: 22px; }
+.drag   { background-color: #00ff00; color: #000000; width: 22px; }
+.showOff{ background-color: #dddddd; color: #000000; width: 21px; }
+.show   { background-color: #c0c0c0; color: #000000; width: 21px; }
+
+.type   { background-color: #eeffee; color: #000000; width:  45px; font-size: 12px; }
+.source { background-color: #eeeeff; color: #000000; width: 140px; font-size: 12px; }
+.symbol { background-color: #ffffee; color: #000000; width:  90px; font-size: 12px; }
+.scale  { background-color: #eeffff; color: #000000; width: 100px; font-size: 12px; }
+.color  { background-color: #ffffff; color: #000000; width:  55px; font-size: 12px; }
+.delete { background-color: #ff8080; color: #000000; width:  18px; font-size: 12px; }
+.delOff { background-color: #ffeeee; color: #000000; width:  18px; font-size: 12px; }
+
+.delBtn { width: 5px; height: 5px; }
+
+.ovSelect { height: 10px; margin: 0px; padding: 0px; }
+.ovInput  { font-size: 8px; }

@@ -1,0 +1,450 @@
+<html>
+<head>
+   <title>Montage Viewer</title>
+
+   <link rel="stylesheet" type="text/css" href="/css/jquery-ui/smoothness/jquery-ui-1.10.4.custom.min.css" />
+   <link rel="stylesheet" type="text/css" href="/applications/mViewer/css/selene/custom.css" />
+   <link rel="stylesheet" type="text/css" href="/js/bgrins-spectrum-77699c6/spectrum.css" />
+
+   <link rel="stylesheet" type="text/css" href="/applications/mViewer/mViewer.css" />
+   <link rel="stylesheet" type="text/css" href="/applications/mViewer/FITSHeaderViewer.css" />
+   <link rel="stylesheet" type="text/css" href="/applications/mViewer/LayerControl.css" />
+   <link rel="stylesheet" type="text/css" href="/applications/mViewer/ColorStretch.css" />
+   <link rel="stylesheet" type="text/css" href="/applications/mViewer/RegionStats.css" />
+
+   <script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script>
+   <script type="text/javascript" src="/js/jquery-ui-1.10.4.custom.min.js"></script>
+   <script type="text/javascript" src="/js/misc/iceGraphics.js"></script>
+   <script type="text/javascript" src="/js/bgrins-spectrum-77699c6/spectrum.js"></script>
+
+   <script type="text/javascript" src="/applications/mViewer/mViewer.js"></script>
+   <script type="text/javascript" src="/applications/mViewer/ColorStretch.js"></script>
+   <script type="text/javascript" src="/applications/mViewer/LayerControl.js"></script>
+   <script type="text/javascript" src="/applications/mViewer/FITSHeaderViewer.js"></script>
+   <script type="text/javascript" src="/applications/mViewer/RegionStats.js"></script>
+
+   <style type="text/css">
+
+      #bannerArea {
+         border:     0px solid red;
+         position:   absolute;
+         left:       0px;
+         top:        0px;
+         width:      100%;
+         background: #808080;
+      }
+
+      #leftArea {
+         border:     0px solid red;
+         position:   absolute;
+         left:       0px;
+         top:        75px;
+         padding:    15px;
+         width:      200px;
+         background: #e0e0e0;
+         overflow:   auto;
+      }
+
+      #interactionArea {
+         border:     0px solid red;
+         position:   absolute;
+         left:       200px;
+         top:        75px;
+         background: #808080;
+      }
+
+      #imgArea {
+         border:     0px solid red;
+         background: #000000;
+      }
+
+      #buttonBar {
+         border:     0px solid red;
+         height:     43px;
+         background: #e0e0e0;
+      }
+
+      #layerDiv {
+         border:     0px solid red;
+         background: #d8d8d8;
+         padding: 2px;
+      }
+
+   </style>
+
+
+   <script type="text/javascript">
+
+
+      // The code here is for a simple GUI with a banner at the top
+      // of the window, a control (or whatever) bar on the left, and
+      // a main display area that will be managed by an mViewer instance.
+      
+      // Here we take responsibility for the overall resizing of things
+      // so the three areas adjust to resizing of the browser window
+      // and ask mViewer to adjust the image display to fit in its 
+      // area.
+
+      var viewer;
+      
+      var stretch;
+      var stretchDiv;
+
+      var layers;
+      var layerDiv;
+
+      var header;
+      var headerDiv;
+
+      var stats;
+      var statsDiv;
+
+      var imgArea;
+
+
+
+      jQuery(document).ready(function () {
+
+         imgArea = jQuery("#imgArea");
+
+         jQuery(window).resize(function(){ resizeWin(); });
+
+         resizeWin();
+
+
+         // Create the main image display object
+
+         viewer = new mViewer("\workspace\", "\json\", "imgArea");
+
+         viewer.init();
+
+
+         // Create the color stretch control. In this application we are
+         // going to use this in a pop-up dialog; other application
+         // may choose to have it in another tab, a separate window,
+         // or even have it always visible in an fixed location.
+
+         stretchDiv = jQuery("#stretchDiv");
+
+         stretch = new ColorStretch("stretchDiv", viewer);
+
+         viewer.addUpdateCallback(stretch.processUpdate);
+         viewer.addUpdateCallback(updateScale);
+         viewer.addUpdateCallback(updateWWT);
+
+
+         // Create the layer control. As with the color control
+         // above, this application will put this into a pop-up dialog.
+
+         layerDiv = jQuery("#layerDiv");
+
+         layers = new LayerControl("layerDiv", viewer);
+
+
+         // Create the FITS header viewer. As with the color control
+         // above, this application will put this into a pop-up dialog.
+
+         header = new FITSHeaderViewer("fitsHeaderDiv", viewer);
+
+         headerDiv = jQuery("#fitsHeaderDiv");
+
+
+         // Create the FITS region statistics viewer.
+
+         stats = new RegionStats("statsDiv", viewer);
+
+         statsDiv = jQuery("#statsDiv");
+
+
+         // Button bar underneath the image area. We considered making
+         // this another plug-in object but since the button actions
+         // contact so many other objects, we decided to make it directly
+         // part of the main set-up. Rather than sprinkle configuration
+         // information throughout the code, we put it in the following
+         // array.
+
+         var buttonBar = document.getElementById("buttonBar");
+
+         buttonBar.innerHTML = '<table class="mViewer"><tr></tr></table>';
+
+         var btnRow = jQuery(buttonBar).find("tr").get(0);
+
+         var btnInfo =
+         [
+            ["/applications/mViewer/icons/colors.gif",       "showColorStretch",  "Color table and data stretch"],
+            ["/applications/mViewer/icons/layercontrol.gif", "showLayerControls", "Overlays (grids, catalogs, etc.)"],
+            ["/applications/mViewer/icons/info.gif",         "showFITSHeader",    "Show FITS header"],
+            ["/applications/mViewer/icons/stats.gif",        "showRegionStats",   "Region statistics"],
+            ["20px"],
+            ["/applications/mViewer/icons/download.gif",     "downloadImage",     "Download image"],
+            ["20px"],
+            ["/applications/mViewer/icons/zoom_in.gif",      "zoomIn",            "Zoom in"],
+            ["/applications/mViewer/icons/zoom_out.gif",     "zoomOut",           "Zoom out"],
+            ["/applications/mViewer/icons/zoom_reset.gif",   "zoomReset",         "Reset zoom"],
+            ["10px"],
+            ["60px", "<div>&nbsp;x<span class='scaleFactor'>1</span><div>"],
+            ["100px", "<div><span class='WWT'></span><div>"]
+         ];
+
+
+         // Basically, this is just a row of images (or spacer divs)
+         // with an "onclick()" function attached.
+
+         for(i=0; i<btnInfo.length; ++i)
+         {
+            var btnCell = jQuery('<td class="mViewer"/>').appendTo(btnRow);
+
+            if(btnInfo[i].length == 1)
+            {
+               var size = btnInfo[i][0];
+
+               var btn = jQuery('<div/>').appendTo(btnCell);
+
+               btn = jQuery(btn).get(0);
+
+               jQuery(btn).css("width", size);
+            }
+            else if(btnInfo[i].length == 2)
+            {
+               var size = btnInfo[i][0];
+
+               var content = btnInfo[i][1];
+
+
+               var btn = jQuery(content).appendTo(btnCell);
+
+               btn = jQuery(btn).get(0);
+
+               jQuery(btn).css("width", size);
+            }
+            else if(btnInfo[i].length == 3)
+            {
+               var imgURL  = btnInfo[i][0];
+               var btnFunc = btnInfo[i][1];
+               var toolTip = btnInfo[i][2];
+
+               var btn = jQuery('<img class="mViewer"/>').appendTo(btnCell);
+
+               btn = jQuery(btn).get(0);
+
+               jQuery(btn).attr("src",   imgURL);
+               jQuery(btn).attr("title", toolTip);
+
+               jQuery(btn).click(window[btnFunc]);
+            }
+         }
+      });
+
+
+
+      // This is where we actually make the color stretch
+      // a pop-up dialog.  The controls know nothing about 
+      // how it is being used so we have to do all the size
+      // control and positioning as part of our application.
+
+      showColorStretch = function()
+      {
+         stretch.init();
+
+         stretchDiv.dialog({
+            resizable: false,
+            width:'auto'
+         });
+
+         stretchDiv.parent().position({
+            my: "center",
+            at: "center",
+            of: imgArea
+         });
+
+      }
+
+
+      // This is where we make the layer controls a pop-up dialog.  
+      // This control also know nothing about how it is being used 
+      // (as above).
+
+      showLayerControls = function()
+      {
+         layers.init();
+
+         layerDiv.dialog({
+            resizable: false,
+            width:'auto'
+         });
+
+         layerDiv.parent().position({
+            my: "center",
+            at: "center",
+            of: imgArea
+         });
+
+      }
+
+
+      // Similarly for the FITS header display pop-up.
+
+      showFITSHeader = function()
+      {
+         header.init();
+
+         headerDiv.dialog({
+            resizable: false,
+            width:'auto'
+         });
+
+         headerDiv.parent().position({
+            my: "center",
+            at: "center",
+            of: imgArea
+         });
+      }
+
+
+      // And the region statistics pop-up.
+
+      showRegionStats = function()
+      {
+         stats.init();
+
+         statsDiv.dialog({
+            resizable: false,
+            width:'auto'
+         });
+
+         statsDiv.parent().position({
+            my: "center",
+            at: "center",
+            of: imgArea
+         });
+      }
+
+
+      // Pass-through functions to viewer object
+
+      zoomIn        = function() { viewer.zoomIn(); }
+      zoomOut       = function() { viewer.zoomOut(); }
+      zoomReset     = function() { viewer.zoomReset(); }
+      downloadImage = function() { viewer.downloadImage(); }
+
+
+      // Message for functionality that is not ready
+
+      sorryMessage = function()
+      {
+         alert("Sorry, that functionality is not quite ready yet.");
+      }
+
+
+      // Update the scale factor in the button bar
+
+      updateScale = function()
+      {
+         var scale;
+
+         if(viewer.imgData.scale == 0)
+            scale = 0.;
+         else
+            scale = 1./viewer.imgData.scale;
+
+         jQuery(".scaleFactor").html(scale.toPrecision(4));
+      }
+
+
+      // Update the WWT export link
+
+      updateWWT = function()
+      {
+         var contents;
+
+         contents = '<a href="' + viewer.imgData.WWTURL + '" target="WWT">Send to WWT</a>';
+
+         jQuery(".WWT").html(contents);
+      }
+
+
+      // Once at the beginning and then every time the browser window
+      // changes size we need to recalculate the sizes of our GUI 
+      // components.  For an application like this it is easier to
+      // do these calculations explicitly than to rely on floating 
+      // divs, and browser-calculated filling to do the work.
+
+      resizeWin = function()
+      {
+         var winWidth     = window.innerWidth;
+         var winHeight    = window.innerHeight;
+
+         var leftWidth    = jQuery("#leftArea"  ).outerWidth();
+         var bannerHeight = jQuery("#bannerArea").outerHeight();
+         var buttonHeight = jQuery("#buttonBar" ).outerHeight();
+
+         var width  = winWidth  - leftWidth;
+         var height = winHeight - bannerHeight;
+
+         jQuery("#bannerArea").outerWidth(winWidth);
+
+         jQuery("#leftArea").outerHeight(height);
+
+         jQuery("#leftArea").css("top", bannerHeight);
+
+         jQuery("#interactionArea").css("width",  width);
+         jQuery("#interactionArea").css("height", height);
+         jQuery("#interactionArea").css("left",   leftWidth);
+         jQuery("#interactionArea").css("top",    bannerHeight);
+         jQuery("#imgArea"        ).css("height", height - buttonHeight);
+
+         if(viewer)
+            viewer.resize();
+      }
+   </script>
+</head>
+
+<body>
+
+<div id="baseDiv">
+
+   <div id="bannerArea" style="height:90px; background-image:url(/applications/mViewer/icons/galplane_banner.jpg);">
+   <h1 style="color:#ffffff;">&nbsp;&nbsp;&nbsp;Montage Viewer</h1>
+   </div>
+
+   <div id="leftArea">
+
+   This is a minimal application for illustration purposes.<p/>
+
+   Neither the banner above nor this space is part of mViewer.
+   All mViewer needs is the &lt;div&gt; on the right.  The rest of
+   the window, whether laid out like this or some other way, 
+   is under the control of your application.<p/>
+
+   For instance, this area might contain descriptive text and/or 
+   controls. These may be connected to mViewer in the sense that you can 
+   choose to notify mViewer of things that happen here and
+   ask it to update the plot but otherwise mViewer is not involved
+   in this part of the interface.<p/>
+
+   This also applies to resizing.  Actions you take may affect 
+   the mViewer &lt;div&gt; size or shape but if you want 
+   mViewer to react, you have to call its resize() function
+   explicitly.<p/>
+
+   The button bar at the bottom of the mViewer &lt;div&gt; is part
+   this application, not mViewer.  Details of what buttons appear
+   there are easily modified; the examples here are just some of the
+   more common image display functions like color table selection
+   and stretching.<p/>
+
+   </div>
+
+   <div id="interactionArea">
+      <div id="imgArea"></div>
+      <div id="buttonBar"></div>
+   </div>
+</div>
+
+<div title="Color Stretch Controls" id="stretchDiv"></div>
+<div title="Overlay Controls"       id="layerDiv"></div>
+<div title="FITS Header"            id="fitsHeaderDiv"></div>
+<div title="Region Statistics"      id="statsDiv"></div>
+
+</body>
+</html>

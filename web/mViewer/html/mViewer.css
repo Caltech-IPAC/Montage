@@ -1,0 +1,18 @@
+/*-------------------------
+	mViewer default CSS
+--------------------------*/
+
+
+div.mViewer {
+   background: #e0e0e0;
+}
+
+img.mViewer {
+   border: 1px solid #808080;
+}
+
+table.mViewer {
+   border:  0px;
+   padding: 2px; 
+   margin:  0px;
+}

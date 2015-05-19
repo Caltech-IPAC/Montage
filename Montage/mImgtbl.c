@@ -73,6 +73,12 @@ FIELDS;
 FIELDS *fields;
 int     nfields;
 
+int  ncube = 8;
+
+char cname [8][32] = {"NAXIS3", "CRVAL3", "CDELT3", "CRPIX3", "NAXIS4", "CRVAL4", "CDELT4", "CRPIX4"};
+char ctype [8][32] = {"int",    "double", "double", "double", "int",    "double", "double", "double"};
+int  cwidth[8]     = { 6,        16,       16,       16,       6,        16,       16,       16};
+
 int     badwcs = 0;
 
 void get_files   (char*); 
@@ -103,7 +109,7 @@ struct Hdr_rec hdr_rec;
 
 int main(int argc, char **argv)
 {
-    int   c, istat, ncols, ifname, fromlist;
+    int   i, c, istat, ncols, ifname, fromlist;
     char  pathname [256];
     char  tblname  [256];
     char  line     [1024];
@@ -132,7 +138,13 @@ int main(int argc, char **argv)
 
     fromlist = 0;
 
-    while ((c = getopt(argc, argv, "rcadbs:f:t:z")) != -1) 
+    nfields   = 0;
+    maxfields = 32;
+
+    fields = (FIELDS *)
+                 malloc(maxfields * sizeof(FIELDS));
+
+    while ((c = getopt(argc, argv, "rcCadbs:f:t:z")) != -1) 
     {
        switch (c) 
        {
@@ -142,6 +154,27 @@ int main(int argc, char **argv)
  
           case 'c':
              showCorners = 1;
+             break;
+ 
+          case 'C':
+             
+             for(i=0; i<ncube; ++i)
+             {
+                strcpy(fields[nfields].name, cname[i]);
+                strcpy(fields[nfields].type, ctype[i]);
+
+                fields[nfields].width = cwidth[i];
+
+                ++nfields;
+
+                if(nfields >= maxfields)
+                {
+                   maxfields += 32;
+                   
+                   fields = (FIELDS *)
+                                realloc(fields, maxfields * sizeof(FIELDS));
+                }
+             }
              break;
  
           case 'a':
@@ -176,12 +209,6 @@ int main(int argc, char **argv)
                    optarg);
                 exit(1);
              }
-
-             nfields   = 0;
-             maxfields = 32;
-
-             fields = (FIELDS *)
-                          malloc(maxfields * sizeof(FIELDS));
 
              while(fgets(line, 1024, ffields) != (char *)NULL)
              {
@@ -313,7 +340,7 @@ int main(int argc, char **argv)
 
     if (argc - optind < 2) 
     {
-        fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-rcadb][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl\"]\n", argv[0]);
+        fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-rcCadb][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl\"]\n", argv[0]);
         exit(1);
     }
 
