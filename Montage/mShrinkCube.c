@@ -346,7 +346,7 @@ int main(int argc, char **argv)
    output.naxes[0] = floor((double)input.naxes[0]/xfactor);
    output.naxes[1] = floor((double)input.naxes[1]/xfactor);
    output.naxes[2] = input.naxes[2]/mfactor;
-   output.naxes[3] = input.naxes[4];
+   output.naxes[3] = input.naxes[3];
    
    if(debug >= 1)
    {
