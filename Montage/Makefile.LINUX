@@ -221,7 +221,7 @@ mShrinkCube:	mShrinkCube.o debugCheck.o checkHdr.o checkWCS.o
 
 mSubCube:	mSubCube.o checkHdr.o checkWCS.o subCube.o
 		$(CC) -o mSubCube mSubCube.o checkHdr.o \
-		checkWCS.o subImage.o $(LIBS)
+		checkWCS.o subCube.o $(LIBS)
 
 mSubimage:	mSubimage.o checkHdr.o checkWCS.o subImage.o
 		$(CC) -o mSubimage mSubimage.o checkHdr.o \
