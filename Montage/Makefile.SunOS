@@ -77,6 +77,10 @@ mAdd:		mAdd.o filePath.o debugCheck.o checkHdr.o checkWCS.o
 		$(CC) -o mAdd mAdd.o filePath.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
+mAddCube:	mAddCube.o filePath.o debugCheck.o checkHdr.o checkWCS.o
+		$(CC) -o mAddCube mAddCube.o filePath.o debugCheck.o checkHdr.o \
+		checkWCS.o $(LIBS)
+
 mAddMPI:	mAddMPI.o filePath.o debugCheck.o checkHdr.o checkWCS.o
 		$(MPICC) -o mAddMPI mAddMPI.o filePath.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
@@ -119,10 +123,6 @@ mCoverageCheck:	mCoverageCheck.o checkHdr.o checkWCS.o checkFile.o
 		$(CC) -o mCoverageCheck mCoverageCheck.o checkHdr.o \
 		checkWCS.o checkFile.o                              \
 		$(LIBS)
-
-mCubeProj:	mCubeProj.o overlapArea.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mCubeProj mCubeProj.o overlapArea.o debugCheck.o \
-		checkHdr.o checkWCS.o $(LIBS)
 
 mDiff:		mDiff.o debugCheck.o checkHdr.o checkWCS.o
 		$(CC) -o mDiff mDiff.o debugCheck.o checkHdr.o checkWCS.o \
@@ -201,6 +201,10 @@ mProject:	mProject.o overlapArea.o debugCheck.o checkHdr.o checkWCS.o
 		$(CC) -o mProject mProject.o overlapArea.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
+mProjectCube:	mProjectCube.o overlapArea.o debugCheck.o checkHdr.o checkWCS.o
+		$(CC) -o mProjectCube mProjectCube.o overlapArea.o debugCheck.o \
+		checkHdr.o checkWCS.o $(LIBS)
+
 mProjectPP:	mProjectPP.o overlapAreaPP.o debugCheck.o checkHdr.o checkWCS.o
 		$(CC) -o mProjectPP mProjectPP.o overlapAreaPP.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
@@ -211,6 +215,9 @@ mPutHdr:	mPutHdr.o debugCheck.o checkHdr.o checkWCS.o
 
 mShrink:	mShrink.o debugCheck.o checkHdr.o checkWCS.o 
 		$(CC) -o mShrink mShrink.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
+
+mShrinkCube:	mShrinkCube.o debugCheck.o checkHdr.o checkWCS.o 
+		$(CC) -o mShrinkCube mShrinkCube.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
 
 mSubCube:	mSubCube.o checkHdr.o checkWCS.o subCube.o
 		$(CC) -o mSubCube mSubCube.o checkHdr.o \
