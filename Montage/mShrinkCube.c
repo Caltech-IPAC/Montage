@@ -20,7 +20,7 @@ Version  Developer        Date     Change
 
 #include "montage.h"
 
-#define MAXSTR  256
+#define MAXSTR 1024
 
 extern char *optarg;
 extern int optind, opterr;
