@@ -1,0 +1,35 @@
+SIMPLE  =                    T
+BITPIX  =                  -64
+NAXIS   =                    2
+NAXIS1  =                 3601
+NAXIS2  =                 3600
+EXTEND  =                    T / FITS dataset may contain extensions
+COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
+COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+COMMENT
+COMMENT    This mosaic was created using Montage v3.0
+COMMENT
+COMMENT    Montage is maintained by the NASA Infrared Science Archive (IRSA),
+COMMENT    part of the Infrared Processing and Analysis Center (IPAC):
+COMMENT
+COMMENT       http://montage.ipac.caltech.edu
+COMMENT       http://irsa.ipac.caltech.edu
+COMMENT
+COMMENT    The mosaic was created using science-quality data and algorithms
+COMMENT    but the results are not endorsed by the original data providers.
+COMMENT
+DATASET = 'SDSS    '
+BAND    = 'g       '
+MAGZP   =                28.03
+CDATE   = 'Wed Nov 26 17:20:13 2014'
+CTYPE1  = 'RA---TAN'
+CTYPE2  = 'DEC--TAN'
+CRVAL1  =           202.484170
+CRVAL2  =            47.230560
+CRPIX1  =                1801.
+CRPIX2  =               1800.5
+CDELT1  =         -0.000111111
+CDELT2  =          0.000111111
+CROTA2  =             0.000000
+EQUINOX =               2000.0
+END

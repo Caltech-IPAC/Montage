@@ -1,0 +1,24 @@
+{
+   "imageFile":   "finder",
+   "imageType":   "jpeg",
+   "canvasHeight": 500,
+   "canvasWidth":  500,
+
+   "grayFile":
+   {
+      "fitsFile":     "fc_m51_dssdss2blue.fits",
+      "colorTable":   "1",
+      "stretchMin":   "-1s",
+      "stretchMax":   "max",
+      "stretchMode":  "gaussian-log"
+   },
+
+   "overlay":
+   [
+      {
+         "type":      "grid",
+         "coordSys":  "eq j2000",
+         "color":     "c0ffff"
+      }
+   ]
+}

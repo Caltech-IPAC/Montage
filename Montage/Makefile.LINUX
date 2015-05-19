@@ -2,6 +2,7 @@
 
 # Version  Developer        Date     Change
 # -------  ---------------  -------  -----------------------
+# 2.00     John Good        15may15  Added datacube utilities            
 # 1.26     John Good        06Sep06  Added mTblSort                      
 # 1.25     John Good        08Aug06  Added mDiffFitExec                  
 # 1.24     John Good        03Feb06  Added mConvert                      
@@ -23,7 +24,7 @@
 # 1.14     John Good        02Jun04  Added 64-bit addressing flag
 # 1.13     John Good        27May04  Moved mDAGTbls, mNotify to contrib
 #                                    Removed mSubtractImage (combined 
-#       			     functionality with mDiff)
+#                                    functionality with mDiff)
 # 1.12     John Good        15Apr04  Added mTANHdr
 # 1.11     John Good        18Mar04  Added table driven mode to mImgtbl
 # 1.10     John Good        04Mar04  Added mRadHit/mRadHitExec
@@ -31,13 +32,13 @@
 # 1.8      John Good        27Jan04  Added mProjectPP
 # 1.7      John Good        02Oct03  Added mConcatFit and mDAGTbls
 # 1.6      John Good        26May03  Added checkHdr.o reference 
-#				     to mCoverageCheck
+#                                    to mCoverageCheck
 # 1.5      John Good        29Apr03  Added checkFile.o reference 
-#				     to mCoverageCheck
+#                                    to mCoverageCheck
 # 1.4      John Good        23Apr03  Added checkFile.o reference to mHdrCheck
 # 1.3      John Good        25Mar03  Added checkFile.o reference to mProjExec
 # 1.2      John Good        13Mar03  Updated mHdrCheck linkage and renamed
-#       			     wcsCheck to checkWCS for consistency
+#                                    wcsCheck to checkWCS for consistency
 # 1.1      John Good        13Mar03  Added mCoverageCheck, mHdrCheck, mGetHdr
 #                                    as well as several checking functions
 # 1.0      John Good        29Jan03  Original LINUX Makefile
@@ -51,11 +52,10 @@ CFLAGS =	-g -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std
 LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		-lboundaries -lpixbounds -ltwoplane -lnsl -lm
 
-SBINS  =	mAdd mAddExec mBackground mBgExec mBgModel mConvert                   \
-		mCoverageCheck mCubeProj mDiff mDiffExec mDiffFitExec mFitExec mFitplane \
-		mFlattenExec mGetHdr mHdrCheck mHdrtbl mImgtbl mMakeHdr                  \
-		mMakeImg mOverlaps mProject mProjectPP mProjExec mPutHdr                 \
-		mShrink mSubimage mSubset mTANHdr mTblSort mTileHdr mTileImage
+SBINS  =	mAdd mAddCube mAddExec mBackground mBgExec mBgModel mConvert mCoverageCheck mDiff mDiffExec \
+         mDiffFitExec mFitExec mFitplane mFlattenExec mGetHdr mHdrCheck mHdrtbl mImgtbl mMakeHdr mMakeImg \
+         mOverlaps mProject mProjectCube mProjectPP mProjExec mPutHdr mShrink mShrinkCube mSubCube mSubimage \
+         mSubset mTANHdr mTblSort mTileHdr mTileImage
 
 MBINS  = 	mProjExecMPI mFitExecMPI mDiffExecMPI mBgExecMPI mAddMPI \
 		mAddExecMPI
@@ -211,6 +211,10 @@ mPutHdr:	mPutHdr.o debugCheck.o checkHdr.o checkWCS.o
 
 mShrink:	mShrink.o debugCheck.o checkHdr.o checkWCS.o 
 		$(CC) -o mShrink mShrink.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
+
+mSubCube:	mSubCube.o checkHdr.o checkWCS.o subCube.o
+		$(CC) -o mSubCube mSubCube.o checkHdr.o \
+		checkWCS.o subImage.o $(LIBS)
 
 mSubimage:	mSubimage.o checkHdr.o checkWCS.o subImage.o
 		$(CC) -o mSubimage mSubimage.o checkHdr.o \

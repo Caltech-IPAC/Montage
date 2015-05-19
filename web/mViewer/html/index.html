@@ -1,0 +1,44 @@
+<html>
+<body>
+
+<h2> mVIEWER Demo Page</h2>
+
+This is bare-bones input form for the basic mViewer service.  A more sophisticated<br/>
+interface would involve workspace management, with data uploading or redirection<br/>
+done independently of the display service.<p/>
+
+Use one of our pre-built demo datasets:<p/>
+
+<ul>
+<li><a href="/cgi-bin/mViewer/nph-mViewerInit?mode=demo&set=m51"             >M51 grayscale</a></li> 
+<li><a href="/cgi-bin/mViewer/nph-mViewerInit?mode=demo&set=m51_color"       >M51 full color with catalog overlays</a></li>
+<li><a href="/cgi-bin/mViewer/nph-mViewerInit?mode=demo&set=FinderChart"     >Example (DSS2 blue) Finder Chart image</a></li>
+<li><a href="/cgi-bin/mViewer/nph-mViewerInit?mode=demo&set=m51_small"       >Small version of m51</a></li>
+<li><a href="/cgi-bin/mViewer/nph-mViewerInit?mode=demo&set=m51_color_small" >Small version of color m51</a></li>
+</ul><p/>
+
+
+Or point to your own choice of external datasets:<p/>
+
+<form method="GET" action="/cgi-bin/mViewer/nph-icePlotInit">
+
+<input type="hidden" name="mode" value="upload"/>
+
+<table>
+<tr><td>Image URL:          </td><td><input name="imageURL"     id="imageURL"     style="width:550px;"/></td></tr>
+<tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>Catalog Table URL 1:</td><td><input name="catalogURL1"  id="catalogURL1"  style="width:550px;"/></td></tr>
+<tr><td>Catalog Table URL 2:</td><td><input name="catalogURL2"  id="catalogURL2"  style="width:550px;"/></td></tr>
+<tr><td>Catalog Table URL 3:</td><td><input name="catalogURL3"  id="catalogURL3"  style="width:550px;"/></td></tr>
+<tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>Image Metdata URL 1:</td><td><input name="metadataURL1" id="metadataURL1" style="width:550px;"/></td></tr>
+<tr><td>Image Metdata URL 2:</td><td><input name="metadataURL2" id="metadataURL2" style="width:550px;"/></td></tr>
+<tr><td>Image Metdata URL 3:</td><td><input name="metadataURL3" id="metadataURL3" style="width:550px;"/></td></tr>
+<tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+</table>
+
+<input type="submit" value="Display Data">
+</form>
+
+</body>
+</html>
