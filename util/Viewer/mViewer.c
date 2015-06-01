@@ -57,6 +57,9 @@ Version  Developer        Date     Change
 #define  PNG         0
 #define  JPEG        1
 
+#define FOURCORNERS  0
+#define WCS          1
+
 
 int    hexVal            (char c);
 double asinh             (double x);
@@ -123,6 +126,8 @@ void latitude_line       (double lat, double lonmin, double lonmax,
 void longitude_line      (double lon, double latmin, double latmax, 
                           int csysimg, double epochimg, int csysgrid, double epochgrid,
                           double red, double green, double blue);
+
+void draw_boundary       (double red, double green, double blue);
 
 void great_circle        (struct WorldCoor *wcs,
                           int csysimg,  double epochimg,
@@ -263,6 +268,7 @@ int main(int argc, char **argv)
    int       imin, imax, jmin, jmax;
    int       nullcnt, lwidth, color;
    int       keysexist, keynum;
+   int       datatype;
 
    double    x, y;
    double    ix, iy;
@@ -322,14 +328,52 @@ int main(int argc, char **argv)
    double    epoch, symsize, symang;
    int       ncol, ira, idec, iflux, stat;
    double    ra, dec, flux;
+
    double    ira1, idec1;
    double    ira2, idec2;
    double    ira3, idec3;
    double    ira4, idec4;
+
+   int       ictype1;
+   int       ictype2;
+   int       iequinox;
+   int       iepoch;
+   int       inl;
+   int       ins;
+   int       icrval1;
+   int       icrval2;
+   int       icrpix1;
+   int       icrpix2;
+   int       icdelt1;
+   int       icdelt2;
+   int       icrota2;
+
    double    ra1, dec1;
    double    ra2, dec2;
    double    ra3, dec3;
    double    ra4, dec4;
+
+   struct WorldCoor *im_wcs;
+
+   int       nimages;
+
+   int       im_sys;
+   int       im_equinox;
+   double    im_epoch;
+   char      im_ctype1[16];
+   char      im_ctype2[16];
+   int       im_naxis1;
+   int       im_naxis2;
+   double    im_crpix1;
+   double    im_crpix2;
+   double    im_crval1;
+   double    im_crval2;
+   double    im_cdelt1;
+   double    im_cdelt2;
+   double    im_crota2;
+
+   char       im_header[1600];
+   char       temp[80];
 
    double    ovlyred, ovlygreen, ovlyblue;
 
@@ -869,7 +913,6 @@ int main(int argc, char **argv)
          if(symunits != FRACTIONAL)
             *ptr = '\0';
 
-
          symsize = strtod(argv[i+1], &end);
 
          if(end < (argv[i+1] + (int)strlen(argv[i+1])) || symsize <= 0.)
@@ -954,9 +997,21 @@ int main(int argc, char **argv)
 
                if(end < (argv[i+1] + (int)strlen(argv[i+1])))
                {
-                  printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol type\"]\n");
-                  fflush(stdout);
-                  exit(1);
+                  if(strncasecmp(argv[i+1], "polygon", 2) == 0)
+                     symtype = 0;
+
+                  else if(strncasecmp(argv[i+1], "starred", 2) == 0)
+                     symtype = 1;
+
+                  else if(strncasecmp(argv[i+1], "skeletal", 2) == 0)
+                     symtype = 2;
+
+                  else
+                  {
+                     printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol type\"]\n");
+                     fflush(stdout);
+                     exit(1);
+                  }
                }
 
                ++i;
@@ -3446,9 +3501,12 @@ int main(int argc, char **argv)
          ira  = tcol("ra");
          idec = tcol("dec");
 
+         if(ira  < 0) ira  = tcol("lon");
+         if(idec < 0) idec = tcol("lat");
+
          if(ira < 0 || idec < 0)
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra' and 'dec' in table [%s]\"]\n", catfile[i]);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra' and 'dec (or 'lon','lat') in table [%s]\"]\n", catfile[i]);
             exit(1);
          }
 
@@ -3555,36 +3613,195 @@ int main(int argc, char **argv)
          ira4  = tcol("ra4");
          idec4 = tcol("dec4");
 
+         datatype = FOURCORNERS;
+
          if(ira1 < 0 || idec1 < 0
          || ira2 < 0 || idec2 < 0
          || ira3 < 0 || idec3 < 0
          || ira4 < 0 || idec4 < 0)
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra1', 'dec1', etc. corners in table [%s]\n", catfile[i]);
-            exit(1);
+            ictype1  = tcol("ctype1");
+            ictype2  = tcol("ctype2");
+            iequinox = tcol("equinox");
+            inl      = tcol("nl");
+            ins      = tcol("ns");
+            icrval1  = tcol("crval1");
+            icrval2  = tcol("crval2");
+            icrpix1  = tcol("crpix1");
+            icrpix2  = tcol("crpix2");
+            icdelt1  = tcol("cdelt1");
+            icdelt2  = tcol("cdelt2");
+            icrota2  = tcol("crota2");
+            iepoch   = tcol("epoch");
+
+            if(ins < 0)
+               ins = tcol("naxis1");
+
+            if(inl < 0)
+               inl = tcol("naxis2");
+
+            if(ictype1 >= 0
+            && ictype2 >= 0
+            && inl     >= 0
+            && ins     >= 0
+            && icrval1 >= 0
+            && icrval2 >= 0
+            && icrpix1 >= 0
+            && icrpix2 >= 0
+            && icdelt1 >= 0
+            && icdelt2 >= 0
+            && icrota2 >= 0)
+
+               datatype = WCS;
+
+            else
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra1', 'dec1', etc. corners or WCS columns in table [%s]\n", catfile[i]);
+               exit(1);
+            }
          }
+
+         nimages = 0;
 
          while(1)
          {
             stat = tread();
 
+            ++nimages;
+
             if(stat < 0)
                break;
 
-            if(tnull(ira1) || tnull(idec1)
-            || tnull(ira2) || tnull(idec2)
-            || tnull(ira3) || tnull(idec3)
-            || tnull(ira4) || tnull(idec4))
-               continue;
+            if(datatype == FOURCORNERS)
+            {
+               if(tnull(ira1) || tnull(idec1)
+               || tnull(ira2) || tnull(idec2)
+               || tnull(ira3) || tnull(idec3)
+               || tnull(ira4) || tnull(idec4))
+                  continue;
 
-            ra1  = atof(tval(ira1));
-            dec1 = atof(tval(idec1));
-            ra2  = atof(tval(ira2));
-            dec2 = atof(tval(idec2));
-            ra3  = atof(tval(ira3));
-            dec3 = atof(tval(idec3));
-            ra4  = atof(tval(ira4));
-            dec4 = atof(tval(idec4));
+               ra1  = atof(tval(ira1));
+               dec1 = atof(tval(idec1));
+               ra2  = atof(tval(ira2));
+               dec2 = atof(tval(idec2));
+               ra3  = atof(tval(ira3));
+               dec3 = atof(tval(idec3));
+               ra4  = atof(tval(ira4));
+               dec4 = atof(tval(idec4));
+            }
+            else
+            {
+               strcpy(im_ctype1, tval(ictype1));
+               strcpy(im_ctype2, tval(ictype2));
+
+               im_naxis1    = atoi(tval(ins));
+               im_naxis2    = atoi(tval(inl));
+               im_crpix1    = atof(tval(icrpix1));
+               im_crpix2    = atof(tval(icrpix2));
+               im_crval1    = atof(tval(icrval1));
+               im_crval2    = atof(tval(icrval2));
+               im_cdelt1    = atof(tval(icdelt1));
+               im_cdelt2    = atof(tval(icdelt2));
+               im_crota2    = atof(tval(icrota2));
+               im_equinox   = 2000;
+
+               if(iequinox >= 0)
+                  im_equinox = atoi(tval(iequinox));
+
+               strcpy(im_header, "");
+               sprintf(temp, "SIMPLE  = T"                 ); stradd(im_header, temp);
+               sprintf(temp, "BITPIX  = -64"               ); stradd(im_header, temp);
+               sprintf(temp, "NAXIS   = 2"                 ); stradd(im_header, temp);
+               sprintf(temp, "NAXIS1  = %d",     im_naxis1 ); stradd(im_header, temp);
+               sprintf(temp, "NAXIS2  = %d",     im_naxis2 ); stradd(im_header, temp);
+               sprintf(temp, "CTYPE1  = '%s'",   im_ctype1 ); stradd(im_header, temp);
+               sprintf(temp, "CTYPE2  = '%s'",   im_ctype2 ); stradd(im_header, temp);
+               sprintf(temp, "CRVAL1  = %11.6f", im_crval1 ); stradd(im_header, temp);
+               sprintf(temp, "CRVAL2  = %11.6f", im_crval2 ); stradd(im_header, temp);
+               sprintf(temp, "CRPIX1  = %11.6f", im_crpix1 ); stradd(im_header, temp);
+               sprintf(temp, "CRPIX2  = %11.6f", im_crpix2 ); stradd(im_header, temp);
+               sprintf(temp, "CDELT1  = %14.9f", im_cdelt1 ); stradd(im_header, temp);
+               sprintf(temp, "CDELT2  = %14.9f", im_cdelt2 ); stradd(im_header, temp);
+               sprintf(temp, "CROTA2  = %11.6f", im_crota2 ); stradd(im_header, temp);
+               sprintf(temp, "EQUINOX = %d",     im_equinox); stradd(im_header, temp);
+               sprintf(temp, "END"                         ); stradd(im_header, temp);
+
+               im_wcs = wcsinit(im_header);
+
+               if(im_wcs == (struct WorldCoor *)NULL)
+               {
+                  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad WCS for image %d\"]\n",
+                     nimages);
+                  exit(0);
+               }
+
+               checkWCS(im_wcs, 0);
+
+
+               /* Get the coordinate system and epoch in a     */
+               /* form compatible with the conversion library  */
+
+               if(im_wcs->syswcs == WCS_J2000)
+               {
+                  im_sys   = EQUJ;
+                  im_epoch = 2000.;
+
+                  if(im_wcs->equinox == 1950)
+                     im_epoch = 1950.;
+               }
+               else if(im_wcs->syswcs == WCS_B1950)
+               {
+                  im_sys   = EQUB;
+                  im_epoch = 1950.;
+
+                  if(im_wcs->equinox == 2000)
+                     im_epoch = 2000;
+               }
+               else if(im_wcs->syswcs == WCS_GALACTIC)
+               {
+                  im_sys   = GAL;
+                  im_epoch = 2000.;
+               }
+               else if(im_wcs->syswcs == WCS_ECLIPTIC)
+               {
+                  im_sys   = ECLJ;
+                  im_epoch = 2000.;
+
+                  if(im_wcs->equinox == 1950)
+                  {
+                     im_sys   = ECLB;
+                     im_epoch = 1950.;
+                  }
+               }
+               else
+               {
+                  im_sys   = EQUJ;
+                  im_epoch = 2000.;
+               }
+
+
+               /* Compute the locations of the corners of the images */
+
+               pix2wcs(im_wcs, 0.5, 0.5, &xpos, &ypos);
+
+               convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                  EQUJ, 2000., &ra1, &dec1, 0.0);
+
+               pix2wcs(im_wcs, im_naxis1+0.5, 0.5, &xpos, &ypos);
+
+               convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                  EQUJ, 2000., &ra2, &dec2, 0.0);
+
+               pix2wcs(im_wcs, im_naxis1+0.5, im_naxis2+0.5, &xpos, &ypos);
+
+               convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                  EQUJ, 2000., &ra3, &dec3, 0.0);
+
+               pix2wcs(im_wcs, 0.5, im_naxis2+0.5, &xpos, &ypos);
+
+               convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                  EQUJ, 2000., &ra4, &dec4, 0.0);
+            }
 
             great_circle(wcs, csysimg, epochimg, csyscat[i], epochcat[i], ra1, dec1, ra2, dec2, catred[i], catgreen[i], catblue[i]);
             great_circle(wcs, csysimg, epochimg, csyscat[i], epochcat[i], ra2, dec2, ra3, dec3, catred[i], catgreen[i], catblue[i]);
@@ -5437,7 +5654,7 @@ void longitude_line(double lon, double latmin, double latmax,
    xprev = -1;
    yprev = -1;
 
-   dlat = fabs(cdelt2) * 5;
+   dlat = fabs(cdelt2) * 0.5;
 
    lat = latmin;
 
@@ -5572,7 +5789,7 @@ void latitude_line(double lat, double lonmin, double lonmax,
    xprev = -1;
    yprev = -1;
 
-   dlon = fabs(cdelt2) * 5.0;
+   dlon = fabs(cdelt2) * 0.5;
 
    lon = lonmin;
 
@@ -5660,6 +5877,135 @@ void latitude_line(double lat, double lonmin, double lonmax,
    free(ylin);
 }
 
+
+/***********************************************/
+/*                                             */
+/* Draw a boundary around an Aitoff projection */
+/* (actually any 2:1 ellipse projection but    */
+/*  Aitoff is the only one we check for).      */
+/*                                             */
+/***********************************************/
+
+void draw_boundary(double red, double green, double blue)
+{
+   int     i, ii, offscl, side;
+
+   double  dlat;
+   double  lat, lon;
+   double  latmin, latmax;
+   double  xval, yval;
+   double  xprev, yprev;
+   double  reflat, reflon;
+
+   double *xlin;
+   double *ylin;
+   int     nlin;
+
+   if(debug)
+   {
+      printf("draw_boundary(%-g, %-g, %-g)\n", red, green, blue);
+      fflush(stdout);
+   }
+
+   xlin = (double *)malloc(NLIN * sizeof(double));
+   ylin = (double *)malloc(NLIN * sizeof(double));
+   nlin = NLIN;
+
+   latmin = -90.;
+   latmax =  90.;
+
+   lon = wcs->crval[0] + 180.;
+
+   while(lon > 360.) lon -= 360.;
+   while(lon <   0.) lon += 360.;
+
+   for(side=0; side<2; ++side)
+   {
+      xprev = -1;
+      yprev = -1;
+
+      dlat = fabs(cdelt2) * 0.5;
+
+      lat = latmin;
+
+      reflon = lon;
+      reflat = lat;
+
+      ii = 0;
+      offscl = 0;
+      wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(wcs->imflip)
+         yval = wcs->nypix - yval;
+
+      if(!offscl && !mNaN(xval) && !mNaN(yval))
+      {
+         xlin[ii] = xval;
+         ylin[ii] = yval;
+
+         ++ii;
+
+         xprev = xval;
+         yprev = yval;
+      }
+
+      while(1)
+      {
+         lat += dlat;
+
+         if(lat > latmax)
+            break;
+
+         reflon = lon;
+         reflat = lat;
+
+         offscl = 0;
+         wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+         if(wcs->imflip)
+            yval = wcs->nypix - yval;
+
+         if(side == 1)
+            xval = wcs->nxpix - xval;
+
+         if((offscl > 0 || mNaN(xval) || mNaN(yval)) && ii > 1)
+         {
+            curve(xlin, ylin, ii, red, green, blue);
+
+            ii = 0;
+
+            xprev = -1;
+            yprev = -1;
+         }
+         else if(offscl == 0)
+         {
+            if(xval != xprev || yval != yprev)
+            {
+               xlin[ii] = xval;
+               ylin[ii] = yval;
+
+               ++ii;
+
+               if(ii >= nlin)
+               {
+                  nlin += NLIN;
+                  xlin = (double *) realloc(xlin, nlin*sizeof(double));
+                  ylin = (double *) realloc(ylin, nlin*sizeof(double));
+               }
+
+               xprev = xval;
+               yprev = yval;
+            }
+         }
+      }
+
+      if(ii > 0)
+         curve(xlin, ylin, ii, red, green, blue);
+   }
+
+   free(xlin);
+   free(ylin);
+}
 
 
 /****************/
