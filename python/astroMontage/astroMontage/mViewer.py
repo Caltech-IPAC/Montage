@@ -665,8 +665,6 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         command += " -jpeg " + self.workspace + "/" + str(imageFile) 
 
-        print command
-
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         stderr = p.stderr.read()
