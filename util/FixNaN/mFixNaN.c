@@ -8,6 +8,9 @@ Version  Developer        Date     Change
                                    for no output image (just a count of pixel
                                    that would change) when the output file
                                    name is "-".
+
+// Now process the data
+
 1.0      John Good        16Sep04  Baseline code
 
 */
@@ -31,9 +34,15 @@ Version  Developer        Date     Change
 char input_file  [MAXSTR];
 char output_file [MAXSTR];
 
+
+extern char *optarg;
+extern int optind, opterr;
+
+extern int getopt(int argc, char *const *argv, const char *options);
+
 void printFitsError(int err);
 void printError    (char *msg);
-int  readFits      (char *fluxfile);
+int  readFits      (char *fluxfile, int boundaryFlag);
 int  checkHdr      (char *infile, int hdrflag, int hdu);
 
 int  debug;
@@ -47,6 +56,8 @@ struct
    input, output;
 
 static time_t currtime, start;
+
+struct WorldCoor *wcs;
 
 
 /*************************************************************************/
@@ -66,11 +77,15 @@ static time_t currtime, start;
 
 int main(int argc, char **argv)
 {
-   int       i, j, k, countRange, countNaN, status;
-   int       nMinMax, inRange, haveVal, writeOutput;
+   int       i, j, k, countRange, countNaN, testcnt, bcount, status, boundaries;
+   int       c, nMinMax, inRange, haveVal, writeOutput, offscl;
    long      fpixel[4], nelements;
    double   *inbuffer;
    double    NaNvalue;
+
+   double    xi, yj;
+   double    xproj, yproj;
+   double    lon, lat;
 
    double    minblank[256], maxblank[256];
    int       ismin[256], ismax[256];
@@ -97,6 +112,8 @@ int main(int argc, char **argv)
 
    nan = value.d;
 
+   NaNvalue = nan;
+
 
    /***************************************/
    /* Process the command-line parameters */
@@ -104,69 +121,60 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
-   debug   = 0;
-   haveVal = 0;
+   debug      = 0;
+   haveVal    = 0;
+   boundaries = 0;
+   bcount     = 0;
 
    writeOutput = 1;
 
-   for(i=0; i<argc; ++i)
+   opterr      = 0;
+
+   while ((c = getopt(argc, argv, "bd:v:")) != EOF)
    {
-      if(strcmp(argv[i], "-d") == 0)
+      switch (c)
       {
-         if(i+1 >= argc)
-         {
-            printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
-            exit(1);
-         }
+         case 'b':
+            boundaries = 1;
+            break;
 
-         debug = strtol(argv[i+1], &end, 0);
+         case 'd':
+            debug = strtol(optarg, &end, 0);
 
-         if(end - argv[i+1] < strlen(argv[i+1]))
-         {
-            printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
-            exit(1);
-         }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
+               fflush(stdout);
+               exit(1);
+            }
 
-         if(debug < 0)
-         {
-            printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
-            exit(1);
-         }
+            break;
 
-         argv += 2;
-         argc -= 2;
-      } 
+         case 'v':
+            NaNvalue = strtod(argv[i+1], &end);
 
-      if(strcmp(argv[i], "-v") == 0)
-      {
-         if(i+1 >= argc)
-         {
-            printf("[struct stat=\"ERROR\", msg=\"No value given for NaN conversion\"]\n");
-            exit(1);
-         }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"NaN conversion value string is invalid: '%s'\"]\n", argv[i+1]);
+               exit(1);
+            }
 
-         NaNvalue = strtod(argv[i+1], &end);
+            haveVal = 1;
 
-         if(end - argv[i+1] < strlen(argv[i+1]))
-         {
-            printf("[struct stat=\"ERROR\", msg=\"NaN conversion value string is invalid: '%s'\"]\n", argv[i+1]);
-            exit(1);
-         }
+            break;
 
-         haveVal = 1;
-
-         argv += 2;
-         argc -= 2;
+         default:
+            break;
       }
    }
    
-   if (argc < 3) 
+   if (argc - optind < 2)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level][-v NaN-value] in.fits out.fits [minblank maxblank] (output file name '-' means no file; min/max ranges can be repeated and can be the words 'min' and 'max')\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-b(oundary-check)][-d level][-v NaN-value] in.fits out.fits [minblank maxblank] (output file name '-' means no file; min/max ranges can be repeated and can be the words 'min' and 'max')\"]\n", argv[0]);
       exit(1);
    }
 
-   strcpy(input_file,  argv[1]);
+   strcpy(input_file,  argv[optind]);
 
    if(input_file[0] == '-')
    {
@@ -174,7 +182,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   strcpy(output_file, argv[2]);
+   strcpy(output_file, argv[optind+1]);
 
    if(output_file[0] == '-')
       writeOutput = 0;
@@ -182,8 +190,11 @@ int main(int argc, char **argv)
 
    nMinMax = 0;
 
-   if(argc > 3)
+   if(argc-optind > 3)
    {
+      argc -= optind;
+      argv += optind;
+
       while(1)
       {
          if(argc < 5+2*nMinMax)
@@ -236,6 +247,9 @@ int main(int argc, char **argv)
    {
       printf("input_file       = [%s]\n", input_file);
       printf("output_file      = [%s]\n", output_file);
+      printf("boundaryFlag     =  %d\n",  boundaries);
+      printf("haveVal          =  %d\n",  haveVal);
+      printf("nMinMax          =  %d\n",  nMinMax);
 
       for(j=0; j<nMinMax; ++j)
       {
@@ -254,7 +268,7 @@ int main(int argc, char **argv)
    time(&currtime);
    start = currtime;
 
-   readFits(input_file);
+   readFits(input_file, boundaries);
 
    if(debug >= 1)
    {
@@ -362,8 +376,8 @@ int main(int argc, char **argv)
          if(debug >= 3)
             printf("\n");
 
-         printf("\rProcessing input row %5d [So far rangeCount=%d, nanCount=%d]",
-            j, countRange, countNaN);
+         printf("\rProcessing input row %5d [So far rangeCount=%d, nanCount=%d, boundaryCount=%d]",
+            j, countRange, countNaN, bcount);
 
          if(debug >= 3)
             printf("\n");
@@ -389,11 +403,34 @@ int main(int argc, char **argv)
       /* For each input pixel */
       /************************/
 
-      // If not-a-number and we have a replacement value
+      // If boundary checking is on (e.g. Aitoff pixels in the 
+      // corners) or not-a-number and we have a replacement value
 
       for (i=0; i<input.naxes[0]; ++i)
       {
-         if(mNaN(inbuffer[i]) && haveVal) 
+         // First convert the "boundary" values if desired
+
+         if(boundaries)
+         {
+            xi = i;
+            yj = j;
+
+            pix2wcs(wcs, xi, yj, &lon, &lat);
+
+            offscl = 0;
+            wcs2pix(wcs, lon, lat, &xproj, &yproj, &offscl);
+
+            if(offscl || fabs(xi-xproj) > 0.01 || fabs(yj-yproj) > 0.01)
+            {
+               inbuffer[i] = nan;
+               ++bcount;
+            }
+         }
+
+
+         // Now process the data
+
+         if(haveVal == 1 && mNaN(inbuffer[i]))
          {
             ++countNaN;
 
@@ -525,7 +562,7 @@ int main(int argc, char **argv)
    free(inbuffer);
    free(outbuffer);
 
-   printf("[struct stat=\"OK\", rangeCount=%d, nanCount=%d]\n", countRange, countNaN);
+   printf("[struct stat=\"OK\", rangeCount=%d, nanCount=%d, boundaryCount=%d]\n", countRange, countNaN, bcount);
    fflush(stdout);
 
    exit(0);
@@ -539,12 +576,13 @@ int main(int argc, char **argv)
 /*                                         */
 /*******************************************/
 
-int readFits(char *fluxfile)
+int readFits(char *fluxfile, int boundaryFlag)
 {
    int    status, nfound;
    long   naxes[2];
    double crpix[2];
    char   errstr[MAXSTR];
+   char  *header;
 
    checkHdr(fluxfile, 0, 0);
 
@@ -568,6 +606,14 @@ int readFits(char *fluxfile)
 
    input.crpix1 = crpix[0];
    input.crpix2 = crpix[1];
+
+   if(boundaryFlag)
+   {
+      if(fits_get_image_wcs_keys(input.fptr, &header, &status))
+            printFitsError(status);
+
+      wcs = wcsinit(header);
+   }
 
    return 0;
 }

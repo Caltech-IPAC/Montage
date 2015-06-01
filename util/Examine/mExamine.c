@@ -406,12 +406,6 @@ int main(int argc, char **argv)
             fflush(stdout);
             exit(1);
          }
-
-         if(debug)
-         {
-            printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g)\n", rpix, xpix, ypix);
-            fflush(stdout);
-         }
       }
 
       x0 = cos(ra*dtr) * cos(dec*dtr);
@@ -423,7 +417,8 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d]\n", rpix, xpix, ypix, ixpix, iypix);
+         printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d] [Equatorial (%-g, %-g)\n",
+            rpix, xpix, ypix, ixpix, iypix, ra, dec);
          fflush(stdout);
       }
    }
@@ -479,7 +474,8 @@ int main(int argc, char **argv)
    if(radius > 0.)
    {
       if(debug)
-         printf("\nDEBUG> (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
+         printf("\nDEBUG> Location: (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
+         printf("DEBUG> Radius: %.6f\n\n", rpix);
 
       for (j=jbegin; j<=jend; ++j)
       {
@@ -495,6 +491,7 @@ int main(int argc, char **argv)
          {
             if(mNaN(data[i]))
             {
+               printf("%10s ", "NULL");
                ++nnull;
                continue;
             }
@@ -526,7 +523,7 @@ int main(int argc, char **argv)
                if(r <= rpix)
                   printf("%10.3f ", data[i]);
                else
-                  printf("           ");
+                  printf("%10s ", ".");
             }
 
             if(r > rpix)

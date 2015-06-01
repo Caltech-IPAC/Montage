@@ -54,6 +54,8 @@ void longitude_line  (double lon, double latmin, double latmax,
                       int csysimg, double epochimg, int csysgrid, double epochgrid,
                       double red, double green, double blue);
 
+void draw_boundary   (double red, double green, double blue);
+
 extern char fontfile[];
 
 struct Pix
@@ -435,6 +437,11 @@ void makeGrid(struct WorldCoor *wcs,
          ipole = SOUTH;
    }
 
+
+   // Kludge for (mostly) Aitoff: We need to make the min lon slightly
+   // greater than zero so the longitude line for zero doesn't get drawn
+   // at the same location as 360.
+
    if(gdebug)
    {
       if(ipole == NEITHER)  printf("makeGrid> Pole: NEITHER\n\n");
@@ -649,7 +656,7 @@ void makeGrid(struct WorldCoor *wcs,
    {
       ++use;
 
-      lbllon =lon0 + i*lon_space;
+      lbllon = lon0 + i*lon_space;
 
       if(use == ispace_lon)
       {
@@ -737,7 +744,7 @@ void makeGrid(struct WorldCoor *wcs,
    }
 
    if(gdebug) {
-      printf("makeGrid> here1\n");
+      printf("makeGrid> starting longitude lines\n");
       fflush(stdout);
    }
 
@@ -763,7 +770,7 @@ void makeGrid(struct WorldCoor *wcs,
    }
 
    if(gdebug) {
-      printf("makeGrid> here2\n");
+      printf("makeGrid> starting latitude lines\n");
       fflush(stdout);
    }
 
@@ -789,12 +796,17 @@ void makeGrid(struct WorldCoor *wcs,
    }
    
    if(gdebug) {
-      printf("makeGrid> here3\n");
+      printf("makeGrid> end of makeGrid()\n");
       fflush(stdout);
    }
 
 
-   gdebug = 0;
+   // Aitoff projection is used often enough that
+   // we have put in special code to draw the bounding
+   // ellipse around the area where the map is defined.
+
+   if(wcs->prjcode == WCS_AIT)
+      draw_boundary(red, green, blue);
 }
 
 
@@ -1067,7 +1079,7 @@ void great_circle(struct WorldCoor *wcs,
 
    theta_max = acos(cos_theta_max)/dtr;
 
-   sz = fabs(wcs->cdelt[1] * 3.0);
+   sz = fabs(wcs->cdelt[1] * 0.5);
 
    if (theta_max < sz)
       n = 2;
