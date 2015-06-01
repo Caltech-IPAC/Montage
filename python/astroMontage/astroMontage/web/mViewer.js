@@ -87,6 +87,11 @@ function mViewer(client, imgDivID)
 
          me.gc.setImage(args[1] + "?seed=" + (new Date()).valueOf());
       }
+
+      else if(cmd == "updateDisplay")
+      {
+         me.resizeFinal();
+      }
    }
 
 
