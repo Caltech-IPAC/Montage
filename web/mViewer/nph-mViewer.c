@@ -145,6 +145,9 @@ int main(int argc, char **argv)
    char cra            [STRLEN];
    char cdec           [STRLEN];
 
+   char http_srvr      [STRLEN];
+   char http_port      [STRLEN];
+
    char status         [32];
 
    char wfile          [STRLEN];
@@ -176,6 +179,18 @@ int main(int argc, char **argv)
    /********************/
 
    config_init((char *)NULL);
+
+   strcpy (http_srvr, "http://");
+
+   strcat(http_srvr, config_value("HTTP_URL"));
+   strcpy(http_port, config_value("HTTP_PORT"));
+
+   if (strcmp(http_port, "80") != 0)
+   {
+      strcat (http_srvr, ":");
+      strcat (http_srvr, http_port);
+   }
+
 
    if(config_exists("ISIS_WORKDIR"))
       strcpy(workDir, config_value("ISIS_WORKDIR"));
@@ -250,6 +265,7 @@ int main(int argc, char **argv)
 
    strcat(baseURL,   "/");
    strcat(baseURL,   workspace);
+   strcat(baseURL,   "/");
 
    if(debug)
    {
@@ -688,10 +704,13 @@ int main(int argc, char **argv)
       }
    }
 
+
+   // Size of cutout
+
    if(strlen(grayFile) > 0)
-      sprintf(cmd, "imginfo %s_cutout_%s", imageFile, grayFile);
+      sprintf(cmd, "mExamine %s_cutout_%s", imageFile, grayFile);
    else
-      sprintf(cmd, "imginfo %s_cutout_%s", imageFile, redFile);
+      sprintf(cmd, "mExamine %s_cutout_%s", imageFile, redFile);
 
    svc_run(cmd);
 
@@ -706,18 +725,6 @@ int main(int argc, char **argv)
    imageWidth  = atof(svc_value("naxis1"));
    imageHeight = atof(svc_value("naxis2"));
 
-   wscale = fabs(atof(svc_value("yscale")));
-
-   wrotation = fabs(atof(svc_value("rotation"))) + 180;
-
-   while(wrotation > 360.) wrotation -= 360.;
-   while(wrotation <   0.) wrotation += 360.;
-
-   wra  = fabs(atof(svc_value("rac")));
-   wdec = fabs(atof(svc_value("decc")));
-   
-   wxsize = fabs(atof(svc_value("xrefpix")));
-   wysize = fabs(atof(svc_value("yrefpix")));
    
 
    // SHRINK
@@ -755,6 +762,35 @@ int main(int argc, char **argv)
    }
 
 
+   // Parameters of the final image, for WWT
+
+   if(strlen(grayFile) > 0)
+      sprintf(cmd, "mExamine %s_shrunken_%s", imageFile, grayFile);
+   else
+      sprintf(cmd, "mExamine %s_shrunken_%s", imageFile, redFile);
+
+   svc_run(cmd);
+
+   strcpy(status, svc_value( "stat" ));
+
+   if(strcmp( status, "ERROR") == 0)
+   {
+      strcpy(tmpstr, svc_value( "msg" ));
+      printError(tmpstr);
+   }
+
+   wscale = fabs(atof(svc_value("cdelt2"))) * 3600.;
+
+   wrotation = fabs(atof(svc_value("crota2"))) + 180;
+
+   while(wrotation > 360.) wrotation -= 360.;
+   while(wrotation <   0.) wrotation += 360.;
+
+   wra  = fabs(atof(svc_value("rac")));
+   wdec = fabs(atof(svc_value("decc")));
+   
+   wxsize = fabs(atof(svc_value("naxis1")))/2.;
+   wysize = fabs(atof(svc_value("naxis2")))/2.;
 
 
    /*********************************/
@@ -951,7 +987,7 @@ int main(int argc, char **argv)
    else
       strcat(wfile, ".jpg");
 
-   sprintf(wwturl, "http://www.worldwidetelescope.org/wwtweb/ShowImage.aspx?scale=%.3f&rotation=%.4f&ra=%.7f&dec=%.7f&y=%.3f&x=%.3f&thumb=%s%s&imageurl=%s%s&name=%s", wscale, wrotation, wra, wdec, wysize, wxsize, baseURL, wfile, baseURL, wfile, imageFile); 
+   sprintf(wwturl, "http://www.worldwidetelescope.org/wwtweb/ShowImage.aspx?scale=%.3f&rotation=%.4f&ra=%.7f&dec=%.7f&y=%.3f&x=%.3f&thumb=%s%s&imageurl=%s/%s%s&name=%s", wscale, wrotation, wra, wdec, wysize, wxsize, baseURL, wfile, http_srvr, baseURL, wfile, imageFile); 
    
 
    printf("HTTP/1.1 200 OK\r\n");

@@ -21,7 +21,7 @@
 
 void  printError(char *errmsg);
 
-int debug = 2;
+int debug = 0;
 
 FILE *fdebug;
 

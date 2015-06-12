@@ -1072,6 +1072,13 @@ void great_circle(struct WorldCoor *wcs,
    z  = sin_lat1;
 
    cos_theta_max = x0*x + y0*y + z0*z;
+
+   if(cos_theta_max > 1.)
+      cos_theta_max = 1.;
+
+   if(cos_theta_max < -1.)
+      cos_theta_max = -1.;
+
    sin_theta_max = sqrt(1.-cos_theta_max*cos_theta_max);
 
    sin_phi = (sin_dl*cos_lat1)/sin_theta_max;
@@ -1086,6 +1093,9 @@ void great_circle(struct WorldCoor *wcs,
    else 
       n = (int)(theta_max/sz) + 1;
 
+   if(n <= 0)
+      return;
+   
    xcurve = (double *)malloc(n * sizeof(double));
    ycurve = (double *)malloc(n * sizeof(double));
    ncurve = 0;
