@@ -474,8 +474,10 @@ int main(int argc, char **argv)
    if(radius > 0.)
    {
       if(debug)
+      {
          printf("\nDEBUG> Location: (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
          printf("DEBUG> Radius: %.6f\n\n", rpix);
+      }
 
       for (j=jbegin; j<=jend; ++j)
       {

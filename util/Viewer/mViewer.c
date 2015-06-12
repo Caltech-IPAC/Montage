@@ -3589,6 +3589,12 @@ int main(int argc, char **argv)
             symbol(wcs, csysimg, epochimg, csyscat[i], epochcat[i],
                    ra, dec, 0, flux, catpnt[i], catmax[i], cattype[i], catang[i], 
                    catred[i], catgreen[i], catblue[i]);
+
+            if(debug)
+            {
+               printf("Symbol drawn.\n");
+               fflush(stdout);
+            }
          }
 
          tclose();
