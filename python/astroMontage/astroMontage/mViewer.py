@@ -189,10 +189,10 @@ class mvViewFile:
 
 class mvView:
 
-    imageFile     = ""
-    imageType     = ""
-    imageWidth    = ""
-    imageHeight   = ""
+    imageFile     = "region.jpg"
+    imageType     = "jpeg"
+    imageWidth    = 1000
+    imageHeight   = 1000
 
     cutoutXoffset = ""
     cutoutYoffset = ""
@@ -327,6 +327,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         global mvHandle
         global mvViewData
 
+        self.debug = True
+
         self.workspace = mvWorkspace
         self.view      = mvViewData
 
@@ -345,6 +347,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         # Find the image size
 
         command = "mExamine " + self.view.grayFile.fitsFile
+
+        if self.debug == True:
+           print command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -372,6 +377,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
 
         # Then shrink/expand it to the right size
+
+        if self.debug == True:
+           print command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -471,6 +479,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         command += " " + str(int(self.view.xmax) - int(self.view.xmin))
         command += " " + str(int(self.view.ymax) - int(self.view.ymin))
 
+        if self.debug == True:
+           print command
+
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         stderr = p.stderr.read()
@@ -482,6 +493,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
 
         command = "mExamine " + self.workspace + "/subimage.fits"
+
+        if self.debug == True:
+           print command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -510,6 +524,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         command += " " + self.workspace + "/subimage.fits" 
         command += " " + self.workspace + "/shrunken.fits" 
         command += " " + str(xfactor)
+
+        if self.debug == True:
+           print command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -547,16 +564,14 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
             elif type == 'catalog':
 
-                visible     = self.view.overlay[i].visible
-                dataFile    = self.view.overlay[i].dataFile
-                dataCol     = self.view.overlay[i].dataCol
-                dataRef     = self.view.overlay[i].dataRef
-                dataType    = self.view.overlay[i].dataType
-                symSize     = self.view.overlay[i].symSize
-                symType     = self.view.overlay[i].symType
-                symSides    = self.view.overlay[i].symSides
-                symRotation = self.view.overlay[i].symRotation
-                color       = self.view.overlay[i].color
+                visible  = self.view.overlay[i].visible
+                dataFile = self.view.overlay[i].dataFile
+                dataCol  = self.view.overlay[i].dataCol
+                dataRef  = self.view.overlay[i].dataRef
+                dataType = self.view.overlay[i].dataType
+                symSize  = self.view.overlay[i].symSize
+                symType  = self.view.overlay[i].symType
+                color    = self.view.overlay[i].color
 
                 if visible == True:
 
@@ -564,7 +579,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                         command += " -color " + str(color)
 
                     if symType != "" and symSize != "":
-                        command += " -symbol " + str(symSize) + " " + str(symType) + " " + str(symSides) + " " + str(symRotation)
+                        command += " -symbol " + str(symSize) + " " + str(symType)
 
                     command += " -catalog "  + str(dataFile) + " " + str(dataCol) + " " + str(dataRef) + " " + str(dataType)
 
@@ -585,14 +600,12 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
             elif type == 'mark':
 
-                visible     = self.view.overlay[i].visible
-                lon         = self.view.overlay[i].lon
-                lat         = self.view.overlay[i].lat
-                symSize     = self.view.overlay[i].symSize
-                symType     = self.view.overlay[i].symType
-                symSides    = self.view.overlay[i].symSides
-                symRotation = self.view.overlay[i].symRotation
-                color       = self.view.overlay[i].color
+                visible  = self.view.overlay[i].visible
+                lon      = self.view.overlay[i].lon
+                lat      = self.view.overlay[i].lat
+                symSize  = self.view.overlay[i].symSize
+                symType  = self.view.overlay[i].symType
+                color    = self.view.overlay[i].color
 
                 if visible == True:
 
@@ -600,7 +613,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                         command += " -color " + str(color)
 
                     if symType != "" and symSize != "":
-                        command += " -symbol " + str(symSize) + " " + str(symType) + " " + str(symSides) + " " + str(symRotation)
+                        command += " -symbol " + str(symSize) + " " + str(symType)
 
                     command += " -mark "  + str(lon) + " " + str(lat)
 
@@ -664,6 +677,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         imageFile = self.view.imageFile
 
         command += " -jpeg " + self.workspace + "/" + str(imageFile) 
+
+        if self.debug == True:
+           print command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -786,76 +802,23 @@ class mViewer():
 
     def close(self):
 
+        shutil.unlink(self.workspace + "/index.html")
+        shutil.unlink(self.workspace + "/WebClient.js")
+        shutil.unlink(self.workspace + "/mViewer.js")
+        shutil.unlink(self.workspace + "/iceGraphics.js")
+        shutil.unlink(self.workspace + "/favicon.ico")
+        shutil.unlink(self.workspace + "/waitClock.gif")
+        shutil.unlink(self.workspace + "/reload.png")
 
-        try:
-            os.remove(self.workspace + "/index.html")
-        except:
-            pass
+        shutil.unlink(self.workspace + "/subimage.fits")
+        shutil.unlink(self.workspace + "/shrunken.fits")
+        shutil.unlink(self.workspace + "/blue_shrunken.fits")
+        shutil.unlink(self.workspace + "/green_shrunken.fits")
+        shutil.unlink(self.workspace + "/red_shrunken.fits")
 
-        try:
-            os.remove(self.workspace + "/WebClient.js")
-        except:
-            pass
+        shutil.unlink(self.workspace + "/" + str(self.view.imageFile))
 
-        try:
-            os.remove(self.workspace + "/mViewer.js")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/iceGraphics.js")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/favicon.ico")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/waitClock.gif")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/reload.png")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/subimage.fits")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/shrunken.fits")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/blue_shrunken.fits")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/green_shrunken.fits")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/red_shrunken.fits")
-        except:
-            pass
-
-        try:
-            os.remove(self.workspace + "/" + str(self.view.imageFile))
-        except:
-            pass
-
-        try:
-            os.rmdir(self.workspace)
-        except:
-            print "Workspace directory ('" + self.workspace + "') not deleted (not empty)"
+        shutil.unlink(self.workspace)
 
 
     # Utility function: set the grayFile
@@ -1125,7 +1088,7 @@ class mViewer():
 
     # Send a display update notification to the browser.
 
-    def draw(self):
+    def display(self):
 
         self.thread.command("updateDisplay")
 
