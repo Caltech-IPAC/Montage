@@ -149,6 +149,9 @@ void draw_label          (char *fontfile, int fontsize,
 int  writePNG            (const char* filename, const unsigned char* image, 
                           unsigned w, unsigned h, char *comment);
 
+void readHist            (char *histfile,  double *minval,  double *maxval, double *dataval, 
+                          double *datamin, double *datamax, double *median, double *sigma, int *type);
+
 
 char fontfile[1024];
 
@@ -199,8 +202,10 @@ unsigned char *pngOvly;
 double **ovlymask;
 
 
-int nx;
-int ny;
+unsigned int ii, jj;
+unsigned int nx;
+unsigned int ny;
+unsigned int membytes;
 
 double mynan;
 
@@ -262,7 +267,7 @@ int debug = 0;
 
 int main(int argc, char **argv)
 {
-   int       i, j, k, ii, jj, ipix, index, itemp, nowcs, ref;
+   int       i, j, k, ipix, index, itemp, nowcs, ref;
    int       istart, iend;
    int       jstart, jend, jinc;
    int       imin, imax, jmin, jmax;
@@ -416,27 +421,33 @@ int main(int argc, char **argv)
    int       colortable = 0;
    int       pngError;
 
-   char      statusfile [1024];
-   char      grayfile   [1024];
-   char      redfile    [1024];
-   char      greenfile  [1024];
-   char      bluefile   [1024];
-   char      jpegfile   [1024];
-   char      pngfile    [1024];
+   char      statusfile   [1024];
+   char      grayfile     [1024];
+   char      redfile      [1024];
+   char      greenfile    [1024];
+   char      bluefile     [1024];
+   char      jpegfile     [1024];
+   char      pngfile      [1024];
 
-   char      grayminstr  [256];
-   char      graymaxstr  [256];
-   char      graybetastr [256];
-   char      redminstr   [256];
-   char      redmaxstr   [256];
-   char      redbetastr  [256];
-   char      greenminstr [256];
-   char      greenmaxstr [256];
-   char      greenbetastr[256];
-   char      blueminstr  [256];
-   char      bluemaxstr  [256];
-   char      bluebetastr [256];
-   char      colorstr    [256];
+   char      grayhistfile [1024];
+   char      redhistfile  [1024];
+   char      greenhistfile[1024];
+   char      bluehistfile [1024];
+
+
+   char      grayminstr   [256];
+   char      graymaxstr   [256];
+   char      graybetastr  [256];
+   char      redminstr    [256];
+   char      redmaxstr    [256];
+   char      redbetastr   [256];
+   char      greenminstr  [256];
+   char      greenmaxstr  [256];
+   char      greenbetastr [256];
+   char      blueminstr   [256];
+   char      bluemaxstr   [256];
+   char      bluebetastr  [256];
+   char      colorstr     [256];
 
    double    grayminval      = 0.;
    double    graymaxval      = 0.;
@@ -564,13 +575,17 @@ int main(int argc, char **argv)
    truecolor   = 0.;
    nowcs       = 0;
 
-   strcpy(statusfile, "");
-   strcpy(grayfile,   "");
-   strcpy(redfile,    "");
-   strcpy(greenfile,  "");
-   strcpy(bluefile,   "");
-   strcpy(jpegfile,   "");
-   strcpy(pngfile,    "");
+   strcpy(statusfile,     "");
+   strcpy(grayfile,       "");
+   strcpy(redfile,        "");
+   strcpy(greenfile,      "");
+   strcpy(bluefile,       "");
+   strcpy(jpegfile,       "");
+   strcpy(pngfile,        "");
+   strcpy(grayhistfile,   "");
+   strcpy(redhistfile,    "");
+   strcpy(greenhistfile,  "");
+   strcpy(bluehistfile,   "");
 
    ngrid = 0;
 
@@ -1235,7 +1250,7 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-gray") == 0
            || strcmp(argv[i], "-grey") == 0)
       {
-         if(i+3 >= argc)
+         if(i+1 >= argc)
          {
             printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -gray flag\"]\n");
             fflush(stdout);
@@ -1254,58 +1269,76 @@ int main(int argc, char **argv)
          if(!nowcs)
             checkHdr(grayfile, 0, hdu);
 
-         strcpy(grayminstr, argv[i+2]);
-         strcpy(graymaxstr, argv[i+3]);
 
-         grayType = POWER;
+         // Two modes:  histogram from a file or histogram to be computed by this program 
 
-         if(i+4 < argc)
+         if(i+3 >= argc)
          {
-            if(argv[i+4][0] == 'g')
-            {
-               grayType = GAUSSIAN;
-
-               if(strlen(argv[i+4]) > 1 
-               && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
-                   || argv[i+4][strlen(argv[i+4])-1] == 'l'))
-                  grayType = GAUSSIANLOG;
-
-               i+=1;
-            }
-            
-            else if(argv[i+4][0] == 'a')
-            {
-               grayType = ASINH;
-
-               strcpy(graybetastr, "2s");
-
-               if(i+5 < argc)
-                  strcpy(graybetastr, argv[i+5]);
-               
-               i += 2;
-            }
-            
-            else if(strcmp(argv[i+4], "lin") == 0)
-               graylogpower = 0;
-            
-            else if(strcmp(argv[i+4], "log") == 0)
-               graylogpower = 1;
-
-            else if(strcmp(argv[i+4], "loglog") == 0)
-               graylogpower = 2;
-
-            else
-            {
-               graylogpower = strtol(argv[i+4], &end, 10);
- 
-               if(graylogpower < 0  || end < argv[i+4] + strlen(argv[i+4]))
-                  graylogpower = 0;
-               else
-                  i += 1;
-            }
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -gray flag\"]\n");
+            fflush(stdout);
+            exit(1);
          }
-         
-         i += 2;
+
+         if(strcmp(argv[i+2], "-histfile") == 0)
+         {
+            strcpy(grayhistfile, argv[i+3]);
+            i += 3;
+         }
+         else
+         {
+            strcpy(grayminstr, argv[i+2]);
+            strcpy(graymaxstr, argv[i+3]);
+
+            grayType = POWER;
+
+            if(i+4 < argc)
+            {
+               if(argv[i+4][0] == 'g')
+               {
+                  grayType = GAUSSIAN;
+
+                  if(strlen(argv[i+4]) > 1 
+                  && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
+                      || argv[i+4][strlen(argv[i+4])-1] == 'l'))
+                     grayType = GAUSSIANLOG;
+
+                  i+=1;
+               }
+               
+               else if(argv[i+4][0] == 'a')
+               {
+                  grayType = ASINH;
+
+                  strcpy(graybetastr, "2s");
+
+                  if(i+5 < argc)
+                     strcpy(graybetastr, argv[i+5]);
+                  
+                  i += 2;
+               }
+               
+               else if(strcmp(argv[i+4], "lin") == 0)
+                  graylogpower = 0;
+               
+               else if(strcmp(argv[i+4], "log") == 0)
+                  graylogpower = 1;
+
+               else if(strcmp(argv[i+4], "loglog") == 0)
+                  graylogpower = 2;
+
+               else
+               {
+                  graylogpower = strtol(argv[i+4], &end, 10);
+    
+                  if(graylogpower < 0  || end < argv[i+4] + strlen(argv[i+4]))
+                     graylogpower = 0;
+                  else
+                     i += 1;
+               }
+            }
+            
+            i += 2;
+         }
 
          if(fits_open_file(&grayfptr, grayfile, READONLY, &status))
          {
@@ -2492,19 +2525,21 @@ int main(int argc, char **argv)
 
       else if(outType == PNG)
       {
-         pngData = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
-         pngOvly = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
+         membytes = 4 * nx * ny;
 
-         for(i=0; i<(4 * nx * ny); ++i)
+         pngData = (unsigned char *)malloc(membytes * sizeof(unsigned char));
+         pngOvly = (unsigned char *)malloc(membytes * sizeof(unsigned char));
+
+         for(ii=0; ii<membytes; ++ii)
          {
-            pngData[i] = 0;
-            pngOvly[i] = 0;
+            pngData[ii] = 0;
+            pngOvly[ii] = 0;
          }
       }
 
       if(debug)
       {
-         printf("Image (PNG/JPEG) space allocated\n");
+         printf("Image (PNG/JPEG) space allocated: %ld\n", membytes);
          fflush(stdout);
       }
 
@@ -2929,17 +2964,21 @@ int main(int argc, char **argv)
             {
                if(flipX)
                {
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 0] = (int)redImVal;
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 1] = (int)greenImVal;
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 2] = (int)blueImVal;
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 3] = 255;
+                  ii = 4 * nx * jj + 4 * (nx-1-i);
+
+                  pngData[ii + 0] = (int)redImVal;
+                  pngData[ii + 1] = (int)greenImVal;
+                  pngData[ii + 2] = (int)blueImVal;
+                  pngData[ii + 3] = 255;
                }
                else
                {
-                  pngData[4 * nx * jj + 4 * i + 0] = (int)redImVal;
-                  pngData[4 * nx * jj + 4 * i + 1] = (int)greenImVal;
-                  pngData[4 * nx * jj + 4 * i + 2] = (int)blueImVal;
-                  pngData[4 * nx * jj + 4 * i + 3] = 255;
+                  ii = 4 * nx * jj + 4 * i;
+
+                  pngData[ii + 0] = (int)redImVal;
+                  pngData[ii + 1] = (int)greenImVal;
+                  pngData[ii + 2] = (int)blueImVal;
+                  pngData[ii + 3] = 255;
                }
             }
          }
@@ -3168,13 +3207,22 @@ int main(int argc, char **argv)
       if(debug)
          printf("\n GRAY RANGE:\n");
 
-      getRange(grayfptr,     grayminstr,  graymaxstr, 
-               &grayminval, &graymaxval,  grayType, 
-               graybetastr, &graybetaval, graydataval,
-               naxis1,       naxis2,
-              &graydatamin, &graydatamax,
-              &median,       &sigma,
-               grayPlaneCount, grayPlanes);
+      if(strlen(grayhistfile) > 0)
+      {
+         readHist(grayhistfile, &grayminval,  &graymaxval, graydataval, 
+                  &graydatamin, &graydatamax, &median, &sigma, &grayType);
+         fflush(stdout);
+      }
+      else
+      {
+         getRange(grayfptr,     grayminstr,  graymaxstr, 
+                  &grayminval, &graymaxval,  grayType, 
+                  graybetastr, &graybetaval, graydataval,
+                  naxis1,       naxis2,
+                 &graydatamin, &graydatamax,
+                 &median,       &sigma,
+                  grayPlaneCount, grayPlanes);
+      }
 
       grayminpercent = valuePercentile(grayminval);
       graymaxpercent = valuePercentile(graymaxval);
@@ -3200,7 +3248,7 @@ int main(int argc, char **argv)
       iend   = naxis1 - 1;
       nx     = naxis1;
 
-      if(naxis1 > MAXDIM)
+      if(outType == JPEG && naxis1 > MAXDIM)
       {
          istart = (naxis1 - MAXDIM)/2;
          iend   = istart + MAXDIM - 1;
@@ -3212,7 +3260,7 @@ int main(int argc, char **argv)
       ny     = naxis2;
       jinc   = 1;
 
-      if(naxis2 > MAXDIM)
+      if(outType == JPEG && naxis2 > MAXDIM)
       {
          jstart = (naxis2 - MAXDIM)/2;
          jend   = istart + MAXDIM - 2;
@@ -3296,13 +3344,15 @@ int main(int argc, char **argv)
 
       else if(outType == PNG)
       {
-         pngData = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
-         pngOvly = (unsigned char *)malloc(4 * nx * ny * sizeof(unsigned char));
+         membytes = 4 * nx * ny;
 
-         for(i=0; i<(4 * nx * ny); ++i)
+         pngData = (unsigned char *)malloc(membytes * sizeof(unsigned char));
+         pngOvly = (unsigned char *)malloc(membytes * sizeof(unsigned char));
+
+         for(ii=0; ii<membytes; ++ii)
          {
-            pngData[i] = 0;
-            pngOvly[i] = 0;
+            pngData[ii] = 0;
+            pngOvly[ii] = 0;
          }
       }
       
@@ -3450,17 +3500,21 @@ int main(int argc, char **argv)
             {
                if(flipX)
                {
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 0] = color_table[index][0];
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 1] = color_table[index][1];
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 2] = color_table[index][2];
-                  pngData[4 * nx * jj + 4 * (nx-1-i) + 3] = 255;
+                  ii = 4 * nx * jj + 4 * (nx-1-i);
+
+                  pngData[ii + 0] = color_table[index][0];
+                  pngData[ii + 1] = color_table[index][1];
+                  pngData[ii + 2] = color_table[index][2];
+                  pngData[ii + 3] = 255;
                }
                else
                {
-                  pngData[4 * nx * jj + 4 * i + 0] = color_table[index][0];
-                  pngData[4 * nx * jj + 4 * i + 1] = color_table[index][1];
-                  pngData[4 * nx * jj + 4 * i + 2] = color_table[index][2];
-                  pngData[4 * nx * jj + 4 * i + 3] = 255;
+                  ii = 4 * nx * jj + 4 * i;
+
+                  pngData[ii + 0] = color_table[index][0];
+                  pngData[ii + 1] = color_table[index][1];
+                  pngData[ii + 2] = color_table[index][2];
+                  pngData[ii + 3] = 255;
                }
             }
          }
@@ -4510,7 +4564,8 @@ double  chist   [NBIN];
 double  datalev [NBIN];
 double  gausslev[NBIN];
 
-int     npix;
+unsigned long npix;
+
 double  delta, rmin, rmax;
  
 void getRange(fitsfile *fptr, char *minstr, char *maxstr,
@@ -4808,6 +4863,75 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 }
 
 
+void readHist(char *histfile,  double *minval,  double *maxval, double *dataval, 
+              double *datamin, double *datamax, double *median, double *sigma, int *type)
+{
+   int   i;
+
+   FILE *fhist;
+
+   char  line [1024];
+   char  label[1024];
+
+   fhist = fopen(histfile, "r");
+
+   if(fhist == (FILE *)NULL)
+   {
+      printf ("[struct stat=\"ERROR\", msg=\"Cannot open histogram file.\"]\n");
+      fflush(stdout);
+      exit(1);
+   }
+
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %d", label, type);
+
+   fgets(line, 1024, fhist);
+   fgets(line, 1024, fhist);
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf %lf", label, minval, maxval);
+
+   fgets(line, 1024, fhist);
+   fgets(line, 1024, fhist);
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf %lf", label, datamin, datamax);
+
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf %lf", label, median, sigma);
+
+   fgets(line, 1024, fhist);
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf", label, &rmin);
+
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf", label, &rmax);
+
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf", label, &delta);
+
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lu", label, &npix);
+
+   fgets(line, 1024, fhist);
+
+   for(i=0; i<256; ++i)
+   {
+      fgets(line, 1024, fhist);
+      sscanf(line, "%s %lf", label, dataval+i);
+   }
+
+   fgets(line, 1024, fhist);
+   fgets(line, 1024, fhist);
+
+   for(i=0; i<NBIN; ++i)
+   {
+      fgets(line, 1024, fhist);
+      sscanf(line, "%s %lf %d %lf %lf", label, datalev+i, hist+i, chist+i, gausslev+i);
+   }
+
+   fclose(fhist);
+}
+
+
 
 /***********************************/
 /* Find the data values associated */
@@ -4877,8 +5001,8 @@ double valuePercentile(double value)
 
    fraction = ival - i;
 
-   minpercent = (double)chist[i]     / npix;
-   maxpercent = (double)chist[i+1]   / npix;
+   minpercent = (double)chist[i]   / npix;
+   maxpercent = (double)chist[i+1] / npix;
 
    percentile = 100. *(minpercent * (1. - fraction) + maxpercent * fraction);
 
