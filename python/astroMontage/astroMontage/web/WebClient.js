@@ -2,7 +2,7 @@ function WebClient(port)
 {
    var me = this;
 
-   me.debug = true;
+   me.debug = false;
 
    me.msgCallbacks = [];
 

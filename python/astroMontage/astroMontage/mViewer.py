@@ -10,7 +10,9 @@ import subprocess
 import os
 import errno
 import sys
+import tempfile
 import shutil
+import random
 import hashlib
 import shlex
 
@@ -56,23 +58,19 @@ class mvStruct(object):
 
         for pair in string.split(', '):
             key, value = pair.split('=')
+            value = value.strip(' ')
             if value in strings:
                 self.__dict__[key] = strings[value]
             else:
                 self.__dict__[key] = self.simplify(value)
-
-        if self.stat == "ERROR":
-            print "Montage Error: " + self.msg
-
-        elif self.stat == "WARNING":
-            print "Montage Warning: " + self.msg
 
 
     def __repr__(self):
 
         string = ""
         for item in self.__dict__:
-            string += item + " : " + str(self.__dict__[item]) + "\n"
+            substr = "%20s" % (item)
+            string += substr + " : " + str(self.__dict__[item]) + "\n"
         return string[:-1]
 
 
@@ -112,6 +110,36 @@ class mvViewOverlay:
     text        =  ""
  
         
+    def __str__(self):
+
+        thisObj = dir(self)
+
+        string = ""
+
+        count = 0
+
+        for item in thisObj:
+
+            val = getattr(self, item)
+
+            if item[0:2] == "__": 
+                continue
+
+            if val == "": 
+                continue
+
+            substr = "%40s" % (item)
+
+            if isinstance(val, str):
+                string += substr + ": '" + str(val) + "'\n"
+            else:
+                string += substr + ": " + str(val) + "\n"
+
+            count += 1
+
+        return string
+
+
     def __repr__(self):
 
         thisObj = dir(self)
@@ -153,6 +181,32 @@ class mvViewFile:
     stretchMax  = ""
     stretchMode = ""
 
+    def __str__(self):
+
+        thisObj = dir(self)
+
+        string = ""
+
+        for item in thisObj:
+
+            val = getattr(self, item)
+
+            if item[0:2] == "__": 
+                continue
+
+            if val == "": 
+                continue
+
+            substr = "%40s" % (item)
+
+            if isinstance(val, str):
+                string += substr + ": '" + str(val) + "'\n"
+            else:
+                string += substr + ": " + str(val) + "\n"
+
+        return string
+
+
     def __repr__(self):
 
         thisObj = dir(self)
@@ -189,10 +243,12 @@ class mvViewFile:
 
 class mvView:
 
-    imageFile     = "region.jpg"
-    imageType     = "jpeg"
-    imageWidth    = 1000
-    imageHeight   = 1000
+    imageFile     = "viewer.jpg"
+    imageType     = "jpg"
+    imageWidth    = "1000"
+    imageHeight   = "1000"
+
+    displayMode   = ""
 
     cutoutXoffset = ""
     cutoutYoffset = ""
@@ -239,10 +295,34 @@ class mvView:
             if val == "": 
                 continue
 
-            if isinstance(val, str):
-                string += item + ": '" + str(val) + "'\n"
+            substr = "%25s" % (item)
+
+            objType = val.__class__.__name__
+
+            if objType == 'str':
+                string += substr + ": '" + str(val) + "'\n"
+
+            elif objType == 'list':
+
+                string += substr + ":\n"
+
+                count = 0
+                for ovly in val:
+                   label = "%38s %d:\n" % ("Overlay", count)
+
+                   string += label
+                   string += ovly.__str__() 
+
+                   count += 1
+
+            elif objType == 'mvViewFile':
+
+                string += substr + ":\n"
+
+                string += val.__str__() 
+
             else:
-                string += item + ": " + str(val) + "\n"
+                string += substr + ": " + str(val) + "\n"
 
             count += 1
 
@@ -327,7 +407,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         global mvHandle
         global mvViewData
 
-        self.debug = True
+        self.debug = False
 
         self.workspace = mvWorkspace
         self.view      = mvViewData
@@ -344,12 +424,29 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
     def on_message(self, message):
 
+        if self.debug:
+           print "mvWSHandler.on_message('" + message + "')"
+
         # Find the image size
 
-        command = "mExamine " + self.view.grayFile.fitsFile
+        refFile = self.view.grayFile.fitsFile
 
-        if self.debug == True:
-           print command
+        if self.view.displayMode == "":
+            print "No images defined. Nothing to display."
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
+            return
+
+        if self.view.displayMode == "grayscale":
+            refFile = self.view.grayFile.fitsFile
+
+        if self.view.displayMode == "color":
+            refFile = self.view.redFile.fitsFile
+
+        command = "mExamine " + refFile
+
+        if self.debug:
+           print "\nMONTAGE Command:\n---------------\n" + command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -357,8 +454,15 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         if stderr:
             raise Exception(stderr)
+            return
 
         retval = mvStruct("mExamine", p.stdout.read().strip())
+
+        if self.debug:
+            print "\nRETURN Struct:\n-------------\n"
+            print retval
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
 
         subimageWidth  = retval.naxis1
         subimageHeight = retval.naxis2
@@ -375,21 +479,6 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         if self.view.ymax == "":
             self.view.ymax = retval.naxis2
 
-
-        # Then shrink/expand it to the right size
-
-        if self.debug == True:
-           print command
-
-        p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        stderr = p.stderr.read()
-
-        if stderr:
-            raise Exception(stderr)
-
-        retval = mvStruct("mExamine", p.stdout.read().strip())
-
         self.view.imageWidth  = retval.naxis1
         self.view.imageHeight = retval.naxis2
 
@@ -399,6 +488,10 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         args = shlex.split(message)
 
         cmd = args[0]
+
+        if cmd == 'update':
+            self.updateDisplay()
+
 
         if cmd == 'resize':
 
@@ -468,19 +561,144 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         sys.stdout.write('\n>>> ')
         sys.stdout.flush()
         
+        if self.view.displayMode == "":
+            print "No images defined. Nothing to display."
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
+            return
 
-        # First cut out the part of the original image we want
+        if self.view.displayMode == "grayscale":
 
-        command = "mSubimage -p" 
-        command += " " + self.view.grayFile.fitsFile 
-        command += " " + self.workspace + "/subimage.fits" 
-        command += " " + str(self.view.xmin)
-        command += " " + str(self.view.ymin)
-        command += " " + str(int(self.view.xmax) - int(self.view.xmin))
-        command += " " + str(int(self.view.ymax) - int(self.view.ymin))
+            # First cut out the part of the original grayscale image we want
 
-        if self.debug == True:
-           print command
+            command = "mSubimage -p" 
+            command += " " + self.view.grayFile.fitsFile 
+            command += " " + self.workspace + "/subimage.fits" 
+            command += " " + str(self.view.xmin)
+            command += " " + str(self.view.ymin)
+            command += " " + str(int(self.view.xmax) - int(self.view.xmin))
+            command += " " + str(int(self.view.ymax) - int(self.view.ymin))
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mSubimage", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+                sys.stdout.write('\n>>> ')
+                sys.stdout.flush()
+
+
+
+        else:
+
+            # Or if in color mode, cut out the three images
+
+            # Blue
+
+            command = "mSubimage -p" 
+            command += " " + self.view.blueFile.fitsFile 
+            command += " " + self.workspace + "/blue_subimage.fits" 
+            command += " " + str(self.view.xmin)
+            command += " " + str(self.view.ymin)
+            command += " " + str(int(self.view.xmax) - int(self.view.xmin))
+            command += " " + str(int(self.view.ymax) - int(self.view.ymin))
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mSubimage", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+
+
+            # Green
+
+            command = "mSubimage -p" 
+            command += " " + self.view.greenFile.fitsFile 
+            command += " " + self.workspace + "/green_subimage.fits" 
+            command += " " + str(self.view.xmin)
+            command += " " + str(self.view.ymin)
+            command += " " + str(int(self.view.xmax) - int(self.view.xmin))
+            command += " " + str(int(self.view.ymax) - int(self.view.ymin))
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mSubimage", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+
+
+            # Red
+
+            command = "mSubimage -p" 
+            command += " " + self.view.redFile.fitsFile 
+            command += " " + self.workspace + "/red_subimage.fits" 
+            command += " " + str(self.view.xmin)
+            command += " " + str(self.view.ymin)
+            command += " " + str(int(self.view.xmax) - int(self.view.xmin))
+            command += " " + str(int(self.view.ymax) - int(self.view.ymin))
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mSubimage", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+                sys.stdout.write('\n>>> ')
+                sys.stdout.flush()
+
+
+        # Get the size (all three are the same)
+
+        if self.view.displayMode == "grayscale":
+            command = "mExamine " + self.workspace + "/subimage.fits"
+        else:
+            command = "mExamine " + self.workspace + "/red_subimage.fits"
+
+        if self.debug:
+           print "\nMONTAGE Command:\n---------------\n" + command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -488,29 +706,20 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         if stderr:
             raise Exception(stderr)
-
-        retval = mvStruct("mSubimage", p.stdout.read().strip())
-
-
-        command = "mExamine " + self.workspace + "/subimage.fits"
-
-        if self.debug == True:
-           print command
-
-        p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        stderr = p.stderr.read()
-
-        if stderr:
-            raise Exception(stderr)
+            return
 
         retval = mvStruct("mExamine", p.stdout.read().strip())
+
+        if self.debug:
+            print "\nRETURN Struct:\n-------------\n"
+            print retval
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
 
         subimageWidth  = retval.naxis1
         subimageHeight = retval.naxis2
 
 
-        # Then shrink/expand it to the right size
 
         xfactor = float(subimageWidth)  / float(self.view.canvasWidth)
         yfactor = float(subimageHeight) / float(self.view.canvasHeight)
@@ -520,25 +729,127 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         self.view.factor = xfactor
 
-        command = "mShrink" 
-        command += " " + self.workspace + "/subimage.fits" 
-        command += " " + self.workspace + "/shrunken.fits" 
-        command += " " + str(xfactor)
 
-        if self.debug == True:
-           print command
+        if self.view.displayMode == "grayscale":
 
-        p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # Shrink/expand the grayscale cutout to the right size
 
-        stderr = p.stderr.read()
+            xfactor = float(subimageWidth)  / float(self.view.canvasWidth)
+            yfactor = float(subimageHeight) / float(self.view.canvasHeight)
 
-        if stderr:
-            raise Exception(stderr)
+            if float(yfactor) > float(xfactor):
+                xfactor = yfactor
 
-        retval = mvStruct("mShrink", p.stdout.read().strip())
+            self.view.factor = xfactor
+
+            command = "mShrink" 
+            command += " " + self.workspace + "/subimage.fits" 
+            command += " " + self.workspace + "/shrunken.fits" 
+            command += " " + str(xfactor)
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mShrink", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+                sys.stdout.write('\n>>> ')
+                sys.stdout.flush()
 
 
-        # Finally, generate the final JPEG
+        else:
+
+            # Shrink/expand the three color cutouts to the right size
+
+            # Blue
+
+            command = "mShrink" 
+            command += " " + self.workspace + "/blue_subimage.fits" 
+            command += " " + self.workspace + "/blue_shrunken.fits" 
+            command += " " + str(xfactor)
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mShrink", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+
+
+            # Green
+
+            command = "mShrink" 
+            command += " " + self.workspace + "/green_subimage.fits" 
+            command += " " + self.workspace + "/green_shrunken.fits" 
+            command += " " + str(xfactor)
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mShrink", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+
+
+            # Red
+
+            command = "mShrink" 
+            command += " " + self.workspace + "/red_subimage.fits" 
+            command += " " + self.workspace + "/red_shrunken.fits" 
+            command += " " + str(xfactor)
+
+            if self.debug:
+               print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mShrink", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+                sys.stdout.write('\n>>> ')
+                sys.stdout.flush()
+
+
+
+        # Finally, generate the JPEG
 
         command = "mViewer"
 
@@ -564,14 +875,16 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
             elif type == 'catalog':
 
-                visible  = self.view.overlay[i].visible
-                dataFile = self.view.overlay[i].dataFile
-                dataCol  = self.view.overlay[i].dataCol
-                dataRef  = self.view.overlay[i].dataRef
-                dataType = self.view.overlay[i].dataType
-                symSize  = self.view.overlay[i].symSize
-                symType  = self.view.overlay[i].symType
-                color    = self.view.overlay[i].color
+                visible     = self.view.overlay[i].visible
+                dataFile    = self.view.overlay[i].dataFile
+                dataCol     = self.view.overlay[i].dataCol
+                dataRef     = self.view.overlay[i].dataRef
+                dataType    = self.view.overlay[i].dataType
+                symSize     = self.view.overlay[i].symSize
+                symType     = self.view.overlay[i].symType
+                symSides    = self.view.overlay[i].symSides
+                symRotation = self.view.overlay[i].symRotation
+                color       = self.view.overlay[i].color
 
                 if visible == True:
 
@@ -579,7 +892,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                         command += " -color " + str(color)
 
                     if symType != "" and symSize != "":
-                        command += " -symbol " + str(symSize) + " " + str(symType)
+                        command += " -symbol " + str(symSize) + " " + str(symType) + " " + str(symSides) + " " + str(symRotation)
 
                     command += " -catalog "  + str(dataFile) + " " + str(dataCol) + " " + str(dataRef) + " " + str(dataType)
 
@@ -600,12 +913,14 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
             elif type == 'mark':
 
-                visible  = self.view.overlay[i].visible
-                lon      = self.view.overlay[i].lon
-                lat      = self.view.overlay[i].lat
-                symSize  = self.view.overlay[i].symSize
-                symType  = self.view.overlay[i].symType
-                color    = self.view.overlay[i].color
+                visible     = self.view.overlay[i].visible
+                lon         = self.view.overlay[i].lon
+                lat         = self.view.overlay[i].lat
+                symSize     = self.view.overlay[i].symSize
+                symType     = self.view.overlay[i].symType
+                symSides    = self.view.overlay[i].symSides
+                symRotation = self.view.overlay[i].symRotation
+                color       = self.view.overlay[i].color
 
                 if visible == True:
 
@@ -613,7 +928,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                         command += " -color " + str(color)
 
                     if symType != "" and symSize != "":
-                        command += " -symbol " + str(symSize) + " " + str(symType)
+                        command += " -symbol " + str(symSize) + " " + str(symType) + " " + str(symSides) + " " + str(symRotation)
 
                     command += " -mark "  + str(lon) + " " + str(lat)
 
@@ -638,13 +953,25 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                 print "Invalid overlay type '" + str(type) + "' in view specification."
 
 
-        if self.view.grayFile != "":
+        if self.view.displayMode == "grayscale":
 
             fitsFile    = self.workspace + "/shrunken.fits"
             colorTable  = self.view.grayFile.colorTable
             stretchMin  = self.view.grayFile.stretchMin
             stretchMax  = self.view.grayFile.stretchMax
             stretchMode = self.view.grayFile.stretchMode
+
+            if colorTable == "":
+               colorTable = 0
+
+            if stretchMin == "":
+               stretchMin = "-1s"
+
+            if stretchMax == "":
+               stretchMax = "max"
+
+            if stretchMode == "":
+               stretchMode = "gaussian-log"
 
             command += " -ct " + str(colorTable)
             command += " -gray " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
@@ -657,19 +984,46 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             stretchMax  = self.view.redFile.stretchMax
             stretchMode = self.view.redFile.stretchMode
  
+            if stretchMin == "":
+               stretchMin = "-1s"
+
+            if stretchMax == "":
+               stretchMax = "max"
+
+            if stretchMode == "":
+               stretchMode = "gaussian-log"
+
             command += " -red " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
  
-            fitsFile    = self.workspace + "/greeen_shrunken.fits"
+            fitsFile    = self.workspace + "/green_shrunken.fits"
             stretchMin  = self.view.greenFile.stretchMin
             stretchMax  = self.view.greenFile.stretchMax
             stretchMode = self.view.greenFile.stretchMode
  
+            if stretchMin == "":
+               stretchMin = "-1s"
+
+            if stretchMax == "":
+               stretchMax = "max"
+
+            if stretchMode == "":
+               stretchMode = "gaussian-log"
+
             command += " -green " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
  
             fitsFile    = self.workspace + "/blue_shrunken.fits"
             stretchMin  = self.view.blueFile.stretchMin
             stretchMax  = self.view.blueFile.stretchMax
             stretchMode = self.view.blueFile.stretchMode
+
+            if stretchMin == "":
+               stretchMin = "-1s"
+
+            if stretchMax == "":
+               stretchMax = "max"
+
+            if stretchMode == "":
+               stretchMode = "gaussian-log"
 
             command += " -blue " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
 
@@ -678,8 +1032,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         command += " -jpeg " + self.workspace + "/" + str(imageFile) 
 
-        if self.debug == True:
-           print command
+        if self.debug:
+           print "\nMONTAGE Command:\n---------------\n" + command
 
         p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -687,16 +1041,38 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         if stderr:
             raise Exception(stderr)
+            return
 
         retval = mvStruct("mViewer", p.stdout.read().strip())
 
+        if self.debug:
+            print "\nRETURN Struct:\n-------------\n"
+            print retval
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
+
+        if stderr:
+            raise Exception(stderr)
+            return
+
+        if retval.stat == "WARNING":
+            print "\nWARNING: " + retval.msg
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
+            return
+
+        if retval.stat == "ERROR":
+            print "\nERROR: " + retval.msg
+            sys.stdout.write('\n>>> ')
+            sys.stdout.flush()
+            return
 
         self.write_message("image " + imageFile)
 
 
     def on_close(self):
 
-        print '\nWeb connection closed remotely.'
+        print '\nWeb connection closed by browser.'
 
         sys.stdout.write('\n>>> ')
         sys.stdout.flush()
@@ -718,6 +1094,10 @@ class mvThread(Thread):
         self.port      = port
         self.workspace = workspace
         self.view      = view
+
+        self.handler   = mvWSHandler
+
+        self.debug = False
 
         self.daemon    = True    # If we make the thread a daemon, 
                                  # it closes when the process finishes.
@@ -756,6 +1136,9 @@ class mvThread(Thread):
 
     def command(self, msg):
 
+        if self.debug:
+            print "DEBUG> mvThread.command('" + msg + "')"
+
         self.remote = mvHandle
 
         self.remote.write_message(msg)
@@ -775,6 +1158,8 @@ class mViewer():
     # Initialization (mostly setting up the workspace)
 
     def __init__(self, *arg):
+
+        self.debug = False
 
         nargs = len(arg)
 
@@ -802,23 +1187,132 @@ class mViewer():
 
     def close(self):
 
-        shutil.unlink(self.workspace + "/index.html")
-        shutil.unlink(self.workspace + "/WebClient.js")
-        shutil.unlink(self.workspace + "/mViewer.js")
-        shutil.unlink(self.workspace + "/iceGraphics.js")
-        shutil.unlink(self.workspace + "/favicon.ico")
-        shutil.unlink(self.workspace + "/waitClock.gif")
-        shutil.unlink(self.workspace + "/reload.png")
+        try:
+            os.remove(self.workspace + "/index.html")
+        except:
+            pass
 
-        shutil.unlink(self.workspace + "/subimage.fits")
-        shutil.unlink(self.workspace + "/shrunken.fits")
-        shutil.unlink(self.workspace + "/blue_shrunken.fits")
-        shutil.unlink(self.workspace + "/green_shrunken.fits")
-        shutil.unlink(self.workspace + "/red_shrunken.fits")
+        try:
+            os.remove(self.workspace + "/WebClient.js")
+        except:
+            pass
 
-        shutil.unlink(self.workspace + "/" + str(self.view.imageFile))
+        try:
+            os.remove(self.workspace + "/mViewer.js")
+        except:
+            pass
 
-        shutil.unlink(self.workspace)
+        try:
+            os.remove(self.workspace + "/iceGraphics.js")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/favicon.ico")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/waitClock.gif")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/reload.png")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/subimage.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/blue_subimage.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/green_subimage.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/red_subimage.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/shrunken.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/blue_shrunken.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/green_shrunken.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/red_shrunken.fits")
+        except:
+            pass
+
+        try:
+            os.remove(self.workspace + "/" + str(self.view.imageFile))
+        except:
+            pass
+
+        try:
+            os.rmdir(self.workspace)
+        except:
+            print "Workspace directory ('" + self.workspace + "') not deleted (not empty)"
+
+        self.command("close")
+
+
+    # Utility function: set the display mode (grayscale / color)
+
+    def setDisplayMode(self, mode):
+
+        mode = str(mode)
+
+        if len(mode) == 0:
+           mode = "grayscale"
+
+        if mode[0] == 'g':
+            self.view.displayMode = "grayscale"
+
+        if mode[0] == 'G':
+            self.view.displayMode = "grayscale"
+
+        if mode[0] == 'b':
+            self.view.displayMode = "grayscale"
+
+        if mode[0] == 'B':
+            self.view.displayMode = "grayscale"
+
+        if mode[0] == 'r':
+            self.view.displayMode = "color"
+
+        if mode[0] == 'R':
+            self.view.displayMode = "color"
+
+        if mode[0] == 'c':
+            self.view.displayMode = "color"
+
+        if mode[0] == 'C':
+            self.view.displayMode = "color"
+
+        if mode[0] == 'f':
+            self.view.displayMode = "color"
+
+        if mode[0] == 'F':
+            self.view.displayMode = "color"
 
 
     # Utility function: set the grayFile
@@ -827,12 +1321,19 @@ class mViewer():
 
         self.view.grayFile.fitsFile = grayFile
 
+        if self.view.displayMode == "":
+            self.view.displayMode = "grayscale"
+
 
     # Utility function: set the blueFile
 
     def setBlueFile(self, blueFile):
 
         self.view.blueFile.fitsFile = blueFile
+
+        if self.view.displayMode == "":
+            if self.view.redFile.fitsFile != "" and self.view.greenFile.fitsFile != "":
+                self.view.displayMode = "color"
 
 
     # Utility function: set the greenFile
@@ -841,12 +1342,20 @@ class mViewer():
 
         self.view.greenFile.fitsFile = greenFile
 
+        if self.view.displayMode == "":
+            if self.view.redFile.fitsFile != "" and self.view.blueFile.fitsFile != "":
+                self.view.displayMode = "color"
+
 
     # Utility function: set the redFile
 
     def setRedFile(self, redFile):
 
         self.view.redFile.fitsFile = redFile
+
+        if self.view.displayMode == "":
+            if self.view.greenFile.fitsFile != "" and self.view.blueFile.fitsFile != "":
+                self.view.displayMode = "color"
 
 
     # Utility function: set the currentColor
@@ -1030,14 +1539,14 @@ class mViewer():
 
     # Start a second thread to interact with the browser.
 
-    def initBrowserDisplay(self, port):
+    def initBrowserDisplay(self):
 
-        self.port = port
+        self.port = random.randint(10000,60000)
 
         template_file  = resource_filename('astroMontage', 'web/index.html')
         index_file    = self.workspace + "/index.html"
 
-        port_string   = str(port)
+        port_string   = str(self.port)
 
         with open(index_file,'w') as new_file:
            with open(template_file) as old_file:
@@ -1088,7 +1597,10 @@ class mViewer():
 
     # Send a display update notification to the browser.
 
-    def display(self):
+    def draw(self):
+
+        if self.debug:
+            print "DEBUG> mViewer.draw(): sending 'updateDisplay' to browser."
 
         self.thread.command("updateDisplay")
 
@@ -1096,5 +1608,8 @@ class mViewer():
     # Send a command to the browser javascript object              
 
     def command(self, message):
+
+        if self.debug:
+            print "DEBUG> mViewer.command('" + message + "')"
 
         self.thread.command(message)
