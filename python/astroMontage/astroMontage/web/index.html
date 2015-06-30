@@ -61,8 +61,6 @@
 
       showMessage = function(msg)
       {
-         console.log("PYTHON> " + msg + " (sending to viewer)");
-
          viewer.processUpdate(msg);
 
          viewer.grayOutMessage(false);

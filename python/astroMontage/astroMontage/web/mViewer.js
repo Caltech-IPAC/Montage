@@ -87,6 +87,24 @@ function mViewer(client, imgDivID)
 
          me.gc.setImage(args[1] + "?seed=" + (new Date()).valueOf());
       }
+
+      else if(cmd == "updateDisplay")
+      {
+         if(me.debug)
+            console.log("DEBUG> Requesting server update.");
+
+         var cmd = "update";
+
+         if(me.debug)
+            console.log("DEBUG> cmd: " + cmd);
+
+         me.client.send(cmd);
+      }
+
+      else if(cmd == "close")
+      {
+         window.close();
+      }
    }
 
 
