@@ -243,6 +243,8 @@ class mvViewFile:
 
 class mvView:
 
+    viewer        = ""
+
     imageFile     = "viewer.jpg"
     imageType     = "jpg"
     imageWidth    = "1000"
@@ -411,6 +413,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         self.workspace = mvWorkspace
         self.view      = mvViewData
+        self.viewer    = self.view.viewer
 
         self.write_message("mViewer python server connection accepted.")
         self.write_message("")
@@ -553,7 +556,11 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         elif cmd == 'pick':
 
-           pass
+            boxx = float(args[1])
+            boxy = float(args[2])
+
+            if self.viewer.pickCallback is not None:
+                self.viewer.pickCallback(boxx, boxy)
 
 
     def updateDisplay(self):
@@ -1180,7 +1187,11 @@ class mViewer():
         self.workspace = workspace
         self.view      = mvView()
 
+        self.view.viewer = self;
+
         mvWorkspace = workspace
+
+        self.pickCallback = self.pickLocation
 
 
     # Shutdown (removing workspace)
@@ -1272,7 +1283,11 @@ class mViewer():
         except:
             print "Workspace directory ('" + self.workspace + "') not deleted (not empty)"
 
-        self.command("close")
+        try:
+            self.command("close")
+            print "Browser connection closed."
+        except:
+            print "No active browser connection."
 
 
     # Utility function: set the display mode (grayscale / color)
@@ -1593,6 +1608,70 @@ class mViewer():
         self.thread = mvThread(self.port, self.workspace, self.view)
 
         self.thread.start()
+
+
+    # Default function to be used when the user picks a location
+    # This can be overridden by the developer with a callback of 
+    # their own.
+
+    def pickLocation(self, boxx, boxy):
+
+        refFile = []
+
+        if self.view.displayMode == "grayscale":
+
+            refFile.append(self.view.grayFile.fitsFile)
+
+
+        if self.view.displayMode == "color":
+
+            refFile.append(self.view.blueFile.fitsFile)
+            refFile.append(self.view.greenFile.fitsFile)
+            refFile.append(self.view.redFile.fitsFile)
+
+        radius = 31
+
+        nfile = len(refFile)
+
+        for i in range(0, nfile):
+            command = "mExamine -p " + repr(boxx) + "p " + repr(boxy) + "p " + repr(radius) + "p " + refFile[i]
+
+            if self.debug:
+                print "\nMONTAGE Command:\n---------------\n" + command
+
+            p = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            stderr = p.stderr.read()
+
+            if stderr:
+                raise Exception(stderr)
+                return
+
+            retval = mvStruct("mExamine", p.stdout.read().strip())
+
+            if self.debug:
+                print "\nRETURN Struct:\n-------------\n"
+                print retval
+                sys.stdout.write('\n>>> ')
+                sys.stdout.flush()
+
+            
+            print ""
+            print "   File " + refFile[i] + ":"
+            print ""
+            print "                 Flux    (sigma)                 (RA, Dec)         Pix Coord"
+            print "                ------------------      -------------------------  ----------"
+            print "      Center:   " + repr(retval.fluxref) + " (" + repr(retval.sigmaref) + ")  at  (" + repr(retval.raref) + ", " + repr(retval.decref) + ")  [" + repr(retval.xref) + ", " + repr(retval.yref) + "]"
+            print "      Min:      " + repr(retval.fluxmin) + " (" + repr(retval.sigmamin) + ")  at  (" + repr(retval.ramin) + ", " + repr(retval.decmin) + ")  [" + repr(retval.xmin) + ", " + repr(retval.ymin) + "]"
+            print "      Max:      " + repr(retval.fluxmax) + " (" + repr(retval.sigmamax) + ")  at  (" + repr(retval.ramax) + ", " + repr(retval.decmax) + ")  [" + repr(retval.xmax) + ", " + repr(retval.ymax) + "]"
+            print ""
+            print "      Average:  " + repr(retval.aveflux) + " +/- " + repr(retval.rmsflux)
+            print ""
+            print "      Radius:   " + repr(retval.radius) + " degrees (" + repr(retval.radpix) + " pixels) / Total area: " + repr(retval.npixel) + " pixels (" + repr(retval.nnull) + " nulls)"
+            print ""
+
+        sys.stdout.write('\n>>> ')
+        sys.stdout.flush()
 
 
     # Send a display update notification to the browser.
