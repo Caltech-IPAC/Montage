@@ -20,10 +20,13 @@
 #define WCS     2
 
 void  printError(char *errmsg);
+void  printRetval(char *msg);
 
-int debug = 0;
+int debug = 2;
 
 FILE *fdebug;
+
+int writeFitshdrHtml (char *hdrpath, char *htmlpath, char *fileBase);
 
 
 /*******************************************************************/
@@ -36,26 +39,27 @@ FILE *fdebug;
 
 int main(int argc, char *argv[], char *envp[])
 {
-   int   nkey, odd, class, pid;
+   int   nkey;
+   int   pid;
+   int   istatus;
 
    char  cmd         [STRLEN];
-   char  line        [STRLEN];
    char  wspace      [STRLEN];
    char  fileName    [STRLEN];
+   char  filePath    [STRLEN];
    char  fileBase    [STRLEN];
    char  directory   [STRLEN];
    char  baseURL     [STRLEN];
    char  workDir     [STRLEN];
    char  hdrFile     [STRLEN];
-   char  keyword     [STRLEN];
+   char  htmlFile    [STRLEN];
    char  status      [STRLEN];
    char  tmpstr      [STRLEN];
+   char  url         [1024];
 
    char *ptr;
 
-   FILE *fhdr;
-
-
+   
    /********************/
    /* Config variables */
    /********************/
@@ -86,22 +90,28 @@ int main(int argc, char *argv[], char *envp[])
    if(!debug && keyword_exists("debug"))
       debug = atoi(keyword_value("debug"));
 
+   
    fdebug = stdout;
 
    if(debug > 1)
    {
       pid = getpid();
 
-      sprintf (tmpstr, "/tmp/mViewerHdr.debug_%d", pid);
-
+      sprintf (tmpstr, "/tmp/icePlotterHdr.debug_%d", pid);
+      
+      sprintf (tmpstr, 
+          "/koa/cm/ws/mihseh/montage/web/mViewer/mviewerhdr.debug");
       fdebug = fopen (tmpstr, "w+");
    }
 
+
+/*
    if(debug)
       svc_debug(fdebug);
- 
-   if(keyword_exists("ws"))
-      strcpy(wspace, keyword_value("ws"));
+*/
+
+   if(keyword_exists("workspace"))
+      strcpy(wspace, keyword_value("workspace"));
    else
       printError("No workspace.");
 
@@ -109,30 +119,7 @@ int main(int argc, char *argv[], char *envp[])
    if(keyword_exists("file"))
       strcpy(fileName, keyword_value("file"));
 
-   ptr = fileName + strlen(fileName);
-
-   while(ptr > fileName && *ptr != '/')
-      --ptr;
-
-   if(*ptr == '/')
-      ++ptr;
-
-   strcpy(fileBase, ptr);
-
-   if(debug)
-   {
-      fprintf(fdebug, "DEBUG> Config parameters:");
-
-      fprintf(fdebug, "DEBUG> ISIS_WORKDIR = [%s]\n", workDir);
-      fprintf(fdebug, "DEBUG> ISIS_WORKURL = [%s]\n", baseURL);
-      fprintf(fdebug, "DEBUG> wspace       = [%s]\n", wspace);
-      fprintf(fdebug, "DEBUG> fileName     = [%s]\n", fileName);
-      fprintf(fdebug, "DEBUG> fileBase     = [%s]\n", fileBase);
-      fflush(fdebug);
-   }
-
-
-
+   
    /************************/
    /* Build directory name */
    /************************/
@@ -153,11 +140,55 @@ int main(int argc, char *argv[], char *envp[])
       
 
 
+   ptr = fileName + strlen(fileName);
+
+   while(ptr > fileName && *ptr != '/')
+      --ptr;
+
+   if(*ptr == '/')
+      ++ptr;
+
+   strcpy(fileBase, ptr);
+
+
+    strcpy (tmpstr, fileName);
+    ptr = (char *)NULL;
+    ptr = strrchr (tmpstr, '/');
+
+    if (ptr != (char *)NULL) {
+        
+        strcpy (filePath, fileName);
+        strcpy (fileName, ptr+1);
+    }
+    else {
+        sprintf (filePath, "%s/%s", directory, fileName);
+    }
+
+   if(debug)
+   {
+      fprintf(fdebug, "DEBUG> Config parameters:");
+
+      fprintf(fdebug, "DEBUG> ISIS_WORKDIR = [%s]\n", workDir);
+      fprintf(fdebug, "DEBUG> ISIS_WORKURL = [%s]\n", baseURL);
+      fprintf(fdebug, "DEBUG> wspace       = [%s]\n", wspace);
+      fprintf(fdebug, "DEBUG> fileName     = [%s]\n", fileName);
+      fprintf(fdebug, "DEBUG> filePath     = [%s]\n", filePath);
+      fprintf(fdebug, "DEBUG> fileBase     = [%s]\n", fileBase);
+      fflush(fdebug);
+   }
+
+
    /************************/
    /* Retrieve information */
    /************************/
 
-   sprintf(cmd, "mGetHdr %s/%s %s/%s.hdr", directory, fileBase, directory, fileBase);
+   sprintf(cmd, "mGetHdr %s %s/%s.hdr", filePath, directory, fileBase);
+   if(debug)
+   {
+      fprintf(fdebug, "DEBUG> \ncmd= [%s]\n", cmd);
+      fflush(fdebug);
+   }
+   
    svc_run(cmd);
 
    strcpy(status, svc_value("stat"));
@@ -165,87 +196,45 @@ int main(int argc, char *argv[], char *envp[])
    if(strcmp(status, "OK") != 0)
       printError("Cannot extract FITS header from file.");
 
-
    sprintf(hdrFile, "%s/%s.hdr", directory, fileBase);
 
-   fhdr = fopen(hdrFile, "r");
+   sprintf(htmlFile, "%s/%s.html", directory, fileBase);
 
-   printf("HTTP/1.1 200 OK\r\n");
-   printf("Content-type: text/plain\r\n\r\n");
-   fflush(stdout);
-
-   odd = 0;
-
-   while(1)
-   {   
-      if(fgets(line, STRLEN, fhdr) == (char *)NULL)
-         break;
-
-      if(line[strlen(line)-1] == '\n')
-         line[strlen(line)-1]  = '\0';
-
-      class = NORMAL;
-      
-      if(strncmp(line, "COMMENT", 7) == 0)
-         class = COM;
-
-      else
-      {
-         strcpy(keyword, line);
-
-         ptr = strstr(keyword, "=");
-
-         if(ptr)
-            *ptr = '\0';
-
-         ptr = keyword + strlen(keyword);
-
-         while(ptr > keyword && (*ptr == '\0' || *ptr == ' ' || *ptr == '\n'))
-         {
-            *ptr = '\0';
-            --ptr;
-         }
-
-         if(strncmp(keyword, "NAXIS", 5) == 0
-         || strncmp(keyword, "CTYPE", 5) == 0
-         || strncmp(keyword, "CRVAL", 5) == 0
-         || strncmp(keyword, "CRPIX", 5) == 0
-         || strncmp(keyword, "CDELT", 5) == 0
-         || strncmp(keyword, "CROTA", 5) == 0
-         || strncmp(keyword, "CD",    2) == 0
-         || strncmp(keyword, "PC",    2) == 0)
-            class = WCS;
-      }
-
-      if(odd)
-      {
-         if(class == WCS)
-            printf("<pre class=\"fitsOddWCS\" > %s </pre>\n", html_encode(line));
-
-         else if(class == COM)
-            printf("<pre class=\"fitsOddCOM\" > %s </pre>\n", html_encode(line));
-
-         else
-            printf("<pre class=\"fitsOdd\"    > %s </pre>\n", html_encode(line));
-      }
-      else
-      {
-         if(class == WCS)
-            printf("<pre class=\"fitsEvenWCS\"> %s </pre>\n", html_encode(line));
-
-         else if(class == COM)
-            printf("<pre class=\"fitsEvenCOM\"> %s </pre>\n", html_encode(line));
-
-         else
-            printf("<pre class=\"fitsEven\"   > %s </pre>\n", html_encode(line));
-      }
-
-      odd = (odd+1)%2;
+   if(debug) {
+      fprintf(fdebug, "DEBUG> call writeFitshdrHtml\n");
+      fprintf(fdebug, "DEBUG> hdrFile= [%s]\n", hdrFile);
+      fprintf(fdebug, "DEBUG> htmlFile= [%s]\n", htmlFile);
+      fprintf(fdebug, "DEBUG> fileBase= [%s]\n", fileBase);
+      fflush(fdebug);
    }
+   
+   istatus = writeFitshdrHtml (hdrFile, htmlFile, fileBase);
 
-   fflush(stdout);
+   if(debug) {
+      fprintf(fdebug, "DEBUG> returned writeFitshdrHtml: istatus= [%d]\n",
+          istatus);
+      fflush(fdebug);
+   }
+   
 
-   fclose(fhdr);
+
+   sprintf (url, "%s/%s.html", baseURL, fileBase);
+   
+   
+   if(debug) {
+       fprintf(fdebug, "url= [%s]\n", url);
+       fprintf (fdebug, "{\"url\" : \"%s\"}", url);
+       fflush(fdebug);
+   }
+   
+   sprintf (url, "{\"url\" : \"%s/%s.html\"}", baseURL, fileBase);
+   
+   if(debug) {
+      fprintf(fdebug, "url= [%s]\n", url);
+      fflush(fdebug);
+   }
+   
+   printRetval (url);
 
    exit(0);
 }

@@ -28,7 +28,6 @@ clean:
 	(cd Exec; make clean)
 	(cd FixNaN; make clean)
 	(cd Hdr; make clean)
-	(cd ImgInfo; make clean)
 	(cd JPEG; make clean)
 	(cd Pad; make clean)
 	(cd Pix2Coord; make clean)

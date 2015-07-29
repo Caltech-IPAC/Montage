@@ -116,7 +116,7 @@ int main(int argc, char **argv)
    double   *colfact, *rowfact;
    double   *buffer;
    double   *mbuffer;
-   double    xfactor, flux, area;
+   double    shrinkFactor, xfactor, flux, area;
 
    double   *outdata;
    double  **indata;
@@ -218,7 +218,9 @@ int main(int argc, char **argv)
    strcpy(input_file,    argv[optind]);
    strcpy(output_file,   argv[optind + 1]);
 
-   xfactor = strtod(argv[optind + 2], &end);
+   shrinkFactor = strtod(argv[optind + 2], &end);
+
+   xfactor = shrinkFactor;
 
    if(end < argv[optind + 2] + strlen(argv[optind + 2]))
    {
@@ -270,6 +272,15 @@ int main(int argc, char **argv)
      else
         nan = 0;
    }
+
+
+   // Error if we are trying to shrink to less than one pixel
+
+   if(!fixedSize
+   && (   shrinkFactor > input.naxes[0]
+       || shrinkFactor > input.naxes[1]))
+      printError("Trying to shrink image to smaller than one pixel");           
+
 
    if(debug >= 1)
    {
@@ -347,7 +358,7 @@ int main(int argc, char **argv)
    output.naxes[1] = floor((double)input.naxes[1]/xfactor);
    output.naxes[2] = input.naxes[2]/mfactor;
    output.naxes[3] = input.naxes[3];
-   
+
    if(debug >= 1)
    {
       printf("output.naxes[0] = %ld\n",  output.naxes[0]);
@@ -452,11 +463,11 @@ int main(int argc, char **argv)
          printFitsError(status);           
    }
 
-   if(haveBlank && fits_update_key_str(output.fptr, "BUNIT", output.bunit,
+   if(haveBunit && fits_update_key_str(output.fptr, "BUNIT", output.bunit,
                                   (char *)NULL, &status))
       printFitsError(status);           
 
-   if(haveBunit && fits_update_key_lng(output.fptr, "BLANK", output.blank,
+   if(haveBlank && fits_update_key_lng(output.fptr, "BLANK", output.blank,
                                   (char *)NULL, &status))
       printFitsError(status);           
 
@@ -1227,6 +1238,7 @@ int readFits(char *fluxfile)
    double   pc22;
    double   epoch;
    double   equinox;
+   long     blank;
 
    char     bunit[80];
 
@@ -1254,6 +1266,7 @@ int readFits(char *fluxfile)
    haveEpoch   = 1;
    haveEquinox = 1;
    haveBunit   = 1;
+   haveBlank   = 1;
 
    input.cdelt1  = 0;
    input.cdelt2  = 0;
@@ -1269,6 +1282,7 @@ int readFits(char *fluxfile)
    input.pc22    = 0;
    input.epoch   = 0;
    input.equinox = 0;
+   input.blank   = 0;
 
    strcpy(input.bunit, "");
 
@@ -1472,6 +1486,12 @@ int readFits(char *fluxfile)
       haveBunit = 0;
    else strcpy(input.bunit, bunit);
 
+   status = 0;
+   fits_read_key(input.fptr, TLONG, "BLANK", &blank, (char *)NULL, &status);
+   if(status == KEY_NO_EXIST)
+      haveBlank = 0;
+   else input.blank = blank;
+
    return 0;
 }
 
@@ -1504,7 +1524,6 @@ void printFitsError(int status)
 
 void printError(char *msg)
 {
-   fprintf(stderr, "ERROR: %s\n", msg);
    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
    exit(1);
 }

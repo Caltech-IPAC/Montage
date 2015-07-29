@@ -60,8 +60,9 @@ int main(int argc, char **argv)
    int    i, ihdu, hdu, bestHDU, c, stat, ncols, inside;
    int    inext, nimages, corners;
    double xpos, ypos;
+   double xcenter, ycenter;
    double x0, y0, z0;
-   double x, y, z, dist, mindist, bestdist, dtr;
+   double x, y, z, dist, mindist, bestdist, dtr, len;
    double ra, dec;
    double ra1, dec1;
    double ra2, dec2;
@@ -353,33 +354,33 @@ int main(int argc, char **argv)
          y = cos(dec1*dtr) * sin(ra1*dtr);
          z = sin(dec1*dtr);
 
-         corner[3].x = x;
-         corner[3].y = y;
-         corner[3].z = z;
+         corner[0].x = x;
+         corner[0].y = y;
+         corner[0].z = z;
 
          x = cos(dec2*dtr) * cos(ra2*dtr);
          y = cos(dec2*dtr) * sin(ra2*dtr);
          z = sin(dec2*dtr);
 
-         corner[2].x = x;
-         corner[2].y = y;
-         corner[2].z = z;
+         corner[1].x = x;
+         corner[1].y = y;
+         corner[1].z = z;
 
          x = cos(dec3*dtr) * cos(ra3*dtr);
          y = cos(dec3*dtr) * sin(ra3*dtr);
          z = sin(dec3*dtr);
 
-         corner[1].x = x;
-         corner[1].y = y;
-         corner[1].z = z;
+         corner[2].x = x;
+         corner[2].y = y;
+         corner[2].z = z;
 
          x = cos(dec4*dtr) * cos(ra4*dtr);
          y = cos(dec4*dtr) * sin(ra4*dtr);
          z = sin(dec4*dtr);
 
-         corner[0].x = x;
-         corner[0].y = y;
-         corner[0].z = z;
+         corner[3].x = x;
+         corner[3].y = y;
+         corner[3].z = z;
 
 
          x = corner[0].x + corner[1].x + corner[2].x + corner[3].x;
@@ -391,6 +392,12 @@ int main(int argc, char **argv)
          center.z = z;
 
          Normalize(&center);
+
+         xcenter = atan2(center.y, center.x)/dtr;
+         ycenter = asin(center.z)/dtr;
+
+         while (xcenter <   0.) xcenter += 360.;
+         while (xcenter > 360.) xcenter -= 360.;
 
          for(i=0; i<4; ++i)
          {
@@ -481,11 +488,11 @@ int main(int argc, char **argv)
          /* Coordinates of center */
 
          pix2wcs(wcs, naxis1/2., naxis2/2., 
-            &xpos, &ypos);
+            &xcenter, &ycenter);
          
-         x0 = cos(ypos*dtr) * cos(xpos*dtr);
-         y0 = cos(ypos*dtr) * sin(xpos*dtr);
-         z0 = sin(ypos*dtr);
+         x0 = cos(ycenter*dtr) * cos(xcenter*dtr);
+         y0 = cos(ycenter*dtr) * sin(xcenter*dtr);
+         z0 = sin(ycenter*dtr);
 
          center.x = x0;
          center.y = y0;
@@ -588,12 +595,14 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("\nChecking image %d (%s) center: (%-g,%-g,%-g) against point: (%-g,%-g,%-g)\n",
+         printf("\nChecking image %d (%s) center: [%-g,%-g](%-g,%-g,%-g) against point: [%-g,%-g](%-g,%-g,%-g)\n",
             nimages,
             fname,
+            xcenter, ycenter,
             center.x,
             center.y,
             center.z,
+            ra, dec,
             point.x,
             point.y,
             point.z);

@@ -1772,7 +1772,7 @@ int main(int argc, char **argv)
    }
 
    if(jmin > jmax || imin > imax)
-      printError("All pixels are blank.");
+      printError("All pixels are blank. Check for overlap of output template with image file.");
 
 
    /********************************/
@@ -1854,7 +1854,7 @@ int main(int argc, char **argv)
    /***********************************************************/
 
 
-   if(fits_update_key_lng(output.fptr, "NAXIS", 3,
+   if(fits_update_key_lng(output.fptr, "NAXIS", output.naxis,
                                   (char *)NULL, &status))
       printFitsError(status);           
 
@@ -2381,6 +2381,13 @@ int readFits(char *filename, char *weightfile)
    if(fits_read_key(input.fptr, TLONG, "NAXIS", &(input.naxis), (char *)NULL, &status))
       printFitsError(status);           
 
+
+   if(input.naxis < 2 || input.naxis > 4)
+   {
+      sprintf(errstr, "Image file %s missing or invalid FITS", filename);
+      printError(errstr);
+   }
+   
 
    input.wcs = wcsinit(header);
 

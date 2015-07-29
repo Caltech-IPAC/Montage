@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        27Jul15  Test results updates
 1.0      John Good        30Jul14  Baseline code
 
 */
@@ -40,7 +41,7 @@ int  reorder[4];
 
 void  printFitsError  (int);
 void  printError      (char *);
-char *checkKeyword    (char *keyname, char *card);
+char *checkKeyword    (char *keyname, char *card, long naxis);
 int   initTransform   (long *naxis, long *NAXIS);
 void  transform       (int i, int j, int k, int l, int *it, int *jt, int *kt, int *lt);
 int   analyzeCTYPE    (fitsfile *inFptr);
@@ -75,12 +76,13 @@ int main(int argc, char **argv)
 
    char      *end;
 
-   char       card   [STRLEN];
-   char       newcard[STRLEN];
-   char       keyname[STRLEN];
-   char       value  [STRLEN];
-   char       comment[STRLEN];
-   char       errstr [STRLEN];
+   char       card    [STRLEN];
+   char       newcard [STRLEN];
+   char       keyname [STRLEN];
+   char       value   [STRLEN];
+   char       comment [STRLEN];
+   char       errstr  [STRLEN];
+   char       statfile[STRLEN];
 
    double     mindata, maxdata;
 
@@ -114,6 +116,8 @@ int main(int argc, char **argv)
    debug    = 0;
    fstatus  = stdout;
 
+   strcpy(statfile, "");
+
    for(i=0; i<argc; ++i)
    {
       if(strcmp(argv[i], "-s") == 0)
@@ -124,12 +128,7 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         if((fstatus = fopen(argv[i+1], "w+")) == (FILE *)NULL)
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-               argv[i+1]);
-            exit(1);
-         }
+         strcpy(statfile, argv[i+1]);
 
          argv += 2;
          argc -= 2;
@@ -147,13 +146,19 @@ int main(int argc, char **argv)
 
          if(end - argv[i+1] < strlen(argv[i+1]))
          {
-            printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
+            printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
             exit(1);
          }
 
          if(debug < 0)
          {
             printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
+            exit(1);
+         }
+
+         if(debug > 3)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Debug level range is 0 to 3\"]\n");
             exit(1);
          }
 
@@ -166,6 +171,16 @@ int main(int argc, char **argv)
    {
       printf ("[struct stat=\"ERROR\", msg=\"Usage: mTranspose [-d level] [-s statusfile] in.fits out.fits [outaxis1 outaxis2 [outaxis3 [outaxis4]]]\"]\n");
       exit(1);
+   }
+
+   if(strlen(statfile) > 0)
+   {
+      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
+      {
+         printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
+            statfile);
+         exit(1);
+      }
    }
 
    strcpy(inputFile, argv[1]);
@@ -206,7 +221,7 @@ int main(int argc, char **argv)
       nAxisIn[3] = 1;
 
    if(nfound < 3)
-      nAxisIn[1] = 1;
+      nAxisIn[2] = 1;
 
    naxis = nfound;
 
@@ -228,6 +243,12 @@ int main(int argc, char **argv)
    /* manually with command-line arguments.            */
    /****************************************************/
 
+   if(argc < naxis + 3)
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Image has %d dimensions.  You must list the output for all of them.\"]\n");
+      exit(1);
+   }
+      
    if(argc > 3)
    {
       order[0] = strtol(argv[3], &end, 0);
@@ -238,39 +259,74 @@ int main(int argc, char **argv)
          exit(1);
       }
 
-      order[1] = strtol(argv[4], &end, 0);
-
-      if(end < argv[4] + (int)strlen(argv[4]))
+      if(order[0] < 1 || order[0] > naxis)
       {
-         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 cannot be interpreted as an integer.\"]\n");
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 1 must be between 1 and %d.\"]\n", naxis);
          exit(1);
       }
 
-      if(argc > 5)
+      if(argc > 4)
       {
-         order[2] = strtol(argv[5], &end, 0);
+         order[1] = strtol(argv[4], &end, 0);
 
-         if(end < argv[5] + (int)strlen(argv[5]))
+         if(end < argv[4] + (int)strlen(argv[4]))
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 cannot be interpreted as an integer.\"]\n");
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 cannot be interpreted as an integer.\"]\n");
+            exit(1);
+         }
+
+         if(order[1] < 1 || order[1] > naxis)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 must be between 1 and %d.\"]\n", naxis);
+            exit(1);
+         }
+
+         if(argc > 5)
+         {
+            order[2] = strtol(argv[5], &end, 0);
+
+            if(end < argv[5] + (int)strlen(argv[5]))
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 cannot be interpreted as an integer.\"]\n");
+               exit(1);
+            }
+
+            if(order[2] < 1 || order[2] > naxis)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 must be between 1 and %d.\"]\n", naxis);
+               exit(1);
+            }
+
+            if(argc > 6)
+            {
+               order[3] = strtol(argv[6], &end, 0);
+
+               if(end < argv[6] + (int)strlen(argv[6]))
+               {
+                  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 cannot be interpreted as an integer.\"]\n");
+                  exit(1);
+               }
+
+               if(order[3] < 1 || order[3] > naxis)
+               {
+                  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 must be between 1 and %d.\"]\n", naxis);
+                  exit(1);
+               }
+            }
+         }
+      }
+   }
+
+   for(i=0; i<naxis; ++i)
+   {
+      for(j=0; j<i; ++j)
+      {
+         if(order[j] == order[i])
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output axis %d is the same as axis %d. They must be unique.\"]\n", i+1, j+1);
             exit(1);
          }
       }
-      else
-         order[2] = 3;
-
-      if(argc > 6)
-      {
-         order[3] = strtol(argv[6], &end, 0);
-
-         if(end < argv[6] + (int)strlen(argv[6]))
-         {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 cannot be interpreted as an integer.\"]\n");
-            exit(1);
-         }
-      }
-      else
-         order[3] = 4;
    }
 
    if(debug >= 1)
@@ -519,7 +575,7 @@ int main(int argc, char **argv)
       if(status)
          break;
 
-      strcpy(newcard, checkKeyword(keyname, card));
+      strcpy(newcard, checkKeyword(keyname, card, naxis));
 
       if(strlen(newcard) > 0)
       {
@@ -734,7 +790,8 @@ char *wcs[9] = { "NAXISn", "CRVALn", "CRPIXn",
                  "CROTAn", "CUNITn", "PCn_n" };
 int nwcs = 9;
 
-char *checkKeyword(char *keyname, char *card)
+
+char *checkKeyword(char *keyname, char *card, long naxis)
 {
    int i, j, match, index, newindex;
 
@@ -763,6 +820,15 @@ char *checkKeyword(char *keyname, char *card)
 
    for(i=0; i<nwcs; ++i)
    {
+      // NOTE: Its a bit of a kludge but in the case where 
+      // naxis=2 it is safer to not switch CROTA2 to CROTA1.
+      // CROTA2 has become a standard shorthand for the overall
+      // image rotation; a lot of software probably never thinks
+      // to check CROTA1
+
+      if(strncmp(wcs[i], "CROTA", 5) && naxis == 2)
+         continue;
+
       // Check keyword for match and convert as
       // we go.  Abandon if bad match.
 

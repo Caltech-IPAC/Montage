@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.0      John Good        29Jul15  Check for cube columns and do a little analysis
 2.7      John Good        27Sep12  Add max pixel size capability
 2.6      John Good        20Aug07  Add 'table of tables' capability
 2.5      John Good        07Aug07  Added check for "allsky" (large area) data
@@ -9,30 +10,30 @@ Version  Developer        Date     Change
 2.3      John Good        22Feb06  Removed extra (repeated) header lines
 2.2      John Good        17Nov05  Added flag (-p) to externally set pixel scale
 2.1      John Good        30Nov04  Forgot to check for pixel scale when
-				   using four corners (or lat,lon).
+                                   using four corners (or lat,lon).
 2.0      John Good        16Aug04  Added code to alternately check:
-				   four corners (equatorial) or four corners
-				   (arbitrary with system in header) or
-				   just a set of ra, dec or just a set of
-				   lon, lat (with system in header)
+                                   four corners (equatorial) or four corners
+                                   (arbitrary with system in header) or
+                                   just a set of ra, dec or just a set of
+                                   lon, lat (with system in header)
 1.9      John Good        10Aug04  Added four corners of region to output
 1.8      John Good        09Jan04  Fixed realloc() bug for 'lats'
 1.7      John Good        25Nov03  Added extern optarg references
 1.6      John Good        01Oct03  Add check for naxis1, naxis2 columns
-				   in addition to ns, nl
+                                   in addition to ns, nl
 1.5      John Good        25Aug03  Added status file processing
 1.4      John Good        27Jun03  Added a few comments for clarity
 1.3      John Good        09Apr03  Removed unused variable offscl
 1.2      John Good        22Mar03  Renamed wcsCheck to checkWCS
-				   for consistency.  Checking system
-				   and equinox strings on command line
-				   for validity
+                                   for consistency.  Checking system
+                                   and equinox strings on command line
+                                   for validity
 1.1      John Good        13Mar03  Added WCS header check and
                                    modified command-line processing
-				   to use getopt() library.  Check for 
+                                   to use getopt() library.  Check for 
                                    missing/invalid images.tbl.  Check
-				   for valid equinox and propogate to
-				   output header.
+                                   for valid equinox and propogate to
+                                   output header.
 1.0      John Good        29Jan03  Baseline code
 
 */
@@ -113,13 +114,15 @@ struct ImgInfo
 
 int main(int argc, char **argv)
 {
-   int     i, c, stat, ncols, nimages, ntables, maxfiles;
-   int     naxis1, naxis2, northAligned, datatype;
+   int     i, c, stat, ncols, nimages, ntables, maxfiles, naxis;
+   int     naxis1, naxis2, northAligned, datatype, nCube, cubeSize;
 
    int     sys, ifiles, pad, isPercentage, maxPixel;
    double  equinox, val, pixelScale;
 
    int     itable;
+
+   int     inaxis;
 
    int     ictype1;
    int     ictype2;
@@ -144,6 +147,7 @@ int main(int argc, char **argv)
    char    template [MAXSTR];
    char    epochStr [MAXSTR];
    char    csysStr  [MAXSTR];
+   char    msg      [MAXSTR];
 
    double  xpos, ypos;
    double  lon, lat;
@@ -217,7 +221,7 @@ int main(int argc, char **argv)
       switch (c) 
       {
          case 'n':
-	    northAligned = 1;
+            northAligned = 1;
             break;
 
          case 'd':
@@ -227,35 +231,35 @@ int main(int argc, char **argv)
          case 'e':
             pad = atoi(optarg);
 
-	    if(pad < 0)
-	    {
+            if(pad < 0)
+            {
                printf("[struct stat=\"ERROR\", msg=\"Invalid pad string: %s\"]\n",
                   optarg);
                exit(1);
-	    }
+            }
 
             if(strstr(optarg, "%"))
-	       isPercentage = 1;
+               isPercentage = 1;
 
             break;
 
          case 'P':
             maxPixel = atoi(optarg);
 
-	    if(maxPixel < 0)
-	       maxPixel = 0;
+            if(maxPixel < 0)
+               maxPixel = 0;
 
             break;
 
          case 'p':
             pixelScale = atof(optarg);
 
-	    if(pixelScale <=0)
-	    {
+            if(pixelScale <=0)
+            {
                printf("[struct stat=\"ERROR\", msg=\"Invalid pixel scale string: %s\"]\n",
                   optarg);
                exit(1);
-	    }
+            }
 
             break;
 
@@ -269,8 +273,8 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level] [-s statusfile] [-p(ixel-scale) cdelt | -P maxpixel] [-e edgepixels] [-n] images.tbl template.hdr [system [equinox]] (where system = EQUJ|EQUB|ECLJ|ECLB|GAL|SGAL)\"]\n", argv[0]);
-	    fflush(stdout);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level] [-s statusfile] [-p(ixel-scale) cdelt | -P maxpixel] [-e edgepixels] [-n] images.tbl template.hdr [system [equinox]] (where system = EQUJ|EQUB|ECLJ|ECLB|GAL|SGAL)\"]\n", argv[0]);
+            fflush(stdout);
             exit(1);
             break;
       }
@@ -299,9 +303,9 @@ int main(int argc, char **argv)
       else if(strcmp(argv[optind + 2], "SGAL") == 0) sys = SGAL;
       else
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid system string.  Must be EQUJ|EQUB|ECLJ|ECLB|GAL|SGAL\"]\n");
-	 fflush(stdout);
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid system string.  Must be EQUJ|EQUB|ECLJ|ECLB|GAL|SGAL\"]\n");
+         fflush(stdout);
+         exit(1);
       }
    }
 
@@ -362,24 +366,24 @@ int main(int argc, char **argv)
    {
       while(1)
       {
-	 stat = tread();
+         stat = tread();
 
-	 if(stat < 0)
-	    break;
+         if(stat < 0)
+            break;
 
-	 strcpy(fnames[ntables], tval(itable));
+         strcpy(fnames[ntables], tval(itable));
 
-	 ++ntables;
+         ++ntables;
 
-	 if(ntables >= maxfiles)
-	 {
-	    maxfiles += MAXFILES;
+         if(ntables >= maxfiles)
+         {
+            maxfiles += MAXFILES;
 
-	    fnames = (char **)malloc(maxfiles * sizeof(char *));
-	    
-	    for(i=maxfiles-MAXFILES; i<maxfiles; ++i)
-	       fnames[i] = (char *)malloc(MAXSTR * sizeof(char));
-	 }
+            fnames = (char **)malloc(maxfiles * sizeof(char *));
+            
+            for(i=maxfiles-MAXFILES; i<maxfiles; ++i)
+               fnames[i] = (char *)malloc(MAXSTR * sizeof(char));
+         }
       }
    }
 
@@ -389,6 +393,9 @@ int main(int argc, char **argv)
    /*********************************************/ 
    /* Loop over the set of image metadata files */
    /*********************************************/ 
+
+   nCube    = 0;
+   cubeSize = 0;
 
    for(ifiles=0; ifiles<ntables; ++ifiles)
    {
@@ -407,10 +414,15 @@ int main(int argc, char **argv)
 
       if(ncols <= 0)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid image metadata file: %s\"]\n",
-	    tblfile);
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid image metadata file: %s\"]\n",
+            tblfile);
+         exit(1);
       }
+
+      inaxis = tcol("NAXIS");
+
+      if(inaxis >= 0)
+         ++nCube;
       
 
       /* First check to see if we have four equatorial corners */
@@ -438,32 +450,32 @@ int main(int argc, char **argv)
       && ilat2 >= 0
       && ilat3 >= 0
       && ilat4 >= 0)
-	 datatype = FOURCORNERS;
+         datatype = FOURCORNERS;
 
 
       /* Then check for generic lon, lat corners */
 
       if(datatype == UNKNOWN)
       {
-	 ilon1 = tcol("lon1");
-	 ilon2 = tcol("lon2");
-	 ilon3 = tcol("lon3");
-	 ilon4 = tcol("lon4");
+         ilon1 = tcol("lon1");
+         ilon2 = tcol("lon2");
+         ilon3 = tcol("lon3");
+         ilon4 = tcol("lon4");
 
-	 ilat1 = tcol("lat1");
-	 ilat2 = tcol("lat2");
-	 ilat3 = tcol("lat3");
-	 ilat4 = tcol("lat4");
+         ilat1 = tcol("lat1");
+         ilat2 = tcol("lat2");
+         ilat3 = tcol("lat3");
+         ilat4 = tcol("lat4");
 
-	 if(ilon1 >= 0
-	 && ilon2 >= 0
-	 && ilon3 >= 0
-	 && ilon4 >= 0
-	 && ilat1 >= 0
-	 && ilat2 >= 0
-	 && ilat3 >= 0
-	 && ilat4 >= 0)
-	    datatype = FOURCORNERS;
+         if(ilon1 >= 0
+         && ilon2 >= 0
+         && ilon3 >= 0
+         && ilon4 >= 0
+         && ilat1 >= 0
+         && ilat2 >= 0
+         && ilat3 >= 0
+         && ilat4 >= 0)
+            datatype = FOURCORNERS;
       }
 
 
@@ -471,38 +483,38 @@ int main(int argc, char **argv)
 
       if(datatype == UNKNOWN)
       {
-	 ictype1  = tcol("ctype1");
-	 ictype2  = tcol("ctype2");
-	 iequinox = tcol("equinox");
-	 inl      = tcol("nl");
-	 ins      = tcol("ns");
-	 icrval1  = tcol("crval1");
-	 icrval2  = tcol("crval2");
-	 icrpix1  = tcol("crpix1");
-	 icrpix2  = tcol("crpix2");
-	 icdelt1  = tcol("cdelt1");
-	 icdelt2  = tcol("cdelt2");
-	 icrota2  = tcol("crota2");
-	 iepoch   = tcol("epoch");
+         ictype1  = tcol("ctype1");
+         ictype2  = tcol("ctype2");
+         iequinox = tcol("equinox");
+         inl      = tcol("nl");
+         ins      = tcol("ns");
+         icrval1  = tcol("crval1");
+         icrval2  = tcol("crval2");
+         icrpix1  = tcol("crpix1");
+         icrpix2  = tcol("crpix2");
+         icdelt1  = tcol("cdelt1");
+         icdelt2  = tcol("cdelt2");
+         icrota2  = tcol("crota2");
+         iepoch   = tcol("epoch");
 
-	 if(ins < 0)
-	    ins = tcol("naxis1");
+         if(ins < 0)
+            ins = tcol("naxis1");
 
-	 if(inl < 0)
-	    inl = tcol("naxis2");
+         if(inl < 0)
+            inl = tcol("naxis2");
 
-	 if(ictype1 >= 0
-	 && ictype2 >= 0
-	 && inl     >= 0
-	 && ins     >= 0
-	 && icrval1 >= 0
-	 && icrval2 >= 0
-	 && icrpix1 >= 0
-	 && icrpix2 >= 0
-	 && icdelt1 >= 0
-	 && icdelt2 >= 0
-	 && icrota2 >= 0)
-	    datatype = WCS;
+         if(ictype1 >= 0
+         && ictype2 >= 0
+         && inl     >= 0
+         && ins     >= 0
+         && icrval1 >= 0
+         && icrval2 >= 0
+         && icrpix1 >= 0
+         && icrpix2 >= 0
+         && icdelt1 >= 0
+         && icdelt2 >= 0
+         && icrota2 >= 0)
+            datatype = WCS;
       }
 
 
@@ -510,32 +522,32 @@ int main(int argc, char **argv)
 
       if(datatype == UNKNOWN)
       {
-	 ilon1 = tcol("ra");
-	 ilat1 = tcol("dec");
+         ilon1 = tcol("ra");
+         ilat1 = tcol("dec");
 
-	 if(ilon1 >= 0
-	 && ilat1 >= 0)
-	    datatype = LONLAT;
+         if(ilon1 >= 0
+         && ilat1 >= 0)
+            datatype = LONLAT;
       }
 
       if(datatype == UNKNOWN)
       {
-	 ilon1 = tcol("lon");
-	 ilat1 = tcol("lat");
+         ilon1 = tcol("lon");
+         ilat1 = tcol("lat");
 
-	 if(ilon1 >= 0
-	 && ilat1 >= 0)
-	    datatype = LONLAT;
+         if(ilon1 >= 0
+         && ilat1 >= 0)
+            datatype = LONLAT;
       }
 
       if(datatype == UNKNOWN)
       {
-	 ilon1 = tcol("crval1");
-	 ilat1 = tcol("crval2");
+         ilon1 = tcol("crval1");
+         ilat1 = tcol("crval2");
 
-	 if(ilon1 >= 0
-	 && ilat1 >= 0)
-	    datatype = LONLAT;
+         if(ilon1 >= 0
+         && ilat1 >= 0)
+            datatype = LONLAT;
       }
 
 
@@ -543,8 +555,8 @@ int main(int argc, char **argv)
 
       if(datatype == UNKNOWN)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Need columns: ctype1 ctype2 nl ns crval1 crval2 crpix1 crpix2 cdelt1 cdelt2 crota2 (equinox optional).  Four corners (equatorial) will be used if they exist or even just a single set of coordinates\"]\n");
-	 exit(0);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Need columns: ctype1 ctype2 nl ns crval1 crval2 crpix1 crpix2 cdelt1 cdelt2 crota2 (equinox optional).  Four corners (equatorial) will be used if they exist or even just a single set of coordinates\"]\n");
+         exit(0);
       }
 
 
@@ -562,22 +574,22 @@ int main(int argc, char **argv)
       keyval = tfindkey("EQUINOX");
 
       if(keyval != (char *)NULL)
-	strcpy(epochStr, keyval);  
+        strcpy(epochStr, keyval);  
 
       keyval = tfindkey("EPOCH");
 
       if(keyval != (char *)NULL)
-	strcpy(epochStr, keyval);  
+        strcpy(epochStr, keyval);  
 
       keyval = tfindkey("equinox");
 
       if(keyval != (char *)NULL)
-	strcpy(epochStr, keyval);  
+        strcpy(epochStr, keyval);  
 
       keyval = tfindkey("epoch");
 
       if(keyval != (char *)NULL)
-	strcpy(epochStr, keyval);  
+        strcpy(epochStr, keyval);  
 
 
       /* Coordinate system */
@@ -585,81 +597,81 @@ int main(int argc, char **argv)
       keyval = tfindkey("CSYS");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("SYSTEM");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("SYS");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("COORD");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("COORDSYS");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("csys");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("system");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("sys");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("coord");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       keyval = tfindkey("coordsys");
 
       if(keyval != (char *)NULL)
-	strcpy(csysStr, keyval);
+        strcpy(csysStr, keyval);
 
       for(i=0; i<strlen(csysStr); ++i)
-	 csysStr[i] = tolower(csysStr[i]);
+         csysStr[i] = tolower(csysStr[i]);
       
       if(epochStr[0] == 'j'
       || epochStr[0] == 'J')
       {
-	 refsys = 'j';
-	 input.epoch = atof(epochStr+1);
+         refsys = 'j';
+         input.epoch = atof(epochStr+1);
       }
       else if(epochStr[0] == 'b'
-	   || epochStr[0] == 'B')
+           || epochStr[0] == 'B')
       {
-	 refsys = 'b';
-	 input.epoch = atof(epochStr+1);
+         refsys = 'b';
+         input.epoch = atof(epochStr+1);
       }
       else
       {
-	 refsys = 'j';
-	 input.epoch = atof(epochStr);
+         refsys = 'j';
+         input.epoch = atof(epochStr);
 
-	 if(input.epoch == 0.)
-	    input.epoch = 2000.;
+         if(input.epoch == 0.)
+            input.epoch = 2000.;
       }
 
       if(csysStr[strlen(csysStr)-1] == 'j')
-	 refsys = 'j';
+         refsys = 'j';
       else if(csysStr[strlen(csysStr)-1] == 'j')
-	 refsys = 'b';
+         refsys = 'b';
 
       if(strncmp(csysStr, "eq", 2) == 0 && refsys == 'j') input.sys = EQUJ;
       if(strncmp(csysStr, "ec", 2) == 0 && refsys == 'j') input.sys = ECLJ;
@@ -678,266 +690,285 @@ int main(int argc, char **argv)
 
       while(1)
       {
-	 stat = tread();
-
-	 if(stat < 0)
-	    break;
-
-	 ++nimages;
-
-	 if(datatype == LONLAT)
-	 {
-	    xpos = atof(tval(ilon1));
-	    ypos = atof(tval(ilat1));
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-
-	    if(icdelt1 >= 0)
-	    {
-	       val = fabs(atof(tval(icdelt1)));
-
-	       if(val < minCdelt)
-		  minCdelt = val;
-	    }
-
-	    if(icdelt2 >= 0)
-	    {
-	       val = fabs(atof(tval(icdelt2)));
-
-	       if(val < minCdelt)
-		  minCdelt = val;
-	    }
-	 }	 
-	 if(datatype == FOURCORNERS)
-	 {
-	    xpos = atof(tval(ilon1));
-	    ypos = atof(tval(ilat1));
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-	    
-	    xpos = atof(tval(ilon2));
-	    ypos = atof(tval(ilat2));
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-	    
-	    xpos = atof(tval(ilon3));
-	    ypos = atof(tval(ilat3));
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-	    
-	    xpos = atof(tval(ilon4));
-	    ypos = atof(tval(ilat4));
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-
-	    if(icdelt1 >= 0)
-	    {
-	       val = fabs(atof(tval(icdelt1)));
-
-	       if(val < minCdelt)
-		  minCdelt = val;
-	    }
-
-	    if(icdelt2 >= 0)
-	    {
-	       val = fabs(atof(tval(icdelt2)));
-
-	       if(val < minCdelt)
-		  minCdelt = val;
-	    }
-	 }
-	 else if(datatype == WCS)
-	 {
-	    strcpy(input.ctype1, tval(ictype1));
-	    strcpy(input.ctype2, tval(ictype2));
-
-	    input.naxis1    = atoi(tval(ins));
-	    input.naxis2    = atoi(tval(inl));
-	    input.crpix1    = atof(tval(icrpix1));
-	    input.crpix2    = atof(tval(icrpix2));
-	    input.crval1    = atof(tval(icrval1));
-	    input.crval2    = atof(tval(icrval2));
-	    input.cdelt1    = atof(tval(icdelt1));
-	    input.cdelt2    = atof(tval(icdelt2));
-	    input.crota2    = atof(tval(icrota2));
-	    input.equinox   = 2000;
-
-	    if(iequinox >= 0)
-	       input.equinox = atoi(tval(iequinox));
-	    
-	    if(fabs(input.cdelt1) < minCdelt) minCdelt = fabs(input.cdelt1);
-	    if(fabs(input.cdelt2) < minCdelt) minCdelt = fabs(input.cdelt2);
-
-	    strcpy(header, "");
-	    sprintf(temp, "SIMPLE  = T"                    ); stradd(header, temp);
-	    sprintf(temp, "BITPIX  = -64"                  ); stradd(header, temp);
-	    sprintf(temp, "NAXIS   = 2"                    ); stradd(header, temp);
-	    sprintf(temp, "NAXIS1  = %d",     input.naxis1 ); stradd(header, temp);
-	    sprintf(temp, "NAXIS2  = %d",     input.naxis2 ); stradd(header, temp);
-	    sprintf(temp, "CTYPE1  = '%s'",   input.ctype1 ); stradd(header, temp);
-	    sprintf(temp, "CTYPE2  = '%s'",   input.ctype2 ); stradd(header, temp);
-	    sprintf(temp, "CRVAL1  = %11.6f", input.crval1 ); stradd(header, temp);
-	    sprintf(temp, "CRVAL2  = %11.6f", input.crval2 ); stradd(header, temp);
-	    sprintf(temp, "CRPIX1  = %11.6f", input.crpix1 ); stradd(header, temp);
-	    sprintf(temp, "CRPIX2  = %11.6f", input.crpix2 ); stradd(header, temp);
-	    sprintf(temp, "CDELT1  = %14.9f", input.cdelt1 ); stradd(header, temp);
-	    sprintf(temp, "CDELT2  = %14.9f", input.cdelt2 ); stradd(header, temp);
-	    sprintf(temp, "CROTA2  = %11.6f", input.crota2 ); stradd(header, temp);
-	    sprintf(temp, "EQUINOX = %d",     input.equinox); stradd(header, temp);
-	    sprintf(temp, "END"                            ); stradd(header, temp);
-	    
-	    input.wcs = wcsinit(header);
-				   
-	    if(input.wcs == (struct WorldCoor *)NULL)
-	    {
-	       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad WCS for image %d\"]\n", 
-		  nimages);
-	       exit(0);
-	    }
-
-	    checkWCS(input.wcs, 0);
-
-
-	    /* Get the coordinate system and epoch in a     */
-	    /* form compatible with the conversion library  */
-
-	    if(input.wcs->syswcs == WCS_J2000)
-	    {
-	       input.sys   = EQUJ;
-	       input.epoch = 2000.;
-
-	       if(input.wcs->equinox == 1950)
-		  input.epoch = 1950.;
-	    }
-	    else if(input.wcs->syswcs == WCS_B1950)
-	    {
-	       input.sys   = EQUB;
-	       input.epoch = 1950.;
-
-	       if(input.wcs->equinox == 2000)
-		  input.epoch = 2000;
-	    }
-	    else if(input.wcs->syswcs == WCS_GALACTIC)
-	    {
-	       input.sys   = GAL;
-	       input.epoch = 2000.;
-	    }
-	    else if(input.wcs->syswcs == WCS_ECLIPTIC)
-	    {
-	       input.sys   = ECLJ;
-	       input.epoch = 2000.;
-
-	       if(input.wcs->equinox == 1950)
-	       {
-		  input.sys   = ECLB;
-		  input.epoch = 1950.;
-	       }
-	    }
-	    else       
-	    {
-	       input.sys   = EQUJ;
-	       input.epoch = 2000.;
-	    }
-
-
-
-	    /* Collect the locations of the corners of the images */
-
-	    pix2wcs(input.wcs, 0.5, 0.5, &xpos, &ypos);
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-
-
-	    pix2wcs(input.wcs, input.naxis1+0.5, 0.5, &xpos, &ypos);
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-
-
-	    pix2wcs(input.wcs, input.naxis1+0.5, input.naxis2+0.5,
-		    &xpos, &ypos);
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-
-
-	    pix2wcs(input.wcs, 0.5, input.naxis2+0.5, &xpos, &ypos);
-
-	    convertCoordinates(input.sys, input.epoch, xpos, ypos,
-			       sys, equinox, &lon, &lat, 0.0);
-
-	    lons[ncoords] = lon;
-	    lats[ncoords] = lat;
-
-	    ++ncoords;
-	 }
-
-	 if(pixelScale > 0.)
-	    minCdelt = pixelScale;
-
-	 if(ncoords >= maxcoords)
-	 {
-	    maxcoords += MAXCOORD;
-
-	    lons = (double *)realloc(lons, maxcoords * sizeof(double));
-	    lats = (double *)realloc(lats, maxcoords * sizeof(double));
-
-	    if(lats == (double *)NULL)
-	    {
-	       fclose(fout);
-
-	       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Memory allocation failure.\"]\n");
-	       fflush(stdout);
-
-	       exit(0);
-	    }
-	 }
+         stat = tread();
+
+         if(stat < 0)
+            break;
+
+         ++nimages;
+
+         if(inaxis >= 0)
+         {
+            if(tnull(inaxis))
+               naxis = -1;
+            else
+               naxis = atoi(tval(inaxis));
+
+            if(naxis == -1)
+               cubeSize = -1;
+            else
+            {
+               if(cubeSize == 0)
+                  cubeSize = naxis;
+               else
+                  if(naxis != cubeSize)
+                     cubeSize = -1;
+            }
+         }
+
+         if(datatype == LONLAT)
+         {
+            xpos = atof(tval(ilon1));
+            ypos = atof(tval(ilat1));
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+
+            if(icdelt1 >= 0)
+            {
+               val = fabs(atof(tval(icdelt1)));
+
+               if(val < minCdelt)
+                  minCdelt = val;
+            }
+
+            if(icdelt2 >= 0)
+            {
+               val = fabs(atof(tval(icdelt2)));
+
+               if(val < minCdelt)
+                  minCdelt = val;
+            }
+         }         
+         if(datatype == FOURCORNERS)
+         {
+            xpos = atof(tval(ilon1));
+            ypos = atof(tval(ilat1));
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+            
+            xpos = atof(tval(ilon2));
+            ypos = atof(tval(ilat2));
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+            
+            xpos = atof(tval(ilon3));
+            ypos = atof(tval(ilat3));
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+            
+            xpos = atof(tval(ilon4));
+            ypos = atof(tval(ilat4));
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+
+            if(icdelt1 >= 0)
+            {
+               val = fabs(atof(tval(icdelt1)));
+
+               if(val < minCdelt)
+                  minCdelt = val;
+            }
+
+            if(icdelt2 >= 0)
+            {
+               val = fabs(atof(tval(icdelt2)));
+
+               if(val < minCdelt)
+                  minCdelt = val;
+            }
+         }
+         else if(datatype == WCS)
+         {
+            strcpy(input.ctype1, tval(ictype1));
+            strcpy(input.ctype2, tval(ictype2));
+
+            input.naxis1    = atoi(tval(ins));
+            input.naxis2    = atoi(tval(inl));
+            input.crpix1    = atof(tval(icrpix1));
+            input.crpix2    = atof(tval(icrpix2));
+            input.crval1    = atof(tval(icrval1));
+            input.crval2    = atof(tval(icrval2));
+            input.cdelt1    = atof(tval(icdelt1));
+            input.cdelt2    = atof(tval(icdelt2));
+            input.crota2    = atof(tval(icrota2));
+            input.equinox   = 2000;
+
+            if(iequinox >= 0)
+               input.equinox = atoi(tval(iequinox));
+            
+            if(fabs(input.cdelt1) < minCdelt) minCdelt = fabs(input.cdelt1);
+            if(fabs(input.cdelt2) < minCdelt) minCdelt = fabs(input.cdelt2);
+
+            strcpy(header, "");
+            sprintf(temp, "SIMPLE  = T"                    ); stradd(header, temp);
+            sprintf(temp, "BITPIX  = -64"                  ); stradd(header, temp);
+            sprintf(temp, "NAXIS   = 2"                    ); stradd(header, temp);
+            sprintf(temp, "NAXIS1  = %d",     input.naxis1 ); stradd(header, temp);
+            sprintf(temp, "NAXIS2  = %d",     input.naxis2 ); stradd(header, temp);
+            sprintf(temp, "CTYPE1  = '%s'",   input.ctype1 ); stradd(header, temp);
+            sprintf(temp, "CTYPE2  = '%s'",   input.ctype2 ); stradd(header, temp);
+            sprintf(temp, "CRVAL1  = %11.6f", input.crval1 ); stradd(header, temp);
+            sprintf(temp, "CRVAL2  = %11.6f", input.crval2 ); stradd(header, temp);
+            sprintf(temp, "CRPIX1  = %11.6f", input.crpix1 ); stradd(header, temp);
+            sprintf(temp, "CRPIX2  = %11.6f", input.crpix2 ); stradd(header, temp);
+            sprintf(temp, "CDELT1  = %14.9f", input.cdelt1 ); stradd(header, temp);
+            sprintf(temp, "CDELT2  = %14.9f", input.cdelt2 ); stradd(header, temp);
+            sprintf(temp, "CROTA2  = %11.6f", input.crota2 ); stradd(header, temp);
+            sprintf(temp, "EQUINOX = %d",     input.equinox); stradd(header, temp);
+            sprintf(temp, "END"                            ); stradd(header, temp);
+            
+            input.wcs = wcsinit(header);
+                                   
+            if(input.wcs == (struct WorldCoor *)NULL)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Bad WCS for image %d\"]\n", 
+                  nimages);
+               exit(0);
+            }
+
+            checkWCS(input.wcs, 0);
+
+
+            /* Get the coordinate system and epoch in a     */
+            /* form compatible with the conversion library  */
+
+            if(input.wcs->syswcs == WCS_J2000)
+            {
+               input.sys   = EQUJ;
+               input.epoch = 2000.;
+
+               if(input.wcs->equinox == 1950)
+                  input.epoch = 1950.;
+            }
+            else if(input.wcs->syswcs == WCS_B1950)
+            {
+               input.sys   = EQUB;
+               input.epoch = 1950.;
+
+               if(input.wcs->equinox == 2000)
+                  input.epoch = 2000;
+            }
+            else if(input.wcs->syswcs == WCS_GALACTIC)
+            {
+               input.sys   = GAL;
+               input.epoch = 2000.;
+            }
+            else if(input.wcs->syswcs == WCS_ECLIPTIC)
+            {
+               input.sys   = ECLJ;
+               input.epoch = 2000.;
+
+               if(input.wcs->equinox == 1950)
+               {
+                  input.sys   = ECLB;
+                  input.epoch = 1950.;
+               }
+            }
+            else       
+            {
+               input.sys   = EQUJ;
+               input.epoch = 2000.;
+            }
+
+
+
+            /* Collect the locations of the corners of the images */
+
+            pix2wcs(input.wcs, 0.5, 0.5, &xpos, &ypos);
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+
+
+            pix2wcs(input.wcs, input.naxis1+0.5, 0.5, &xpos, &ypos);
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+
+
+            pix2wcs(input.wcs, input.naxis1+0.5, input.naxis2+0.5,
+                    &xpos, &ypos);
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+
+
+            pix2wcs(input.wcs, 0.5, input.naxis2+0.5, &xpos, &ypos);
+
+            convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                               sys, equinox, &lon, &lat, 0.0);
+
+            lons[ncoords] = lon;
+            lats[ncoords] = lat;
+
+            ++ncoords;
+         }
+
+         if(pixelScale > 0.)
+            minCdelt = pixelScale;
+
+         if(ncoords >= maxcoords)
+         {
+            maxcoords += MAXCOORD;
+
+            lons = (double *)realloc(lons, maxcoords * sizeof(double));
+            lats = (double *)realloc(lats, maxcoords * sizeof(double));
+
+            if(lats == (double *)NULL)
+            {
+               fclose(fout);
+
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Memory allocation failure.\"]\n");
+               fflush(stdout);
+
+               exit(0);
+            }
+         }
       }
 
       tclose();
@@ -1012,9 +1043,9 @@ int main(int argc, char **argv)
       naxis2 = box->latSize / minCdelt;
 
       if(naxis1 > naxis2)
-	 pad = pad / 100. * naxis1;
+         pad = pad / 100. * naxis1;
       else
-	 pad = pad / 100. * naxis2;
+         pad = pad / 100. * naxis2;
    }
 
    if(debugLevel >= 1)
@@ -1122,15 +1153,39 @@ int main(int argc, char **argv)
 
    if(debugLevel != 1)
    {
-      fprintf(fstatus, "[struct stat=\"OK\", count=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
-	 nimages, 
-	 box->centerLon, box->centerLat,
-	 minCdelt*naxis1, minCdelt*naxis2,
-	 box->posAngle,
-	 lons[0], lats[0],
-	 lons[1], lats[1],
-	 lons[2], lats[2],
-	 lons[3], lats[3]);
+      strcpy(msg, "");
+
+      if(nCube > 0 && cubeSize != 2)
+      {
+         if(cubeSize == -1)
+            strcmp(msg, "WARNING: Cube data but not of uniform dimensionality.");
+         else
+            sprintf(msg, "%d dimensional cubes, update header as appropriate.", cubeSize);
+      }
+
+      if(strlen(msg) == 0)
+         fprintf(fstatus, "[struct stat=\"OK\", count=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
+            nimages, 
+            box->centerLon, box->centerLat,
+            minCdelt*naxis1, minCdelt*naxis2,
+            box->posAngle,
+            lons[0], lats[0],
+            lons[1], lats[1],
+            lons[2], lats[2],
+            lons[3], lats[3]);
+
+      else
+         fprintf(fstatus, "[struct stat=\"OK\", msg=\"%s\", count=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
+            msg,
+            nimages, 
+            box->centerLon, box->centerLat,
+            minCdelt*naxis1, minCdelt*naxis2,
+            box->posAngle,
+            lons[0], lats[0],
+            lons[1], lats[1],
+            lons[2], lats[2],
+            lons[3], lats[3]);
+
       fflush(stdout);
    }
 
@@ -1150,7 +1205,7 @@ int stradd(char *header, char *card)
 
    if(clen < 80)
       for(i=clen; i<80; ++i)
-	 header[hlen+i] = ' ';
+         header[hlen+i] = ' ';
    
    header[hlen+80] = '\0';
 
@@ -1203,7 +1258,7 @@ int readTemplate(char *filename)
          line[strlen(line)-1]  = '\0';
       
       if(line[strlen(line)-1] == '\r')
-	 line[strlen(line)-1]  = '\0';
+         line[strlen(line)-1]  = '\0';
 
       if(debugLevel >= 3)
       {

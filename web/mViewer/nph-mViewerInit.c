@@ -280,13 +280,7 @@ int main(int argc, char *argv[], char *envp[])
          
          /* Copy/link M51 demo data */
 
-         if(strcmp(set, "m51_small") == 0)
-         {
-            link_file("viewer.json",       set, directory);
-            link_file("sdss_g_small.fits", set, directory);
-         }
-
-         else if(strcmp(set, "m51") == 0)
+         if(strcmp(set, "m51") == 0)
          {
             link_file("viewer.json", set, directory);
             link_file("sdss_g.fits", set, directory);
@@ -306,36 +300,6 @@ int main(int argc, char *argv[], char *envp[])
             link_file("mipssed.tbl",    set, directory);
             link_file("mipsscan.tbl",   set, directory);
             link_file("fp_2mass.tbl",   set, directory);
-         }
-
-         else if(strcmp(set, "m51_color_small") == 0)
-         {
-            link_file("viewer.json",       set, directory);
-            link_file("sdss_u_small.fits", set, directory);
-            link_file("sdss_g_small.fits", set, directory);
-            link_file("sdss_r_small.fits", set, directory);
-            link_file("iracmap.tbl",       set, directory);
-            link_file("iracmap_pc.tbl",    set, directory);
-            link_file("irsmap.tbl",        set, directory);
-            link_file("irspeakup.tbl",     set, directory);
-            link_file("irsstare.tbl",      set, directory);
-            link_file("mipssed.tbl",       set, directory);
-            link_file("mipsscan.tbl",      set, directory);
-            link_file("fp_2mass.tbl",      set, directory);
-         }
-
-         else if(strcmp(set, "spitzer") == 0)
-         {
-            link_file("viewer.json",        set, directory);
-            link_file("spitzer_north.fits", set, directory);
-            link_file("iracmap.tbl",        set, directory);
-            link_file("iracmap_pc.tbl",     set, directory);
-            link_file("irsmap.tbl",         set, directory);
-            link_file("irspeakup.tbl",      set, directory);
-            link_file("irsstare.tbl",       set, directory);
-            link_file("mipssed.tbl",        set, directory);
-            link_file("mipsscan.tbl",       set, directory);
-            link_file("fp_2mass.tbl",       set, directory);
          }
 
          else if(strcmp(set, "FinderChart") == 0)
