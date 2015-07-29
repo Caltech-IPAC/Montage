@@ -1,0 +1,225 @@
+
+  .pagetbl     {background-color:#aaaaaa; border:0px inset #202020; 
+		   padding:0px;text-align:center; margin: 0px auto 0px auto; 
+		   font-size:11px;}
+  .pagetbl      {background-color:#ffffff; border:1px inset #202020; 
+		   padding:0px;text-align:center; margin: 0px auto 0px auto; 
+		   font-size:11px;}
+
+  .tblwhite      {background-color:#ffffff; border:0px inset #202020; 
+		   padding:0px;text-align:left; margin: 5px auto auto 5px; 
+		   vertical-align:top; font-size:11px;}
+  
+  .tblwhitenomargin  {background-color:#ffffff; border:0px inset #202020; 
+		   padding:0px;text-align:left; margin: 0px auto auto 0px; 
+		   vertical-align:top; font-size:11px;}
+  
+  .tblaliceblue     {background-color:#f0f8ff; border:0px inset #202020; 
+		   padding:10px 0px 0px 0px;text-align:left; 
+		   margin: 0px 5px 0px 5px; vertical-align:top;}
+
+  .tblalicebluenomargin   {background-color:#f0f8ff; border:0px inset #202020; 
+		   padding:0px 0px 0px 0px;text-align:left; 
+		   margin: 0px 0px 0px 0px; vertical-align:top;}
+
+
+  .tbltbldisp  {background-color:#ffffff; border:0px inset #202020; 
+		   padding:0px;text-align:left; margin: 0px auto auto 10px; 
+		   font-size:11px;}
+
+  .tblimdisp   {background-color:#ffffff; border:0px inset #202020; 
+		 padding:0px; text-align:left; margin: 0px 0px auto 0px; 
+		 font-size:11px; width:600px}
+
+  .tblrefdisp  {background-color:#ffffff; border:0px inset #202020;
+		   padding:0px;text-align:left; margin: 0px auto auto 0px; 
+		   font-size:11px; width:300px}
+
+  .tblrefcontrol {background-color:#ffffff; border:0px inset #202020; 
+		  padding:0px; text-align:left; vertical-align:top;
+		  margin: 0px auto auto 0px; font-size:11px;}
+
+  .tblbuttoncontrol {background-color:#ffffff; border:0px inset #202020; 
+		   padding:0px; text-align:left; vertical-align:top;
+		   margin: 0px auto auto 0px; font-size:11px;}
+
+
+  .tbllist        {background-color:#ffffff; border:0px solid #202020; 
+		   padding:0px; text-align:center; margin: 0px 0px 0px 0px;
+		   font-size:11px;}
+  .tdtitle        {border: 1px inset #202020; 
+		   background-color: #d0d0d0; text-align:center;
+		   vertical-align:middle; padding: 5px; white-space: nowrap; }
+
+  .tdcontrol {border:0px inset #202020;
+	      background-color: #ffffff; text-align:left; 
+	      vertical-align:top; padding:0px; margin:0px auto auto 0px;}
+
+  
+  .tdim           {border:1px inset #202020;
+		   background-color: #ffffff; text-align:left; 
+		   vertical-align:top; padding: 0px 2px 0px 2px;
+		   width:600px;}
+
+  .tdrefim       {border:1px inset #202020;
+		   background-color: #ffffff; text-align:left; 
+		   vertical-align:top; padding: 0px 2px 0px 2px;
+		   width:300px;}
+
+  .tdplt           {border:0px inset #202020;
+		   background-color: #ffffff; text-align:left; 
+		   vertical-align:top; padding:0px;}
+
+  .tdrefplt       {border:0px inset #202020;
+		   background-color: #ff0000; text-align:left; 
+		   vertical-align:top; padding:0px;}
+
+  .tdgrey  {border: 0px solid #202020;
+	   background-color: #e0e0e0; text-align:center; 
+	   vertical-align:middle; padding: 0px 2px 1px 2px; 
+	   margin: 0px auto 0px auto;}
+  
+  .tdwhite {border:0px inset #202020;
+	   background-color: #ffffff; text-align:left; 
+	   vertical-align:middle; padding: 0px;
+	   margin: 0px auto auto 0px;}
+  
+  .tdaliceblue {border:0px inset #202020;
+	   background-color: #f0f8ff; text-align:left; 
+	   vertical-align:middle; padding: 0px;
+	   margin: 0px auto auto 0px;}
+  
+  
+  .tdgrey         {border: 0px solid #202020;
+		   background-color: #e0e0e0; text-align:center; 
+		   vertical-align:middle; padding: 0px 2px 1px 2px; 
+		   margin: 0px auto 0px auto;}
+  
+  .tdgreynowrap   {border:0px inset #202020;
+		   background-color: #e0e0e0; text-align:left; 
+		   vertical-align:middle; padding: 0px 3px 0px 3px; 
+		   white-space: nowrap; }
+  .tdwhitenowrap  {border:0px inset #202020;
+		   background-color: #ffffff; text-align:left; 
+		   vertical-align:middle; padding: 0px 3px 0px 3px; 
+		   white-space: nowrap; }
+  .tdinvisible    {border:0px inset #202020;
+		   background-color: #ffffff; text-align:center; 
+		   vertical-align:middle; padding: 0px 3px 0px 3px; 
+		   display:none; white-space: nowrap; }
+  .tdlabel        {border:0px inset #202020;
+		   background-color: #ffffff; text-align:left; 
+		   vertical-align:middle; padding: 0px 3px 0px 3px; 
+		   white-space: nowrap; font-size:11px;}
+  .tdbutton       {border:1px inset #202020;
+		   background-color: #6495ed; text-align:center; 
+		   vertical-align:middle; padding: 3px; 
+		   white-space: nowrap; font-size:11px;}
+
+   select {font-size:11px;}
+   input {font-size:11px;}
+
+   input.submitBtn {
+       color:#114477;
+       font:bold 12px 'trebuchet ms',helvetica,sans-serif;
+    }
+   
+   input.btn {
+       color:#114477;
+       font:bold 12px 'trebuchet ms',helvetica,sans-serif;
+    }
+   
+   input.smallbtn {
+       color:#114477;
+       font:bold 10px 'trebuchet ms',helvetica,sans-serif;
+    }
+
+   textarea#imcoord {
+    
+       border:      0px solid #d0d0d0;
+       margin:      2px 2px 0px 0px; 
+       width:       150px;
+       height:      200px;
+       overflow:    auto;
+       text-align:  left;
+       color:       #114477;
+       font-size:   11px;
+       font-weight: bold;
+       padding:     1px;
+   }
+   
+
+   div.tabArea 
+   {
+     font-size:              12px;
+     font-weight:            bold;
+     padding:                1px 1px 1px 1px;
+   }
+
+   a.tab 
+   {
+     background-color:       #c0c0ff;
+     border:                 2px solid #000000;
+     border-bottom-width:    0px;
+     border-color:           #c0c0ff #9090ee #9090ee #c0c0ff;
+     color:                  #202020;
+     border-radius:          6px;
+     padding:                2px 1em 2px 1em;
+     position:               relative;
+     text-decoration:        none;
+     top:                    4px;
+     z-index:                100;
+   }
+
+   a.tab:hover
+   {
+     background-color:       #a0a0f0;
+     border-color:           #b0b0f0 #60b0b0 #b0b0b0 #b0b0f0;
+     color:                  #ffffff;
+   }
+
+   a.tab.activeTab, a.tab.activeTab:hover, a.tab.activeTab:visited 
+   {
+     background-color:       #8080d0;
+     border-color:           #a0a0f0 #6060b0 #6060b0 #a0a0f0;
+     color:                  #ffffff;
+   }
+
+   a.tab.activeTab 
+   {
+      padding-bottom:        3px;
+      top:                   4px;
+      z-index:               102;
+   }
+
+
+  
+  .impage       {background-color:#ffffff; border:0px inset #202020; 
+                  padding:2px; font-size:10px;}
+  
+  .imcontroltbl {background-color:#f8f8f8; border:1px inset #202020; 
+		  padding:0px; text-align:left; margin: 2px auto auto 0px;} 
+  
+  .buttontbl {background-color:#ffffff; border:0px inset #202020; 
+		  padding:2px; text-align:left; margin: 2px auto auto 0px;} 
+
+  .imtitletd1   {border: 1px inset #202020; 
+		  background-color: #d8d8d8; text-align:left; font-size:10px;
+		  vertical-align:middle; padding:2px; white-space: nowrap; }
+
+  .imtitletd2   {border: 1px inset #202020; 
+		  background-color: #d8d8d8; text-align:center; font-size:12px;
+		  vertical-align:middle; padding:2px; white-space: nowrap; }
+
+  .imvaltd     {border: 1px inset #202020; background-color: #ffffff; 
+                  text-align:left; font-size:12px;
+		  vertical-align:middle; padding:2px; white-space: nowrap; }
+  
+  .imvaltd2    {border: 1px inset #202020; background-color: #ffffff; 
+                  text-align:center; font-size:12px;
+		  vertical-align:middle; padding:2px; white-space: nowrap; }
+
+  .iminfotd     {border: 1px inset #202020; background-color: #f0f0f0; 
+                  text-align:left; font-size:12px;
+		  vertical-align:middle; padding:0px; white-space: nowrap; }
+

@@ -73,11 +73,11 @@ FIELDS;
 FIELDS *fields;
 int     nfields;
 
-int  ncube = 8;
+int  ncube = 9;
 
-char cname [8][32] = {"NAXIS3", "CRVAL3", "CDELT3", "CRPIX3", "NAXIS4", "CRVAL4", "CDELT4", "CRPIX4"};
-char ctype [8][32] = {"int",    "double", "double", "double", "int",    "double", "double", "double"};
-int  cwidth[8]     = { 6,        16,       16,       16,       6,        16,       16,       16};
+char cname [9][32] = {"NAXIS", "NAXIS3", "CRVAL3", "CDELT3", "CRPIX3", "NAXIS4", "CRVAL4", "CDELT4", "CRPIX4"};
+char ctype [9][32] = {"int",   "int",    "double", "double", "double", "int",    "double", "double", "double"};
+int  cwidth[9]     = { 6,       6,        16,       16,       16,       6,        16,       16,       16};
 
 int     badwcs = 0;
 

@@ -1639,7 +1639,7 @@ int main(int argc, char **argv)
    }
 
    if(jmin > jmax || imin > imax)
-      printError("All pixels are blank.");
+      printError("All pixels are blank. Check for overlap of output template with image file.");
 
 
    /********************************/

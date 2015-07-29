@@ -2,7 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-1.0      Loring Craymer   15May15  Baseline code, based on subImage.c of that date.
+1.0      John Good        15May15  Baseline code, based on subImage.c of that date.
 
 */
 
@@ -41,9 +41,15 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    if(fits_read_keys_lng(infptr, "NAXIS", 1, params->naxis, params->naxes, &params->nfound, &status))
       montage_printFitsError(status);
    
+   if(params->naxis < 3)
+      params->naxes[2] = 1;
+
+   if(params->naxis < 4)
+      params->naxes[3] = 1;
+
    if(debug)
    {
-      for(i=0; i<params->naxis; ++i)
+      for(i=0; i<4; ++i)
          printf("naxis%d = %ld\n",  i+1, params->naxes[i]);
 
       fflush(stdout);

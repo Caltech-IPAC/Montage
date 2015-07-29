@@ -13,7 +13,14 @@ INSTALL_DIR = $(INSTALL) -m 755 -d
 
 # The directory for the base product group,
 # of which this product is a member
-CM_EXO_DIR = $(shell cd ../../..; pwd)
+
+# OS detection (poor mans autoconf)
+os = $(firstword $(shell uname))
+ifeq ($(filter SunOS Linux,$(os)),)
+    $(error $(os) platform not supported - please compile on Linux or Solaris)
+else
+    $(info Building for $(os) platform)
+endif
 
 # Standard directory variables
 prefix=$(CM_BASE_APP_DIR)
@@ -25,12 +32,55 @@ cgidir=$(webdir)/cgi-bin/mViewer
 appdir=$(webdir)/applications/mViewer
 srcdir=.
 
-
 # The names of all executables in this product
-progs = nph-mViewer nph-mViewerInit nph-mViewerHdr nph-mViewerStats
+progs = nph-mViewer nph-mViewerInit nph-mViewerHdr nph-mViewerApp
 
 # The names of all source files in this product
-sources = nph-mViewer.c nph-mViewerInit.c nph-mViewerHdr.c nph-mViewerStats.c
+sources = nph-mViewerInit.c nph-mViewerHdr.c
+
+srcmviewer = nph-mViewer.c \
+	extractViewParam.c \
+	getFitshdr.c \
+	checkFileExist.c \
+        colorLookup.c \
+	makeImage.c \
+	printRetval.c \
+	mviewerUtil.c \
+	imZoom.c \
+	pick.c \
+        pix2sky.c \
+	sky2pix.c \
+	compute_normal.c \
+	computeSkyDist.c \
+	constraintFilter.c \
+	parseCsysstr.c \
+	subsetImage.c \
+	constructRetjson.c \
+	fileCopy.c \
+	extractAvePlane.c \
+	generateMedianPlane.c \
+	qsort.c \
+	rewriteFitsCube.c \
+	extractWaveSpectra.c \
+
+
+srcmviewerapp = nph-mViewerApp.c \
+	makeStartupHtml.c \
+	writeJsonFile.c \
+	extractStartupParam.c \
+	readStartupParam.c \
+	getFitshdr.c \
+	checkFileExist.c \
+	writeOptionList.c \
+	readImfileList.c \
+	readFilelist.c \
+	fileCopy.c \
+	mviewerUtil.c
+
+srcmviewerhdr = nph-mViewerHdr.c \
+	writeFitshdrHtml.c \
+	printRetval.c
+
 
 # ================================================================
 # Setup / sanity checks
@@ -38,7 +88,12 @@ sources = nph-mViewer.c nph-mViewerInit.c nph-mViewerHdr.c nph-mViewerStats.c
 
 # Determine whether or not compilation can occur
 comp_tgts = all install test $(progs) \
-            $(sources:.c=.o) 
+            $(sources:.c=.o) $(sources:.c=.d) \
+	    $(srcmviewer:.c=.o) $(srcmviewer:.c=.d) \
+	    $(srcmviewerapp:.c=.o) $(srcmviewerapp:.c=.d) \
+	    $(srcmviewerhdr:.c=.o) $(srcmviewerhdr:.c=.d)
+
+
 dep_check = true
 ifeq ($(filter-out $(MAKECMDGOALS), $(comp_tgts)),$(strip $(comp_tgts)))
     ifneq ($(MAKECMDGOALS),)
@@ -52,6 +107,10 @@ ifeq ($(dep_check),true)
         $(error error: CM_BASE_DIR environment variable invalid)
     endif
     $(warning CM_BASE_DIR:    $(CM_BASE_DIR))
+    ifeq ($(wildcard $(CM_TPS_DIR)),)
+        $(error error: CM_TPS_DIR environment variable invalid)
+    endif
+    $(warning CM_TPS_DIR:    $(CM_TPS_DIR))
 endif
 
 # Function to search PATH for a file
@@ -66,13 +125,17 @@ else
 endif
 CPPFLAGS = -I$(srcdir) \
            -I$(CM_BASE_DIR)/include \
-           -DMY_DATA_DIR='"$(datadir)"'
+           -I$(CM_TPS_DIR)/include \
+           -DCM_BASE_APP_DIR='"$(CM_BASE_APP_DIR)"' \
+	   -DMY_DATA_DIR='"$(datadir)"'
+
 
 # When compiling, create/update build environment file
 ifeq ($(dep_check),true)
     build_env = $(call pathsearch, $(CC)) \
+                $(CM_TPS_DIR) \
                 $(CM_BASE_DIR) \
-		$(CM_EXO_DIR)
+		$(CM_BASE_APP_DIR)
     prev_env =  $(shell cat ./.build_env)
     ifneq ($(strip $(build_env)), $(strip $(prev_env)))
         $(warning creating/updating build environment file (.build_env))
@@ -81,11 +144,22 @@ ifeq ($(dep_check),true)
     endif
 endif
 
+
 # ================================================================
 # External library dependencies
 # ================================================================
+sys_libs = -lexpat -lm
+ifeq (SunOS,$(os))
+    sys_libs += -lsocket -lnsl
+endif
 base_libs = $(addprefix $(CM_BASE_DIR)/lib/, \
-	libreqlog.a libwww.a libpassword.a libconfig.a libsvc.a libjson.a)
+	liblookup.a libcoord.a libwww.a libpassword.a libencode.a \
+	libconfig.a libvarcmd.a libmtbl.a libsvc.a libjson.a)
+tps_libs = $(addprefix $(CM_TPS_DIR)/lib/, \
+	libcfitsio.a libwcs.a libnedcli.a libsimcli.a)
+env_libs =  $(addprefix $(CM_ENV_DIR)/misc/lib/, libscew.a) $(addprefix $(CM_ENV_DIR)/core/lib64/, libcrypto.a)
+
+
 
 # ================================================================
 # Pattern Rules
@@ -98,6 +172,13 @@ vpath %.h       $(srcdir)
 %.o : %.c
 		$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
+# Creates dependency files from C source files
+%.d : %.c
+		@echo ... Creating $@; set -e; rm -f $@; \
+		$(CC) -MM -MF $@ $(CPPFLAGS) $<; \
+		sed 's,\($*\)\.o[ :]*,\1.o $@ : ./.build_env ,g' < $@ > $@.$$$$; \
+		mv $@.$$$$ $@
+
 
 # ================================================================
 # Targets
@@ -106,20 +187,34 @@ vpath %.h       $(srcdir)
 all :		$(progs) 
 
 .PHONY :	all clean distclean installdirs install installdocs uninstall
+.SECONDARY :    $(sources:.c=.d) $(srcmviewer:.c=.d) $(srcmviewerapp:.c=.d)
 .DELETE_ON_ERROR : ;
 
+ifeq ($(dep_check),true)
+    include $(sources:.c=.d)
+    include $(srcmviewer:.c=.d)
+    include $(srcmviewerhdr:.c=.d)
+    include $(srcmviewerapp:.c=.d)
+endif
+
+
+
 # Compiles executables
-nph-mViewer :	nph-mViewer.o $(base_libs)
-		$(CC) $(CFLAGS) -o $@ $^ $(base_libs) -lm
+nph-mViewer :	$(srcmviewer:.c=.o) $(base_libs) $(tps_libs) \
+		$(env_libs)
+		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
 
 nph-mViewerInit :	nph-mViewerInit.o $(base_libs)
-		$(CC) $(CFLAGS) -o $@ $^ $(base_libs) -lm
+		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
 
-nph-mViewerHdr :	nph-mViewerHdr.o $(base_libs)
-		$(CC) $(CFLAGS) -o $@ $^ $(base_libs) -lm
+nph-mViewerHdr :	$(srcmviewerhdr:.c=.o) $(base_libs)
+		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
 
-nph-mViewerStats :	nph-mViewerStats.o $(base_libs)
-		$(CC) $(CFLAGS) -o $@ $^ $(base_libs) -lm
+nph-mViewerApp :	$(srcmviewerapp:.c=.o) $(base_libs) $(tps_libs) \
+		$(env_libs)
+		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
+
+
 
 # Cleans the build tree
 clean :
@@ -141,19 +236,15 @@ webcontent.tar : FORCE
 
 
 # Installs executables
-install :       $(progs) webcontent.tar installdirs 
+install :       $(progs) data.tar webcontent.tar installdirs 
 		tar -cf webcontent.tar -C $(srcdir)/html .
 		$(INSTALL_PROGRAM) $(progs) $(cgidir)
-		rm -rf $(appdir)/*
-		$(INSTALL_DATA) webcontent.tar $(appdir)
-		cd $(appdir); tar -xf webcontent.tar; rm webcontent.tar
-		cp $(srcdir)/data/template.html $(datadir)
-
-installdata :  data.tar installdirs 
 		rm -rf $(datadir)/*
 		$(INSTALL_DATA) data.tar $(datadir)
 		cd $(datadir); tar -xf data.tar; rm data.tar
 		rm -rf $(appdir)/*
+		$(INSTALL_DATA) webcontent.tar $(appdir)
+		cd $(appdir); tar -xf webcontent.tar; rm webcontent.tar
 
 # Uninstalls the product
 uninstall :
