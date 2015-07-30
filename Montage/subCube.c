@@ -19,7 +19,7 @@ Version  Developer        Date     Change
 #include "subCube.h"
 #include "mNaN.h"
 
-int debug;
+int debug = 1;
 
 int isflat;
 
