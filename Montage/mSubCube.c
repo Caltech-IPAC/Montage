@@ -102,6 +102,12 @@ int main(int argc, char **argv)
       exit(1);
    }
 
+   params.ibegin = 1;
+   params.iend   = 1;
+   params.jbegin = 1;
+   params.jend   = 1;
+   params.pbegin = 1;
+   params.pend   = 1;
    
    for(i=0; i<argc; ++i)
    {
