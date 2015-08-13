@@ -54,7 +54,14 @@ extern FILE *fdebug;
 
 int getColortblIndx (char *color) {
 
-    int    debugfile = 0;
+    char  errmsg[1024];
+
+    int   istatus;
+    int   l;
+    int   indx;
+    int   colortblIndx;
+    
+    int    debugfile = 1;
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "From getColortblIndx: color= [%s]\n",
@@ -62,7 +69,28 @@ int getColortblIndx (char *color) {
 	fflush (fdebug);
     }
 
-    int l, indx;
+    istatus = str2Integer (color, &colortblIndx, errmsg);
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "returned str2Integer: istatus= [%d]\n", istatus);
+	fflush (fdebug);
+    }
+
+    if (istatus == 0) {
+        
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "colortblIndx= [%d]\n", colortblIndx);
+	    fflush (fdebug);
+        }
+
+/*
+	if (colortblIndx > 1)
+	    colortblIndx += 2;
+*/
+
+	return (colortblIndx);
+    }
+
 
     if ((strcasecmp (color, "grayscale") == 0) ||
         (strcasecmp (color, "greyscale") == 0)) {
@@ -173,7 +201,7 @@ int makeImage (struct Mviewer *param)
     struct timezone  tzp;
     double           exacttime, exacttime0;
 
-    int    debugfile = 0;
+    int    debugfile = 1;
     int    debugtime = 0;
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -191,6 +219,10 @@ int makeImage (struct Mviewer *param)
     Rescale the subset image to fit the canvas
 */
     
+    redpath[0] = '\0';
+    grnpath[0] = '\0';
+    bluepath[0] = '\0';
+
     if (!param->iscolor) {
 
 	if ((strcasecmp (param->cmd, "init") == 0) ||
@@ -215,17 +247,49 @@ int makeImage (struct Mviewer *param)
 	    (strcasecmp (param->cmd, "replaceimage") == 0) ||
 	    (strcasecmp (param->cmd, "resetzoom") == 0))
         {
+            if ((int)strlen(param->redFile) > 0) {
+                sprintf (redpath, "%s/%s", param->directory, param->redFile);
+            }
+            if ((int)strlen(param->greenFile) > 0) {
+                sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
+            }
+            if ((int)strlen(param->blueFile) > 0) {
+                sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
+            }
+
             sprintf (impath, "%s/%s", param->directory, param->redFile);
 	}
         else {
-	    if ((int)strlen(param->subsetimfile) > 0) 
+	    if ((int)strlen(param->subsetredfile) > 0) 
 	    {
-                sprintf (impath, "%s/%s", param->directory, 
+                sprintf (redpath, "%s/%s", param->directory, 
+		    param->subsetredfile);
+		sprintf (impath, "%s/%s", param->directory, 
 		    param->subsetredfile);
 	    }
 	    else {
                 sprintf (impath, "%s/%s", param->directory, param->redFile);
+                sprintf (redpath, "%s/%s", param->directory, param->redFile);
 	    }
+
+	    if ((int)strlen(param->subsetgrnfile) > 0) 
+	    {
+                sprintf (grnpath, "%s/%s", param->directory, 
+		    param->subsetgrnfile);
+	    }
+	    else {
+                sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
+	    }
+
+	    if ((int)strlen(param->subsetbluefile) > 0) 
+	    {
+                sprintf (bluepath, "%s/%s", param->directory, 
+		    param->subsetbluefile);
+	    }
+	    else {
+                sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
+	    }
+
 	}
     }
     
@@ -313,8 +377,22 @@ int makeImage (struct Mviewer *param)
 	if (yfactor > factor)
 	    factor = yfactor;
 
+/*
+    make shrunk image
+*/
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "iscolor= [%d] factor= [%lf]\n", 
+	        param->iscolor, factor);
+	    fflush (fdebug);
+        }
+
         if (!param->iscolor) {
 	
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "here1\n");
+	        fflush (fdebug);
+            }
+
 //	    sprintf (impath, "%s/%s", param->directory, param->subsetimfile);
 	    
 	    if (l == 0) {
@@ -380,12 +458,13 @@ int makeImage (struct Mviewer *param)
 
 	}
 	else {
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "here2\n");
+	        fflush (fdebug);
+            }
 
             if ((int)strlen(param->redFile) > 0) {
-	    
-		sprintf (redpath, "%s/%s", param->directory, 
-		    param->subsetredfile);
-	        
+
 		if (l == 0) {
                     sprintf (shrunkredpath, "%s/%s", param->directory, 
 	                param->shrunkredfile);
@@ -406,6 +485,13 @@ int makeImage (struct Mviewer *param)
                 }
   
                 istatus = svc_run (cmd);
+                
+		if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	            fprintf (fdebug, 
+		        "returned svc_run (mShrink): istatus= [%d]\n", istatus);
+	            fflush (fdebug);
+                }
+  
                 if (istatus < 0) {
 	            sprintf (param->errmsg, 
 		        "Failed to run mShrink: cmd= [%s]", cmd);
@@ -436,9 +522,6 @@ int makeImage (struct Mviewer *param)
 
             if ((int)strlen(param->greenFile) > 0) {
 	    
-		sprintf (grnpath, "%s/%s", param->directory, 
-		    param->subsetgrnfile);
-	        
 		if (l == 0) {
                     sprintf (shrunkgrnpath, "%s/%s", param->directory, 
 	                param->shrunkgrnfile);
@@ -459,6 +542,12 @@ int makeImage (struct Mviewer *param)
                 }
   
                 istatus = svc_run (cmd);
+		if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	            fprintf (fdebug, 
+		        "returned svc_run (mShrink): istatus= [%d]\n", istatus);
+	            fflush (fdebug);
+                }
+  
                 if (istatus < 0) {
 	            sprintf (param->errmsg, 
 		        "Failed to run mShrink: cmd= [%s]", cmd);
@@ -489,9 +578,6 @@ int makeImage (struct Mviewer *param)
 
             if ((int)strlen(param->blueFile) > 0) {
 	    
-		sprintf (bluepath, "%s/%s", param->directory, 
-		    param->subsetbluefile);
-	        
 		if (l == 0) {
                     sprintf (shrunkbluepath, "%s/%s", param->directory, 
 	                param->shrunkbluefile);
@@ -512,6 +598,12 @@ int makeImage (struct Mviewer *param)
                 }
   
                 istatus = svc_run (cmd);
+		if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	            fprintf (fdebug, 
+		        "returned svc_run (mShrink): istatus= [%d]\n", istatus);
+	            fflush (fdebug);
+                }
+  
                 if (istatus < 0) {
 	            sprintf (param->errmsg, 
 		        "Failed to run mShrink: cmd= [%s]", cmd);
@@ -550,16 +642,38 @@ int makeImage (struct Mviewer *param)
     
     paramstr[0] = '\0';
     refParamstr[0] = '\0';
-    
-    colortblIndx = getColortblIndx (param->colorTable);
-    
+  
+
+/*
+    convert ColorTable name to index because that is what mViewer expects
+*/
+/*
+    istatus = str2Integer (param->colorTable, &colortblIndx, param->errmsg);
+
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "colortblIndx= [%d]\n", colortblIndx);
+	fprintf (fdebug, "returned str2Integer: istatus= [%d]\n", istatus);
 	fflush (fdebug);
     }
- 
-    if (colortblIndx == -1)
-        colortblIndx = 0;
+
+    if (istatus == 0) {
+        strcpy (param->colorTable, ColortblVal[colortblIndx]); 
+    }
+    else {
+        colortblIndx = getColortblIndx (param->colorTable);
+    
+        if (colortblIndx == -1)
+            colortblIndx = 0;
+    }
+*/
+
+    colortblIndx = getColortblIndx (param->colorTable);
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "colortblIndx= [%d]\n", colortblIndx);
+	fprintf (fdebug, "colorTable= [%s]\n", param->colorTable);
+	fflush (fdebug);
+    }
+
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "iscolor= [%d]\n", param->iscolor);

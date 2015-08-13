@@ -464,7 +464,7 @@ int main(int argc, char **argv)
 
    if(ncols <= 0)
    {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid image metadata file: %s\"]\n",
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid or missing image metadata file: %s\"]\n",
          tblfile);
       exit(1);
    }

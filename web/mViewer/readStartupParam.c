@@ -53,7 +53,7 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
     int    fileExist;
     int    istatus, l, i;
     
-    int    debugfile = 0;
+    int    debugfile = 1;
 
 
     fp = (FILE *)NULL;

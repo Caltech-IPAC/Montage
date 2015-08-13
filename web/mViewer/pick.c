@@ -208,7 +208,7 @@ int pick (struct Mviewer *param)
     double           ramin, decmin, distmin;
     double           xmin, ymin;
 
-    int              debugfile = 0;
+    int              debugfile = 1;
 
     
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {

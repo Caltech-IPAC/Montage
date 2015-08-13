@@ -106,8 +106,9 @@ int main(int argc, char **argv)
    params.iend   = 1;
    params.jbegin = 1;
    params.jend   = 1;
-   params.pbegin = 1;
-   params.pend   = 1;
+
+   params.pbegin = -1;
+   params.pend   = -1;
    
    for(i=0; i<argc; ++i)
    {
@@ -610,14 +611,22 @@ int main(int argc, char **argv)
          printf("jend    = %d\n",  params.jend);
          fflush(stdout);
       }
+   }
 
-      if(params.ibegin >= params.iend
-      || params.jbegin >= params.jend)
-      {
-         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"No pixels match area.\"]\n");
-         fflush(stdout);
-         exit(1);
-      }
+   if(params.ibegin >= params.iend
+   || params.jbegin >= params.jend)
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"No pixels match area.\"]\n");
+      fflush(stdout);
+      exit(1);
+   }
+
+   if(params.iend - params.ibegin < 2
+   && params.jend - params.jbegin < 2)
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output area has no spatial extent.\"]\n");
+      fflush(stdout);
+      exit(1);
    }
 
       

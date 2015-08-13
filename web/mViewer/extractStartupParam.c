@@ -101,7 +101,7 @@ int extractStartupParam (struct ViewerApp *param)
 
     int      istatus;
 
-    int      debugfile = 0;
+    int      debugfile = 1;
 
     
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {

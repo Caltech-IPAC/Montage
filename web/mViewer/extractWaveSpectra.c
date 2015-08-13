@@ -98,10 +98,11 @@ int extractWaveSpectra (struct Mviewer *param)
     fitsfile  *infptr;
 
     
-    int    debugfile = 0;
+    int    debugfile = 1;
 
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "\nEnter extractWaveSpectra: cubepath= [%s]\n", 
 	    param->imcubepath);
 	
@@ -131,7 +132,8 @@ int extractWaveSpectra (struct Mviewer *param)
     iscube = 1;
     istatus = getFitshdr (param->imcubepath, &hdr, iscube); 
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "returned getFitshdr: istatus= %d\n", istatus);
         fflush (fp_debug);
     }
@@ -142,7 +144,8 @@ int extractWaveSpectra (struct Mviewer *param)
 	return (-1);
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "ns= [%d] nl= [%d] nplane= [%d]\n", 
 	    hdr.ns, hdr.nl, hdr.nplane);
         fprintf (fp_debug, "crval3= [%lf] cdelt3= [%lf]\n", 
@@ -263,7 +266,8 @@ int extractWaveSpectra (struct Mviewer *param)
     }
 
 /*
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         for (i=0; i<hdr.nplane; i++) {
 	    fprintf (fp_debug, "i= [%d] xarr= [%lf]\n", i, xarr[i]);
         }
@@ -278,7 +282,8 @@ int extractWaveSpectra (struct Mviewer *param)
     istatus = 0;
     if (fits_open_file (&infptr, param->imcubepath, READONLY, &status)) {
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	    fprintf (fp_debug, "istatus= [%d] status= [%d]\n", istatus, status);
             fflush (fp_debug);
 	}
@@ -533,7 +538,8 @@ int extractWaveSpectra (struct Mviewer *param)
 */
     sprintf (param->plotjsonfile, "%s_plot.json", param->imageFile);
 	
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "call checkFileExist (plotjsonfile)\n");
         fflush (fp_debug);  
     }
@@ -541,7 +547,8 @@ int extractWaveSpectra (struct Mviewer *param)
     fileExist = checkFileExist (param->plotjsonfile, rootname, suffix,
         param->directory, param->plotjsonpath);
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "returned checkFileExist: fileExist= [%d]\n", 
 	    fileExist);
 	fprintf (fp_debug, "plotjsonfile= [%s]\n", param->plotjsonfile);
@@ -573,7 +580,8 @@ int extractWaveSpectra (struct Mviewer *param)
         sprintf (param->plotjsonpath, "%s/%s", 
 	    param->directory, param->plotjsonfile);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "plotjsonpaht= [%s]\n", param->plotjsonpath); 
 	fflush (fp_debug);  
     }
@@ -590,7 +598,8 @@ int extractWaveSpectra (struct Mviewer *param)
             return (-1);
         }
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "start writint plotjsonfile: [%s]\n",
 	    param->plotjsonpath);
 	fflush (fp_debug);  
@@ -714,7 +723,8 @@ int extractWaveSpectra (struct Mviewer *param)
          fflush(fp);
          fclose(fp);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "done writing plotjsonpath= [%s]\n", 
 	    param->plotjsonpath); 
 	fflush (fp_debug);  

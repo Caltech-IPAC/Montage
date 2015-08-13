@@ -201,6 +201,7 @@ int main (int argc, char *argv[], char *envp[])
 
     if (debugfile) {
         sprintf (debugfname, "/tmp/mviewer_%d.debug", pid);
+        
         fdebug = fopen (debugfname, "w+");
         if (fdebug == (FILE *)NULL) {
 	    printf ("Cannot create debug file: %s\n", debugfname);
@@ -291,32 +292,33 @@ int main (int argc, char *argv[], char *envp[])
         
         if (param.isimcube) {
         
-	    if (strcasecmp (param.cmd, "init") == 0) {
 /*
     Rewrite imcubefile if necessary,
     first check if the input cubefile is a full path name
 */
-                strcpy (str, param.imcubefile);
+            strcpy (str, param.imcubefile);
 	    
-                cptr = (char *)NULL;
-                cptr = strrchr (str, '/');
+            cptr = (char *)NULL;
+            cptr = strrchr (str, '/');
 
-                if (cptr != (char *)NULL) {
-	            strcpy (imcubepath, param.imcubefile);
-	            strcpy (imcubefile, cptr+1);
-                }
-                else {
-	            strcpy (imcubefile, param.imcubefile);
-	            sprintf (imcubepath, "%s/%s", param.directory, imcubefile);
-                } 
+            if (cptr != (char *)NULL) {
+	        strcpy (imcubepath, param.imcubefile);
+	        strcpy (imcubefile, cptr+1);
+            }
+            else {
+	        strcpy (imcubefile, param.imcubefile);
+	        sprintf (imcubepath, "%s/%s", param.directory, imcubefile);
+            } 
 	    
-                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-                    fprintf (fp_debug, "imcubepath= [%s]\n", imcubepath);
-                    fprintf (fp_debug, "imcubefile= [%s]\n", imcubefile);
-	            fflush (fp_debug);
-                }
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+                fprintf (fp_debug, "imcubepath= [%s]\n", imcubepath);
+                fprintf (fp_debug, "imcubefile= [%s]\n", imcubefile);
+	        fflush (fp_debug);
+            }
 
-                fileExist = stat (imcubepath, &buf);
+	    if (strcasecmp (param.cmd, "init") == 0) {
+                
+		fileExist = stat (imcubepath, &buf);
 
                 if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                     fprintf (fp_debug, "fileExist (ws)= [%d]\n", fileExist); 
@@ -467,6 +469,10 @@ int main (int argc, char *argv[], char *envp[])
                 }
            
 	    }
+	    else {
+                strcpy (param.imcubefile, imcubefile);
+                strcpy (param.imcubepath, imcubepath);
+	    }
 
             if (debugfile) {
                 fprintf (fp_debug, "imcubepath= [%s]\n", param.imcubepath);
@@ -586,6 +592,7 @@ int main (int argc, char *argv[], char *envp[])
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "returned checkFileExist: redExist= [%d]\n", 
 	        redExist);
+            fflush (fdebug);
         }
         
 	grnExist = checkFileExist (param.greenFile, grnroot, 
@@ -594,6 +601,7 @@ int main (int argc, char *argv[], char *envp[])
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "returned checkFileExist: grnExist= [%d]\n", 
 	        grnExist);
+            fflush (fdebug);
         }
         
         blueExist = checkFileExist (param.blueFile, blueroot, 
@@ -602,6 +610,7 @@ int main (int argc, char *argv[], char *envp[])
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "returned checkFileExist: blueExist= [%d]\n", 
 	        blueExist);
+            fflush (fdebug);
         }
     
         if ((!redExist) || 
@@ -711,11 +720,15 @@ int main (int argc, char *argv[], char *envp[])
 	}
     } 
     else {
-        
-        if ((int)strlen(param.subsetredfile) == 0) {
-            sprintf (param.subsetredfile, "%s_cutout_%s", 
-	        param.imageFile, param.redFile);
+	if ((strcasecmp (param.cmd, "init") == 0) ||
+	    (strcasecmp (param.cmd, "replaceimage") == 0) ||
+	    (strcasecmp (param.cmd, "resetzoom") == 0))
+        {	
+	    strcpy (param.subsetredfile, "");
+	    strcpy (param.subsetgrnfile, "");
+	    strcpy (param.subsetbluefile, "");
         }
+
         if ((int)strlen(param.shrunkredfile) == 0) {
 	    sprintf (param.shrunkredfile, "%s_shrunk_%s", 
 	        param.imageFile, param.redFile);
@@ -723,10 +736,6 @@ int main (int argc, char *argv[], char *envp[])
         sprintf (param.shrunkRefredfile, "%s_shrunkref_%s", 
 	    param.imageFile, param.redFile);
 
-        if ((int)strlen(param.subsetgrnfile) == 0) {
-            sprintf (param.subsetgrnfile, "%s_cutout_%s", 
-	        param.imageFile, param.greenFile);
-        }
         if ((int)strlen(param.shrunkgrnfile) == 0) {
             sprintf (param.shrunkgrnfile, "%s_shrunk_%s", 
 	        param.imageFile, param.greenFile);
@@ -734,10 +743,6 @@ int main (int argc, char *argv[], char *envp[])
         sprintf (param.shrunkRefgrnfile, "%s_shrunkref_%s", 
 	    param.imageFile, param.greenFile);
         
-        if ((int)strlen(param.subsetbluefile) == 0) {
-            sprintf (param.subsetbluefile, "%s_cutout_%s", 
-	        param.imageFile, param.blueFile);
-        }
         if ((int)strlen(param.shrunkbluefile) == 0) {
             sprintf (param.shrunkbluefile, "%s_shrunk_%s", 
 	        param.imageFile, param.blueFile);
@@ -981,9 +986,10 @@ int main (int argc, char *argv[], char *envp[])
         fprintf (fdebug, "returned printRetval\n");
         fflush (fdebug);
     }        
-    if (debugfile)
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
         fclose (fdebug);
- 
+    } 
     
     return (0);
 }

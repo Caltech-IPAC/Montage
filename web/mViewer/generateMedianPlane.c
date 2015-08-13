@@ -91,10 +91,11 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     fitsfile  *outfptr;
 
     
-    int    debugfile = 0;
+    int    debugfile = 1;
 
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "\nEnter generateMedianPlane: cubepath= [%s]\n", 
 	    cubepath);
 	fprintf (fp_debug, "impath= [%s]\n", impath);
@@ -108,7 +109,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     splane = iplane - nplane/2;
     eplane = splane + nplane - 1;
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "splane= [%d] eplane= [%d]\n", splane, eplane);
         fflush (fp_debug);
     }
@@ -120,7 +122,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     istatus = 0;
     if (fits_open_file (&infptr, cubepath, READONLY, &istatus)) {
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	    fprintf (fp_debug, "istatus= [%d]\n", istatus);
             fflush (fp_debug);
 	}
@@ -135,7 +138,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     istatus = 0;
     istatus = fits_get_num_hdus (infptr, &nhdu, &istatus);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, 
 	    "returned fits_get_hdu_num: istatus= [%d] nhdu= [%d]\n",
 	    istatus, nhdu);
@@ -156,7 +160,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     istatus = 0;
     istatus = fits_movabs_hdu (infptr, hdunum, &hdutype, &istatus);
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, 
 	    "returned fits_movabs_hdu: istatus= [%d] hdutype= [%d]\n",
 	    istatus, hdutype);
@@ -218,7 +223,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
         return (-1);
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "str= [%s]\n", str);
         fflush (fp_debug);
     }
@@ -228,7 +234,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
         return (-1);
     }
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "naxis= [%d]\n", hdr.naxis);
         fflush (fp_debug);
     }
@@ -238,7 +245,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     istatus = fits_read_key (infptr, TSTRING, "naxis1", str, (char *)NULL, 
         &istatus);
         
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "returned fits_read_key: istatus= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -248,7 +256,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
         return (-1);
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "str= [%s]\n", str);
         fflush (fp_debug);
     }
@@ -265,7 +274,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     istatus = fits_read_key (infptr, TSTRING, "naxis2", str, 
         (char *)NULL, &istatus);
         
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "returned fits_read_key: istatus= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -275,7 +285,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
         return (-1);
     }
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "str= [%s]\n", str);
         fflush (fp_debug);
     }
@@ -289,7 +300,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     hdr.naxes[1] = hdr.nl;
 
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "ns= [%d] nl= [%d]\n", hdr.ns, hdr.nl);
         fflush (fp_debug);
     }
@@ -302,7 +314,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
         istatus = fits_read_key (infptr, TSTRING, "naxis3", str, 
             (char *)NULL, &istatus);
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
             fprintf (fp_debug, "returned fits_read_key: istatus= [%d]\n", 
 	        istatus);
             fflush (fp_debug);
@@ -313,7 +326,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
             return (-1);
         }
     
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
             fprintf (fp_debug, "str= [%s]\n", str);
             fflush (fp_debug);
         }
@@ -326,12 +340,14 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
         }
         hdr.nplane = hdr.naxes[2];
     
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
             fprintf (fp_debug, "naxes[2]= [%d]\n", hdr.naxes[2]);
             fflush (fp_debug);
         }
     }
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "hdr.nplane= [%d]\n", hdr.nplane);
         fflush (fp_debug);
     }
@@ -345,7 +361,8 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
 
     nplane = eplane - splane + 1;
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "hdr.nplane= [%d]\n", hdr.nplane);
 	fprintf (fp_debug, "splane= [%d] eplane= [%d]\n", splane, eplane);
 	fprintf (fp_debug, "nplane= [%d]\n", nplane);

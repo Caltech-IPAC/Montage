@@ -33,8 +33,6 @@ function mViewer(workspace, jsonFile, imgDivID)
     me.plotDivID;
     
     me.showButtons = true;
-    
-    me.supressGrayout = true;
 
     me.timeoutValue = 150; // milliseconds
 
@@ -59,6 +57,9 @@ function mViewer(workspace, jsonFile, imgDivID)
 
     me.scale;
     me.downloadMode = false;
+
+    me.colorPlane;
+
 
     me.hdrWin;
 
@@ -106,6 +107,30 @@ function mViewer(workspace, jsonFile, imgDivID)
         me.cmd = "init";
         me.updateInProgress = false;
 
+
+/*
+    Initialize graphic canvas
+*/   
+/*
+        if (me.gc == undefined)  {
+	
+            if (me.debug) {
+                console.log ("call iceGraphics");
+            }     
+
+	    me.gc = new iceGraphics(me.imgDivID);
+	
+	    if (me.debug) {
+	        console.log ("returned iceGraphics");
+	    }
+        }	
+
+        me.gc.boxCallback        = me.zoomCallback;
+        me.gc.clickCallback      = me.clickCallback;
+        me.gc.rightClickCallback = me.rightClickCallback;
+*/
+
+
         me.xminImg = 0;
         me.xmaxImg = 1;
         me.yminImg = 0;
@@ -131,6 +156,16 @@ function mViewer(workspace, jsonFile, imgDivID)
       // all controls during the update processing.
 
         me.updateInProcess = false;
+
+
+      // Sync the image div size up with it's container
+      // The resize function usually does an automatic 
+      // update request but at this point the canvas 
+      // graphics context doesn't exist yet, so it won't
+      // (which is a good thing since we don't have the 
+      // JSON info yet).
+
+//        me.resize();
 
 
       // Create the internals mViewer needs inside the display <div>
@@ -169,11 +204,10 @@ function mViewer(workspace, jsonFile, imgDivID)
         var xmlhttp;
         var paramURL;
 
-        if (!me.suppressGrayout) {
-        
-	    me.grayOut(true, {'opacity':'50'});
-	    me.grayOutMessage(true);
-        }
+/*
+        me.grayOut(true, {'opacity':'50'});
+        me.grayOutMessage(true);
+*/
 
         paramURL = "/cgi-bin/FileDownload/nph-download"
                  + "?url=" + me.workspace + "/" + me.jsonFile;
@@ -227,6 +261,56 @@ function mViewer(workspace, jsonFile, imgDivID)
                     
 		    me.updateJSON = me.initJSON;
 
+/*
+	            if (me.debug) {
+	                console.log ("imageFile= " + me.initJSON.imageFile);
+	                console.log ("imageType= " + me.initJSON.imageType);
+	                console.log ("canvasWidth= " + me.initJSON.canvasWidth);
+	                console.log ("canvasHeight= " 
+			    + me.initJSON.canvasHeight);
+	               
+		        console.log ("fitsFile= " 
+		            + me.initJSON.grayFile.fitsFile);
+                        console.log ("me.initJSON.grayFile.colorTable= " 
+	                    + me.initJSON.grayFile.colorTable);
+                        console.log ("me.initJSON.grayFile.stretchMin= " 
+	                    + me.initJSON.grayFile.stretchMin);
+                        console.log ("me.initJSON.grayFile.stretchMax= " 
+	                    + me.initJSON.grayFile.stretchMax);
+                        console.log ("me.initJSON.grayFile.stretchMode= " 
+	                    + me.initJSON.grayFile.stretchMode);
+	            
+		        var noverlay = me.initJSON.overlay.length;
+	                
+			console.log ("noverlay= " + noverlay);
+
+	                for (var l=0; l<noverlay; l++) {
+	    
+	                    console.log ("me.initJSON.overlay[l].type= " 
+	                        + me.initJSON.overlay[l].type);
+                            console.log ("me.initJSON.overlay[l].color= " 
+	                        + me.initJSON.overlay[l].color);
+                            console.log ("me.initJSON.overlay[l].visible= " 
+	                        + me.initJSON.overlay[l].visible);
+           
+	                    if (me.initJSON.overlay[l].type == "grid") {
+
+	                        console.log ("me.initJSON.overlay[l].coordSys= " 
+	                            + me.initJSON.overlay[l].coordSys);
+	                    }
+	                    else if (me.initJSON.overlay[l].type == "marker") {
+	
+                                console.log ("me.initJSON.overlay[l].symType= "
+	                            + me.initJSON.overlay[l].symType);
+                                console.log ("me.initJSON.overlay[l].symSize= "
+	                            + imgDme.initJSON.overlay[l].symSize);
+                                console.log ("me.initJSON.overlay[l].location= "
+	                            + me.initJSON.overlay[l].location);
+                            } 
+	                }
+	            }
+		  
+*/
 
 /*
     Initialize graphic canvas
@@ -300,11 +384,10 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log ("DEBUG> me.cmd= " + me.cmd);
         }
 
-        if (!me.suppressGrayout) {
-        
-            me.grayOut(true, {'opacity':'50'});
-            me.grayOutMessage(true);
-        }
+/*
+        me.grayOut(true, {'opacity':'50'});
+        me.grayOutMessage(true);
+*/
 
         me.updateInProgress = true;
 
@@ -378,7 +461,7 @@ function mViewer(workspace, jsonFile, imgDivID)
     me.processUpdate = function(data, stat, jqXHR)
     {
 	if (me.debug) {
-            console.log ("From processUpdate");
+            console.log ("From mViewer.processUpdate");
             console.log ("stat= " + stat);
 
 	    if (jqXHR != undefined) {
@@ -477,21 +560,41 @@ function mViewer(workspace, jsonFile, imgDivID)
 	        + me.imgData.canvasWidth);
             console.log ("me.imgData.canvasHeight= " 
 	        + me.imgData.canvasHeight);
-            console.log ("me.imgData.grayFile.fitsFile= " 
-	        + me.imgData.grayFile.fitsFile);
-            console.log ("me.imgData.grayFile.cutoutFile= " 
-	        + me.imgData.grayFile.cutoutFile);
-            console.log ("me.imgData.grayFile.shrunkFile= " 
-	        + me.imgData.grayFile.shrunkFile);
-	    console.log ("me.imgData.grayFile.colorTable= " 
-	        + me.imgData.grayFile.colorTable);
-            console.log ("me.imgData.grayFile.stretchMin= " 
-	        + me.imgData.grayFile.stretchMin);
-            console.log ("me.imgData.grayFile.stretchMax= " 
-	        + me.imgData.grayFile.stretchMax);
-            console.log ("me.imgData.grayFile.stretchMode= " 
-	        + me.imgData.grayFile.stretchMode);
-          
+            
+	    if (me.imgData.grayFile != null) {
+                console.log ("me.imgData.grayFile.fitsFile= " 
+	            + me.imgData.grayFile.fitsFile);
+                console.log ("me.imgData.grayFile.cutoutFile= " 
+	            + me.imgData.grayFile.cutoutFile);
+                console.log ("me.imgData.grayFile.shrunkFile= " 
+	            + me.imgData.grayFile.shrunkFile);
+	        console.log ("me.imgData.grayFile.colorTable= " 
+	            + me.imgData.grayFile.colorTable);
+                console.log ("me.imgData.grayFile.stretchMin= " 
+	            + me.imgData.grayFile.stretchMin);
+                console.log ("me.imgData.grayFile.stretchMax= " 
+	            + me.imgData.grayFile.stretchMax);
+                console.log ("me.imgData.grayFile.stretchMode= " 
+	            + me.imgData.grayFile.stretchMode);
+            }
+	    else if (me.imgData.redFile != null) {
+                console.log ("me.imgData.redFile.fitsFile= " 
+	            + me.imgData.redFile.fitsFile);
+                console.log ("me.imgData.redFile.cutoutFile= " 
+	            + me.imgData.redFile.cutoutFile);
+                console.log ("me.imgData.redFile.shrunkFile= " 
+	            + me.imgData.redFile.shrunkFile);
+	        console.log ("me.imgData.redFile.colorTable= " 
+	            + me.imgData.redFile.colorTable);
+                console.log ("me.imgData.redFile.stretchMin= " 
+	            + me.imgData.redFile.stretchMin);
+                console.log ("me.imgData.redFile.stretchMax= " 
+	            + me.imgData.redFile.stretchMax);
+                console.log ("me.imgData.redFile.stretchMode= " 
+	            + me.imgData.redFile.stretchMode);
+            }
+
+
 	    console.log ("noverlay= " + noverlay);
 
 	    for (var l=0; l<noverlay; l++) {
@@ -641,6 +744,14 @@ function mViewer(workspace, jsonFile, imgDivID)
       var areaHeight = jQuery(me.imgDiv).height();
       var areaWidth  = jQuery(me.imgDiv).width();
 
+      if(me.debug) {
+         console.log("DEBUG> areaWidth= " + areaWidth)
+         console.log("DEBUG> areaHeight= " + areaHeight)
+      } 
+     
+      me.updateJSON.canvasWidth = areaWidth;
+      me.updateJSON.canvasHeight = areaHeight;
+
       jQuery(me.buttons).width (areaWidth);
 
       jQuery(me.display).height(areaHeight);
@@ -706,6 +817,11 @@ function mViewer(workspace, jsonFile, imgDivID)
 	jQuery.post ("/cgi-bin/mViewer/nph-mViewerHdr", datastr,
 	    me.showFitshdrCallback, "json");
 
+/*
+	jQuery.get("/cgi-bin/mViewer/nph-mViewerHdr", datastr,
+	    me.showFitshdrCallback, "json");
+*/
+
     }
 
 
@@ -745,7 +861,7 @@ function mViewer(workspace, jsonFile, imgDivID)
 	}
 	else {
 	    me.hdrWin = window.open(data.url, "hdrwin", 
-	        "toolbar=no,directories=no,location=no,status=yes,menubar=no,resizeable=yes,scrollbars=yes,width=640,height=600");
+	        "toolbar=no,directories=no,location=no,status=yes,menubar=no,resizeable=yes,scrollbars=yes,width=800,height=600");
 
             if (me.debug) {
 	        console.log ("here1");
@@ -766,22 +882,17 @@ function mViewer(workspace, jsonFile, imgDivID)
       if(me.debug)
          console.log("DEBUG> mViewer.zoomIn()");
 
-      if (!me.suppressGrayout) {
-        
-          me.grayOutMessage(true);
-          me.grayOut(true);
-      }
+/*
+      me.grayOutMessage(true);
+      me.grayOut(true);
+*/
 
       if(me.debug)
       {
-         console.log("DEBUG> updateJSON.grayFile.xs: " 
-	     + me.updateJSON.grayFile.xs);
-         console.log("DEBUG> updateJSON.grayFile.xe: " 
-	     + me.updateJSON.grayFile.xe);
-         console.log("DEBUG> updateJSON.grayFile.ys: " 
-	     + me.updateJSON.grayFile.ys);
-         console.log("DEBUG> updateJSON.grayFile.ye: " 
-	     + me.updateJSON.grayFile.ye);
+         console.log("DEBUG> xxx: updateJSON.xmin: " + me.updateJSON.xmin);
+         console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+         console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+         console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
       }
 
       me.submitUpdateRequest("zoomin");
@@ -795,22 +906,17 @@ function mViewer(workspace, jsonFile, imgDivID)
       if(me.debug)
          console.log("DEBUG> mViewer.zoomOut()");
 
-      if (!me.suppressGrayout) {
-        
-          me.grayOutMessage(true);
-          me.grayOut(true);
-      }
+/*
+      me.grayOutMessage(true);
+      me.grayOut(true);
+*/
 
       if(me.debug)
       {
-         console.log("DEBUG> updateJSON.grayFile.xs: " 
-	     + me.updateJSON.grayFile.xs);
-         console.log("DEBUG> updateJSON.grayFile.xe: " 
-	     + me.updateJSON.grayFile.xe);
-         console.log("DEBUG> updateJSON.grayFile.ys: " 
-	     + me.updateJSON.grayFile.ys);
-         console.log("DEBUG> updateJSON.grayFile.ye: " 
-	     + me.updateJSON.grayFile.ye);
+         console.log("DEBUG> xxx: updateJSON.xmin: " + me.updateJSON.xmin);
+         console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+         console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+         console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
       }
 
       me.submitUpdateRequest("zoomout");
@@ -824,16 +930,15 @@ function mViewer(workspace, jsonFile, imgDivID)
       if(me.debug)
          console.log("DEBUG> mViewer.zoomReset()");
 
-      if (!me.suppressGrayout) {
-        
-          me.grayOutMessage(true);
-          me.grayOut(true);
-      }
+/*
+      me.grayOutMessage(true);
+      me.grayOut(true);
+*/
 
       me.updateJSON.xmin = 0.;
-      me.updateJSON.xmax = me.updateJSON.grayFile.imageWidth;
+      me.updateJSON.xmax = me.updateJSON.imageWidth;
       me.updateJSON.ymin = 0.;
-      me.updateJSON.ymax = me.updateJSON.grayFile.imageHeight;
+      me.updateJSON.ymax = me.updateJSON.imageHeight;
 
       me.submitUpdateRequest("resetzoom");
    }
@@ -850,6 +955,7 @@ function mViewer(workspace, jsonFile, imgDivID)
 	me.updateJSON.grayFile.stretchMin = me.initJSON.grayFile.stretchMin;
         me.updateJSON.grayFile.stretchMax = me.initJSON.grayFile.stretchMax;
         me.updateJSON.grayFile.stretchMode = me.initJSON.grayFile.stretchMode;
+        me.updateJSON.grayFile.colorTable = me.initJSON.grayFile.colorTable;
 
         me.submitUpdateRequest();
    }
@@ -893,11 +999,8 @@ function mViewer(workspace, jsonFile, imgDivID)
       if(me.debug)
          console.log("DEBUG> mViewer.zoomCallback()");
 
-      if (!me.suppressGrayout) {
-        
-          me.grayOutMessage(true);
-          me.grayOut(true);
-      }
+      me.grayOutMessage(true);
+      me.grayOut(true);
 
       if(xmin > xmax)
       {
@@ -908,6 +1011,11 @@ function mViewer(workspace, jsonFile, imgDivID)
 
       if(xmin == xmax)
          xmax = xmin + 1.e-9;
+
+/*
+      ymin = (me.updateJSON.canvasHeight - ymin);
+      ymax = (me.updateJSON.canvasHeight - ymax);
+*/
 
       if(ymin > ymax)
       {
@@ -926,6 +1034,32 @@ function mViewer(workspace, jsonFile, imgDivID)
          console.log("DEBUG> max (screen): " + xmax + ", " + ymax);
       }
 
+/*
+
+      xminOrig = xmin * me.scale + me.xminImg;
+      xmaxOrig = xmax * me.scale + me.xminImg;
+
+      yminOrig = ymin * me.scale + me.yminImg;
+      ymaxOrig = ymax * me.scale + me.yminImg;
+
+      if(me.debug)
+      {
+         console.log("DEBUG> min (FITS image): " + xminOrig + ", " + yminOrig);
+         console.log("DEBUG> max (FITS image): " + xmaxOrig + ", " + ymaxOrig);
+      }
+      if(debug)
+      {
+         console.log("DEBUG> min (FITS image): " + xminOrig + ", " + yminOrig);
+         console.log("DEBUG> max (FITS image): " + xmaxOrig + ", " + ymaxOrig);
+      }
+
+
+      me.updateJSON.xmin = xminOrig;
+      me.updateJSON.xmax = xmaxOrig;
+      me.updateJSON.ymin = yminOrig;
+      me.updateJSON.ymax = ymaxOrig;
+*/
+      
       me.updateJSON.xmin = xmin;
       me.updateJSON.xmax = xmax;
       me.updateJSON.ymin = ymin;
@@ -947,10 +1081,10 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log("DEBUG> me.clickCallback: x= " + x + " y= " + y);
         }
         
-	me.updateJSON.grayFile.xs = x;
-	me.updateJSON.grayFile.ys = y;
-	me.updateJSON.grayFile.xe = x;
-	me.updateJSON.grayFile.ye = y;
+	me.updateJSON.xs = x;
+	me.updateJSON.ys = y;
+	me.updateJSON.xe = x;
+	me.updateJSON.ye = y;
         
         for(i=0; i<me.clickCallbacks.length; ++i) {
          
@@ -993,10 +1127,10 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log("DEBUG>  (screen): " + xe + ", " + ye);
         }
 
-	me.updateJSON.grayFile.xs = xs;
-	me.updateJSON.grayFile.ys = ys;
-	me.updateJSON.grayFile.xe = xe;
-	me.updateJSON.grayFile.ye = ye;
+	me.updateJSON.xs = xs;
+	me.updateJSON.ys = ys;
+	me.updateJSON.xe = xe;
+	me.updateJSON.ye = ye;
         
         for(i=0; i<me.boxCallbacks.length; ++i) {
          
@@ -1050,7 +1184,11 @@ function mViewer(workspace, jsonFile, imgDivID)
 
       var options = options || {};
       var zindex  = options.zindex || 5000;
-      var opacity = options.opacity || 70;
+//      var opacity = options.opacity || 70;
+      
+      var opacity = options.opacity || 30;
+      
+      
       var opaque  = (opacity / 100);
       var bgcolor = options.bgcolor || '#000000';
 
@@ -1133,11 +1271,14 @@ function mViewer(workspace, jsonFile, imgDivID)
          tnode.style.position        = 'absolute';
          tnode.style.top             = '50%';
          tnode.style.left            = '50%';
-         tnode.style.zIndex          = '5500';
-         tnode.style.margin          = '-50px 0 0 -100px';
+//         tnode.style.zIndex          = '5500';
+         
+	 tnode.style.zIndex          = '100';
+	 
+	 tnode.style.margin          = '-50px 0 0 -100px';
          tnode.style.backgroundColor = '#ffffff';
          tnode.style.display         = 'none';
-         tnode.innerHTML             = '<img src="/applications/mViewer/waitClock.gif"/> &nbsp; Loading.  Please wait ... ';
+         tnode.innerHTML             = '<img src="/applications/IceTable/waitClock.gif"/> &nbsp; Loading.  Please wait ... ';
          tnode.id                    = 'messageScreenObject';
 
          tbody.appendChild(tnode);
@@ -1158,12 +1299,6 @@ function mViewer(workspace, jsonFile, imgDivID)
            (!imDebugWin.closed)) {
            imDebugWin.close(); 
        }
-   
-       if ((me.hdrWin != null) &&
-           (!me.hdrWin.closed)) {
-           me.hdrWin.close(); 
-       }
-   
    }
 
 

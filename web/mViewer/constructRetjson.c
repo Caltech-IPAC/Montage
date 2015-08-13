@@ -114,6 +114,8 @@ int  str2Integer (char *str, int *intval, char *errmsg);
 int  str2Double (char *str, double *dblval, char *errmsg);
 int  lower (char *str);
     
+int getColortblIndx (char *colorstr);
+
     
 extern FILE *fp_debug;
 
@@ -127,9 +129,10 @@ int color2hexcolor (char *color, char *hexval, int ncolors)
     int   indx;
     int   l;
 
-    int   debugfile = 0;
+    int   debugfile = 1;
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "From color2hexcolor: color= [%s]\n", color);
 	fflush (fp_debug);
     }
@@ -142,7 +145,8 @@ int color2hexcolor (char *color, char *hexval, int ncolors)
     strcpy (colorlowercase, color);
     lower (colorlowercase);
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "colorlowercase= [%s]\n", colorlowercase);
 	fflush (fp_debug);
     }
@@ -155,7 +159,8 @@ int color2hexcolor (char *color, char *hexval, int ncolors)
 	strcpy (hexcolor, &defaultHexcolor[l][1]);
 	lower (hexcolor);
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "l= [%d] defaultcolor: str= [%s]\n", l, str);
             fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor);
 	    fflush (fp_debug);
@@ -175,7 +180,8 @@ int color2hexcolor (char *color, char *hexval, int ncolors)
     strcpy (hexval, &defaultHexcolor[indx][1]);
     lower (hexval);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "hexval= [%s]\n", hexval);
 	fflush (fp_debug);
     }
@@ -213,7 +219,7 @@ int constructRetjson (struct Mviewer *param)
     int  istatus;
 
 
-    int  debugfile = 0;
+    int  debugfile = 1;
 
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	fprintf (fp_debug, "\nFrom constructRetjson\n");
@@ -222,7 +228,8 @@ int constructRetjson (struct Mviewer *param)
 
     sprintf (retstr, "{\n");
   
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "imageFile= [%s]\n", param->imageFile);
 	fprintf (fp_debug, "imageType= [%s]\n", param->imageType);
 	fprintf (fp_debug, "nowcs= [%d]\n", param->nowcs);
@@ -269,6 +276,22 @@ int constructRetjson (struct Mviewer *param)
         strcat (retstr, str);
     }
 
+    
+    sprintf (str, "  \"imageWidth\": \"%d\",\n", param->imageWidth);
+    strcat (retstr, str);
+    sprintf (str, "  \"imageHeight\": \"%d\",\n", param->imageHeight);
+    strcat (retstr, str);
+    
+    sprintf (str, "  \"cutoutWidth\": \"%d\",\n", param->ns);
+    strcat (retstr, str);
+    sprintf (str, "  \"cutoutHeight\": \"%d\",\n", param->nl);
+    strcat (retstr, str);
+    sprintf (str, "  \"ss\": \"%.1f\",\n", param->ss);
+    strcat (retstr, str);
+    sprintf (str, "  \"sl\": \"%.1f\",\n", param->sl);
+    strcat (retstr, str);
+    
+    
     sprintf (str, "  \"nowcs\": \"%d\",\n", param->nowcs);
     strcat (retstr, str);
 
@@ -277,7 +300,7 @@ int constructRetjson (struct Mviewer *param)
         strcat (retstr, str);
     }
     
-    sprintf (str, "  \"scale\": \"%.1f\",\n", param->zoomfactor);
+    sprintf (str, "  \"scale\": \"%.4f\",\n", param->zoomfactor);
     strcat (retstr, str);
 
 /*
@@ -299,94 +322,121 @@ int constructRetjson (struct Mviewer *param)
     sprintf(str, "  \"pixScale\": \"%s\",\n", param->pixscale);
     strcat (retstr, str);
 
-
-
-    if (!param->iscolor) {
-
-        if (param->isimcube) {
-
-            if (debugfile) {
-	        fprintf (fp_debug, "imcubepath= [%s]\n", param->imcubepath);
-                fflush (fp_debug);
-            }
-
-	    sprintf(str, "  \"imcubeFile\":\n");
-            strcat (retstr, str);
-            
-	    sprintf(str, "  {\n");
-            strcat (retstr, str);
-
-            if ((int)strlen(param->imcubepathOrig) > 0)  {
-	        sprintf(str, "    \"fitsFileOrig\": \"%s\",\n", 
-		    param->imcubepathOrig);
-                strcat (retstr, str);
-	    }
-
-	    sprintf(str, "    \"fitsFile\": \"%s\",\n", param->imcubepath);
-            strcat (retstr, str);
-	
-	    sprintf(str, "    \"imcubeMode\": \"%s\",\n", param->imcubemode);
-            strcat (retstr, str);
-	
-	    sprintf(str, "    \"planeNum\": \"%d\",\n", param->nfitsplane);
-            strcat (retstr, str);
-	    sprintf(str, "    \"nplaneAve\": \"%d\",\n", param->nplaneave);
-            strcat (retstr, str);
-	    sprintf(str, "    \"centerPlane\": \"%d\",\n", param->centerplane);
-            strcat (retstr, str);
-	
-	    sprintf (str, "    \"ctype3\": \"%s\",\n", param->ctype3);
-            strcat (retstr, str);
-	    sprintf (str, "    \"crval3\": \"%lf\",\n", param->crval3);
-            strcat (retstr, str);
-	    
-	    if ((int)strlen(param->waveplottype) > 0) {
-	        
-		sprintf (str, "    \"cdelt3\": \"%lf\",\n", param->cdelt3);
-                strcat (retstr, str);
-	        
-		sprintf(str, "    \"waveplotType\": \"%s\",\n", 
-		    param->waveplottype);
-                strcat (retstr, str);
-
-	        sprintf (str, "    \"plotjsonFile\": \"%s\",\n", 
-		    param->plotjsonfile);
-                strcat (retstr, str);
-	        
-		sprintf (str, "    \"plotFile\": \"%s\"\n", 
-		    param->plotpath);
-                strcat (retstr, str);
+    if ((int)strlen(param->imcursormode) > 0) {
+	sprintf(str, "  \"imcursorMode\": \"%s\",\n", param->imcursormode);
+        strcat (retstr, str);
+    }	
+       
+/*
+    click/box input parameters
+*/
+    sprintf (str, "  \"xs\": \"%.1f\",\n", param->xs);
+    strcat (retstr, str);
+    sprintf (str, "  \"xe\": \"%.1f\",\n", param->xe);
+    strcat (retstr, str);
+    sprintf (str, "  \"ys\": \"%.1f\",\n", param->ys);
+    strcat (retstr, str);
+    sprintf (str, "  \"ye\": \"%.1f\",\n", param->ye);
+    strcat (retstr, str);
 
 /*
-		sprintf (str, "    \"plotXpix\": \"%.1f\",\n", param->xpix);
-                strcat (retstr, str);
-	        sprintf (str, "    \"plotYpix\": \"%.1f\",\n", param->ypix);
-                strcat (retstr, str);
-	        sprintf (str, "    \"plotXs\": \"%.1f\",\n", param->xs);
-                strcat (retstr, str);
-	        sprintf (str, "    \"plotYs\": \"%.1f\",\n", param->ys);
-                strcat (retstr, str);
-	        sprintf (str, "    \"plotXe\": \"%.1f\",\n", param->xe);
-                strcat (retstr, str);
-	        sprintf (str, "    \"plotYe\": \"%.1f\"\n", param->ye);
-                strcat (retstr, str);
+    click/box result parameters
 */
+    sprintf (str, "  \"pickValue\": \"%lf\",\n", param->pickval);
+    strcat (retstr, str);
+    sprintf (str, "  \"pickCsys\": \"%s\",\n", param->pickcsys);
+    strcat (retstr, str);
+	
+    sprintf (str, "  \"xPick\": \"%d\",\n", param->xpick);
+    strcat (retstr, str);
+    sprintf (str, "  \"yPick\": \"%d\",\n", param->ypick);
+    strcat (retstr, str);
 
-            }
-	    else { 
-	        sprintf (str, "    \"cdelt3\": \"%lf\"\n", param->cdelt3);
-                strcat (retstr, str);
-            }
+    sprintf (str, "  \"raPick\": \"%lf\",\n", param->rapick);
+    strcat (retstr, str);
+    sprintf (str, "  \"decPick\": \"%lf\",\n", param->decpick);
+    strcat (retstr, str);
 
-	    sprintf (str, "   },\n");
+    sprintf (str, "  \"sexraPick\": \"%s\",\n", param->sexrapick);
+    strcat (retstr, str);
+    sprintf (str, "  \"sexdecPick\": \"%s\",\n", param->sexdecpick);
+    strcat (retstr, str);
+
+
+    if (param->isimcube) {
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	    fprintf (fp_debug, "imcubepath= [%s]\n", param->imcubepath);
+            fflush (fp_debug);
+        }
+
+	sprintf(str, "  \"imcubeFile\":\n");
+        strcat (retstr, str);
+            
+	sprintf(str, "  {\n");
+        strcat (retstr, str);
+
+        if ((int)strlen(param->imcubepathOrig) > 0)  {
+	    sprintf(str, "    \"fitsFileOrig\": \"%s\",\n", 
+		param->imcubepathOrig);
             strcat (retstr, str);
 	}
 
+	sprintf(str, "    \"fitsFile\": \"%s\",\n", param->imcubepath);
+        strcat (retstr, str);
+	
+	sprintf(str, "    \"imcubeMode\": \"%s\",\n", param->imcubemode);
+        strcat (retstr, str);
+	
+	sprintf(str, "    \"planeNum\": \"%d\",\n", param->nfitsplane);
+        strcat (retstr, str);
+	sprintf(str, "    \"nplaneAve\": \"%d\",\n", param->nplaneave);
+        strcat (retstr, str);
+	sprintf(str, "    \"centerPlane\": \"%d\",\n", param->centerplane);
+        strcat (retstr, str);
+	
+	sprintf (str, "    \"ctype3\": \"%s\",\n", param->ctype3);
+        strcat (retstr, str);
+	sprintf (str, "    \"crval3\": \"%lf\",\n", param->crval3);
+        strcat (retstr, str);
+	    
+	if ((int)strlen(param->waveplottype) > 0) {
+	        
+	    sprintf (str, "    \"cdelt3\": \"%lf\",\n", param->cdelt3);
+            strcat (retstr, str);
+	        
+	    sprintf(str, "    \"waveplotType\": \"%s\",\n", 
+		param->waveplottype);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"plotjsonFile\": \"%s\",\n", 
+		param->plotjsonfile);
+            strcat (retstr, str);
+	        
+	    sprintf (str, "    \"plotFile\": \"%s\"\n", 
+		param->plotpath);
+            strcat (retstr, str);
+
+        }
+	else { 
+	    sprintf (str, "    \"cdelt3\": \"%lf\"\n", param->cdelt3);
+            strcat (retstr, str);
+        }
+
+	sprintf (str, "   },\n");
+        strcat (retstr, str);
+    }
+
+    
+    
+    if (!param->iscolor) {
 
 /*
     grayFile
 */
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "grayfile= [%s]\n", param->grayFile);
             fflush (fp_debug);
         }
@@ -400,47 +450,21 @@ int constructRetjson (struct Mviewer *param)
 	sprintf (str, "    \"fitsFile\": \"%s\",\n", param->grayFile);
         strcat (retstr, str);
 	
-	if ((int)strlen(param->imcursormode) > 0) {
-	    sprintf(str, "    \"imcursorMode\": \"%s\",\n", 
-	        param->imcursormode);
-            strcat (retstr, str);
-        }	
-        
-	sprintf (str, "    \"imageWidth\": \"%d\",\n", param->imageWidth);
-        strcat (retstr, str);
-        sprintf (str, "    \"imageHeight\": \"%d\",\n", param->imageHeight);
-        strcat (retstr, str);
-    
 	sprintf (str, "    \"cutoutFile\": \"%s\",\n", param->subsetimfile);
         strcat (retstr, str);
 	sprintf (str, "    \"shrunkFile\": \"%s\",\n", param->shrunkimfile);
         strcat (retstr, str);
 
-        sprintf (str, "    \"cutoutWidth\": \"%d\",\n", param->ns);
-        strcat (retstr, str);
-        sprintf (str, "    \"cutoutHeight\": \"%d\",\n", param->nl);
-        strcat (retstr, str);
-	sprintf (str, "    \"ss\": \"%.1f\",\n", param->ss);
-        strcat (retstr, str);
-	sprintf (str, "    \"sl\": \"%.1f\",\n", param->sl);
-        strcat (retstr, str);
-
 /*
-    if colortbl not found, default to grayscale
+	
+    Find colortbl index 
 */
-        indx = -1;
-	for (l=0; l<ncolortbl; l++) {
+        
+	indx = getColortblIndx (param->colorTable);
 
-	    if (strcasecmp (param->colorTable, colortbl[l]) == 0) {
-	        indx = l;
-		break;
-	    }
-	}
 
-	if (indx == -1)
-	    indx = 0;
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-        if (debugfile) {
 	    fprintf (fp_debug, "colortbl= [%s]\n", param->colorTable);
 	    fprintf (fp_debug, "indx= [%d]\n", indx);
             fflush (fp_debug);
@@ -495,46 +519,12 @@ int constructRetjson (struct Mviewer *param)
         strcat (retstr, str);
 	sprintf (str, "    \"yflip\": \"%d\",\n", param->yflip);
         strcat (retstr, str);
-	sprintf (str, "    \"bunit\": \"%s\",\n", param->bunit);
-        strcat (retstr, str);
-
-
-/*
-    click/box input parameters
-*/
-	sprintf (str, "    \"xs\": \"%.1f\",\n", param->xs);
-        strcat (retstr, str);
-	sprintf (str, "    \"xe\": \"%.1f\",\n", param->xe);
-        strcat (retstr, str);
-	sprintf (str, "    \"ys\": \"%.1f\",\n", param->ys);
-        strcat (retstr, str);
-	sprintf (str, "    \"ye\": \"%.1f\",\n", param->ye);
-        strcat (retstr, str);
-
-/*
-    click/box result parameters
-*/
-	sprintf (str, "    \"pickValue\": \"%lf\",\n", param->pickval);
-        strcat (retstr, str);
-	sprintf (str, "    \"pickCsys\": \"%s\",\n", param->pickcsys);
-        strcat (retstr, str);
 	
-	sprintf (str, "    \"xPick\": \"%d\",\n", param->xpick);
-        strcat (retstr, str);
-	sprintf (str, "    \"yPick\": \"%d\",\n", param->ypick);
+	sprintf (str, "    \"bunit\": \"%s\"\n", param->bunit);
         strcat (retstr, str);
 
-	sprintf (str, "    \"raPick\": \"%lf\",\n", param->rapick);
-        strcat (retstr, str);
-	sprintf (str, "    \"decPick\": \"%lf\",\n", param->decpick);
-        strcat (retstr, str);
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-	sprintf (str, "    \"sexraPick\": \"%s\",\n", param->sexrapick);
-        strcat (retstr, str);
-	sprintf (str, "    \"sexdecPick\": \"%s\"\n", param->sexdecpick);
-        strcat (retstr, str);
-
-	if (debugfile) {
 	    fprintf (fp_debug, "noverlay= [%d]\n", param->noverlay);
 	    fprintf (fp_debug, "nim= [%d]\n", param->nim);
 	    fprintf (fp_debug, "nsrctbl= [%d]\n", param->nsrctbl);
@@ -544,9 +534,222 @@ int constructRetjson (struct Mviewer *param)
 
 	sprintf (str, "   }");
         strcat (retstr, str);
+    
+    }
+    else {
+/*
+    redFile
+*/
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	    fprintf (fp_debug, "redfile= [%s]\n", param->redFile);
+            fflush (fp_debug);
+        }
+	
+	sprintf (str, "  \"redFile\":\n");
+        strcat (retstr, str);
+    
+        sprintf (str, "  {\n");
+        strcat (retstr, str);
+        
+	sprintf (str, "    \"fitsFile\": \"%s\",\n", param->redFile);
+        strcat (retstr, str);
+	
+	sprintf (str, "    \"cutoutFile\": \"%s\",\n", param->subsetredfile);
+        strcat (retstr, str);
+	sprintf (str, "    \"shrunkFile\": \"%s\",\n", param->shrunkredfile);
+        strcat (retstr, str);
+
+	sprintf (str, "    \"stretchMin\": \"%s\",\n", param->redMin);
+        strcat (retstr, str);
+	sprintf (str, "    \"stretchMax\": \"%s\",\n", param->redMax);
+        strcat (retstr, str);
+	sprintf (str, "    \"stretchMode\": \"%s\",\n", param->redMode);
+        strcat (retstr, str);
+
+	sprintf (str, "    \"dataMin\": \"%s\",\n", param->reddatamin);
+        strcat (retstr, str);
+	sprintf (str, "    \"dataMax\": \"%s\",\n", param->reddatamax);
+        strcat (retstr, str);
+
+	sprintf (str, "    \"percMin\": \"%s\",\n", param->redpercminstr);
+        strcat (retstr, str);
+	sprintf (str, "    \"percMax\": \"%s\",\n", param->redpercmaxstr);
+        strcat (retstr, str);
+
+	sprintf (str, "    \"sigmaMin\": \"%s\",\n", param->redsigmaminstr);
+        strcat (retstr, str);
+	sprintf (str, "    \"sigmaMax\": \"%s\",\n", param->redsigmamaxstr);
+        strcat (retstr, str);
+
+	sprintf (str, "    \"dispMin\": \"%s\",\n", param->redminstr);
+        strcat (retstr, str);
+	sprintf (str, "    \"dispMax\": \"%s\",\n", param->redmaxstr);
+        strcat (retstr, str);
 
 
-        if (param->noverlay == 0) { 
+/*
+    The following parameters are same for all three planes so
+    only included in the reFile
+*/
+	sprintf (str, "    \"xflip\": \"%d\",\n", param->xflip);
+        strcat (retstr, str);
+	sprintf (str, "    \"yflip\": \"%d\",\n", param->yflip);
+        strcat (retstr, str);
+	sprintf (str, "    \"bunit\": \"%s\"\n", param->bunit);
+        strcat (retstr, str);
+    
+   
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	    fprintf (fp_debug, "noverlay= [%d]\n", param->noverlay);
+	    fprintf (fp_debug, "nim= [%d]\n", param->nim);
+	    fprintf (fp_debug, "nsrctbl= [%d]\n", param->nsrctbl);
+	    fprintf (fp_debug, "niminfo= [%d]\n", param->niminfo);
+	    fflush (fp_debug);
+        }
+	
+	sprintf (str, "   }");
+        strcat (retstr, str);
+
+        if ((int)strlen (param->greenFile) > 0) {
+/*
+    grnFile
+*/
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	        fprintf (fp_debug, "greenfile= [%s]\n", param->greenFile);
+                fflush (fp_debug);
+            }
+	
+	    sprintf (str, ",\n");
+            strcat (retstr, str);
+	
+	    sprintf (str, "  \"greenFile\":\n");
+            strcat (retstr, str);
+    
+            sprintf (str, "  {\n");
+            strcat (retstr, str);
+        
+	    sprintf (str, "    \"fitsFile\": \"%s\",\n", param->greenFile);
+            strcat (retstr, str);
+	
+	    sprintf (str, "    \"cutoutFile\": \"%s\",\n", 
+	        param->subsetgrnfile);
+            strcat (retstr, str);
+	    sprintf (str, "    \"shrunkFile\": \"%s\",\n", 
+	        param->shrunkgrnfile);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"stretchMin\": \"%s\",\n", param->greenMin);
+            strcat (retstr, str);
+	    sprintf (str, "    \"stretchMax\": \"%s\",\n", param->greenMax);
+            strcat (retstr, str);
+	    sprintf (str, "    \"stretchMode\": \"%s\",\n", param->greenMode);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"dataMin\": \"%s\",\n", param->grndatamin);
+            strcat (retstr, str);
+	    sprintf (str, "    \"dataMax\": \"%s\",\n", param->grndatamax);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"percMin\": \"%s\",\n", param->grnpercminstr);
+            strcat (retstr, str);
+	    sprintf (str, "    \"percMax\": \"%s\",\n", param->grnpercmaxstr);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"sigmaMin\": \"%s\",\n", param->grnsigmaminstr);
+            strcat (retstr, str);
+	    sprintf (str, "    \"sigmaMax\": \"%s\",\n", param->grnsigmamaxstr);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"dispMin\": \"%s\",\n", param->grnminstr);
+            strcat (retstr, str);
+	    sprintf (str, "    \"dispMax\": \"%s\"\n", param->grnmaxstr);
+            strcat (retstr, str);
+	
+	    sprintf (str, "   }");
+            strcat (retstr, str);
+
+        }
+    
+    
+        if ((int)strlen (param->blueFile) > 0) {
+/*
+    blueFile
+*/
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	        fprintf (fp_debug, "bluefile= [%s]\n", param->blueFile);
+                fflush (fp_debug);
+            }
+	
+	    sprintf (str, ",\n");
+            strcat (retstr, str);
+	
+	    sprintf (str, "  \"blueFile\":\n");
+            strcat (retstr, str);
+    
+            sprintf (str, "  {\n");
+            strcat (retstr, str);
+        
+	    sprintf (str, "    \"fitsFile\": \"%s\",\n", param->blueFile);
+            strcat (retstr, str);
+	
+	    sprintf (str, "    \"cutoutFile\": \"%s\",\n", 
+	        param->subsetbluefile);
+            strcat (retstr, str);
+	    sprintf (str, "    \"shrunkFile\": \"%s\",\n", 
+	        param->shrunkbluefile);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"stretchMin\": \"%s\",\n", param->blueMin);
+            strcat (retstr, str);
+	    sprintf (str, "    \"stretchMax\": \"%s\",\n", param->blueMax);
+            strcat (retstr, str);
+	    sprintf (str, "    \"stretchMode\": \"%s\",\n", param->blueMode);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"dataMin\": \"%s\",\n", param->bluedatamin);
+            strcat (retstr, str);
+	    sprintf (str, "    \"dataMax\": \"%s\",\n", param->bluedatamax);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"percMin\": \"%s\",\n", param->bluepercminstr);
+            strcat (retstr, str);
+	    sprintf (str, "    \"percMax\": \"%s\",\n", param->bluepercmaxstr);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"sigmaMin\": \"%s\",\n", 
+	        param->bluesigmaminstr);
+            strcat (retstr, str);
+	    sprintf (str, "    \"sigmaMax\": \"%s\",\n", 
+	        param->bluesigmamaxstr);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"dispMin\": \"%s\",\n", param->blueminstr);
+            strcat (retstr, str);
+	    sprintf (str, "    \"dispMax\": \"%s\"\n", param->bluemaxstr);
+            strcat (retstr, str);
+	
+	    sprintf (str, "   }");
+            strcat (retstr, str);
+
+        }
+    
+    }
+
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	fprintf (fp_debug, "noverlay= [%d]\n", param->noverlay);
+	fprintf (fp_debug, "nim= [%d]\n", param->nim);
+	fprintf (fp_debug, "nsrctbl= [%d]\n", param->nsrctbl);
+	fprintf (fp_debug, "niminfo= [%d]\n", param->niminfo);
+	fflush (fp_debug);
+    }
+	
+
+    if (param->noverlay == 0) { 
 
 
 	    sprintf (str, "\n");
@@ -565,157 +768,164 @@ int constructRetjson (struct Mviewer *param)
             strcpy (param->jsonStr, retstr);
 
 	    return (0);
-	}
+    }
 	
-        if (debugfile) {
-	    fprintf (fp_debug, "here1\n");
-	    fflush (fp_debug);
-        }
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	fprintf (fp_debug, "here1\n");
+	fflush (fp_debug);
+    }
 
 /*
     overlay:  
 */
-	sprintf (str, ",\n");
-        strcat (retstr, str);
+    sprintf (str, ",\n");
+    strcat (retstr, str);
 	
-	sprintf (str, "  \"overlay\":\n");
-        strcat (retstr, str);
+    sprintf (str, "  \"overlay\":\n");
+    strcat (retstr, str);
 
-        sprintf (str, "  [\n");
-        strcat (retstr, str);
+    sprintf (str, "  [\n");
+    strcat (retstr, str);
 
         
-        if (debugfile) {
-	    fprintf (fp_debug, "noverlay= [%d]\n", param->noverlay);
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	fprintf (fp_debug, "noverlay= [%d]\n", param->noverlay);
+	fflush (fp_debug);
+    }
+
+    for (l=0; l<param->noverlay; l++) {
+
+        strcpy (layervis, param->overlay[l].visible);
+            
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	    fprintf (fp_debug, "l= [%d] layervis= [%s]\n", l, layervis);
 	    fflush (fp_debug);
         }
 
-	for (l=0; l<param->noverlay; l++) {
+	strcpy (layertype, param->overlay[l].type);
+        strcpy (layercolor, param->overlay[l].color);
+        strcpy (layercsys, param->overlay[l].coordSys);
 
-            strcpy (layervis, param->overlay[l].visible);
-            
-            if (debugfile) {
-	        fprintf (fp_debug, "l= [%d] layervis= [%s]\n", 
-		    l, layervis);
-	        fflush (fp_debug);
-            }
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-	    strcpy (layertype, param->overlay[l].type);
-            strcpy (layercolor, param->overlay[l].color);
-            strcpy (layercsys, param->overlay[l].coordSys);
-
-            if (debugfile) {
-	        fprintf (fp_debug, "layertype= [%s]\n", layertype);
-	        fprintf (fp_debug, "layercolor= [%s]\n", layercolor);
-	        fprintf (fp_debug, "layercsys= [%s]\n", layercsys);
-	        fflush (fp_debug);
-            }
+	    fprintf (fp_debug, "layertype= [%s]\n", layertype);
+	    fprintf (fp_debug, "layercolor= [%s]\n", layercolor);
+	    fprintf (fp_debug, "layercsys= [%s]\n", layercsys);
+	    fflush (fp_debug);
+        }
 
 /*
     overlay: grid 
 */
             
-            if (strcasecmp (layertype, "grid") == 0) {
+        if (strcasecmp (layertype, "grid") == 0) {
        
-                if (debugfile) {
-	            fprintf (fp_debug, "xxx: grid\n");
-	            fflush (fp_debug);
-                }
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-		sprintf (str, "    {\n");
-                strcat (retstr, str);
+	        fprintf (fp_debug, "xxx: grid\n");
+	        fflush (fp_debug);
+            }
+
+	    sprintf (str, "    {\n");
+            strcat (retstr, str);
 		
-		sprintf (str, "      \"type\": \"grid\",\n");
-                strcat (retstr, str);
+	    sprintf (str, "      \"type\": \"grid\",\n");
+            strcat (retstr, str);
 		
-		sprintf (str, "      \"coordSys\": \"%s\",\n", layercsys);
-                strcat (retstr, str);
+	    sprintf (str, "      \"coordSys\": \"%s\",\n", layercsys);
+            strcat (retstr, str);
 		
-		istatus = color2hexcolor (layercolor, hexcolor, 
-		    ndefaultcolor);
+	    istatus = color2hexcolor (layercolor, hexcolor, ndefaultcolor);
 	        
-                if (debugfile) {
-	            fprintf (fp_debug, 
-		        "returned color2hexcolor, istatus= [%d]\n", istatus); 
-	            fflush (fp_debug);
-                }
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	        fprintf (fp_debug, 
+		    "returned color2hexcolor, istatus= [%d]\n", istatus); 
+	        fflush (fp_debug);
+            }
 
 /*
     default: darkgrey 
 */
-		if (istatus == -1) {
-                    strcpy (hexcolor, &defaultHexcolor[4][1]);
-                }
+	    if (istatus == -1) {
+                strcpy (hexcolor, &defaultHexcolor[4][1]);
+            }
 		
-                if (debugfile) {
-	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
-	            fflush (fp_debug);
-                }
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-		sprintf (str, "      \"color\": \"%s\",\n", hexcolor);
-                strcat (retstr, str);
+	        fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
+	        fflush (fp_debug);
+            }
+
+	    sprintf (str, "      \"color\": \"%s\",\n", hexcolor);
+            strcat (retstr, str);
 
 	        
-		if ((strcasecmp (layervis, "true") == 0) ||
-		    (strcasecmp (layervis, "yes") == 0) ||
-		    (strcasecmp (layervis, "1") == 0)) {
+	    if ((strcasecmp (layervis, "true") == 0) ||
+		(strcasecmp (layervis, "yes") == 0) ||
+		(strcasecmp (layervis, "1") == 0)) {
 		    
-		    sprintf (str, "      \"visible\": \"true\"\n");
-                    strcat (retstr, str);
-                }
-		else {
-		    sprintf (str, "      \"visible\": \"false\"\n");
-                    strcat (retstr, str);
-                }
-	        sprintf (str, "     }");
+		sprintf (str, "      \"visible\": \"true\"\n");
                 strcat (retstr, str);
             }
-            else if ((strcasecmp (layertype, "marker") == 0) ||
-                (strcasecmp (layertype, "mark") == 0)) {
+	    else {
+		sprintf (str, "      \"visible\": \"false\"\n");
+                strcat (retstr, str);
+            }
+	    sprintf (str, "     }");
+            strcat (retstr, str);
+        }
+        else if ((strcasecmp (layertype, "marker") == 0) ||
+            (strcasecmp (layertype, "mark") == 0)) {
        
        
 /*
     overlay: marker (compass) 
 */
-	        strcpy (symtype, param->overlay[l].symType);
-                strcpy (symsize, param->overlay[l].symSize);
-                strcpy (location, param->overlay[l].location);
+	    strcpy (symtype, param->overlay[l].symType);
+            strcpy (symsize, param->overlay[l].symSize);
+            strcpy (location, param->overlay[l].location);
 
-                if (debugfile) {
-	            fprintf (fp_debug, "symtype= [%s]\n", symtype);
-	            fprintf (fp_debug, "symsize= [%s]\n", symsize);
-	            fprintf (fp_debug, "location= [%s]\n", location);
-	            fflush (fp_debug);
-                }
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-		sprintf (str, ",\n");
-                strcat (retstr, str);
+	        fprintf (fp_debug, "symtype= [%s]\n", symtype);
+	        fprintf (fp_debug, "symsize= [%s]\n", symsize);
+	        fprintf (fp_debug, "location= [%s]\n", location);
+	        fflush (fp_debug);
+            }
 
-		sprintf (str, "    {\n");
-                strcat (retstr, str);
+	    sprintf (str, ",\n");
+            strcat (retstr, str);
 
-		sprintf (str, "      \"type\": \"mark\",\n");
-                strcat (retstr, str);
+	    sprintf (str, "    {\n");
+            strcat (retstr, str);
 
-		sprintf (str, "      \"symType\": \"%s\",\n", symtype);
-                strcat (retstr, str);
+	    sprintf (str, "      \"type\": \"mark\",\n");
+            strcat (retstr, str);
 
-		
-		sprintf (str, "      \"symSize\": \"%s\",\n", symsize);
-                strcat (retstr, str);
+	    sprintf (str, "      \"symType\": \"%s\",\n", symtype);
+            strcat (retstr, str);
 
 		
-		sprintf (str, "      \"location\": \"%s\",\n", location);
-                strcat (retstr, str);
+	    sprintf (str, "      \"symSize\": \"%s\",\n", symsize);
+            strcat (retstr, str);
 
 		
-		istatus = color2hexcolor (layercolor, hexcolor, ndefaultcolor);
+	    sprintf (str, "      \"location\": \"%s\",\n", location);
+            strcat (retstr, str);
+
+		
+	    istatus = color2hexcolor (layercolor, hexcolor, ndefaultcolor);
 	        
-                if (debugfile) {
-	            fprintf (fp_debug, 
-		        "returned color2hexcolor, istatus= [%d]\n", istatus); 
-	            fflush (fp_debug);
-                }
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	        fprintf (fp_debug, 
+		    "returned color2hexcolor, istatus= [%d]\n", istatus); 
+	        fflush (fp_debug);
+            }
 
 /*
     default: red 
@@ -724,7 +934,8 @@ int constructRetjson (struct Mviewer *param)
                     strcpy (hexcolor, "880000");
                 }
 		
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
 	            fflush (fp_debug);
                 }
@@ -748,8 +959,8 @@ int constructRetjson (struct Mviewer *param)
 	        sprintf (str, "     }");
                 strcat (retstr, str);
 
-            }
-            else if (strcasecmp (layertype, "catalog") == 0) {
+        }
+        else if (strcasecmp (layertype, "catalog") == 0) {
 /*
     overlay: catalog 
 */
@@ -761,7 +972,8 @@ int constructRetjson (struct Mviewer *param)
                 strcpy (dataref, param->overlay[l].dataRef);
                 strcpy (datatype, param->overlay[l].dataType);
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "layerfilename= [%s]\n", layerfilename);
 	            fprintf (fp_debug, "symtype= [%s]\n", symtype);
 	            fprintf (fp_debug, "symsize= [%s]\n", symsize);
@@ -787,7 +999,8 @@ int constructRetjson (struct Mviewer *param)
 	
 		istatus = color2hexcolor (layercolor, hexcolor, ndefaultcolor);
 		
-		if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, 
 		        "returned color2hexcolor, istatus= [%d]\n", istatus); 
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
@@ -836,14 +1049,15 @@ int constructRetjson (struct Mviewer *param)
 	        sprintf (str, "     }");
                 strcat (retstr, str);
 	
-            }
-            else if (strcasecmp (layertype, "iminfo") == 0) {
+        }
+        else if (strcasecmp (layertype, "iminfo") == 0) {
 /*
     overlay: iminfo 
 */
 	        strcpy (layerfilename, param->overlay[l].dataFile);
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "layerfilename= [%s]\n", layerfilename);
 	            fflush (fp_debug);
                 }
@@ -864,7 +1078,8 @@ int constructRetjson (struct Mviewer *param)
 
 		istatus = color2hexcolor (layercolor, hexcolor, ndefaultcolor);
 		
-		if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, 
 		        "returned color2hexcolor, istatus= [%d]\n", istatus); 
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
@@ -890,8 +1105,8 @@ int constructRetjson (struct Mviewer *param)
 	        sprintf (str, "     }");
                 strcat (retstr, str);
 	
-            }
-            else if (strcasecmp (layertype, "label") == 0) {
+        }
+        else if (strcasecmp (layertype, "label") == 0) {
 /*
     overlay: label  
 */
@@ -906,7 +1121,8 @@ int constructRetjson (struct Mviewer *param)
 	
 		istatus = color2hexcolor (layercolor, hexcolor, ndefaultcolor);
 	        
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, 
 		        "returned color2hexcolor, istatus= [%d]\n", istatus); 
 	            fflush (fp_debug);
@@ -919,7 +1135,8 @@ int constructRetjson (struct Mviewer *param)
                     strcpy (hexcolor, &defaultHexcolor[4][1]);
                 }
 		
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
 	            fflush (fp_debug);
                 }
@@ -948,21 +1165,17 @@ int constructRetjson (struct Mviewer *param)
 	        sprintf (str, "     }");
                 strcat (retstr, str);
 	
-            }
         }
-
-        sprintf (str, "\n");
-        strcat (retstr, str);
-        sprintf (str, "   ]\n");
-        strcat (retstr, str);
-
-        sprintf (str, "}");
-        strcat (retstr, str);
-	
     }
-    else {
 
-    }
+    sprintf (str, "\n");
+    strcat (retstr, str);
+    sprintf (str, "   ]\n");
+    strcat (retstr, str);
+
+    sprintf (str, "}");
+    strcat (retstr, str);
+   
         
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
         fprintf (fp_debug, "retstr= [%s] len= [%d]\n", retstr, 

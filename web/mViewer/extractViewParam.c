@@ -51,7 +51,7 @@ int extractViewParam (struct Mviewer *param)
     
     double   dblval;
 
-    int      debugfile = 0;
+    int      debugfile = 1;
 
     
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -120,7 +120,7 @@ int extractViewParam (struct Mviewer *param)
         strcpy (param->errmsg, "Cannot chdir to work directory.");
     }
 
-
+    
     param->jsonStr[0] = '\0';
     if(keyword_exists("json")) {
         if (keyword_value("json") != (char *)NULL) 
@@ -164,7 +164,7 @@ int extractViewParam (struct Mviewer *param)
 
 
 /* 
-    Parse the JSON 
+    Parse the JSON: common parameters 
 */
     param->imageFile[0] = '\0';
    
@@ -190,132 +190,6 @@ int extractViewParam (struct Mviewer *param)
 	fprintf (fdebug, "imageType= [%s]\n", param->imageType);
         fflush (fdebug);
     }
-
-    strcpy (param->imcsys, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "imcsys", str) != (char *)NULL) 
-    {
-        strcpy (param->imcsys, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "imcsys= [%s]\n", param->imcsys);
-        fflush (fdebug);
-    }
-
-    strcpy (param->objname, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "objName", str) != (char *)NULL) 
-    {
-        strcpy (param->objname, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "objname= [%s]\n", param->objname);
-        fflush (fdebug);
-    }
-
-    strcpy (param->filter, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "filter", str) != (char *)NULL) 
-    {
-        strcpy (param->filter, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "filter= [%s]\n", param->filter);
-        fflush (fdebug);
-    }
-
-    strcpy (param->pixscale, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "pixScale", str) != (char *)NULL) 
-    {
-        strcpy (param->pixscale, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "pixscale= [%s]\n", param->pixscale);
-        fflush (fdebug);
-    }
-
-    strcpy (param->ctype3, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "imcubeFile.ctype3", str) != (char *)NULL) 
-    {
-        strcpy (param->ctype3, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "ctype3= [%s]\n", param->ctype3);
-        fflush (fdebug);
-    }
-
-    param->crval3 = 0.;
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "imcubeFile.crval3", str) != (char *)NULL) 
-    {
-        istatus = str2Double (str, &param->crval3, param->errmsg);
-        if (istatus < 0)
-	    param->crval3 = 0.;
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "crval3= [%lf]\n", param->crval3);
-        fflush (fdebug);
-    }
-    
-    param->cdelt3 = 0.;
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "imcubeFile.cdelt3", str) != (char *)NULL) 
-    {
-        istatus = str2Double (str, &param->cdelt3, param->errmsg);
-        if (istatus < 0)
-	    param->cdelt3 = 0.;
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "cdelt3= [%lf]\n", param->cdelt3);
-        fflush (fdebug);
-    }
-
-    strcpy (param->bunit, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "grayFile.bunit", str) != (char *)NULL) 
-    {
-        strcpy (param->bunit, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "bunit= [%s]\n", param->bunit);
-        fflush (fdebug);
-    }
-
-    strcpy (param->imcubepathOrig, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "imcubeFile.fitsFileOrig", str) 
-        != (char *)NULL) 
-    {
-        strcpy (param->imcubepathOrig, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "imcubepathOrig= [%s]\n", param->imcubepathOrig);
-        fflush (fdebug);
-    }
-
-    strcpy (param->imcubepath, "");
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "imcubeFile.fitsFile", str) != (char *)NULL) 
-    {
-        strcpy (param->imcubepath, str);
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "imcubepath= [%s]\n", param->imcubepath);
-        fflush (fdebug);
-    }
-
 
     param->canvasWidth = 512;
     param->canvasHeight = 512;
@@ -395,11 +269,14 @@ int extractViewParam (struct Mviewer *param)
         fflush (fdebug);
     }
 
-/*    
+    
     param->imageWidth = 0;
     param->imageHeight = 0;
-    
-    str[0] = '\0';
+    param->cutoutWidth = 0;
+    param->cutoutHeight = 0;
+    param->ss = 0.;
+    param->sl = 0.;
+	
     if (json_val (param->jsonStr, "imageWidth", str) != (char *)NULL) 
     {
         istatus = str2Integer (str, &param->imageWidth, param->errmsg);
@@ -407,8 +284,6 @@ int extractViewParam (struct Mviewer *param)
             param->imageWidth = 0;
 	}
     }
-    
-    str[0] = '\0';
     if (json_val (param->jsonStr, "imageHeight", str) != (char *)NULL) 
     {
         istatus = str2Integer (str, &param->imageHeight, param->errmsg);
@@ -416,13 +291,54 @@ int extractViewParam (struct Mviewer *param)
             param->imageHeight = 0;
 	}
     }
-    
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "imagewidth= [%d]\n", param->imageWidth);
 	fprintf (fdebug, "imageheight= [%d]\n", param->imageHeight);
         fflush (fdebug);
     }
+
+    if (json_val (param->jsonStr, "cutoutWidth", str) != (char *)NULL) 
+    {
+        istatus = str2Integer (str, &param->cutoutWidth, param->errmsg);
+        if (istatus == -1) {
+            param->cutoutWidth = 0;
+	}
+    }
+    
+    if (json_val (param->jsonStr, "cutoutHeight", str) != (char *)NULL) 
+    {
+        istatus = str2Integer (str, &param->cutoutHeight, param->errmsg);
+        if (istatus == -1) {
+            param->cutoutHeight = 0;
+	}
+    }
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "cutoutwidth= [%d]\n", param->cutoutWidth);
+	fprintf (fdebug, "cutoutheight= [%d]\n", param->cutoutHeight);
+        fflush (fdebug);
+    }
+  
+/*
+    Start pixel of the cutout image from the original image
 */
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "ss", str) != (char *)NULL) 
+    {
+        istatus = str2Double (str, &param->ss, param->errmsg);
+        if (istatus == -1) {
+            param->ss = 0.;
+	}
+    }
+	
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "sl", str) != (char *)NULL) 
+    {
+        istatus = str2Double (str, &param->sl, param->errmsg);
+        if (istatus == -1) {
+            param->sl = 0.;
+	}
+    }
     
     param->nowcs = 0;
     str[0] = '\0';
@@ -465,89 +381,6 @@ int extractViewParam (struct Mviewer *param)
             param->zoomfactor = 1.;
 	}
     }
-
-/*
-    Subimage region to be zoomed: xmin, xmax, ymin, ymax
-*/
-    param->xs = 0.;
-    param->xs = 0.;
-    param->ye = 0.;
-    param->ye = 0.;
-
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "grayFile.xs", str) != (char *)NULL) 
-    {
-        istatus = str2Double (str, &param->xs, param->errmsg);
-        if (istatus == -1) {
-            param->xs = 0.;
-	}
-    }
-    
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "xsStr= [%s]\n", str);
-	fprintf (fdebug, "xs= [%lf]\n", param->xs);
-        fflush (fdebug);
-    }
-
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "grayFile.xe", str) != (char *)NULL) 
-    {
-        istatus = str2Double (str, &param->xe, param->errmsg);
-        if (istatus == -1) {
-            param->xe = 0.;
-	}
-    }
-    
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "xestr= [%s]\n", str);
-	fprintf (fdebug, "xe= [%lf]\n", param->xe);
-        fflush (fdebug);
-    }
-
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "grayFile.ys", str) != (char *)NULL) 
-    {
-        istatus = str2Double (str, &param->ys, param->errmsg);
-        if (istatus == -1) {
-            param->ys = 0.;
-	}
-    }
-    
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "ysStr= [%s]\n", str);
-	fprintf (fdebug, "ys= [%lf]\n", param->ys);
-        fflush (fdebug);
-    }
-
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "grayFile.ye", str) != (char *)NULL) 
-    {
-        istatus = str2Double (str, &param->ye, param->errmsg);
-        if (istatus == -1) {
-            param->ye = 0.;
-	}
-    }
-    
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "yeStr= [%s]\n", str);
-	fprintf (fdebug, "ye= [%lf]\n", param->ye);
-        fflush (fdebug);
-    }
-
-    if (param->xs > param->xe)
-    {
-	dblval = param->xs;
-        param->xs = param->xe;
-        param->xe = dblval;
-    }
-
-    if (param->ys > param->ye)
-    {
-        dblval =  param->ys;
-        param->ys = param->ye;
-        param->ye = dblval;
-    }
-
 
     param->xmin = 0.;
     param->xmax = 0.;
@@ -593,6 +426,20 @@ int extractViewParam (struct Mviewer *param)
 	}
     }
     
+    if (param->xmin > param->xmax)
+    {
+	dblval = param->xmin;
+        param->xmin = param->xmax;
+        param->xmax = dblval;
+    }
+
+    if (param->ymin > param->ymax)
+    {
+        dblval =  param->ymin;
+        param->ymin = param->ymax;
+        param->ymax = dblval;
+    }
+
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "yminStr= [%s]\n", str);
 	fprintf (fdebug, "ymin= [%lf]\n", param->ymin);
@@ -614,33 +461,165 @@ int extractViewParam (struct Mviewer *param)
         fflush (fdebug);
     }
 
-    if (param->xmin > param->xmax)
+
+    strcpy (param->imcsys, "");
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "imCsys", str) != (char *)NULL) 
     {
-	dblval = param->xmin;
-        param->xmin = param->xmax;
-        param->xmax = dblval;
+        strcpy (param->imcsys, str);
     }
 
-    if (param->ymin > param->ymax)
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "imcsys= [%s]\n", param->imcsys);
+        fflush (fdebug);
+    }
+
+    strcpy (param->objname, "");
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "objName", str) != (char *)NULL) 
     {
-        dblval =  param->ymin;
-        param->ymin = param->ymax;
-        param->ymax = dblval;
+        strcpy (param->objname, str);
+    }
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "objname= [%s]\n", param->objname);
+        fflush (fdebug);
+    }
+
+    strcpy (param->filter, "");
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "filter", str) != (char *)NULL) 
+    {
+        strcpy (param->filter, str);
+    }
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "filter= [%s]\n", param->filter);
+        fflush (fdebug);
+    }
+
+    strcpy (param->pixscale, "");
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "pixScale", str) != (char *)NULL) 
+    {
+        strcpy (param->pixscale, str);
+    }
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "pixscale= [%s]\n", param->pixscale);
+        fflush (fdebug);
+    }
+
+    strcpy (param->imcursormode, "");
+
+    if (json_val (param->jsonStr, "imcursorMode", str) 
+	!= (char *)NULL) 
+    {
+        strcpy (param->imcursormode, str);
+    }
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "imcursormode= [%s]\n", param->imcursormode);
+        fflush (fdebug);
     }
 
 
 /*
-    Pick result: xpick, ypick,
-    rapick, decpick, sexrapick, sexdecpick,
-    pickval, pickcsys
+    Subimage region to be zoomed: xmin, xmax, ymin, ymax
+*/
+    param->xs = 0.;
+    param->xs = 0.;
+    param->ye = 0.;
+    param->ye = 0.;
+
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "xs", str) != (char *)NULL) 
+    {
+            istatus = str2Double (str, &param->xs, param->errmsg);
+            if (istatus == -1) {
+                param->xs = 0.;
+	    }
+    }
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "xsStr= [%s]\n", str);
+	    fprintf (fdebug, "xs= [%lf]\n", param->xs);
+            fflush (fdebug);
+    }
+
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "xe", str) != (char *)NULL) 
+    {
+            istatus = str2Double (str, &param->xe, param->errmsg);
+            if (istatus == -1) {
+                param->xe = 0.;
+	    }
+    }
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "xestr= [%s]\n", str);
+	    fprintf (fdebug, "xe= [%lf]\n", param->xe);
+            fflush (fdebug);
+    }
+
+    str[0] = '\0';
+        if (json_val (param->jsonStr, "ys", str) != (char *)NULL) 
+    {
+            istatus = str2Double (str, &param->ys, param->errmsg);
+            if (istatus == -1) {
+                param->ys = 0.;
+	    }
+    }
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "ysStr= [%s]\n", str);
+	fprintf (fdebug, "ys= [%lf]\n", param->ys);
+        fflush (fdebug);
+    }
+
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "ye", str) != (char *)NULL) 
+    {
+        istatus = str2Double (str, &param->ye, param->errmsg);
+        if (istatus == -1) {
+            param->ye = 0.;
+	}
+    }
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "yeStr= [%s]\n", str);
+	fprintf (fdebug, "ye= [%lf]\n", param->ye);
+        fflush (fdebug);
+    }
+
+    
+    if (param->xs > param->xe)
+    {
+	dblval = param->xs;
+        param->xs = param->xe;
+        param->xe = dblval;
+    }
+
+    if (param->ys > param->ye)
+    {
+        dblval =  param->ys;
+        param->ys = param->ye;
+        param->ye = dblval;
+    }
+
+/*
+    Pick result: 
+        xpick, ypick, rapick, decpick, sexrapick, sexdecpick, pickcsys
+	are the same for all plane of color images, 
+	but pickval is for each plane. 
 */
     param->xpick = -1;
     param->ypick = -1;
     param->rapick = 0.;
     param->decpick = 0.;
-    param->pickval = 0.;
     strcpy (param->sexrapick, "");
     strcpy (param->sexdecpick, "");
+    param->pickval = 0.;
 
     str[0] = '\0';
     if (json_val (param->jsonStr, "xPick", str) != (char *)NULL) 
@@ -734,7 +713,6 @@ int extractViewParam (struct Mviewer *param)
         fflush (fdebug);
     }
     
-
     strcpy (param->pickcsys, "eq j2000");
     str[0] = '\0';
     if (json_val (param->jsonStr, "pickcsys", str) != (char *)NULL) 
@@ -753,18 +731,20 @@ int extractViewParam (struct Mviewer *param)
     Extract imcubefile info from jsonstr
 */
     param->isimcube = 0;
+    strcpy (param->imcubepathOrig, "");
     param->imcubefile[0] = '\0';
     strcpy (param->imcubemode, "ave");
-    strcpy (param->imcursormode, "");
     strcpy (param->waveplottype, "");
     strcpy (param->plotjsonfile, "");
+    strcpy (param->ctype3, "");
     
     param->nfitsplane = 0; 
     param->nplaneave = 1; 
     param->centerplane = 1;
     param->startplane = 1;
     param->endplane = 1;
-    
+    param->crval3 = 0.;
+    param->cdelt3 = 0.;
     
     if (json_val (param->jsonStr, "imcubeFile", str) != (char *)NULL) 
     {
@@ -774,6 +754,18 @@ int extractViewParam (struct Mviewer *param)
         }
 
 	param->isimcube = 1;
+
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "imcubeFile.fitsFileOrig", str) 
+            != (char *)NULL) 
+        {
+            strcpy (param->imcubepathOrig, str);
+        }
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "imcubepathOrig= [%s]\n", param->imcubepathOrig);
+            fflush (fdebug);
+        }
 
         if (json_val (param->jsonStr, "imcubeFile.fitsFile", str) 
 	    != (char *)NULL) 
@@ -843,6 +835,27 @@ int extractViewParam (struct Mviewer *param)
 	    }
         }
 
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "imcubeFile.ctype3", str) != (char *)NULL)
+        {
+            strcpy (param->ctype3, str);
+        }
+
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "imcubeFile.crval3", str) != (char *)NULL)
+        {
+            istatus = str2Double (str, &param->crval3, param->errmsg);
+            if (istatus < 0)
+	        param->crval3 = 0.;
+        }
+
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "imcubeFile.cdelt3", str) != (char *)NULL)
+        {
+            istatus = str2Double (str, &param->cdelt3, param->errmsg);
+            if (istatus < 0)
+	        param->cdelt3 = 0.;
+        }
 
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	    fprintf (fdebug, "imcubefile= [%s]\n", param->imcubefile);
@@ -853,44 +866,49 @@ int extractViewParam (struct Mviewer *param)
 	    fprintf (fdebug, "centerplane= [%d]\n", param->centerplane);
 	    fprintf (fdebug, "startplane= [%d]\n", param->startplane);
 	    fprintf (fdebug, "endplane= [%d]\n", param->endplane);
+	    fprintf (fdebug, "ctype3= [%s]\n", param->ctype3);
+	    fprintf (fdebug, "crval3= [%lf]\n", param->crval3);
+	    fprintf (fdebug, "cdelt3= [%lf]\n", param->cdelt3);
 	    fflush (fdebug);
         }
-
     }
 
 
-
 /*
-    Extract grayfile info from jsonstr
+    grayFile, redFile, greenFile, blueFile, and imCube specific parameters
 */
+    strcpy (param->bunit, "");
+    
     param->grayFile[0] = '\0'; 
     param->subsetimfile[0] = '\0'; 
     param->shrunkimfile[0] = '\0'; 
     
-    param->grayFile[0] = '\0';
     strcpy (param->colorTable, "grayscale"); 
     strcpy (param->stretchMode, "linear");
     strcpy (param->stretchMin, "0.5%");
     strcpy (param->stretchMax, "99.5%");
     
     param->redFile[0] = '\0';
+    param->subsetredfile[0] = '\0';
+    param->shrunkredfile[0] = '\0';
     strcpy (param->redMode, "linear");
     strcpy (param->redMin, "0.5%");
     strcpy (param->redMax, "99.5%");
     
     param->greenFile[0] = '\0';
+    param->subsetgrnfile[0] = '\0';
+    param->shrunkgrnfile[0] = '\0';
     strcpy (param->greenMode, "linear");
     strcpy (param->greenMin, "0.5%");
     strcpy (param->greenMax, "99.5%");
     
     param->blueFile[0] = '\0';
+    param->subsetbluefile[0] = '\0';
+    param->shrunkbluefile[0] = '\0';
     strcpy (param->blueMode, "linear");
     strcpy (param->blueMin, "0.5%");
     strcpy (param->blueMax, "99.5%");
 
-    param->imageWidth = 0;
-    param->imageHeight = 0;
-    
     param->datamin[0] = '\0';
     param->datamax[0] = '\0';
     param->minstr[0] = '\0';
@@ -900,18 +918,58 @@ int extractViewParam (struct Mviewer *param)
     param->sigmaminstr[0] = '\0';
     param->sigmamaxstr[0] = '\0';
 
-    param->cutoutWidth = 0;
-    param->cutoutHeight = 0;
-
-    param->ss = 0.;
-    param->sl = 0.;
     param->xflip = 0;
     param->yflip = 0;
-
+    
+    
     if (json_val (param->jsonStr, "grayFile", str) != (char *)NULL) 
     {
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "here1: grayfile\n");
+	    fprintf (fdebug, "grayFile exists\n");
+            fflush (fdebug);
+        }
+
+	param->iscolor = 0;
+   
+    }
+    else if ((json_val (param->jsonStr, "redFile", str) != (char *)NULL) &&
+        (json_val (param->jsonStr, "blueFile", str) != (char *)NULL)) 
+    {
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "redFile and blueFile exist\n");
+            fflush (fdebug);
+        }
+
+	param->iscolor = 1;
+    } 
+    else {
+         strcpy (param->errmsg, 
+	     "Need either single FITS file for grayscale/pseudocolor or "
+	     "red/blue files or or red/green/blue files for full color.");
+         return (-1);
+    }
+
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "iscolor= [%d]\n", param->iscolor);
+        fflush (fdebug);
+    }
+
+    
+    if (!param->iscolor) {
+
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "grayFile.bunit", str) != (char *)NULL) 
+        {
+            strcpy (param->bunit, str);
+        }
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "bunit= [%s]\n", param->bunit);
+            fflush (fdebug);
+        }
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "here1: grayFile.fitsFile\n");
             fflush (fdebug);
         }
 
@@ -921,18 +979,6 @@ int extractViewParam (struct Mviewer *param)
             strcpy (param->grayFile, str);
         }
 	
-	if (json_val (param->jsonStr, "grayFile.imcursorMode", str) 
-	    != (char *)NULL) 
-	{
-            strcpy (param->imcursormode, str);
-        }
-
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "imcursormode= [%s]\n", param->imcursormode);
-            fflush (fdebug);
-        }
-
-
         if (json_val (param->jsonStr, "grayFile.cutoutFile", str) 
 	    != (char *)NULL) 
 	{
@@ -945,51 +991,6 @@ int extractViewParam (struct Mviewer *param)
             strcpy (param->shrunkimfile, str);
         }
 	
-        if (json_val (param->jsonStr, "grayFile.imageWidth", str) 
-	    != (char *)NULL) 
-        {
-            istatus = str2Integer (str, &param->imageWidth, param->errmsg);
-            if (istatus == -1) {
-                param->imageWidth = 0;
-	    }
-        }
-        if (json_val (param->jsonStr, "grayFile.imageHeight", str) 
-	    != (char *)NULL) 
-        {
-            istatus = str2Integer (str, &param->imageHeight, param->errmsg);
-            if (istatus == -1) {
-                param->imageHeight = 0;
-	    }
-        }
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "imagewidth= [%d]\n", param->imageWidth);
-	    fprintf (fdebug, "imageheight= [%d]\n", param->imageHeight);
-            fflush (fdebug);
-        }
-
-        if (json_val (param->jsonStr, "grayFile.cutoutWidth", str) 
-	    != (char *)NULL) 
-        {
-            istatus = str2Integer (str, &param->cutoutWidth, param->errmsg);
-            if (istatus == -1) {
-                param->cutoutWidth = 0;
-	    }
-        }
-    
-        if (json_val (param->jsonStr, "grayFile.cutoutHeight", str) 
-	    != (char *)NULL) 
-        {
-            istatus = str2Integer (str, &param->cutoutHeight, param->errmsg);
-            if (istatus == -1) {
-                param->cutoutHeight = 0;
-	    }
-        }
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "cutoutwidth= [%d]\n", param->cutoutWidth);
-	    fprintf (fdebug, "cutoutheight= [%d]\n", param->cutoutHeight);
-            fflush (fdebug);
-        }
-
         str[0] = '\0';
 	if (json_val (param->jsonStr, "grayFile.colorTable", str) 
 	    != (char *)NULL) 
@@ -1058,7 +1059,6 @@ int extractViewParam (struct Mviewer *param)
         }
 
 
-
         str[0] = '\0';
 	if (json_val (param->jsonStr, "grayFile.stretchMin", str) 
             != (char *)NULL) 
@@ -1073,26 +1073,6 @@ int extractViewParam (struct Mviewer *param)
             strcpy (param->stretchMax, str);
         }
         
-	str[0] = '\0';
-        if (json_val (param->jsonStr, "grayFile.ss", str) 
-	    != (char *)NULL) 
-        {
-            istatus = str2Double (str, &param->ss, param->errmsg);
-            if (istatus == -1) {
-                param->ss = 0.;
-	    }
-        }
-	
-	str[0] = '\0';
-        if (json_val (param->jsonStr, "grayFile.sl", str) 
-	    != (char *)NULL) 
-        {
-            istatus = str2Double (str, &param->sl, param->errmsg);
-            if (istatus == -1) {
-                param->sl = 0.;
-	    }
-        }
-    
 	str[0] = '\0';
         if (json_val (param->jsonStr, "grayFile.xflip", str) 
 	    != (char *)NULL) 
@@ -1113,183 +1093,247 @@ int extractViewParam (struct Mviewer *param)
 	    }
         }
     
-    
-    }
         
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "grayfile= [%s]\n", param->grayFile);
-	fprintf (fdebug, "subsetimfile= [%s]\n", param->subsetimfile);
-	fprintf (fdebug, "shrunkimfile= [%s]\n", param->shrunkimfile);
-	fprintf (fdebug, "imcursormode= [%s]\n", param->imcursormode);
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "grayfile= [%s]\n", param->grayFile);
+	    fprintf (fdebug, "subsetimfile= [%s]\n", param->subsetimfile);
+	    fprintf (fdebug, "shrunkimfile= [%s]\n", param->shrunkimfile);
+	    fprintf (fdebug, "imcursormode= [%s]\n", param->imcursormode);
 	
-	fprintf (fdebug, "colortbl= [%s]\n", param->colorTable);
-	fprintf (fdebug, "stretchmode= [%s]\n", param->stretchMode);
-	fprintf (fdebug, "stretchmin= [%s]\n", param->stretchMin);
-	fprintf (fdebug, "stretchmax= [%s]\n", param->stretchMax);
-        fflush (fdebug);
-    }
+	    fprintf (fdebug, "colortbl= [%s]\n", param->colorTable);
+	    fprintf (fdebug, "stretchmode= [%s]\n", param->stretchMode);
+	    fprintf (fdebug, "stretchmin= [%s]\n", param->stretchMin);
+	    fprintf (fdebug, "stretchmax= [%s]\n", param->stretchMax);
+            fflush (fdebug);
+        }
     
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "redFile", str) != (char *)NULL) 
-    {
-
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "here1: redfile\n");
-            fflush (fdebug);
-        }
-
-        str[0] = '\0';
-        if (json_val (param->jsonStr, "redFile.fitsFile", str) != (char *)NULL)
-	{
-            strcpy (param->redFile, str);
-        }
-
-        strcpy (param->redMode, "linear");
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "redFile.stretchMode", str) 
-	    != (char *)NULL) {
-            strcpy (param->redMode, str);
-        }
-
-        strcpy (param->redMin, "0.5%");
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "redFile.stretchMin", str) 
-	    != (char *)NULL) {
-            strcpy (param->redMin, str);
-        }
-
-        strcpy (param->redMax, "99.5%");
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "redFile.stretchMax", str) 
-	    != (char *)NULL) {
-            strcpy (param->redMax, str);
-        }
-    }
-        
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "redfile= [%s]\n", param->redFile);
-	fprintf (fdebug, "redmode= [%s]\n", param->redMode);
-	fprintf (fdebug, "redmin= [%s]\n", param->redMin);
-	fprintf (fdebug, "redmax= [%s]\n", param->redMax);
-        fflush (fdebug);
-    }
-
-
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "greenFile", str) != (char *)NULL) 
-    {
-
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "here2: greenfile\n");
-            fflush (fdebug);
-        }
-
-        str[0] = '\0';
-        if (json_val (param->jsonStr, "greenFile.fitsFile", str) 
-	    != (char *)NULL) {
-            strcpy (param->greenFile, str);
-        }
-
-        strcpy (param->greenMode, "linear");
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "greenFile.stretchMode", str) 
-	    != (char *)NULL) {
-            strcpy (param->greenMode, str);
-        }
-
-        strcpy (param->greenMin, "0.5%");
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "greenFile.stretchMin", str) 
-	    != (char *)NULL) {
-            strcpy (param->greenMin, str);
-        }
-
-        strcpy (param->greenMax, "99.5%");
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "greenFile.stretchMax", str) 
-	    != (char *)NULL) {
-            strcpy (param->greenMax, str);
-        }
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "greenFile= [%s]\n", param->greenFile);
-	fprintf (fdebug, "greenmode= [%s]\n", param->greenMode);
-	fprintf (fdebug, "greenmin= [%s]\n", param->greenMin);
-	fprintf (fdebug, "greenmax= [%s]\n", param->greenMax);
-        fflush (fdebug);
-    }
-
-
-    str[0] = '\0';
-    if (json_val (param->jsonStr, "blueFile", str) != (char *)NULL) 
-    {
-
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "here3: bluefile\n");
-            fflush (fdebug);
-        }
-
-        str[0] = '\0';
-        if (json_val (param->jsonStr, "blueFile.fitsFile", str) 
-	    != (char *)NULL) {
-            strcpy (param->blueFile, str);
-        }
-
-        strcpy (param->blueMode, "linear");
-
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "blueFile.stretchMode", str) 
-	    != (char *)NULL) {
-            strcpy (param->blueMode, str);
-        }
-
-        strcpy (param->blueMin, "0.5%");
-
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "blueFile.stretchMin", str) 
-	    != (char *)NULL) {
-            strcpy (param->blueMin, str);
-        }
-
-        strcpy (param->blueMax, "99.5%");
-
-        str[0] = '\0';
-	if (json_val (param->jsonStr, "blueFile.stretchMax", str) 
-	    != (char *)NULL) {
-            strcpy (param->blueMax, str);
-        }
-    }
-
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "bluefile= [%s]\n", param->blueFile);
-	fprintf (fdebug, "bluemode= [%s]\n", param->blueMode);
-	fprintf (fdebug, "bluemin= [%s]\n", param->blueMin);
-	fprintf (fdebug, "bluemax= [%s]\n", param->blueMax);
-        fflush (fdebug);
-    }
-
-    
-    if ((int)strlen(param->grayFile) > 0) {
-        param->iscolor = 0;
-    }
-    else if (((int)strlen(param->redFile) > 0) && 
-        ((int)strlen(param->blueFile)> 0))
-    {
-        param->iscolor = 1;
     }
     else {
-         strcpy (param->errmsg, 
-	     "Need either single FITS file for grayscale/pseudocolor or "
-	     "red/blue files or or red/green/blue files for full color.");
-         return (-1);
-    }
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "redFile", str) != (char *)NULL) 
+        {
 
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "iscolor= [%d]\n", param->iscolor);
-        fflush (fdebug);
-    }
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "here1: redfile\n");
+                fflush (fdebug);
+            }
 
+            str[0] = '\0';
+            if (json_val (param->jsonStr, "redFile.fitsFile", str) 
+	        != (char *)NULL)
+	    {
+                strcpy (param->redFile, str);
+            }
+
+
+            if (json_val (param->jsonStr, "redFile.cutoutFile", str) 
+	        != (char *)NULL) 
+	    {
+                strcpy (param->subsetredfile, str);
+            }
+
+            if (json_val (param->jsonStr, "redFile.shrunkFile", str) 
+	        != (char *)NULL) 
+	    {
+                strcpy (param->shrunkredfile, str);
+            }
+
+            strcpy (param->redMode, "linear");
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "redFile.stretchMode", str) 
+	        != (char *)NULL) {
+                strcpy (param->redMode, str);
+            }
+
+            strcpy (param->redMin, "0.5%");
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "redFile.stretchMin", str) 
+	        != (char *)NULL) {
+                strcpy (param->redMin, str);
+            }
+
+            strcpy (param->redMax, "99.5%");
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "redFile.stretchMax", str) 
+	        != (char *)NULL) {
+                strcpy (param->redMax, str);
+            }
+        
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "redfile= [%s]\n", param->redFile);
+	        fprintf (fdebug, "redmode= [%s]\n", param->redMode);
+	        fprintf (fdebug, "redmin= [%s]\n", param->redMin);
+	        fprintf (fdebug, "redmax= [%s]\n", param->redMax);
+	        fprintf (fdebug, "subsetredfile= [%s]\n", param->subsetredfile);
+	        fprintf (fdebug, "shrunkredfile= [%s]\n", param->shrunkredfile);
+                fflush (fdebug);
+            }
+
+	    str[0] = '\0';
+            if (json_val (param->jsonStr, "redFile.xflip", str) 
+	        != (char *)NULL) 
+            {
+                istatus = str2Integer (str, &param->xflip, param->errmsg);
+                if (istatus == -1) {
+                    param->xflip = 0;
+	        }
+            }
+    
+	    str[0] = '\0';
+            if (json_val (param->jsonStr, "redFile.yflip", str) 
+	        != (char *)NULL) 
+            {
+                istatus = str2Integer (str, &param->yflip, param->errmsg);
+                if (istatus == -1) {
+                    param->yflip = 0;
+	        }
+            }
+    
+    
+            str[0] = '\0';
+            if (json_val (param->jsonStr, "redFile.bunit", str) 
+	        != (char *)NULL) 
+            {
+                strcpy (param->bunit, str);
+            }
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "xflip= [%d]\n", param->xflip);
+	        fprintf (fdebug, "yflip= [%d]\n", param->yflip);
+	        fprintf (fdebug, "bunit= [%s]\n", param->bunit);
+                fflush (fdebug);
+            }
+
+        }
+
+
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "greenFile", str) != (char *)NULL) 
+        {
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "here2: greenfile\n");
+                fflush (fdebug);
+            }
+
+            str[0] = '\0';
+            if (json_val (param->jsonStr, "greenFile.fitsFile", str) 
+	        != (char *)NULL) {
+                strcpy (param->greenFile, str);
+            }
+
+            strcpy (param->greenMode, "linear");
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "greenFile.stretchMode", str) 
+	        != (char *)NULL) {
+                strcpy (param->greenMode, str);
+            }
+
+            strcpy (param->greenMin, "0.5%");
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "greenFile.stretchMin", str) 
+	        != (char *)NULL) {
+                strcpy (param->greenMin, str);
+            }
+
+            strcpy (param->greenMax, "99.5%");
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "greenFile.stretchMax", str) 
+	        != (char *)NULL) {
+                strcpy (param->greenMax, str);
+            }
+
+            if (json_val (param->jsonStr, "greenFile.cutoutFile", str) 
+	        != (char *)NULL) 
+	    {
+                strcpy (param->subsetimfile, str);
+            }
+
+            if (json_val (param->jsonStr, "greenFile.shrunkFile", str) 
+	        != (char *)NULL) 
+	    {
+                strcpy (param->shrunkimfile, str);
+            }
+	
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "greenFile= [%s]\n", param->greenFile);
+	        fprintf (fdebug, "greenmode= [%s]\n", param->greenMode);
+	        fprintf (fdebug, "greenmin= [%s]\n", param->greenMin);
+	        fprintf (fdebug, "greenmax= [%s]\n", param->greenMax);
+	        fprintf (fdebug, "subsetgrnfile= [%s]\n", param->subsetgrnfile);
+	        fprintf (fdebug, "shrunkgrnfile= [%s]\n", param->shrunkgrnfile);
+                fflush (fdebug);
+            }
+        }
+
+
+        str[0] = '\0';
+        if (json_val (param->jsonStr, "blueFile", str) != (char *)NULL) 
+        {
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "here3: bluefile\n");
+                fflush (fdebug);
+            }
+
+            str[0] = '\0';
+            if (json_val (param->jsonStr, "blueFile.fitsFile", str) 
+	        != (char *)NULL) {
+                strcpy (param->blueFile, str);
+            }
+
+            strcpy (param->blueMode, "linear");
+
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "blueFile.stretchMode", str) 
+	        != (char *)NULL) {
+                strcpy (param->blueMode, str);
+            }
+
+            strcpy (param->blueMin, "0.5%");
+
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "blueFile.stretchMin", str) 
+	        != (char *)NULL) {
+                strcpy (param->blueMin, str);
+            }
+
+            strcpy (param->blueMax, "99.5%");
+
+            str[0] = '\0';
+	    if (json_val (param->jsonStr, "blueFile.stretchMax", str) 
+	        != (char *)NULL) {
+                strcpy (param->blueMax, str);
+            }
+
+            if (json_val (param->jsonStr, "grayFile.cutoutFile", str) 
+	        != (char *)NULL) 
+	    {
+                strcpy (param->subsetimfile, str);
+            }
+
+            if (json_val (param->jsonStr, "grayFile.shrunkFile", str) 
+	        != (char *)NULL) 
+	    {
+                strcpy (param->shrunkimfile, str);
+            }
+	
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "bluefile= [%s]\n", param->blueFile);
+	        fprintf (fdebug, "bluemode= [%s]\n", param->blueMode);
+	        fprintf (fdebug, "bluemin= [%s]\n", param->blueMin);
+	        fprintf (fdebug, "bluemax= [%s]\n", param->blueMax);
+	        fprintf (fdebug, "subsetbluefile= [%s]\n", 
+		    param->subsetbluefile);
+	        fprintf (fdebug, "shrunkbluefile= [%s]\n", 
+		    param->shrunkbluefile);
+                fflush (fdebug);
+            }
+        }
+
+    }
+    
 /*
     Overlay parameters
 */

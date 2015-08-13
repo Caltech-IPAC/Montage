@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.1      John Good        01Aug15  Add overall weight (e.g. integration time) handling
 3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
                                    for new development cycle.
 2.4      John Good        15May08  Add -f flag to ensure full region is used
@@ -246,12 +247,14 @@ int main(int argc, char **argv)
 
    double    overlapArea;
    double    drizzle;
+   double    fixedWeight;
 
    int       status = 0;
 
    char      template_file[MAXSTR];
    char     *end;
-
+   
+   fixedWeight = 1.;
 
 
    /*************************************************/
@@ -314,7 +317,7 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
-   while ((c = getopt(argc, argv, "z:d:i:o:s:h:w:t:x:Xf")) != EOF) 
+   while ((c = getopt(argc, argv, "z:d:i:o:s:h:w:W:t:x:Xf")) != EOF) 
    {
       switch (c) 
       {
@@ -347,6 +350,20 @@ int main(int argc, char **argv)
          case 'w':
             haveWeights = 1;
             strcpy(weight_file, optarg);
+            break;
+
+         case 'W':
+            fixedWeight = strtod(optarg, &end);
+
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Fixed weight value (%s) cannot be interpreted as a real number\"]\n",
+                  optarg);
+               exit(1);
+            }
+
+            weight_value = fixedWeight;
+
             break;
 
          case 't':
@@ -1307,6 +1324,8 @@ int main(int argc, char **argv)
 
             if(weight_value < threshold)
                weight_value = 0.;
+
+            weight_value *= fixedWeight;
          }
 
          if(mNaN(pixel_value))

@@ -22,7 +22,7 @@
 void  printError(char *errmsg);
 void  printRetval(char *msg);
 
-int debug = 2;
+int debug = 0;
 
 FILE *fdebug;
 
@@ -97,10 +97,7 @@ int main(int argc, char *argv[], char *envp[])
    {
       pid = getpid();
 
-      sprintf (tmpstr, "/tmp/icePlotterHdr.debug_%d", pid);
-      
-      sprintf (tmpstr, 
-          "/koa/cm/ws/mihseh/montage/web/mViewer/mviewerhdr.debug");
+      sprintf (tmpstr, "/tmp/mViewerHdr.debug_%d", pid);
       fdebug = fopen (tmpstr, "w+");
    }
 
