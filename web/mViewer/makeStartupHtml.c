@@ -84,7 +84,7 @@ int makeStartupHtml (struct ViewerApp *param)
     double         cdelt3;
     double         crval3;
 
-    int            debugfile = 0;
+    int            debugfile = 1;
 
     
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {

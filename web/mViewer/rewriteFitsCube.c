@@ -77,10 +77,11 @@ int rewriteFitsCube (char *cubepath, char *outcubepath, char *errmsg)
     fitsfile  *outfptr;
 
     
-    int    debugfile = 0;
+    int    debugfile = 1;
 
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	fprintf (fp_debug, "\nEnter rewriteFitsCube\n");
 	fprintf (fp_debug, "cubepath= [%s]\n", cubepath);
         fflush (fp_debug);
@@ -89,7 +90,8 @@ int rewriteFitsCube (char *cubepath, char *outcubepath, char *errmsg)
 /*
     getFitshdr to analyze if the cube data needs to be re-arranged
 */
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "call getFitshdr\n");
         fprintf (fp_debug, "cubepath= [%s]\n", cubepath);
         fflush (fp_debug);
@@ -97,7 +99,8 @@ int rewriteFitsCube (char *cubepath, char *outcubepath, char *errmsg)
            
     istatus = getFitshdr (cubepath, &hdr, 1);
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
         fprintf (fp_debug, "returned getFitshdr, istatus= [%d]\n", istatus);
         fprintf (fp_debug, "naxes[0]= [%d] axisIndx[0]= [%d]\n", 
             hdr.naxes[0], hdr.axisIndx[0]);
@@ -115,7 +118,8 @@ int rewriteFitsCube (char *cubepath, char *outcubepath, char *errmsg)
     istatus = 0;
     if (fits_open_file (&infptr, cubepath, READONLY, &istatus)) {
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	
 	    fprintf (fp_debug, "istatus= [%d]\n", istatus);
             fflush (fp_debug);
 	}

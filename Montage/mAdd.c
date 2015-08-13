@@ -2,39 +2,39 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-5.2      Daniel S. Katz	  16Jul10  Small change for MPI with new fits library
+5.2      Daniel S. Katz          16Jul10  Small change for MPI with new fits library
 5.1      John Good        09Jul06  Only show maxopen warning in debug mode
 5.0      John Good        07Oct05  Added COUNT averaging mode           
 4.7      John Good        14Jun05  Was losing the first row in every input
-				   file.
+                                   file.
 4.6      John Good        06Feb05  Fixed bug in allocation of pixel depth
                                    space. Was basing it on number of possible
                                    images when it should be number of pixel
                                    "fragments".
 4.5      John Good        03Jan05  Updated offset calculation to work
-				   correctly with both pos and neg offsets
+                                   correctly with both pos and neg offsets
 4.4      Daniel S. Katz   16Dec04  Parallelized file writes using libwcs
          Joe Jacob                 for optional MPI usage
 4.3      John Good        06Dec04  Used define variables like MEAN instead
-				   of numeric equivalents
+                                   of numeric equivalents
 4.2      John Good        13Oct04  Changed format for printing time
 4.1      John Good        03Aug04  Changed precision on updated keywords
 4.0      John Good        29Jul04  Added code to generate wcs structures
-				   for the template and images and confirm
-				   that they match.
+                                   for the template and images and confirm
+                                   that they match.
 3.6      John Good        18Jul04  Added code to delete partial result
-				   files if there is a processing error
+                                   files if there is a processing error
 3.5      John Good        17Jul04  Linked-list code failing when count
-				   dropped to zero (gaps in coverage)
+                                   dropped to zero (gaps in coverage)
 3.4      John Good        24Jun04  Added half pixel to offset calculation
-				   (the round back off) to allow for minor 
-				   variability in crpix values.
+                                   (the round back off) to allow for minor 
+                                   variability in crpix values.
 3.3      John Good        07Jun04  Modified FITS key updating precision
 3.2      John Good        17May04  Changed median "area" value to be total
                                    area from all contributing pixels
 3.1      John Good        09Apr04  Bug fix: wasn't checking input range
-				   to make sure lines weren't outside
-				   output image.
+                                   to make sure lines weren't outside
+                                   output image.
 3.0      John Good        24Mar04  Reworked mechanism for keeping track
                                    of which files contribute to which
                                    output image lines using a linked
@@ -810,7 +810,7 @@ int main(int argc, char **argv)
             infile[ifile] = (char *)malloc(namelen*sizeof(char));
             inarea[ifile] = (char *)malloc(namelen*sizeof(char));
 
-	    if(!inarea[ifile]) allocError("file info (realloc)");
+            if(!inarea[ifile]) allocError("file info (realloc)");
          }
       }
    }
@@ -984,9 +984,9 @@ int main(int argc, char **argv)
       /***********************************/
 
       if(output.crpix1 > incrpix1[ifile])
-	 input[ifile].offset =  floor(output.crpix1 - incrpix1[ifile] + 0.5);
+         input[ifile].offset =  floor(output.crpix1 - incrpix1[ifile] + 0.5);
       else
-	 input[ifile].offset = -floor(incrpix1[ifile] - output.crpix1 + 0.5);
+         input[ifile].offset = -floor(incrpix1[ifile] - output.crpix1 + 0.5);
 
       if (debug >= 2)
       {
@@ -1324,19 +1324,19 @@ int main(int argc, char **argv)
      FitsHeader = (char *) fitsrhead (output_file, &junk, &DataOffset);
      if (FitsHeader == NULL) 
      {
-	 printf ("Could not read FITS header from %s\n", output_file);
-	 exit(1);
+         printf ("Could not read FITS header from %s\n", output_file);
+         exit(1);
      }
      hputi4 (FitsHeader, "NAXIS2", itemp);
      output.naxes[1] = itemp;
      if ((fd = fitswhead (output_file, FitsHeader)) == 0) {
-	 printf ("Could not write FITS header to %s\n", output_file);
-	 exit(1);
+         printf ("Could not write FITS header to %s\n", output_file);
+         exit(1);
      }
      close (fd);
      if ((fd = fitswhead (output_area_file, FitsHeader)) == 0) {
-	 printf ("Could not write FITS header to %s\n", output_area_file);
-	 exit(1);
+         printf ("Could not write FITS header to %s\n", output_area_file);
+         exit(1);
      }
      close (fd);
      free (FitsHeader);
@@ -1432,12 +1432,12 @@ int main(int argc, char **argv)
 
          if(input[ifile].isopen)
          {
-	    if(fits_close_file(input[ifile].fptr, &status))
-	       printFitsError(status);           
+            if(fits_close_file(input[ifile].fptr, &status))
+               printFitsError(status);           
 
-	    input[ifile].isopen = 0;
+            input[ifile].isopen = 0;
 
-	    --open_files;
+            --open_files;
          }
         
          if(haveAreas
@@ -1467,19 +1467,19 @@ int main(int argc, char **argv)
          printf("\nContributing files (%d):\n\n", imgcount);
          printf(" i   isopen   open/max      infile[i]       \n");
          printf("---- ------ ------------ -------------------\n");
-	 fflush(stdout);
+         fflush(stdout);
       }
 
       for(j=0; j<imgcount; ++j)
       {
          ifile = listIndex(j);
 
-	 if(debug >= 2)
-	 {
+         if(debug >= 2)
+         {
             printf("%4d %4d %6d/%6d %s\n",
-	       ifile, input[ifile].isopen, open_files, MAXFITS, infile[ifile]);
-	    fflush(stdout);
-	 }
+               ifile, input[ifile].isopen, open_files, MAXFITS, infile[ifile]);
+            fflush(stdout);
+         }
 
          if (input[ifile].isopen == 0)
          {
@@ -1493,8 +1493,8 @@ int main(int argc, char **argv)
                fflush(stdout);
 
                /* in MPI case, this might cause meaningless errors */
-	       remove(output_file);               
-	       remove(output_area_file);               
+               remove(output_file);               
+               remove(output_area_file);               
 
                exit(1);
             }
@@ -1506,11 +1506,11 @@ int main(int argc, char **argv)
                printError(errstr);
             }
 
-	    if(debug >= 2)
-	    {
-	       printf("Open:  %4d\n", ifile); 
-	       fflush(stdout);
-	    }
+            if(debug >= 2)
+            {
+               printf("Open:  %4d\n", ifile); 
+               fflush(stdout);
+            }
 
 
             input[ifile].isopen = 1;
@@ -1519,17 +1519,17 @@ int main(int argc, char **argv)
             {
                ++open_files;
 
-	       if (open_files > MAXFITS)
-	       {
-		  printf("[struct stat=\"ERROR\", msg=\"Too many open files\"]\n");
-		  fflush(stdout);
+               if (open_files > MAXFITS)
+               {
+                  printf("[struct stat=\"ERROR\", msg=\"Too many open files\"]\n");
+                  fflush(stdout);
 
                   /* in MPI case, this might cause meaningless errors */
-		  remove(output_file);               
-		  remove(output_area_file);               
+                  remove(output_file);               
+                  remove(output_area_file);               
 
-		  exit(1);
-	       }
+                  exit(1);
+               }
 
                if(fits_open_file(&input_area[ifile].fptr, inarea[ifile], READONLY, &status))
                {
@@ -1547,58 +1547,58 @@ int main(int argc, char **argv)
             if(fits_get_image_wcs_keys(input[ifile].fptr, &inputHeader, &status))
                printFitsError(status);
 
-	    if(debug >= 3)
-	    {
-	       printf("Input header to wcsinit() [imgWCS]:\n%s\n", inputHeader);
-	       fflush(stdout);
-	    }
+            if(debug >= 3)
+            {
+               printf("Input header to wcsinit() [imgWCS]:\n%s\n", inputHeader);
+               fflush(stdout);
+            }
 
-	    imgWCS = wcsinit(inputHeader);
+            imgWCS = wcsinit(inputHeader);
 
-	    if(imgWCS == (struct WorldCoor *)NULL)
-	    {
-	       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Input wcsinit() failed.\"]\n");
-	       exit(1);
-	    }
+            if(imgWCS == (struct WorldCoor *)NULL)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Input wcsinit() failed.\"]\n");
+               exit(1);
+            }
 
             if(strcmp(imgWCS->c1type, hdrWCS->c1type) != 0)
             {
-	       sprintf(errstr, "Image %s header CTYPE1 does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CTYPE1 does not match template", infile[ifile]);
                printError(errstr);
-	    }
+            }
 
             if(strcmp(imgWCS->c2type, hdrWCS->c2type) != 0)
             {
-	       sprintf(errstr, "Image %s header CTYPE2 does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CTYPE2 does not match template", infile[ifile]);
                printError(errstr);
-	    }
+            }
 
             if(fabs(imgWCS->xref - hdrWCS->xref) > 1.e-8)
             {
-	       sprintf(errstr, "Image %s header CRVAL1 does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CRVAL1 does not match template", infile[ifile]);
                printError(errstr);
-	    }
+            }
 
             if(fabs(imgWCS->yref - hdrWCS->yref) > 1.e-8)
             {
-	       sprintf(errstr, "Image %s header CRVAL2 does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CRVAL2 does not match template", infile[ifile]);
                printError(errstr);
-	    }
+            }
 
             if(fabs(imgWCS->cd[0] - hdrWCS->cd[0]) > 1.e-8
             || fabs(imgWCS->cd[1] - hdrWCS->cd[1]) > 1.e-8
             || fabs(imgWCS->cd[2] - hdrWCS->cd[2]) > 1.e-8
             || fabs(imgWCS->cd[3] - hdrWCS->cd[3]) > 1.e-8)
             {
-	       sprintf(errstr, "Image %s header CD/CDELT does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CD/CDELT does not match template", infile[ifile]);
                printError(errstr);
-	    }
+            }
 
             if(imgWCS->equinox != hdrWCS->equinox)
             {
-	       sprintf(errstr, "Image %s header EQUINOX does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header EQUINOX does not match template", infile[ifile]);
                printError(errstr);
-	    }
+            }
          } 
 
 
@@ -1611,129 +1611,129 @@ int main(int argc, char **argv)
          fpixel[2] = 1;
          fpixel[3] = 1;
 
-	 nelements = innaxis1[ifile];
+         nelements = innaxis1[ifile];
 
-	 if (debug >= 3)
-	 {
-	    printf("Reading line from %d:\n", ifile);
-	    printf("fpixel[1] = %ld\n", fpixel[1]);
-	    printf("nelements = %ld\n", nelements);
-	    fflush(stdout);
-	 }
+         if (debug >= 3)
+         {
+            printf("Reading line from %d:\n", ifile);
+            printf("fpixel[1] = %ld\n", fpixel[1]);
+            printf("nelements = %ld\n", nelements);
+            fflush(stdout);
+         }
 
-	 if(fpixel[1] >= 1
-	 && fpixel[1] <= innaxis2[ifile])
-	 {
-	    /*****************/
-	    /* Read the line */
-	    /*****************/
+         if(fpixel[1] >= 1
+         && fpixel[1] <= innaxis2[ifile])
+         {
+            /*****************/
+            /* Read the line */
+            /*****************/
 
-	    status = 0;
+            status = 0;
 
-	    if(fits_read_pix(input[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
-			       input_buffer, &nullcnt, &status))
-	      printFitsError(status);
+            if(fits_read_pix(input[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
+                               input_buffer, &nullcnt, &status))
+              printFitsError(status);
 
-	    if(haveAreas)
-	    {
-	       if(fits_read_pix(input_area[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
-				  input_buffer_area, &nullcnt, &status))
-		 printFitsError(status);
-	    }
-	    else
-	    {
-	       for(i=0; i<nelements; ++i)
-		  input_buffer_area[i] = 1.000;
-	    }
+            if(haveAreas)
+            {
+               if(fits_read_pix(input_area[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
+                                  input_buffer_area, &nullcnt, &status))
+                 printFitsError(status);
+            }
+            else
+            {
+               for(i=0; i<nelements; ++i)
+                  input_buffer_area[i] = 1.000;
+            }
 
 
-	    /**********************/
-	    /* Process the pixels */
-	    /**********************/
+            /**********************/
+            /* Process the pixels */
+            /**********************/
 
-	    for (i = 0; i<nelements; ++i)
-	    {
-	       /***********************************/
-	       /* If there's not a value here, we */
-	       /* won't add anything to dataline  */
-	       /***********************************/
+            for (i = 0; i<nelements; ++i)
+            {
+               /***********************************/
+               /* If there's not a value here, we */
+               /* won't add anything to dataline  */
+               /***********************************/
     
-	       if (mNaN(input_buffer[i]) || input_buffer_area[i] <= 0.)
-		  continue;
-	     
-	       /* Are we off the image? */
-	      
-	       ipix = i + input[ifile].offset;
+               if (mNaN(input_buffer[i]) || input_buffer_area[i] <= 0.)
+                  continue;
+             
+               /* Are we off the image? */
+              
+               ipix = i + input[ifile].offset;
 
-	       if (ipix <               0 ) continue;
-	       if (ipix >= output.naxes[0]) continue;
-	     
+               if (ipix <               0 ) continue;
+               if (ipix >= output.naxes[0]) continue;
+             
 
-	       /****************************************************/
-	       /* Not off the image, and not NaNs; add to dataline */
-	       /* corresponding to ifile                           */
-	       /****************************************************/
-	     
-	       jcnt = datacount[ipix];
+               /****************************************************/
+               /* Not off the image, and not NaNs; add to dataline */
+               /* corresponding to ifile                           */
+               /****************************************************/
+             
+               jcnt = datacount[ipix];
 
-	       if(jcnt >= pixdepth)
-	       {
-		  pixdepth += PIXDEPTH;
+               if(jcnt >= pixdepth)
+               {
+                  pixdepth += PIXDEPTH;
 
-		  if(debug >= 1)
-		  {
-		     printf("\nReallocating input data buffers; new depth = %d\n",
-			pixdepth);
-		     fflush(stdout);
-		  }
+                  if(debug >= 1)
+                  {
+                     printf("\nReallocating input data buffers; new depth = %d\n",
+                        pixdepth);
+                     fflush(stdout);
+                  }
 
-		  for (i=0; i<output.naxes[0]; ++i)
-		  {
-		     dataline[i] = (double *)realloc(dataline[i],
-			pixdepth * sizeof(double));
+                  for (i=0; i<output.naxes[0]; ++i)
+                  {
+                     dataline[i] = (double *)realloc(dataline[i],
+                        pixdepth * sizeof(double));
 
-		     if(dataline[i] == (double *)NULL)
-		     {
-			/* in MPI case, this might cause meaningless errors */
-			remove(output_file);               
-			remove(output_area_file);               
+                     if(dataline[i] == (double *)NULL)
+                     {
+                        /* in MPI case, this might cause meaningless errors */
+                        remove(output_file);               
+                        remove(output_area_file);               
 
                         allocError("data line (realloc)");
-		     }
+                     }
 
-		     arealine[i] = (double *)realloc(arealine[i],
-			pixdepth * sizeof(double));
+                     arealine[i] = (double *)realloc(arealine[i],
+                        pixdepth * sizeof(double));
 
-		     if(arealine[i] == (double *)NULL)
-		     {
-			/* in MPI case, this might cause meaningless errors */
-			remove(output_file);               
-			remove(output_area_file);               
+                     if(arealine[i] == (double *)NULL)
+                     {
+                        /* in MPI case, this might cause meaningless errors */
+                        remove(output_file);               
+                        remove(output_area_file);               
 
                         allocError("area line (realloc)");
-		     }
-		  }
+                     }
+                  }
 
-		  if(debug >= 1)
-		  {
-		     printf("Memory reallocation complete\n");
-		     fflush(stdout);
-		  }
-	       }
-	       dataline[ipix][jcnt] = input_buffer[i];
+                  if(debug >= 1)
+                  {
+                     printf("Memory reallocation complete\n");
+                     fflush(stdout);
+                  }
+               }
+               dataline[ipix][jcnt] = input_buffer[i];
 
-	       arealine[ipix][jcnt] = input_buffer_area[i];
+               arealine[ipix][jcnt] = input_buffer_area[i];
 
-	       ++datacount[ipix];
-	    }
-	 }
-	 else
-	 {
-	    if (debug >= 3)
-	    {
-	       printf("Nothing read: outside image bounds\n");
-	       fflush(stdout);
-	    }
+               ++datacount[ipix];
+            }
+         }
+         else
+         {
+            if (debug >= 3)
+            {
+               printf("Nothing read: outside image bounds\n");
+               fflush(stdout);
+            }
          }
 
 
@@ -1752,10 +1752,10 @@ int main(int argc, char **argv)
             showwarning = 1;
 
             if(debug >= 1)
-	    {
-	       printf("\nWARNING: Opening and closing files to avoid too many open FITS\n\n");
-	       fflush(stdout);
-	    }
+            {
+               printf("\nWARNING: Opening and closing files to avoid too many open FITS\n\n");
+               fflush(stdout);
+            }
          }
 
          if (open_files >= MAXFITS) 
@@ -1763,11 +1763,11 @@ int main(int argc, char **argv)
             if(fits_close_file(input[ifile].fptr, &status))
                printFitsError(status);           
 
-	    if(debug >= 2)
-	    {
-	       printf("Close: %4d\n", ifile); 
-	       fflush(stdout);
-	    }
+            if(debug >= 2)
+            {
+               printf("Close: %4d\n", ifile); 
+               fflush(stdout);
+            }
 
             input[ifile].isopen = 0;
 
@@ -1880,7 +1880,7 @@ int main(int argc, char **argv)
    {
       time(&currtime);
       printf("\nOutput FITS files completed [time: %.0f]\n", 
-	 (double)(currtime - start));
+         (double)(currtime - start));
       fflush(stdout);
    }
 
@@ -2464,25 +2464,25 @@ int listDelete(int value)
          prev = listElement[current]->prev;
 
          if(current == listFirst)
-	 {
-	    listFirst = next;
-	    
-	    if(!listElement[listFirst]->used)
-	    {
-	       for(i=0; i<nlistElement; ++i)
-	       {
-		  listElement[i]->used  =  0;
-		  listElement[i]->value = -1;
-		  listElement[i]->next  = -1;
-		  listElement[i]->prev  = -1;
-	       }
+         {
+            listFirst = next;
+            
+            if(!listElement[listFirst]->used)
+            {
+               for(i=0; i<nlistElement; ++i)
+               {
+                  listElement[i]->used  =  0;
+                  listElement[i]->value = -1;
+                  listElement[i]->next  = -1;
+                  listElement[i]->prev  = -1;
+               }
 
-	       listFirst = 0;
-	       listMax   = 0;
+               listFirst = 0;
+               listMax   = 0;
 
-	       return 0;
-	    }
-	 }
+               return 0;
+            }
+         }
             
          listElement[current]->value = -1;
          listElement[current]->used  =  0;

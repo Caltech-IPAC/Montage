@@ -2,13 +2,14 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+4.1      John Good        01Aug15  Add overall weight (e.g. integration time) handling
 4.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
                                    for new development cycle.
 3.2      John Good        15Jun05  Added -X option to force reprojection
                                    of whole image, even if part of it is
                                    outside region of interest.
 3.1      John Good        31May05  Added option flux rescaling 
-				   (e.g. magnitude zero point correction)
+                                   (e.g. magnitude zero point correction)
 3.0      John Good        25Mar05  Added in weight image and HDU functionality
 2.1      John Good        13Oct04  Changed format for printing time
 2.0      John Good        12Sep04  Added polygon border handling
@@ -21,9 +22,9 @@ Version  Developer        Date     Change
 1.3      John Good        07Jun04  Added -i (alternate input header) option.
                                    Modified FITS key updating precision
 1.2      John Good        25Mar04  Bug fix: border was not being accounted for
-				   in FITS file reading
+                                   in FITS file reading
 1.1      John Good        18Mar04  Bug fix: need special code for TwoPlane
-				   projection library initialization.
+                                   projection library initialization.
 1.0      John Good        27Jan04  Baseline code (derived from mProject v1.15)
 
 */
@@ -90,7 +91,7 @@ char   alt_input_header [HDRLEN];
 char   alt_output_header[HDRLEN];
 
 double computeOverlapPP(double *, double *, 
-			double, double, double, double, double);
+                        double, double, double, double, double);
 
 void   printFitsError(int);
 void   printError    (char *);
@@ -232,6 +233,7 @@ int main(int argc, char **argv)
 
    double    overlapArea;
    double    drizzle;
+   double    fixedWeight;
 
    int       status = 0;
 
@@ -239,6 +241,7 @@ int main(int argc, char **argv)
    char      msg          [MAXSTR];
    char     *end;
 
+   fixedWeight = 1.;
 
 
    /*************************************************/
@@ -293,19 +296,19 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
-   while ((c = getopt(argc, argv, "z:d:s:b:o:i:h:w:t:x:X")) != EOF) 
+   while ((c = getopt(argc, argv, "z:d:s:b:o:i:h:w:W:t:x:X")) != EOF) 
    {
       switch (c) 
       {
          case 'z':
             drizzle = strtod(optarg, &end);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"Drizzle factor string (%s) cannot be interpreted as a real number\"]\n", 
-		  optarg);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Drizzle factor string (%s) cannot be interpreted as a real number\"]\n", 
+                  optarg);
+               exit(1);
+            }
 
             break;
 
@@ -324,16 +327,30 @@ int main(int argc, char **argv)
 
          case 'i':
             strcpy(altin, optarg);
-	    break;
+            break;
 
          case 'o':
             strcpy(altout, optarg);
-	    break;
+            break;
 
          case 'w':
-	    haveWeights = 1;
+            haveWeights = 1;
             strcpy(weight_file, optarg);
-	    break;
+            break;
+
+         case 'W':
+            fixedWeight = strtod(optarg, &end);
+
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Fixed weight value (%s) cannot be interpreted as a real number\"]\n", 
+                  optarg);
+               exit(1);
+            }
+
+            weight_value = fixedWeight;
+
+            break;
 
          case 't':
             threshold = strtod(optarg, &end);
@@ -361,48 +378,48 @@ int main(int argc, char **argv)
 
          case 'X':
             expand = 1;
-	    break;
+            break;
 
          case 'b':
             border = strtol(optarg, &end, 10);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       if(BorderSetup(optarg) <= 3)
-	       {
-		  printf("[struct stat=\"ERROR\", msg=\"Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices\"]\n", 
-		     optarg);
-		  exit(1);
-	       }
-	       else
-	       {
-		  border = 0;
-		  bordertype = POLYBORDER;
-	       }
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               if(BorderSetup(optarg) <= 3)
+               {
+                  printf("[struct stat=\"ERROR\", msg=\"Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices\"]\n", 
+                     optarg);
+                  exit(1);
+               }
+               else
+               {
+                  border = 0;
+                  bordertype = POLYBORDER;
+               }
+            }
 
-	    if(border < 0)
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"Border value (%d) must be greater than or equal to zero\"]\n", 
-		  border);
-	       exit(1);
-	    }
+            if(border < 0)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Border value (%d) must be greater than or equal to zero\"]\n", 
+                  border);
+               exit(1);
+            }
 
             break;
 
          case 'h':
             hdu = strtol(optarg, &end, 10);
 
-	    if(end < optarg + strlen(optarg) || hdu < 0)
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"HDU value (%s) must be a non-negative integer\"]\n", 
-		  optarg);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg) || hdu < 0)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"HDU value (%s) must be a non-negative integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-z factor][-d level][-b border][-s statusfile][-o altout.hdr][-i altin.hdr][-h hdu][-x scale][-w weightfile][-t threshold][-X(expand)] in.fits out.fits template.hdr\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-z factor][-d level][-b border][-s statusfile][-o altout.hdr][-i altin.hdr][-h hdu][-x scale][-w weightfile][-t threshold][-X(expand)] in.fits out.fits template.hdr\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -455,10 +472,10 @@ int main(int argc, char **argv)
       printf("template_file = [%s]\n", template_file);
 
       if(altin[0] != '\0')
-	 printf("altin         = [%s]\n\n", altin);
+         printf("altin         = [%s]\n\n", altin);
 
       if(altout[0] != '\0')
-	 printf("altout        = [%s]\n\n", altout);
+         printf("altout        = [%s]\n\n", altout);
 
       fflush(stdout);
    }
@@ -507,7 +524,7 @@ int main(int argc, char **argv)
    if(expand)
    {
       offset = (int)(sqrt(input.naxes[0]*input.naxes[0]
-			+ input.naxes[1]*input.naxes[1]));
+                        + input.naxes[1]*input.naxes[1]));
    }
 
    if(debug >= 1)
@@ -563,16 +580,16 @@ int main(int argc, char **argv)
    if(altin[0] != '\0')
    {
       if(altout[0] != '\0')
-	 status = Initialize_TwoPlane_BothDistort(&two_plane, alt_input_header, alt_output_header);
+         status = Initialize_TwoPlane_BothDistort(&two_plane, alt_input_header, alt_output_header);
       else 
-	 status = Initialize_TwoPlane_BothDistort(&two_plane, alt_input_header, template_header);
+         status = Initialize_TwoPlane_BothDistort(&two_plane, alt_input_header, template_header);
    }
    else
    {
       if(altout[0] != '\0')
-	 status = Initialize_TwoPlane_BothDistort(&two_plane, input_header, alt_output_header);
+         status = Initialize_TwoPlane_BothDistort(&two_plane, input_header, alt_output_header);
       else 
-	 status = Initialize_TwoPlane_BothDistort(&two_plane, input_header, template_header);
+         status = Initialize_TwoPlane_BothDistort(&two_plane, input_header, template_header);
    }
 
    if(status)
@@ -639,12 +656,12 @@ int main(int argc, char **argv)
       if(debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n", 
-	    0.5, j+0.5, oxpixe, oypixe, offscl);
-	 fflush(stdout);
+            0.5, j+0.5, oxpixe, oypixe, offscl);
+         fflush(stdout);
 
-	 pix2wcs(input.wcs, 0.5, j+0.5, &lon, &lat);
-	 wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
-	 printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
+         pix2wcs(input.wcs, 0.5, j+0.5, &lon, &lat);
+         wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
+         printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
       }
 
       if(!offscl)
@@ -656,19 +673,19 @@ int main(int argc, char **argv)
       }
 
       plane1_to_plane2_transform(input.naxes[0]+0.5, j+0.5,
-	                         &oxpixe, &oypixe, &two_plane);
+                                 &oxpixe, &oypixe, &two_plane);
       offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
                 oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
       if(debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n", 
-	    input.naxes[0]+0.5, j+0.5, oxpixe, oypixe, offscl);
-	 fflush(stdout);
+            input.naxes[0]+0.5, j+0.5, oxpixe, oypixe, offscl);
+         fflush(stdout);
 
-	 pix2wcs(input.wcs, input.naxes[0]+0.5, j+0.5, &lon, &lat);
-	 wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
-	 printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
+         pix2wcs(input.wcs, input.naxes[0]+0.5, j+0.5, &lon, &lat);
+         wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
+         printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
       }
 
       if(!offscl)
@@ -692,12 +709,12 @@ int main(int argc, char **argv)
       if(debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n", 
-	    i+0.5, 0.5, oxpixe, oypixe, offscl);
-	 fflush(stdout);
+            i+0.5, 0.5, oxpixe, oypixe, offscl);
+         fflush(stdout);
 
-	 pix2wcs(input.wcs, i+0.5, 0.5, &lon, &lat);
-	 wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
-	 printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
+         pix2wcs(input.wcs, i+0.5, 0.5, &lon, &lat);
+         wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
+         printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
       }
 
       if(!offscl)
@@ -709,19 +726,19 @@ int main(int argc, char **argv)
       }
 
       plane1_to_plane2_transform(i+0.5, input.naxes[1]+0.5,
-	                         &oxpixe, &oypixe, &two_plane);
+                                 &oxpixe, &oypixe, &two_plane);
       offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
                 oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
       if(debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n",
-	    i+0.5, input.naxes[1]+0.5, oxpixe, oypixe, offscl);
-	 fflush(stdout);
+            i+0.5, input.naxes[1]+0.5, oxpixe, oypixe, offscl);
+         fflush(stdout);
 
-	 pix2wcs(input.wcs, i+0.5, input.naxes[1]+0.5, &lon, &lat);
-	 wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
-	 printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
+         pix2wcs(input.wcs, i+0.5, input.naxes[1]+0.5, &lon, &lat);
+         wcs2pix(output.wcs, lon, lat, &oxpixt, &oypixt, &offscl1);
+         printf("     -> %-g,%-g ->%-g,%-g (%d)\n", lon, lat, oxpixt, oypixt, offscl1);
       }
 
       if(!offscl)
@@ -828,8 +845,8 @@ int main(int argc, char **argv)
 
       if(data[j] == (void *)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Not enough memory for output data image array\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Not enough memory for output data image array\"]\n");
+         exit(1);
       }
    }
 
@@ -872,8 +889,8 @@ int main(int argc, char **argv)
 
       if(area[j] == (void *)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Not enough memory for output area image array\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Not enough memory for output area image array\"]\n");
+         exit(1);
       }
       for(i=0; i<ilength; ++i)
       {
@@ -911,17 +928,17 @@ int main(int argc, char **argv)
       {
          ibfound = BorderRange(j, input.naxes[0]-1, &ibmin, &ibmax);
 
-	 if(debug >= 2)
-	 {
-	    printf("\rProcessing input row %5d: border range %d to %d (%d)", 
-	       j, ibmin, ibmax, ibfound);
-	    fflush(stdout);
-	 }
+         if(debug >= 2)
+         {
+            printf("\rProcessing input row %5d: border range %d to %d (%d)", 
+               j, ibmin, ibmax, ibfound);
+            fflush(stdout);
+         }
 
-	 if(!ibfound)
+         if(!ibfound)
          {
             ++fpixel[1];
-	    continue;
+            continue;
          }
       }
       else if(debug == 2)
@@ -942,9 +959,9 @@ int main(int argc, char **argv)
 
       if(haveWeights)
       {
-	 if(fits_read_pix(weight.fptr, TDOUBLE, fpixel, nelements, &nan,
-			  weights, &nullcnt, &status))
-	    printFitsError(status);
+         if(fits_read_pix(weight.fptr, TDOUBLE, fpixel, nelements, &nan,
+                          weights, &nullcnt, &status))
+            printFitsError(status);
       }
 
       ++fpixel[1];
@@ -988,7 +1005,7 @@ int main(int argc, char **argv)
             if(drizzle == 1.)
             {
                offscl = plane1_to_plane2_transform(i+0.5, j+0.5, 
-		                             &((topl+i)->oxpix), 
+                                             &((topl+i)->oxpix), 
                                              &((topl+i)->oypix),
                                              &two_plane);
 
@@ -1013,7 +1030,7 @@ int main(int argc, char **argv)
 
                offscl = plane1_to_plane2_transform(
                                     i+1-0.5*drizzle, j+1-0.5*drizzle,
-		                    &((topl+i)->oxpix), 
+                                    &((topl+i)->oxpix), 
                                     &((topl+i)->oypix), 
                                     &two_plane);
 
@@ -1025,7 +1042,7 @@ int main(int argc, char **argv)
 
                offscl = plane1_to_plane2_transform(
                                     i+1+0.5*drizzle, j+1-0.5*drizzle,
-		                    &((topr+i)->oxpix), 
+                                    &((topr+i)->oxpix), 
                                     &((topr+i)->oypix), 
                                     &two_plane);
 
@@ -1062,7 +1079,7 @@ int main(int argc, char **argv)
          if(drizzle == 1.)
          {
             offscl = plane1_to_plane2_transform(i+0.5, j+1.5,
-	                               &((bottoml+i)->oxpix), 
+                                       &((bottoml+i)->oxpix), 
                                        &((bottoml+i)->oypix), 
                                        &two_plane);
 
@@ -1085,7 +1102,7 @@ int main(int argc, char **argv)
 
             offscl = plane1_to_plane2_transform(
                                 i+1-0.5*drizzle, j+1+0.5*drizzle,
-	                        &((bottoml+i)->oxpix), 
+                                &((bottoml+i)->oxpix), 
                                 &((bottoml+i)->oypix), 
                                 &two_plane);
 
@@ -1097,7 +1114,7 @@ int main(int argc, char **argv)
 
             offscl = plane1_to_plane2_transform(
                                    i+1+0.5*drizzle, j+1+0.5*drizzle,
-	                           &((bottomr+i)->oxpix), 
+                                   &((bottomr+i)->oxpix), 
                                    &((bottomr+i)->oypix), 
                                    &two_plane);
 
@@ -1114,12 +1131,14 @@ int main(int argc, char **argv)
       {
          pixel_value = buffer[i];
 
-	 if(haveWeights)
+         if(haveWeights)
          {
-	    weight_value = weights[i];
+            weight_value = weights[i];
 
             if(weight_value < threshold)
                weight_value = 0.;
+
+            weight_value *= fixedWeight;
          }
 
          if(mNaN(pixel_value))
@@ -1129,12 +1148,12 @@ int main(int argc, char **argv)
 
          if(debug >= 3)
          {
-	    if(haveWeights)
-	       printf("\nInput: line %d / pixel %d, value = %-g (weight: %-g)\n\n",
-		  j, i, pixel_value, weight_value);
-	    else
-	       printf("\nInput: line %d / pixel %d, value = %-g\n\n",
-		  j, i, pixel_value);
+            if(haveWeights)
+               printf("\nInput: line %d / pixel %d, value = %-g (weight: %-g)\n\n",
+                  j, i, pixel_value, weight_value);
+            else
+               printf("\nInput: line %d / pixel %d, value = %-g\n\n",
+                  j, i, pixel_value);
             fflush(stdout);
          }
 
@@ -1248,20 +1267,20 @@ int main(int argc, char **argv)
                   if(l-istart < 0 || l-istart >= ilength)
                      continue;
 
-		  minX = l + 0.5;
-		  maxX = l + 1.5;
-		  minY = m + 0.5;
-		  maxY = m + 1.5;
+                  minX = l + 0.5;
+                  maxX = l + 1.5;
+                  minY = m + 0.5;
+                  maxY = m + 1.5;
 
 
                   /* Now compute the overlap area */
 
                   if(weight_value > 0.)
                   {
-		     overlapArea = computeOverlapPP(ixpix, iypix, 
-						     minX,  maxX,
-						     minY,  maxY,
-						     pixelArea);
+                     overlapArea = computeOverlapPP(ixpix, iypix, 
+                                                     minX,  maxX,
+                                                     minY,  maxY,
+                                                     pixelArea);
                   }
 
 
@@ -1275,10 +1294,10 @@ int main(int argc, char **argv)
 
                   if(debug >= 3)
                   {
-		     printf("Compare out(%d,%d) to in(%d,%d) => ", m, l, j, i);
-		     printf("overlapArea = %12.5e (%12.5e / %12.5e)\n", overlapArea, 
-		            data[m-jstart][l-istart], area[m-jstart][l-istart]);
-		     fflush(stdout);
+                     printf("Compare out(%d,%d) to in(%d,%d) => ", m, l, j, i);
+                     printf("overlapArea = %12.5e (%12.5e / %12.5e)\n", overlapArea, 
+                            data[m-jstart][l-istart], area[m-jstart][l-istart]);
+                     fflush(stdout);
                   }
                }
             }
@@ -1473,11 +1492,11 @@ int main(int argc, char **argv)
       printFitsError(status);           
 
    if(fits_update_key_dbl(output.fptr, "CRPIX1", crpix1-imin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_dbl(output.fptr, "CRPIX2", crpix2-jmin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
 
@@ -1495,11 +1514,11 @@ int main(int argc, char **argv)
       printFitsError(status);           
 
    if(fits_update_key_dbl(output_area.fptr, "CRPIX1", crpix1-imin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
    if(fits_update_key_dbl(output_area.fptr, "CRPIX2", crpix2-jmin, -14,
-				  (char *)NULL, &status))
+                                  (char *)NULL, &status))
       printFitsError(status);           
 
 
@@ -1646,7 +1665,7 @@ int readTemplate(char *filename, int headerType)
          line[strlen(line)-1]  = '\0';
       
       if(line[strlen(line)-1] == '\r')
-	 line[strlen(line)-1]  = '\0';
+         line[strlen(line)-1]  = '\0';
 
       if(debug >= 3)
       {
@@ -1668,8 +1687,8 @@ int readTemplate(char *filename, int headerType)
    {
       if(debug >= 3)
       {
-	 printf("Alternate input header to wcsinit() [input.wcs]:\n%s\n", headerStr);
-	 fflush(stdout);
+         printf("Alternate input header to wcsinit() [input.wcs]:\n%s\n", headerStr);
+         fflush(stdout);
       }
 
       strcpy(alt_input_header, headerStr);
@@ -1678,8 +1697,8 @@ int readTemplate(char *filename, int headerType)
 
       if(input.wcs == (struct WorldCoor *)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output wcsinit() failed.\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output wcsinit() failed.\"]\n");
+         exit(1);
       }
 
 
@@ -1689,40 +1708,40 @@ int readTemplate(char *filename, int headerType)
 
       if(input.wcs->syswcs == WCS_J2000)
       {
-	 sys   = EQUJ;
-	 epoch = 2000.;
+         sys   = EQUJ;
+         epoch = 2000.;
 
-	 if(input.wcs->equinox == 1950.)
-	    epoch = 1950;
+         if(input.wcs->equinox == 1950.)
+            epoch = 1950;
       }
       else if(input.wcs->syswcs == WCS_B1950)
       {
-	 sys   = EQUB;
-	 epoch = 1950.;
+         sys   = EQUB;
+         epoch = 1950.;
 
-	 if(input.wcs->equinox == 2000.)
-	    epoch = 2000;
+         if(input.wcs->equinox == 2000.)
+            epoch = 2000;
       }
       else if(input.wcs->syswcs == WCS_GALACTIC)
       {
-	 sys   = GAL;
-	 epoch = 2000.;
+         sys   = GAL;
+         epoch = 2000.;
       }
       else if(input.wcs->syswcs == WCS_ECLIPTIC)
       {
-	 sys   = ECLJ;
-	 epoch = 2000.;
+         sys   = ECLJ;
+         epoch = 2000.;
 
-	 if(input.wcs->equinox == 1950.)
-	 {
-	    sys   = ECLB;
-	    epoch = 1950.;
-	 }
+         if(input.wcs->equinox == 1950.)
+         {
+            sys   = ECLB;
+            epoch = 1950.;
+         }
       }
       else       
       {
-	 sys   = EQUJ;
-	 epoch = 2000.;
+         sys   = EQUJ;
+         epoch = 2000.;
       }
 
       input.sys   = sys;
@@ -1738,45 +1757,45 @@ int readTemplate(char *filename, int headerType)
 
       if((input.wcs->xinc < 0 && input.wcs->yinc < 0)
       || (input.wcs->xinc > 0 && input.wcs->yinc > 0))
-	 input.clockwise = 1;
+         input.clockwise = 1;
 
       input.clockwise = !input.clockwise;
 
       if(debug >= 3)
       {
-	 if(input.clockwise)
-	    printf("Input pixels are clockwise.\n");
-	 else
-	    printf("Input pixels are counterclockwise.\n");
+         if(input.clockwise)
+            printf("Input pixels are clockwise.\n");
+         else
+            printf("Input pixels are counterclockwise.\n");
       }
    }
    else
    {
       if(debug >= 3)
       {
-	 if(headerType == ALTERNATE_OUTPUT)
-	 {
-	    printf("Alternate output header to wcsinit() [output.wcs]:\n%s\n", headerStr);
-	    fflush(stdout);
-	 }
+         if(headerType == ALTERNATE_OUTPUT)
+         {
+            printf("Alternate output header to wcsinit() [output.wcs]:\n%s\n", headerStr);
+            fflush(stdout);
+         }
          else
-	 {
-	    printf("Template output header to wcsinit() [output.wcs]:\n%s\n", headerStr);
-	    fflush(stdout);
-	 }
+         {
+            printf("Template output header to wcsinit() [output.wcs]:\n%s\n", headerStr);
+            fflush(stdout);
+         }
       }
 
       if(headerType == ALTERNATE_OUTPUT)
-	 strcpy(alt_output_header, headerStr);
+         strcpy(alt_output_header, headerStr);
       else
-	 strcpy(template_header, headerStr);
+         strcpy(template_header, headerStr);
 
       output.wcs = wcsinit(headerStr);
 
       if(output.wcs == (struct WorldCoor *)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output wcsinit() failed.\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output wcsinit() failed.\"]\n");
+         exit(1);
       }
 
       output_area.wcs = output.wcs;
@@ -1790,40 +1809,40 @@ int readTemplate(char *filename, int headerType)
 
       if(output.wcs->syswcs == WCS_J2000)
       {
-	 sys   = EQUJ;
-	 epoch = 2000.;
+         sys   = EQUJ;
+         epoch = 2000.;
 
-	 if(output.wcs->equinox == 1950.)
-	    epoch = 1950;
+         if(output.wcs->equinox == 1950.)
+            epoch = 1950;
       }
       else if(output.wcs->syswcs == WCS_B1950)
       {
-	 sys   = EQUB;
-	 epoch = 1950.;
+         sys   = EQUB;
+         epoch = 1950.;
 
-	 if(output.wcs->equinox == 2000.)
-	    epoch = 2000;
+         if(output.wcs->equinox == 2000.)
+            epoch = 2000;
       }
       else if(output.wcs->syswcs == WCS_GALACTIC)
       {
-	 sys   = GAL;
-	 epoch = 2000.;
+         sys   = GAL;
+         epoch = 2000.;
       }
       else if(output.wcs->syswcs == WCS_ECLIPTIC)
       {
-	 sys   = ECLJ;
-	 epoch = 2000.;
+         sys   = ECLJ;
+         epoch = 2000.;
 
-	 if(output.wcs->equinox == 1950.)
-	 {
-	    sys   = ECLB;
-	    epoch = 1950.;
-	 }
+         if(output.wcs->equinox == 1950.)
+         {
+            sys   = ECLB;
+            epoch = 1950.;
+         }
       }
       else       
       {
-	 sys   = EQUJ;
-	 epoch = 2000.;
+         sys   = EQUJ;
+         epoch = 2000.;
       }
 
       output.sys   = sys;
@@ -1845,10 +1864,10 @@ int readTemplate(char *filename, int headerType)
 
       if(debug >= 3)
       {
-	 if(output.clockwise)
-	    printf("Output pixels are clockwise.\n");
-	 else
-	    printf("Output pixels are counterclockwise.\n");
+         if(output.clockwise)
+            printf("Output pixels are clockwise.\n");
+         else
+            printf("Output pixels are counterclockwise.\n");
       }
    }
 
@@ -1917,32 +1936,32 @@ int parseLine(char *linein, int headerType)
    {
       if(strcmp(keyword, "NAXIS1") == 0)
       {
-	 output.naxes[0]      = atoi(value) + 2 * offset;
-	 output_area.naxes[0] = atoi(value) + 2 * offset;
+         output.naxes[0]      = atoi(value) + 2 * offset;
+         output_area.naxes[0] = atoi(value) + 2 * offset;
 
-	 sprintf(linein, "NAXIS1  = %ld", output.naxes[0]);
+         sprintf(linein, "NAXIS1  = %ld", output.naxes[0]);
       }
 
       if(strcmp(keyword, "NAXIS2") == 0)
       {
-	 output.naxes[1]      = atoi(value) + 2 * offset;
-	 output_area.naxes[1] = atoi(value) + 2 * offset;
+         output.naxes[1]      = atoi(value) + 2 * offset;
+         output_area.naxes[1] = atoi(value) + 2 * offset;
 
-	 sprintf(linein, "NAXIS2  = %ld", output.naxes[1]);
+         sprintf(linein, "NAXIS2  = %ld", output.naxes[1]);
       }
 
       if(strcmp(keyword, "CRPIX1") == 0)
       {
-	 crpix1 = atof(value) + offset;
+         crpix1 = atof(value) + offset;
 
-	 sprintf(linein, "CRPIX1  = %11.6f", crpix1);
+         sprintf(linein, "CRPIX1  = %11.6f", crpix1);
       }
 
       if(strcmp(keyword, "CRPIX2") == 0)
       {
-	 crpix2 = atof(value) + offset;
+         crpix2 = atof(value) + offset;
 
-	 sprintf(linein, "CRPIX2  = %11.6f", crpix2);
+         sprintf(linein, "CRPIX2  = %11.6f", crpix2);
       }
    }
 
@@ -1984,7 +2003,7 @@ int readFits(char *filename, char *weightfile)
    if(hdu > 0)
    {
       if(fits_movabs_hdu(input.fptr, hdu+1, NULL, &status))
-	 printFitsError(status);
+         printFitsError(status);
    }
 
    if(fits_get_image_wcs_keys(input.fptr, &input_header, &status))
@@ -1999,14 +2018,14 @@ int readFits(char *filename, char *weightfile)
    {
       if(fits_open_file(&weight.fptr, weightfile, READONLY, &status))
       {
-	 sprintf(errstr, "Weight file %s missing or invalid FITS", weightfile);
-	 printError(errstr);
+         sprintf(errstr, "Weight file %s missing or invalid FITS", weightfile);
+         printError(errstr);
       }
 
       if(hdu > 0)
       {
-	 if(fits_movabs_hdu(weight.fptr, hdu+1, NULL, &status))
-	    printFitsError(status);
+         if(fits_movabs_hdu(weight.fptr, hdu+1, NULL, &status))
+            printFitsError(status);
       }
    }
 
@@ -2251,13 +2270,13 @@ int BorderSetup(char *strin)
    while(1)
    {
       if(ptr >= str+len)
-	 break;
+         break;
 
 
       /* find the next x coordinate */
 
       while(*end != ' ' &&  *end != ',' && end < str+len)
-	 ++end;
+         ++end;
 
       *end = '\0';
 
@@ -2270,15 +2289,15 @@ int BorderSetup(char *strin)
       ptr = end+1;
 
       while(*ptr == ' ' && ptr < str+len) 
-	 ++ptr;
+         ++ptr;
 
       if(ptr >= str+len)
-	 break;
+         break;
 
       end = ptr;
 
       while(*end != ' ' &&  *end != ',' && end < str+len)
-	 ++end;
+         ++end;
 
       *end = '\0';
 
@@ -2286,12 +2305,12 @@ int BorderSetup(char *strin)
 
       if(debug)
       {
-	 printf("Polygon border  %3d: %6d %6d\n", 
-	    nborder,
-	    polygon[nborder].x,
-	    polygon[nborder].y);
+         printf("Polygon border  %3d: %6d %6d\n", 
+            nborder,
+            polygon[nborder].x,
+            polygon[nborder].y);
 
-	 fflush(stdout);
+         fflush(stdout);
       }
 
       ++nborder;
@@ -2324,16 +2343,16 @@ int BorderRange(int jrow, int maxpix,
 
       if(y > MIN((double)p1.y, (double)p2.y))
       {
-	 if(y < MAX((double)p1.y, (double)p2.y))
-	 {
-	    found = 1;
+         if(y < MAX((double)p1.y, (double)p2.y))
+         {
+            found = 1;
 
-	    xinters =  (double)(y-p1.y)*(double)(p2.x-p1.x)
-		      /(double)(p2.y-p1.y)+(double)p1.x;
+            xinters =  (double)(y-p1.y)*(double)(p2.x-p1.x)
+                      /(double)(p2.y-p1.y)+(double)p1.x;
 
-	    xmin = MIN(xmin, xinters);
-	    xmax = MAX(xmax, xinters);
-	 }
+            xmin = MIN(xmin, xinters);
+            xmax = MAX(xmax, xinters);
+         }
       }
 
       p1 = p2;

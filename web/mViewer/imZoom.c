@@ -65,7 +65,7 @@ int  imZoom (struct Mviewer *param)
     struct timezone  tzp;
     double           exacttime, exacttime0;
 
-    int      debugfile = 0;
+    int      debugfile = 1;
     int      debugtime = 0;
    
     
@@ -428,13 +428,39 @@ int  imZoom (struct Mviewer *param)
             sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
             sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
             
+	    if ((int)strlen(param->subsetredfile) == 0) {
+		sprintf (param->subsetredfile, "%s_cutout_%s", 
+	            param->imageFile, param->redFile);
+	    }
 	    sprintf (subsetredpath, "%s/%s", 
 	        param->directory, param->subsetredfile);
+	    
+	    if ((int)strlen(param->subsetgrnfile) == 0) {
+		sprintf (param->subsetgrnfile, "%s_cutout_%s", 
+	            param->imageFile, param->greenFile);
+	    }
             sprintf (subsetgrnpath, "%s/%s", 
 	        param->directory, param->subsetgrnfile);
+	    
+	    if ((int)strlen(param->subsetbluefile) == 0) {
+		sprintf (param->subsetbluefile, "%s_cutout_%s", 
+	            param->imageFile, param->blueFile);
+	    }
             sprintf (subsetbluepath, "%s/%s", 
 	        param->directory, param->subsetbluefile);
 
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                
+		fprintf (fdebug, "redpath= [%s]\n", redpath);
+		fprintf (fdebug, "grnpath= [%s]\n", grnpath);
+		fprintf (fdebug, "bluepath= [%s]\n", bluepath);
+	        
+		fprintf (fdebug, "subsetredpath= [%s]\n", subsetredpath);
+		fprintf (fdebug, "subsetgrnpath= [%s]\n", subsetgrnpath);
+		fprintf (fdebug, "subsetbluepath= [%s]\n", subsetbluepath);
+		fflush (fdebug);
+            }
+	   
 
 
             istatus = subsetImage (redpath, param->imageWidth, 

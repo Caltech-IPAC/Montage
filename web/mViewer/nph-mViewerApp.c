@@ -106,8 +106,6 @@ int main (int argc, char *argv[], char *envp[])
     if (debugfile) {
         
         sprintf (debugfname, "/tmp/viewerapp_%d.debug", pid);
-        sprintf (debugfname, "/home/mihseh/ice/mViewer/viewerapp.debug");
-
 
 	fp_debug = fopen (debugfname, "w+");
 	if (fp_debug == (FILE *)NULL) {

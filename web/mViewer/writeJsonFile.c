@@ -129,9 +129,10 @@ int color2hexcolor (char *color, char *hexval, int ncolors)
     int   indx;
     int   l;
 
-    int   debugfile = 0;
+    int   debugfile = 1;
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "From color2hexcolor: color= [%s]\n", color);
 	fflush (fp_debug);
     }
@@ -158,7 +159,8 @@ int color2hexcolor (char *color, char *hexval, int ncolors)
    
     strcpy (hexcolor, defaultHexcolor[indx]);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor);
 	fflush (fp_debug);
     }
@@ -183,10 +185,11 @@ int writeJsonFile (struct ViewerApp *param)
     int    indx;
     int    l;
 
-    int    debugfile = 0;
+    int    debugfile = 1;
 
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "\nEnter writeJsonFile: jsonpath= [%s]\n", 
 	    param->jsonpath);
         fflush (fp_debug);
@@ -211,7 +214,8 @@ int writeJsonFile (struct ViewerApp *param)
 /*
     if ((strlen(param->imname) == 0) {
        
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "imname= [%s]\n", param->imname);
 	    fprintf (fp_debug, "grayfile= [%s]\n", param->grayfile);
             fflush (fp_debug);
@@ -232,7 +236,8 @@ int writeJsonFile (struct ViewerApp *param)
     }
 */
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "imname= [%s]\n", param->imname);
 	fprintf (fp_debug, "outimtype= [%s]\n", param->outimtype);
 	fprintf (fp_debug, "canvaswidth= [%d] canvasheight= [%d]\n", 
@@ -253,6 +258,10 @@ int writeJsonFile (struct ViewerApp *param)
         fprintf(fp, "  \"refHeight\": \"%d\",\n", param->refheight);
     }
 
+    if ((int)strlen(param->imcursormode) > 0) {
+	fprintf(fp, "  \"imcursorMode\": \"%s\",\n", param->imcursormode);
+    }
+
 /*
     fprintf(fp, "  \"objName\": \"%s\",\n", param->objname);
     fprintf(fp, "  \"filter\": \"%s\",\n", param->filter);
@@ -264,7 +273,8 @@ int writeJsonFile (struct ViewerApp *param)
 /*
     imcubeFile
 */
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "imcubefile= [%s]\n", param->imcubefile);
             fflush (fp_debug);
         }
@@ -281,7 +291,8 @@ int writeJsonFile (struct ViewerApp *param)
 	param->centerplane = param->startplane + param->nplaneave/2;
         param->endplane = param->centerplane + param->nplaneave/2;
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "waveplottype= [%s]\n", param->waveplottype);
 	    fprintf (fp_debug, "imcubemode= [%s]\n", param->imcubemode);
 	    fprintf (fp_debug, "imcursormode= [%s]\n", param->imcursormode);
@@ -343,7 +354,8 @@ int writeJsonFile (struct ViewerApp *param)
 /*
     grayFile
 */
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "grayfile= [%s]\n", param->grayfile);
             fflush (fp_debug);
         }
@@ -353,11 +365,6 @@ int writeJsonFile (struct ViewerApp *param)
         
 	fprintf(fp, "    \"fitsFile\": \"%s\",\n", param->grayfile);
       
-        if ((int)strlen(param->imcursormode) > 0) {
-	    
-	    fprintf(fp, "    \"imcursorMode\": \"%s\",\n", param->imcursormode);
-	}
-
 /*
     if colortbl not found, default to grayscale
 */
@@ -373,7 +380,8 @@ int writeJsonFile (struct ViewerApp *param)
 	if (indx == -1)
 	    indx = 0;
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "colortbl= [%s]\n", param->colortbl);
 	    fprintf (fp_debug, "indx= [%d]\n", indx);
             fflush (fp_debug);
@@ -384,7 +392,8 @@ int writeJsonFile (struct ViewerApp *param)
 	fprintf(fp, "    \"stretchMax\": \"%s\",\n", param->maxstretch);
 	fprintf(fp, "    \"stretchMode\": \"%s\"\n", param->stretchmode);
   
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "ngrid= [%d]\n", param->ngrid);
 	    fprintf (fp_debug, "nlabel= [%d]\n", param->nlabel);
 	    fprintf (fp_debug, "nmarker= [%d]\n", param->nmarker);
@@ -410,7 +419,8 @@ int writeJsonFile (struct ViewerApp *param)
 	    return (0);
 	}
 	
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "here1\n");
 	    fflush (fp_debug);
         }
@@ -430,14 +440,16 @@ int writeJsonFile (struct ViewerApp *param)
 */
         if (param->ngrid > 0) {
        
-            if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	        fprintf (fp_debug, "here2\n");
 	        fflush (fp_debug);
             }
 
             for (l=0; l<param->ngrid; l++) {
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "here2-0\n");
 	            fflush (fp_debug);
                 }
@@ -453,7 +465,8 @@ int writeJsonFile (struct ViewerApp *param)
 		        = (char *)malloc(40*sizeof(char));
                     param->gridcsys[l][0] = '\0';
                 
-		    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 		        fprintf (fp_debug, "here2-1: malloc gridcsys[%d]\n", l);
 		        fflush (fp_debug);
 		    }
@@ -464,7 +477,8 @@ int writeJsonFile (struct ViewerApp *param)
 		        = (char *)malloc(40*sizeof(char));
                     param->gridcolor[l][0] = '\0';
 		    
-		    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 		        fprintf (fp_debug, 
 			    "here2-2: malloc gridcolor[%d]\n", l);
 		        fflush (fp_debug);
@@ -477,7 +491,8 @@ int writeJsonFile (struct ViewerApp *param)
 		    
 		    strcpy (param->gridcsys[l], "eq j2000");
 		    
-		    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 		        fprintf (fp_debug, "gridcsys[%d] null, set to [%s]\n", 
 			    l, param->gridcsys[l]);
 		        fflush (fp_debug);
@@ -485,7 +500,8 @@ int writeJsonFile (struct ViewerApp *param)
 
                 }
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "here3: gridcsys= [%s]\n",
 		        param->gridcsys[l]);
 	            fflush (fp_debug);
@@ -496,7 +512,8 @@ int writeJsonFile (struct ViewerApp *param)
 		fprintf(fp, "      \"coordSys\": \"%s\",\n", 
 		    param->gridcsys[l]);
 		
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "l= [%d] gridcolor= [%s]\n", 
 		        l, param->gridcolor[l]);
 	            fflush (fp_debug);
@@ -505,7 +522,8 @@ int writeJsonFile (struct ViewerApp *param)
 		    istatus = color2hexcolor (param->gridcolor[l], hexcolor, 
 		        ndefaultcolor);
 	        
-                    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	                fprintf (fp_debug, 
 		            "returned color2hexcolor, istatus= [%d]\n", 
 			    istatus); 
@@ -520,7 +538,8 @@ int writeJsonFile (struct ViewerApp *param)
                         strcpy (hexcolor, &defaultHexcolor[4][1]);
                     }
 		
-                if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
 	            fflush (fp_debug);
                 }
@@ -541,7 +560,8 @@ int writeJsonFile (struct ViewerApp *param)
 /*
     overlay: marker (compass) 
 */
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "noverlay= [%d]\n", noverlay); 
 	    fflush (fp_debug);
         }
@@ -588,7 +608,8 @@ int writeJsonFile (struct ViewerApp *param)
 		fprintf(fp, "      \"location\": \"%s\",\n", 
 		    param->markerlocstr[l]);
 		
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "l= [%d] markercolor= [%s]\n", 
 		        l, param->markercolor[l]);
 	            fflush (fp_debug);
@@ -597,7 +618,8 @@ int writeJsonFile (struct ViewerApp *param)
 		    istatus = color2hexcolor (param->markercolor[l], hexcolor, 
 		        ndefaultcolor);
 	        
-                    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	                fprintf (fp_debug, 
 		            "returned color2hexcolor, istatus= [%d]\n", 
 			    istatus); 
@@ -611,7 +633,8 @@ int writeJsonFile (struct ViewerApp *param)
                         strcpy (hexcolor, "880000");
                     }
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
 	            fflush (fp_debug);
                 }
@@ -651,7 +674,8 @@ int writeJsonFile (struct ViewerApp *param)
 		    param->srctblpath[l]);
 	
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "l= [%d] srctblcolor= [%s]\n", 
 		        l, param->srctblcolor[l]);
 	            fflush (fp_debug);
@@ -661,7 +685,8 @@ int writeJsonFile (struct ViewerApp *param)
 		        hexcolor, ndefaultcolor);
 		    ntbl++;
 		
-		    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	                fprintf (fp_debug, 
 		            "returned color2hexcolor, istatus= [%d]\n", 
 			    istatus); 
@@ -721,7 +746,8 @@ int writeJsonFile (struct ViewerApp *param)
 		fprintf(fp, "      \"dataFile\": \"%s\",\n", 
 		    param->iminfopath[l]);
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "l= [%d] iminfocolor= [%s]\n", 
 		        l, param->iminfocolor[l]);
 	            fflush (fp_debug);
@@ -731,7 +757,8 @@ int writeJsonFile (struct ViewerApp *param)
 		        hexcolor, ndefaultcolor);
 		    ntbl++;
 		
-		    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	                fprintf (fp_debug, 
 			    "returned color2hexcolor, istatus= [%d]\n", 
 			    istatus); 
@@ -770,7 +797,8 @@ int writeJsonFile (struct ViewerApp *param)
 		fprintf(fp, "      \"type\": \"label\",\n");
 	
 
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "l= [%d] labelcolor= [%s]\n", 
 		        l, param->labelcolor[l]);
 	            fflush (fp_debug);
@@ -779,7 +807,8 @@ int writeJsonFile (struct ViewerApp *param)
 		    istatus = color2hexcolor (param->labelcolor[l], hexcolor, 
 		        ndefaultcolor);
 	        
-                    if (debugfile) {
+                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	                fprintf (fp_debug, 
 		            "returned color2hexcolor, istatus= [%d]\n", 
 			    istatus); 
@@ -793,7 +822,8 @@ int writeJsonFile (struct ViewerApp *param)
                         strcpy (hexcolor, &defaultHexcolor[4][1]);
                     }
 		
-                if (debugfile) {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	            fprintf (fp_debug, "hexcolor= [%s]\n", hexcolor); 
 	            fflush (fp_debug);
                 }
@@ -847,10 +877,11 @@ int writePlotJson (struct ViewerApp *param)
     char   hexcolor[40];
     int    istatus;
 
-    int    debugfile = 0;
+    int    debugfile = 1;
 
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "\nEnter writePlotJson: plotjsonpath= [%s]\n", 
 	    param->plotjsonpath);
         fflush (fp_debug);
@@ -866,7 +897,8 @@ int writePlotJson (struct ViewerApp *param)
         return (-1);
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "plottitle= [%s]\n", param->plottitle);
 	fprintf (fp_debug, "plotwidth= [%d] plotheight= [%d]\n", 
 	    param->plotwidth, param->plotheight);

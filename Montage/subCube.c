@@ -43,6 +43,14 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    
    if(params->naxis < 3)
       params->naxes[2] = 1;
+   else
+   {
+      if(params->pbegin < 0)
+      {
+         params->pbegin = 1;
+         params->pend   = params->naxes[2];
+      }
+   }
 
    if(params->naxis < 4)
       params->naxes[3] = 1;
