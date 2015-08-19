@@ -135,7 +135,6 @@ int main(int argc, char *argv[], char *envp[])
    if(debug > 1)
    {
       sprintf (tmpstr, "/tmp/mViewerInit.debug_%d", pid);
-
       fdebug = fopen (tmpstr, "w+");
    }
  
@@ -183,7 +182,15 @@ int main(int argc, char *argv[], char *envp[])
    }
 
 
-   if(mode == EXTERNAL)
+   if((int)strlen(inwork) > 0)
+   {
+      strcpy(workspace, inwork);
+
+      strcpy(directory, workDir);
+      strcat(directory, "/");
+      strcat(directory, workspace);
+   }
+   else if(mode == EXTERNAL)
    {
       /************************************************************/
       /* We will work in the space the driver application created */
@@ -286,7 +293,7 @@ int main(int argc, char *argv[], char *envp[])
             link_file("sdss_g.fits", set, directory);
          }
 
-         else if(strcmp(set, "m51_color") == 0)
+         else if(strcmp(set, "m51_color_small") == 0)
          {
             link_file("viewer.json",    set, directory);
             link_file("sdss_u2.fits",   set, directory);

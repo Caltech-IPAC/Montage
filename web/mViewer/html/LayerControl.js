@@ -76,7 +76,14 @@ function LayerControl(controlDivName, viewer)
          var text     = me.viewer.updateJSON.overlay[i].text;
          var visible  = me.viewer.updateJSON.overlay[i].visible;
 
-         switch(type)
+         if(me.debug) {
+            console.log("DEBUG> ilayer= " + i);
+            console.log("DEBUG> type= " + type);
+            console.log("DEBUG> visible= " + visible);
+         } 
+         
+         
+	 switch(type)
          {
             case "grid":
                me.addGridRec(coordSys, color, visible);
@@ -109,8 +116,10 @@ function LayerControl(controlDivName, viewer)
 
    me.addGridRec = function(coordSys, color, gridVisible)
    {
-      if(me.debug)
+      if(me.debug) {
          console.log("DEBUG> LayerControl.addGridRec()");
+         console.log("DEBUG> gridVisible= " + gridVisible);
+      }
 
       var index = jQuery(me.controlDiv).find(".overlayTbl").find("tr").size() - 1;
 
@@ -126,10 +135,18 @@ function LayerControl(controlDivName, viewer)
 
       row.find(".showOff").attr("class", "show");
 
-      if(gridVisible == true)
+      if(gridVisible) {
          row.find(".show").html("<input type='checkbox' checked='checked' />"); 
-      else
+         if(me.debug) {
+            console.log("DEBUG> here1: show with checkbox");
+         } 
+      }
+      else {
          row.find(".show").html("<input type='checkbox' />"); 
+         if(me.debug) {
+            console.log("DEBUG> here2: show without checkbox");
+         } 
+      }
 
       row.find(".type").html("GRID");
 
@@ -614,6 +631,9 @@ function LayerControl(controlDivName, viewer)
             ++nOverlay;
          }
       }
+
+      me.viewer.grayOut(true, {'opacity':'50'});
+      me.viewer.grayOutMessage(true);
 
       me.viewer.submitUpdateRequest();
    }

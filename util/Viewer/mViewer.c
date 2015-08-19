@@ -1,4 +1,4 @@
-/* Module: mViewer.c
+/* mViewer.c
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
@@ -25,12 +25,17 @@ Version  Developer        Date     Change
 #include <wcs.h>
 #include <coord.h>
 #include <mtbl.h>
+#include <cmd.h>
 
 #include <montage.h>
 #include <mNaN.h>
 
-#define  MAXSTR 1024
-#define  MAXDIM 65500
+#define  MAXSTR    1024
+#define  MAXGRID      8
+#define  MAXCAT      32
+#define  MAXMARK   1024
+#define  MAXLABEL   256
+#define  MAXDIM   65500
 
 #define  VALUE       0
 #define  PERCENTILE  1
@@ -61,6 +66,8 @@ Version  Developer        Date     Change
 #define WCS          1
 
 
+int    parseSymbol       (char *symbolstr, int *symNPnt, int *symNMax, int *symType, double *symRotAngle);
+int    colorLookup       (char *colorin, double *ovlyred, double *ovlygreen, double *ovlyblue);
 int    hexVal            (char c);
 double asinh             (double x);
 
@@ -139,7 +146,7 @@ void symbol              (struct WorldCoor *wcs,
                           int csysimg,  double epochimg,
                           int csyssym, double epochsym,
                           double clon,  double clat, int inpix, 
-                          double symsize, int symnpnt, int symmax, int symtype, double symang,
+                          double symSize, int symnpnt, int symNMax, int symType, double symRotAngle,
                           double red,   double green, double blue);
 
 void draw_label          (char *fontfile, int fontsize, 
@@ -214,60 +221,28 @@ double dtr;
 int debug = 0;
 
 
-/****************************************************************************************/
-/*                                                                                      */
-/*  mViewer                                                                             */
-/*                                                                                      */
-/*  This program generates a JPEG image file from a FITS file (or a set                 */
-/*  of three FITS files in color).  A data range for each image can                     */
-/*  be defined and the data can be stretch by any power of the log()                    */
-/*  function (including zero: linear).  Pseudo-color color tables can                   */
-/*  be applied in single-image mode.                                                    */
-/*                                                                                      */
-/*                                                                                      */
-/* The plotting of symbols involves three commands with variants:                       */
-/*                                                                                      */
-/*                                                                                      */
-/*    -symbol 2.0 1 4 45             Reference symbol has a size of 2.0 (in units       */
-/*                                   of 0.5% of the size of the image in degrees),      */
-/*                                   it is of type "star" (0 / 1 / 2 ->                 */
-/*                                   polygon / starred / skeletal), it is four-sided,   */
-/*                                   and it is rotated by 45 degrees.  In other         */
-/*                                   words, a starred diamond.                          */
-/*                                                                                      */
-/*    -symbol 2.0 box                Shortcuts the type/count parameters (and           */
-/*                                   defaults the angle to zero).                       */
-/*                                                                                      */
-/*    -symbol 4.0s triangle          Forces the scale to be in actual arcseconds        */
-/*                                   rather than relative scaling.  'p' can also        */
-/*                                   be used to force it to pixel scaling.              */
-/*                                                                                      */
-/*    -catalog data.tbl J 22. mag    Most symbols that get drawn are from               */
-/*                                   table files.  Complete specification of the        */
-/*                                   parameters gives control over what file the        */
-/*                                   sources come from, what column to use for          */
-/*                                   scaling, a reference value (that maps to the       */
-/*                                   default symbol size) and whether the scaling       */
-/*                                   is linear, logarithmic, or represents a            */
-/*                                   magnitude (logarithmic but reversed).  As          */
-/*                                   with the symbol command, arguments here can        */
-/*                                   be truncated.  If you just give the table          */
-/*                                   name, each record will be given the default        */
-/*                                   symbol.                                            */
-/*                                                                                      */
-/*    -mark 115.01 -23.45            Occasionally, you only want to make a few          */
-/*                                   marks.  This command puts the defalt symbol        */
-/*                                   at the lon,lat specified (current coordinate       */
-/*                                   system).  Only 32 markers are allowed.  Use        */
-/*                                   a catalog table if you need more.                  */
-/*                                                                                      */
-/*                                                                                      */
-/****************************************************************************************/
+/*****************************************************************************/
+/*                                                                           */
+/*  mViewer                                                                  */
+/*                                                                           */
+/*  This program generates a JPEG image file from a FITS file (or a set      */
+/*  of three FITS files in color).  A data range for each image can          */
+/*  be defined and the data can be stretch by any power of the log()         */
+/*  function (including zero: linear).  Pseudo-color color tables can        */
+/*  be applied in single-image mode.                                         */
+/*                                                                           */
+/*  Scaled symbols (individually or for a catalog table), image outlines,    */
+/*  and labels (individually or from a table) and coordinate grids can be    */
+/*  overlaid on the image.  The details of the command syntax for this are   */
+/*  too involved to document here.  See the mViewer documentation on-line    */
+/*  or delivered with the Montage source.                                    */
+/*                                                                           */
+/*****************************************************************************/
 
 
 int main(int argc, char **argv)
 {
-   int       i, j, k, ipix, index, itemp, nowcs, ref;
+   int       i, j, k, ipix, index, itemp, nowcs, ref, istatus;
    int       istart, iend;
    int       jstart, jend, jinc;
    int       imin, imax, jmin, jmax;
@@ -294,44 +269,115 @@ int main(int argc, char **argv)
    int       csysimg;
    double    epochimg;
 
-   int       ngrid;
-   int       csysgrid [8];
-   double    epochgrid[8];
-   double    gridred[8], gridgreen[8], gridblue[8];
 
-   int       nlabel;
-   char      labeltext [4096][MAXSTR];
-   double    labelx    [4096];
-   double    labely    [4096];
-   int       labelinpix[4096];
-   double    labelred  [4096], labelgreen[4096], labelblue[4096];
+   // COORDINATE GRID LAYERS
 
-   int       ncat;
-   char      catfile [32][MAXSTR];
-   char      catcol  [32][MAXSTR];
-   int       csyscat [32];
-   int       catunits[32];
-   double    epochcat[32];
-   double    catred  [32], catgreen[32],  catblue[32];
-   int       catpnt  [32], catmax  [32], cattype [32], catimg [32], catdtyp[32];
-   double    catsize [32], catang  [32],  catscl [32];
+   int ngrid;
 
-   int       nmark;
-   double    markra   [32];
-   double    markdec  [32];
-   int       markinpix[32];
-   int       markunits[32];
-   int       csysmark [32];
-   double    epochmark[32];
-   int       markpnt  [32], markmax  [32], marktype[32];
-   double    markang  [32], marksize [32];
-   double    markred  [32], markgreen[32], markblue[32];
+   struct gridInfo
+   {
+      int    csys;                    // Coordinate system (default EQUJ)
+      double epoch;                   // Coordinate epoch (default 2000.)
+      double red, green, blue;        // Grid color
+   };
+
+   struct gridInfo grid[MAXGRID];
+
+
+
+   // CATALOG (AND IMGINFO) LAYERS
+   
+   int ncat;
+
+   struct catInfo
+   {
+      int    isImgInfo;               // Is this a location catalog or image metadata
+      char   file[MAXSTR];            // File name
+
+      int    csys;                    // Coordinate system (default EQUJ)
+      double epoch;                   // Coordinate epoch (default 2000.)
+
+      double red, green, blue;        // Global symbol/outline/label color
+      char   colorColumn[MAXSTR];     // Override color column (content e.g. 'red' or "ff00a0")
+
+      double symSize;                 // Symbol reference size (e.g. 2.5)
+      int    symUnits;                // Size units (e.g. arcsec)
+      int    symNPnt;                 // Symbol 'polygon' number of sides
+      int    symNMax;                 // Special cutoff for symbols like 'el'
+      int    symType;                 // Polygon, starred, skeletal
+      double symRotAngle;             // Symbol rotation (e.g. 45 degrees)
+      char   symSizeColumn [MAXSTR];  // Override symbol column (content e.g. '20s diamond')
+      char   symShapeColumn[MAXSTR];  // Override symbol column (content e.g. '20s diamond')
+
+      double scaleVal;                // Data value corresponding to symbol of reference size
+      int    scaleType;               // Scaling rule: linear, log, magnitude
+      char   scaleColumn[MAXSTR];     // Column for data-scaled symbols
+
+      char   labelColumn[MAXSTR];     // Column containing label string
+   };
+
+   struct catInfo cat[MAXCAT];
+   
+
+   // INDIVIDUAL LABEL LAYERS
+
+   int nlabel;
+
+   struct labelInfo
+   {
+      char   text[MAXSTR];            // Label text
+
+      double x, y;                    // Label location
+      int    inpix;                   // Label location is pixel, not sky, coordinates
+      double red, green, blue;        // Label color
+   };
+
+   struct labelInfo label[MAXLABEL];
+
+
+   // INDIVIDUAL MARKER LAYERS
+
+   int nmark;
+
+   struct markInfo
+   {
+      double ra, dec;                 // Mark location
+      int    inpix;                   // Mark location is pixel, not sky, coordinates
+      int    csys;                    // Coordinate system (default EQUJ)
+      double epoch;                   // Coordinate epoch (default 2000.)
+
+      double symSize;                 // Symbol size (e.g. 2.5)
+      int    symUnits;                // Size units (e.g. arcsec)
+      int    symNPnt;                 // Symbol 'polygon' number of sides
+      int    symNMax;                 // Special cutoff for symbols like 'el'
+      int    symType;                 // Polygon, starred, skeletal
+      double symRotAngle;             // Symbol rotation (e.g. 45 degrees)
+
+      double red, green, blue;        // Mark color
+   };
+
+   struct markInfo mark[MAXMARK];
+
+
+
+   // "Sticky" value; set in a command like -symbol, used when
+   // needed thereafter until reset or unset.
+
+   int       csys, symUnits, symNPnt, symNMax, symType, scaleType;
+   double    epoch, symSize, symRotAngle, scaleVal;
+
+   char      symSizeColumn [MAXSTR];
+   char      symShapeColumn[MAXSTR];
+   char      scaleColumn   [MAXSTR];
+   char      labelColumn   [MAXSTR];
+   char      colorColumn   [MAXSTR];
+
+
 
    double    charHeight, pixScale;
 
-   int       csys, sympnt, symmax, symtype, symunits;
-   double    epoch, symsize, symang;
-   int       ncol, ira, idec, iflux, stat;
+   int       ncol, ira, idec, stat;
+   int       iscale, ilabel, icolor, isymsize, isymshape;
    double    ra, dec, flux;
 
    double    ira1, idec1;
@@ -448,6 +494,8 @@ int main(int argc, char **argv)
    char      bluemaxstr   [256];
    char      bluebetastr  [256];
    char      colorstr     [256];
+   char      symbolstr    [256];
+   char      labelstr     [256];
 
    double    grayminval      = 0.;
    double    graymaxval      = 0.;
@@ -524,8 +572,6 @@ int main(int argc, char **argv)
    char     *header  = (char *)NULL;
    char     *comment = (char *)NULL;
 
-   char      label[1024];
-
    char     *ptr;
 
    FILE     *jpegfp;
@@ -567,6 +613,30 @@ int main(int argc, char **argv)
    strcat(fontfile, "FreeSans.ttf");
 
 
+
+   /* Initial values for "sticky" parameters */
+
+   csys  = EQUJ;
+   epoch = 2000.;
+
+   symNPnt     = 3;
+   symNMax     = 0;
+   symType     = 0;
+   symUnits    = FRACTIONAL;
+   symSize     = 0.5;
+   symRotAngle = 0.0;
+
+   scaleVal    = 1.;
+   scaleType   = FLUX;
+
+   strcpy(symSizeColumn,  "");
+   strcpy(symShapeColumn, "");
+   strcpy(scaleColumn,    "");
+   strcpy(labelColumn,    "");
+   strcpy(colorColumn,    "");
+
+
+
    /* Command-line arguments */
 
    debug   = 0;
@@ -587,27 +657,14 @@ int main(int argc, char **argv)
    strcpy(greenhistfile,  "");
    strcpy(bluehistfile,   "");
 
-   ngrid = 0;
-
    ovlyred   = 0.5;
    ovlygreen = 0.5;
    ovlyblue  = 0.5;
 
-   nmark = 0;
-
-   ncat = 0;
-
-   csys  = EQUJ;
-   epoch = 2000.;
-
-   sympnt  = 3;
-   symmax  = 0;
-   symtype = 0;
-   symunits = FRACTIONAL;
-   symsize = 0.5;
-   symang  = 0.0;
-
+   ngrid  = 0;
+   ncat   = 0;
    nlabel = 0;
+   nmark  = 0;
 
 
    if(argc < 2)
@@ -616,7 +673,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   for(i=0; i<argc; ++i)
+   for(i=1; i<argc; ++i)
    {
       /* DEBUG */
 
@@ -640,10 +697,16 @@ int main(int argc, char **argv)
 
       else if(strcmp(argv[i], "-t") == 0)
       {
-         truecolor = atof(argv[i+1]);
+         truecolor = strtod(argv[i+1], &end);
 
-         if(truecolor < 1.) 
-            truecolor = 1;
+         if(truecolor < 1.  || truecolor > 4. || end < argv[i+1]+strlen(argv[i+1]))
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Color enhancement parameter must be a number between 1. and 4.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         ++i;
       }
       
 
@@ -653,102 +716,9 @@ int main(int argc, char **argv)
       {
          strcpy(colorstr, argv[i+1]);
 
-         if(argv[i+1][0] == '#')
-            strcpy(colorstr, argv[i+1]+1);
-
          ++i;
 
-         if(strlen(colorstr) == 6 && hexVal(colorstr[0]) >= 0)
-         {
-            for(j=0; j<strlen(colorstr); ++j)
-            {
-               if(hexVal(colorstr[j]) < 0)
-               {
-                  printf ("[struct stat=\"ERROR\", msg=\"Invalid color specification\"]\n");
-                  fflush(stdout);
-                  exit(1);
-               }
-
-               ovlyred   = hexVal(colorstr[0]) * 8 + hexVal(colorstr[1]);
-               ovlygreen = hexVal(colorstr[2]) * 8 + hexVal(colorstr[3]);
-               ovlyblue  = hexVal(colorstr[4]) * 8 + hexVal(colorstr[5]);
-            }
-         }
-
-         else if(strcasecmp(colorstr, "black") == 0)
-         {
-            ovlyred   =   0;
-            ovlygreen =   0;
-            ovlyblue  =   0;
-         }
-
-         else if(strcasecmp(colorstr, "white") == 0)
-         {
-            ovlyred   = 255;
-            ovlygreen = 255;
-            ovlyblue  = 255;
-         }
-
-         else if(strcasecmp(colorstr, "red") == 0)
-         {
-            ovlyred   = 255;
-            ovlygreen =   0;
-            ovlyblue  =   0;
-         }
-
-         else if(strcasecmp(colorstr, "green") == 0)
-         {
-            ovlyred   =   0;
-            ovlygreen = 255;
-            ovlyblue  =   0;
-         }
-
-         else if(strcasecmp(colorstr, "blue") == 0)
-         {
-            ovlyred   =   0;
-            ovlygreen =   0;
-            ovlyblue  = 255;
-         }
-
-         else if(strcasecmp(colorstr, "magenta") == 0)
-         {
-            ovlyred   = 255;
-            ovlygreen =   0;
-            ovlyblue  = 255;
-         }
-
-         else if(strcasecmp(colorstr, "cyan") == 0)
-         {
-            ovlyred   =   0;
-            ovlygreen = 255;
-            ovlyblue  = 255;
-         }
-
-         else if(strcasecmp(colorstr, "yellow") == 0)
-         {
-            ovlyred   = 255;
-            ovlygreen = 255;
-            ovlyblue  =   0;
-         }
-
-         else if(strcasecmp(colorstr, "gray") == 0
-              || strcasecmp(colorstr, "grey") == 0)
-         {
-            ovlyred   = 128;
-            ovlygreen = 128;
-            ovlyblue  = 128;
-         }
-
-         else
-         {
-            ovlyred   = 128;
-            ovlygreen = 128;
-            ovlyblue  = 128;
-         }
-
-         ovlyred   = ovlyred   / 255;
-         ovlygreen = ovlygreen / 255;
-         ovlyblue  = ovlyblue  / 255;
+         (void) colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue);
       }
       
 
@@ -810,51 +780,51 @@ int main(int argc, char **argv)
       {
          ref = JULIAN;
 
-         csysgrid [ngrid]  = EQUJ;
-         epochgrid[ngrid]  = -999.;
+         grid[ngrid].csys   = EQUJ;
+         grid[ngrid].epoch  = -999.;
 
-         gridred  [ngrid] = ovlyred;
-         gridgreen[ngrid] = ovlygreen;
-         gridblue [ngrid] = ovlyblue;
+         grid[ngrid].red   = ovlyred;
+         grid[ngrid].green = ovlygreen;
+         grid[ngrid].blue  = ovlyblue;
 
          if(i+2 < argc)
          {
             if(argv[i+2][0] == 'j' || argv[i+2][0] == 'J')
             {
                ref = JULIAN;
-               epochgrid[ngrid] = atof(argv[i+2]+1);
+               grid[ngrid].epoch = atof(argv[i+2]+1);
             }
 
             else if(argv[i+2][0] == 'b' || argv[i+2][0] == 'B')
             {
                ref = BESSELIAN;
-               epochgrid[ngrid] = atof(argv[i+2]+1);
+               grid[ngrid].epoch = atof(argv[i+2]+1);
             }
          }
 
          if(strncasecmp(argv[i+1], "eq", 2) == 0)
          {
             if(ref == BESSELIAN)
-               csysgrid[ngrid] = EQUB;
+               grid[ngrid].csys = EQUB;
             else
-               csysgrid[ngrid] = EQUJ;
+               grid[ngrid].csys = EQUJ;
          }
 
          else if(strncasecmp(argv[i+1], "ec", 2) == 0)
          {
             if(ref == BESSELIAN)
-               csysgrid[ngrid] = ECLB;
+               grid[ngrid].csys = ECLB;
             else
-               csysgrid[ngrid] = ECLJ;
+               grid[ngrid].csys = ECLJ;
          }
 
          else if(strncasecmp(argv[i+1], "ga", 2) == 0)
-            csysgrid[ngrid] = GAL;
+            grid[ngrid].csys = GAL;
 
          ++i;
 
-         if(epochgrid[ngrid] == -999.)
-            epochgrid[ngrid] = 2000.;
+         if(grid[ngrid].epoch == -999.)
+            grid[ngrid].epoch = 2000.;
          else
             ++i;
 
@@ -866,9 +836,9 @@ int main(int argc, char **argv)
 
       else if(strcmp(argv[i], "-label") == 0)
       {
-         labelred  [nlabel] = ovlyred;
-         labelgreen[nlabel] = ovlygreen;
-         labelblue [nlabel] = ovlyblue;
+         label[nlabel].red   = ovlyred;
+         label[nlabel].green = ovlygreen;
+         label[nlabel].blue  = ovlyblue;
 
          if(i+3 >= argc)
          {
@@ -877,15 +847,15 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         labelinpix[nlabel] = 0;
+         label[nlabel].inpix = 0;
          if(strstr(argv[i+1], "p") != (char *)NULL
          || strstr(argv[i+2], "p") != (char *)NULL)
-            labelinpix[nlabel] = 1;
+            label[nlabel].inpix = 1;
 
-         labelx[nlabel] = atof(argv[i+1]);
-         labely[nlabel] = atof(argv[i+2]);
+         label[nlabel].x = atof(argv[i+1]);
+         label[nlabel].y = atof(argv[i+2]);
 
-         strcpy(labeltext[nlabel], argv[i+3]);
+         strcpy(label[nlabel].text, argv[i+3]);
 
          i += 3;
 
@@ -904,38 +874,32 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         symang  = 0.;
-         symtype = 0;
+         symRotAngle  = 0.;
+         symType = 0;
 
 
          ptr = argv[i+1] + strlen(argv[i+1]) - 1;
 
 
-         symunits = FRACTIONAL;
+         symUnits = FRACTIONAL;
 
          if(*ptr == 's')
-            symunits = SECONDS;
+            symUnits = SECONDS;
 
          else if(*ptr == 'm')
-            symunits = MINUTES;
+            symUnits = MINUTES;
 
          else if(*ptr == 'd')
-            symunits = DEGREES;
+            symUnits = DEGREES;
 
          else if(*ptr == 'p')
-            symunits = PIXELS;
+            symUnits = PIXELS;
 
-         if(symunits != FRACTIONAL)
+         if(symUnits != FRACTIONAL)
             *ptr = '\0';
 
-         symsize = strtod(argv[i+1], &end);
+         symSize = strtod(argv[i+1], &end);
 
-         if(end < (argv[i+1] + (int)strlen(argv[i+1])) || symsize <= 0.)
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol size (must be positive number)\"]\n");
-            fflush(stdout);
-            exit(1);
-         }
 
          ++i;
 
@@ -943,83 +907,83 @@ int main(int argc, char **argv)
          {
             if(strncasecmp(argv[i+1], "triangle", 3) == 0)
             {
-               sympnt = 3;
-               symang = 120.;
+               symNPnt = 3;
+               symRotAngle = 120.;
             }
 
             else if(strncasecmp(argv[i+1], "box", 3) == 0)
             {
-               sympnt = 4;
-               symang = 45.;
+               symNPnt = 4;
+               symRotAngle = 45.;
             }
 
             else if(strncasecmp(argv[i+1], "square", 3) == 0)
             {
-               sympnt = 4;
-               symang = 45.;
+               symNPnt = 4;
+               symRotAngle = 45.;
             }
 
             else if(strncasecmp(argv[i+1], "diamond", 3) == 0)
-               sympnt = 4;
+               symNPnt = 4;
 
             else if(strncasecmp(argv[i+1], "pentagon", 3) == 0)
             {
-               sympnt = 5;
-               symang = 72.;
+               symNPnt = 5;
+               symRotAngle = 72.;
             }
 
             else if(strncasecmp(argv[i+1], "hexagon", 3) == 0)
             {
-               sympnt = 6;
-               symang = 60.;
+               symNPnt = 6;
+               symRotAngle = 60.;
             }
 
             else if(strncasecmp(argv[i+1], "septagon", 3) == 0)
             {
-               sympnt = 7;
-               symang = 360./7.;
+               symNPnt = 7;
+               symRotAngle = 360./7.;
             }
 
             else if(strncasecmp(argv[i+1], "octagon", 3) == 0)
             {
-               sympnt = 8;
-               symang = 45.;
+               symNPnt = 8;
+               symRotAngle = 45.;
             }
 
             else if(strncasecmp(argv[i+1], "el", 2) == 0)
             {
-               sympnt = 4;
-               symang = 135.;
-               symmax = 2;
+               symNPnt = 4;
+               symRotAngle = 135.;
+               symNMax = 2;
             }
 
             else if(strncasecmp(argv[i+1], "circle", 3) == 0)
             {
-               sympnt = 128;
-               symang = 0.;
+               symNPnt = 128;
+               symRotAngle = 0.;
             }
 
             else if(strncasecmp(argv[i+1], "compass", 3) == 0)
             {
-               symtype = 3;
-               sympnt  = 4;
-               symang  = 0.;
+               symType = 3;
+               symNPnt  = 4;
+               symRotAngle  = 0.;
             }
 
             else
             {
-               symtype = strtol(argv[i+1], &end, 0);
+               symType = strtol(argv[i+1], &end, 0);
 
                if(end < (argv[i+1] + (int)strlen(argv[i+1])))
                {
-                  if(strncasecmp(argv[i+1], "polygon", 2) == 0)
-                     symtype = 0;
+                  if(strncasecmp(argv[i+1], "polygon", 1) == 0)
+                     symType = 0;
 
                   else if(strncasecmp(argv[i+1], "starred", 2) == 0)
-                     symtype = 1;
+                     symType = 1;
 
                   else if(strncasecmp(argv[i+1], "skeletal", 2) == 0)
-                     symtype = 2;
+                     symType = 2;
 
                   else
                   {
@@ -1033,9 +997,9 @@ int main(int argc, char **argv)
               
                if(i+1 < argc && argv[i+1][0] != '-')
                {
-                  sympnt = strtol(argv[i+1], &end, 0);
+                  symNPnt = strtol(argv[i+1], &end, 0);
 
-                  if(end < (argv[i+1] + (int)strlen(argv[i+1])) || sympnt < 3)
+                  if(end < (argv[i+1] + (int)strlen(argv[i+1])) || symNPnt < 3)
                   {
                      printf ("[struct stat=\"ERROR\", msg=\"Invalid vertex count for symbol (must be an integer >= 3)\"]\n");
                      fflush(stdout);
@@ -1046,7 +1010,7 @@ int main(int argc, char **argv)
                  
                   if(i+1 < argc && argv[i+1][0] != '-')
                   {
-                     symang = strtod(argv[i+1], &end);
+                     symRotAngle = strtod(argv[i+1], &end);
 
                      if(end < (argv[i+1] + (int)strlen(argv[i+1])))
                      {
@@ -1063,6 +1027,113 @@ int main(int argc, char **argv)
       }
 
 
+      /* CATALOG SYMBOL SCALE COLUMN */
+
+      else if(strcmp(argv[i], "-scalecol") == 0)
+      {
+         if(i+1 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -symscale flag\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         scaleVal  = 1.;
+         scaleType = FLUX;
+
+         if(i+1 < argc && argv[i+1][0] != '-')
+         {
+            strcat(scaleColumn, argv[i+1]);
+            ++i;
+
+            if(i+1 < argc && argv[i+1][0] != '-')
+            {
+               scaleVal = atof(argv[i+1]);
+               ++i;
+
+               if(i+1 < argc && argv[i+1][0] != '-')
+               {
+                  scaleType = FLUX;
+
+                  if(strncasecmp(argv[i+1], "mag", 3) == 0) scaleType = MAG;
+                  if(strncasecmp(argv[i+1], "log", 3) == 0) scaleType = LOGFLUX;
+               }
+
+               ++i;
+            }
+         }
+      }
+
+
+
+      /* CATALOG COLOR COLUMN */
+
+      else if(strcmp(argv[i], "-colorcol") == 0)
+      {
+         if(i+1 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"No color column given.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         strcpy(colorColumn, argv[i+1]);
+         ++i;
+      }
+
+
+
+      /* CATALOG SYMBOL SIZE COLUMN */
+
+      else if(strcmp(argv[i], "-sizecol") == 0)
+      {
+         if(i+1 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"No symbol size column given.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         strcpy(symSizeColumn, argv[i+1]);
+         ++i;
+      }
+
+
+
+      /* CATALOG SYMBOL SHAPE COLUMN */
+
+      else if(strcmp(argv[i], "-shapecol") == 0)
+      {
+         if(i+1 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"No symbol shape column given.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         strcpy(symShapeColumn, argv[i+1]);
+         ++i;
+      }
+
+
+
+      /* CATALOG LABEL COLUMN */
+
+      else if(strcmp(argv[i], "-labelcol") == 0)
+      {
+         if(i+1 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"No label column given.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         strcpy(labelColumn, argv[i+1]);
+         ++i;
+      }
+
+
+
       /* CATALOG OVERLAY */
 
       else if(strcmp(argv[i], "-catalog") == 0)
@@ -1074,50 +1145,55 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         strcpy(catcol[ncat], "");
+         cat[ncat].isImgInfo = 0;
+         cat[ncat].scaleVal  = scaleVal;
+         cat[ncat].scaleType = scaleType;
 
-         catimg [ncat] = 0;
-         catscl [ncat] = 1.;
-         catdtyp[ncat] = FLUX;
+         strcat(cat[ncat].scaleColumn, scaleColumn);
 
-         strcpy(catfile[ncat], argv[i+1]);
+         strcpy(cat[ncat].file, argv[i+1]);
          ++i;
 
          if(i+1 < argc && argv[i+1][0] != '-')
          {
-            strcat(catcol[ncat], argv[i+1]);
+            strcat(cat[ncat].scaleColumn, argv[i+1]);
             ++i;
 
             if(i+1 < argc && argv[i+1][0] != '-')
             {
-               catscl[ncat] = atof(argv[i+1]);
+               cat[ncat].scaleVal = atof(argv[i+1]);
                ++i;
 
                if(i+1 < argc && argv[i+1][0] != '-')
                {
-                  catdtyp[ncat] = FLUX;
+                  cat[ncat].scaleType = FLUX;
 
-                  if(strncasecmp(argv[i+1], "mag", 3) == 0) catdtyp[ncat] = MAG;
-                  if(strncasecmp(argv[i+1], "log", 3) == 0) catdtyp[ncat] = LOGFLUX;
+                  if(strncasecmp(argv[i+1], "mag", 3) == 0) cat[ncat].scaleType = MAG;
+                  if(strncasecmp(argv[i+1], "log", 3) == 0) cat[ncat].scaleType = LOGFLUX;
                }
 
                ++i;
             }
          }
 
-         csyscat [ncat] = csys;
-         epochcat[ncat] = epoch;
+         cat[ncat].csys  = csys;
+         cat[ncat].epoch = epoch;
 
-         catunits[ncat] = symunits;
-         catpnt  [ncat] = sympnt;
-         catmax  [ncat] = symmax;
-         cattype [ncat] = symtype;
-         catsize [ncat] = symsize;
-         catang  [ncat] = symang;
+         cat[ncat].symUnits    = symUnits;
+         cat[ncat].symNPnt     = symNPnt;
+         cat[ncat].symNMax     = symNMax;
+         cat[ncat].symType     = symType;
+         cat[ncat].symSize     = symSize;
+         cat[ncat].symRotAngle = symRotAngle;
 
-         catred  [ncat] = ovlyred;
-         catgreen[ncat] = ovlygreen;
-         catblue [ncat] = ovlyblue;
+         cat[ncat].red   = ovlyred;
+         cat[ncat].green = ovlygreen;
+         cat[ncat].blue  = ovlyblue;
+
+         strcpy(cat[ncat].colorColumn,    colorColumn);
+         strcpy(cat[ncat].labelColumn,    labelColumn);
+         strcpy(cat[ncat].symSizeColumn,  symSizeColumn);
+         strcpy(cat[ncat].symShapeColumn, symShapeColumn);
 
          ++ncat;
       }
@@ -1127,37 +1203,39 @@ int main(int argc, char **argv)
 
       else if(strcmp(argv[i], "-mark") == 0)
       {
-         if(i+1 >= argc)
+         if(i+2 >= argc)
          {
             printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -mark flag\"]\n");
             fflush(stdout);
             exit(1);
          }
 
-         markra [nmark] = atof(argv[i+1]);
-         markdec[nmark] = atof(argv[i+2]);
+         mark[nmark].ra  = atof(argv[i+1]);
+         mark[nmark].dec = atof(argv[i+2]);
 
-         markinpix[nmark] = 0;
+         mark[nmark].inpix = 0;
 
          if(strstr(argv[i+1], "p") != (char *)NULL
          || strstr(argv[i+2], "p") != (char *)NULL)
-            markinpix[nmark] = 1;
+            mark[nmark].inpix = 1;
 
-         csysmark [nmark] = csys;
-         epochmark[nmark] = epoch;
+         mark[nmark].csys  = csys;
+         mark[nmark].epoch = epoch;
 
-         markunits[nmark] = symunits;
-         markpnt  [nmark] = sympnt;
-         markmax  [nmark] = symmax;
-         marktype [nmark] = symtype;
-         marksize [nmark] = symsize;
-         markang  [nmark] = symang;
+         mark[nmark].symUnits    = symUnits;
+         mark[nmark].symNPnt     = symNPnt;
+         mark[nmark].symNMax     = symNMax;
+         mark[nmark].symType     = symType;
+         mark[nmark].symSize     = symSize;
+         mark[nmark].symRotAngle = symRotAngle;
 
-         markred  [nmark] = ovlyred;
-         markgreen[nmark] = ovlygreen;
-         markblue [nmark] = ovlyblue;
+         mark[nmark].red   = ovlyred;
+         mark[nmark].green = ovlygreen;
+         mark[nmark].blue  = ovlyblue;
 
          ++nmark;
+
+         i += 2;
       }
 
 
@@ -1172,27 +1250,35 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         catimg  [ncat] = 1;
+         cat[ncat].isImgInfo = 1;
 
-         strcpy(catfile[ncat], argv[i+1]);
-         strcat(catcol [ncat], "");
+         strcpy(cat[ncat].file, argv[i+1]);
+         strcat(cat[ncat].scaleColumn , "");
 
-         catscl  [ncat] = 0.;
-         catdtyp [ncat] = 0;
+         cat[ncat].scaleVal  = 0.;
+         cat[ncat].scaleType = FLUX;
 
-         csyscat [ncat] = csys;
-         epochcat[ncat] = epoch;
+         cat[ncat].csys  = csys;
+         cat[ncat].epoch = epoch;
 
-         catpnt  [ncat] = 0;
-         cattype [ncat] = 0;
-         catsize [ncat] = 0.;
-         catang  [ncat] = 0.;
+         cat[ncat].symSize     = 0.;
+         cat[ncat].symUnits    = 0;
+         cat[ncat].symNPnt     = 0;
+         cat[ncat].symType     = 0;
+         cat[ncat].symRotAngle = 0.;
 
-         catred  [ncat] = ovlyred;
-         catgreen[ncat] = ovlygreen;
-         catblue [ncat] = ovlyblue;
+         cat[ncat].red   = ovlyred;
+         cat[ncat].green = ovlygreen;
+         cat[ncat].blue  = ovlyblue;
+
+         strcpy(cat[ncat].colorColumn,    colorColumn);
+         strcpy(cat[ncat].labelColumn,    "");
+         strcpy(cat[ncat].symSizeColumn,  "");
+         strcpy(cat[ncat].symShapeColumn, "");
 
          ++ncat;
+
+         ++i;
       }
 
 
@@ -1209,9 +1295,9 @@ int main(int argc, char **argv)
 
          colortable = strtol(argv[i+1], &end, 10);
 
-         if(colortable < 0  || colortable > 11)
+         if(colortable < 0  || colortable > 11 || end < argv[i+1]+strlen(argv[i+1]))
          {
-            printf ("[struct stat=\"ERROR\", msg=\"Color table index must be between 0 and 11\"]\n");
+            printf ("[struct stat=\"ERROR\", msg=\"Color table index must be a number between 0 and 11\"]\n");
             fflush(stdout);
             exit(1);
          }
@@ -1355,6 +1441,8 @@ int main(int argc, char **argv)
                exit(1);
             }
          }
+
+         ++i;
       }
 
 
@@ -1449,6 +1537,8 @@ int main(int argc, char **argv)
                exit(1);
             }
          }
+
+         ++i;
       }
 
 
@@ -1542,6 +1632,8 @@ int main(int argc, char **argv)
                exit(1);
             }
          }
+
+         ++i;
       }
 
 
@@ -1634,6 +1726,8 @@ int main(int argc, char **argv)
                exit(1);
             }
          }
+
+         ++i;
       }
 
 
@@ -1644,7 +1738,7 @@ int main(int argc, char **argv)
       {
          if(i+1 >= argc)
          {
-            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -out flag\"]\n");
+            printf ("[struct stat=\"ERROR\", msg=\"No output file given following -out/-png flag\"]\n");
             fflush(stdout);
             exit(1);
          }
@@ -1660,7 +1754,7 @@ int main(int argc, char **argv)
       {
          if(i+1 >= argc)
          {
-            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -out flag\"]\n");
+            printf ("[struct stat=\"ERROR\", msg=\"No output file given following -jpeg flag\"]\n");
             fflush(stdout);
             exit(1);
          }
@@ -1680,6 +1774,16 @@ int main(int argc, char **argv)
          outType = JPEG;
 
          ++i;
+      }
+
+      else
+      {
+         if(argv[i][0] != '-')
+            printf ("[struct stat=\"ERROR\", msg=\"Invalid 'directive': %s (probably a misplaced argument)\"]\n", argv[i]);
+         else
+            printf ("[struct stat=\"ERROR\", msg=\"Invalid directive: %s\"]\n", argv[i]);
+         fflush(stdout);
+         exit(1);
       }
    }
 
@@ -1755,60 +1859,59 @@ int main(int argc, char **argv)
 
       for(i=0; i<ngrid; ++i)
       {
-         printf("DEBUG> csysgrid [%d]    = [%d]\n",  i, csysgrid [i]);
-         printf("DEBUG> epochgrid[%d]    = [%-g]\n", i, epochgrid[i]);
-         printf("DEBUG> gridred  [%d]    = [%-g]\n", i, gridred  [i]);
-         printf("DEBUG> gridgreen[%d]    = [%-g]\n", i, gridgreen[i]);
-         printf("DEBUG> gridblue [%d]    = [%-g]\n", i, gridblue [i]);
+         printf("DEBUG> grid[%d].csys        = [%d]\n",  i, grid[i].csys );
+         printf("DEBUG> grid[%d].epoch       = [%-g]\n", i, grid[i].epoch);
+         printf("DEBUG> grid[%d].red         = [%-g]\n", i, grid[i].red  );
+         printf("DEBUG> grid[%d].green       = [%-g]\n", i, grid[i].green);
+         printf("DEBUG> grid[%d].blue        = [%-g]\n", i, grid[i].blue );
       }
 
       for(i=0; i<ncat; ++i)
       {
-         printf("DEBUG> catpnt  [%d]    = [%d]\n",  i, catpnt  [i]);
-         printf("DEBUG> catfile [%d]    = [%s]\n",  i, catfile [i]);
-         printf("DEBUG> catcol  [%d]    = [%s]\n",  i, catcol  [i]);
-         printf("DEBUG> catunits[%d]    = [%d]\n",  i, catunits[i]);
-         printf("DEBUG> catscl  [%d]    = [%-g]\n", i, catscl  [i]);
-         printf("DEBUG> catdtyp [%d]    = [%d]\n",  i, catdtyp [i]);
-         printf("DEBUG> csyscat [%d]    = [%d]\n",  i, csyscat [i]);
-         printf("DEBUG> epochcat[%d]    = [%-g]\n", i, epochcat[i]);
-         printf("DEBUG> catpnt  [%d]    = [%d]\n",  i, catpnt  [i]);
-         printf("DEBUG> catmax  [%d]    = [%d]\n",  i, catmax  [i]);
-         printf("DEBUG> cattype [%d]    = [%d]\n",  i, cattype [i]);
-         printf("DEBUG> catsize [%d]    = [%-g]\n", i, catsize [i]);
-         printf("DEBUG> catang  [%d]    = [%-g]\n", i, catang  [i]);
-         printf("DEBUG> catred  [%d]    = [%-g]\n", i, catred  [i]);
-         printf("DEBUG> catgreen[%d]    = [%-g]\n", i, catgreen[i]);
-         printf("DEBUG> catblue [%d]    = [%-g]\n", i, catblue [i]);
+         printf("DEBUG> cat[%d].symNPnt      = [%d]\n",  i, cat[i].symNPnt  );
+         printf("DEBUG> cat[%d].file         = [%s]\n",  i, cat[i].file );
+         printf("DEBUG> cat[%d].scaleColumn  = [%s]\n",  i, cat[i].scaleColumn  );
+         printf("DEBUG> cat[%d].symUnits     = [%d]\n",  i, cat[i].symUnits);
+         printf("DEBUG> cat[%d].scaleVal     = [%-g]\n", i, cat[i].scaleVal  );
+         printf("DEBUG> cat[%d].scaleType    = [%d]\n",  i, cat[i].scaleType );
+         printf("DEBUG> cat[%d].csys         = [%d]\n",  i, cat[i].csys );
+         printf("DEBUG> cat[%d].epoch        = [%-g]\n", i, cat[i].epoch);
+         printf("DEBUG> cat[%d].symNMax      = [%d]\n",  i, cat[i].symNMax  );
+         printf("DEBUG> cat[%d].symType      = [%d]\n",  i, cat[i].symType );
+         printf("DEBUG> cat[%d].symSize      = [%-g]\n", i, cat[i].symSize );
+         printf("DEBUG> cat[%d].symRotAngle  = [%-g]\n", i, cat[i].symRotAngle  );
+         printf("DEBUG> cat[%d].red          = [%-g]\n", i, cat[i].red  );
+         printf("DEBUG> cat[%d].green        = [%-g]\n", i, cat[i].green);
+         printf("DEBUG> cat[%d].blue         = [%-g]\n", i, cat[i].blue );
       }
 
       for(i=0; i<nmark; ++i)
       {
-         printf("DEBUG> markra   [%d]   = [%-g]\n", i, markra   [i]);
-         printf("DEBUG> markdec  [%d]   = [%-g]\n", i, markdec  [i]);
-         printf("DEBUG> markunits[%d]   = [%d]\n",  i, markunits[i]);
-         printf("DEBUG> csysmark [%d]   = [%d]\n",  i, csysmark [i]);
-         printf("DEBUG> epochmark[%d]   = [%-g]\n", i, epochmark[i]);
-         printf("DEBUG> markpnt  [%d]   = [%d]\n",  i, markpnt  [i]);
-         printf("DEBUG> markmax  [%d]   = [%d]\n",  i, markmax  [i]);
-         printf("DEBUG> marktype [%d]   = [%d]\n",  i, marktype [i]);
-         printf("DEBUG> marksize [%d]   = [%-g]\n", i, marksize [i]);
-         printf("DEBUG> markang  [%d]   = [%-g]\n", i, markang  [i]);
-         printf("DEBUG> markred  [%d]   = [%-g]\n", i, markred  [i]);
-         printf("DEBUG> markgreen[%d]   = [%-g]\n", i, markgreen[i]);
-         printf("DEBUG> markblue [%d]   = [%-g]\n", i, markblue [i]);
+         printf("DEBUG> mark[%d].ra          = [%-g]\n", i, mark[i].ra   );
+         printf("DEBUG> mark[%d].dec         = [%-g]\n", i, mark[i].dec  );
+         printf("DEBUG> mark[%d].symUnits    = [%d]\n",  i, mark[i].symUnits);
+         printf("DEBUG> mark[%d].csys        = [%d]\n",  i, mark[i].csys );
+         printf("DEBUG> mark[%d].epoch       = [%-g]\n", i, mark[i].epoch);
+         printf("DEBUG> mark[%d].symNPnt     = [%d]\n",  i, mark[i].symNPnt  );
+         printf("DEBUG> mark[%d].symNMax     = [%d]\n",  i, mark[i].symNMax  );
+         printf("DEBUG> mark[%d].symType     = [%d]\n",  i, mark[i].symType );
+         printf("DEBUG> mark[%d].symSize     = [%-g]\n", i, mark[i].symSize );
+         printf("DEBUG> mark[%d].symRotAngle = [%-g]\n", i, mark[i].symRotAngle  );
+         printf("DEBUG> mark[%d].red         = [%-g]\n", i, mark[i].red  );
+         printf("DEBUG> mark[%d].green       = [%-g]\n", i, mark[i].green);
+         printf("DEBUG> mark[%d].blue        = [%-g]\n", i, mark[i].blue );
       }
 
       for(i=0; i<nlabel; ++i)
       {
-         printf("DEBUG> labelx   [%d]    = [%-g]\n", i, labelx   [i]);
-         printf("DEBUG> labely   [%d]    = [%-g]\n", i, labely   [i]);
-         printf("DEBUG> labeltext[%d]    = [%s]\n",  i, labeltext[i]);
+         printf("DEBUG> label[%d].x          = [%-g]\n", i, label[i].x   );
+         printf("DEBUG> label[%d].y          = [%-g]\n", i, label[i].y   );
+         printf("DEBUG> label[%d].text       = [%s]\n",  i, label[i].text);
       }
 
       printf("\n");
-      printf("DEBUG> pngfile         = [%s]\n", pngfile);
-      printf("DEBUG> jpegfile        = [%s]\n", jpegfile);
+      printf("DEBUG> pngfile                 = [%s]\n", pngfile);
+      printf("DEBUG> jpegfile                = [%s]\n", jpegfile);
       fflush(stdout);
    }
 
@@ -2128,7 +2231,7 @@ int main(int argc, char **argv)
       || yinc   != wcs->yinc
       || fabs(crota2 - wcs->rot) > 1.e-9)
       {
-         printf ("[struct stat=\"ERROR\", msg=\"Red and green FITS images don't match\"]\n");
+         printf ("[struct stat=\"ERROR\", msg=\"Red and green FITS images don't have matching projections (use -nowcs flag if you still want to proceed).\"]\n");
          fflush(stdout);
          exit(1);
       }
@@ -2221,7 +2324,7 @@ int main(int argc, char **argv)
       || yinc   != wcs->yinc
       || fabs(crota2 - wcs->rot) > 1.e-9)
       {
-         printf ("[struct stat=\"ERROR\", msg=\"Red and blue FITS images don't match\"]\n");
+         printf ("[struct stat=\"ERROR\", msg=\"Red and blue FITS images don't have matching projections (use -nowcs flag if you still want to proceed).\"]\n");
          fflush(stdout);
          exit(1);
       }
@@ -3535,20 +3638,20 @@ int main(int argc, char **argv)
 
    for(i=0; i<ngrid; ++i)
    {
-      makeGrid(wcs, csysimg, epochimg, csysgrid[i], epochgrid[i], gridred[i], gridgreen[i], gridblue[i]);
+      makeGrid(wcs, csysimg, epochimg, grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue);
       addOverlay();
    }
 
 
    for(i=0; i<ncat; ++i)
    {
-      if(catimg[i] == 0) /* CATALOG */
+      if(cat[i].isImgInfo == 0) /* CATALOG */
       {
-         ncol = topen(catfile[i]);
+         ncol = topen(cat[i].file);
 
          if(ncol <= 0)
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid table file [%s].\" ]\n", catfile[i]);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid table file [%s].\" ]\n", cat[i].file);
             exit(1);
          }
 
@@ -3560,22 +3663,92 @@ int main(int argc, char **argv)
 
          if(ira < 0 || idec < 0)
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra' and 'dec (or 'lon','lat') in table [%s]\"]\n", catfile[i]);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra' and 'dec (or 'lon','lat') in table [%s]\"]\n", cat[i].file);
             exit(1);
          }
 
-         iflux = -1;
 
-         if(strlen(catcol[i]) > 0)
+         // Scaling 
+
+         iscale = -1;
+
+         if(strlen(cat[i].scaleColumn) > 0)
          {
-            iflux = tcol(catcol[i]);
+            iscale = tcol(cat[i].scaleColumn);
 
-            if(iflux < 0)
+            if(iscale < 0)
             {
-               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find flux/mag column [%s] in table [%s]\"]\n", catcol[i], catfile[i]);
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find flux/mag column [%s] in table [%s]\"]\n", cat[i].scaleColumn, cat[i].file);
                exit(1);
             }
          }
+
+         
+         // Color
+
+         icolor = -1;
+
+         if(strlen(cat[i].colorColumn) > 0)
+         {
+            icolor = tcol(cat[i].colorColumn);
+
+            if(icolor < 0)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find color column [%s] in table [%s]\"]\n", cat[i].colorColumn, cat[i].file);
+               exit(1);
+            }
+         }
+
+
+         // Symbol size
+
+         isymsize = -1;
+
+         if(strlen(cat[i].symSizeColumn) > 0)
+         {
+            isymsize = tcol(cat[i].symSizeColumn);
+
+            if(isymsize < 0)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find symbol size column [%s] in table [%s]\"]\n", cat[i].symSizeColumn, cat[i].file);
+               exit(1);
+            }
+         }
+
+
+         // Symbol shape
+
+         isymshape = -1;
+
+         if(strlen(cat[i].symShapeColumn) > 0)
+         {
+            isymshape = tcol(cat[i].symShapeColumn);
+
+            if(isymshape < 0)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find symbol shape column [%s] in table [%s]\"]\n", cat[i].symShapeColumn, cat[i].file);
+               exit(1);
+            }
+         }
+
+
+         // Label
+
+         ilabel = -1;
+
+         if(strlen(cat[i].labelColumn) > 0)
+         {
+            ilabel = tcol(cat[i].labelColumn);
+
+            if(ilabel < 0)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find label column [%s] in table [%s]\"]\n", cat[i].labelColumn, cat[i].file);
+               exit(1);
+            }
+         }
+
+
+         // Read through the file
 
          while(1)
          {
@@ -3587,47 +3760,141 @@ int main(int argc, char **argv)
             if(tnull(ira) || tnull(idec))
                continue;
 
+
+            // Read location 
+
             ra  = atof(tval(ira));
             dec = atof(tval(idec));
 
-            if(iflux < 0)
-               flux = catsize[i];
+            if(iscale < 0)
+               flux = cat[i].symSize;
             else
             {
-               flux = atof(tval(iflux));
+               flux = atof(tval(iscale));
 
-               if(tnull(iflux))
+               if(tnull(iscale))
                   continue;
             }
 
-            if(debug)
-               printf("Symbol: color=(%4.2f,%4.2f,%4.2f) shape=(%2d,%d,%6.2f) at (%6.2f,%6.2f) flux=%10.6f->", 
-                  catred[i], catgreen[i], catblue[i], catpnt[i], cattype[i], catang[i], ra, dec, flux);
 
-            if(iflux >= 0)
+            // Read color
+
+            ovlyred   = cat[i].red;
+            ovlygreen = cat[i].green;
+            ovlyblue  = cat[i].blue;
+
+            if(icolor >= 0)
             {
-               if(catdtyp[i] == FLUX)
-                  flux = flux / catscl[i] * catsize[i];
-               else if(catdtyp[i] == MAG)
-                  flux = (catscl[i] - flux + 1) * catsize[i];
-               else if(catdtyp[i] == LOGFLUX)
-                  flux = log10(10. * flux / catscl[i]) * catsize[i];
+               if(!tnull(icolor))
+               {
+                  strcpy(colorstr, tval(icolor));
+
+                  (void) colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue);
+               }
             }
 
 
-            if(catunits[i] == FRACTIONAL)
+            // Read symbol size
+
+            symSize  = cat[i].symSize;
+            symUnits = cat[i].symUnits;
+
+            if(isymsize >= 0)
+            {
+               if(!tnull(isymsize))
+               {
+                  strcpy(symbolstr, tval(isymsize));
+
+                  ptr = symbolstr + strlen(symbolstr) - 1;
+
+                  symUnits = FRACTIONAL;
+
+                  if(*ptr == 's')
+                     symUnits = SECONDS;
+
+                  else if(*ptr == 'm')
+                     symUnits = MINUTES;
+
+                  else if(*ptr == 'd')
+                     symUnits = DEGREES;
+
+                  else if(*ptr == 'p')
+                     symUnits = PIXELS;
+
+                  if(symUnits != FRACTIONAL)
+                     *ptr = '\0';
+
+                  symSize = strtod(symbolstr, &end);
+
+
+                  // If this fails, revert to default values
+
+                  if(end < (symbolstr + (int)strlen(symbolstr)) || symSize <= 0.)
+                  {
+                     symSize  = cat[i].symSize;
+                     symUnits = cat[i].symUnits;
+                  }
+               }
+            }
+
+
+            // Read symbol shape
+
+            symNPnt     = cat[i].symNPnt;
+            symType     = cat[i].symType;
+            symRotAngle = cat[i].symRotAngle;
+
+            if(isymshape >= 0)
+            {
+               if(!tnull(isymshape))
+               {
+                  strcpy(symbolstr, tval(isymshape));
+
+                  istatus = parseSymbol(symbolstr, &symNPnt, &symNMax, &symType, &symRotAngle);
+
+                  if(istatus)
+                  {
+                     symNPnt     = cat[i].symNPnt;
+                     symNMax     = cat[i].symNMax;
+                     symType     = cat[i].symType;
+                     symRotAngle = cat[i].symRotAngle;
+                  }
+               }
+            }
+
+
+
+            if(debug)
+               printf("Symbol: color=(%4.2f,%4.2f,%4.2f) shape=(%2d,%d,%6.2f) at (%6.2f,%6.2f) flux=%10.6f->", 
+                  ovlyred, ovlygreen, ovlyblue, symNPnt, symType, symRotAngle, ra, dec, flux);
+
+
+            // Process scaling information
+
+            if(iscale >= 0)
+            {
+               if(cat[i].scaleType == FLUX)
+                  flux = flux / cat[i].scaleVal * cat[i].symSize;
+               else if(cat[i].scaleType == MAG)
+                  flux = (cat[i].scaleVal - flux + 1) * cat[i].symSize;
+               else if(cat[i].scaleType == LOGFLUX)
+                  flux = log10(10. * flux / cat[i].scaleVal) * cat[i].symSize;
+            }
+
+
+            if(cat[i].symUnits == FRACTIONAL)
                 flux = flux * charHeight;
 
-             else if(catunits[i] == SECONDS)
+             else if(cat[i].symUnits == SECONDS)
                 flux = flux / 3600.;
         
-             else if(catunits[i] == MINUTES)
+             else if(cat[i].symUnits == MINUTES)
                 flux = flux / 60.;
  
-             else if(catunits[i] == DEGREES)
+             else if(cat[i].symUnits == DEGREES)
                 flux = flux * 1.;
 
-            else if(catunits[i] == PIXELS)
+            else if(cat[i].symUnits == PIXELS)
                flux = flux * pixScale;
 
 
@@ -3640,14 +3907,49 @@ int main(int argc, char **argv)
                fflush(stdout);
             }
 
-            symbol(wcs, csysimg, epochimg, csyscat[i], epochcat[i],
-                   ra, dec, 0, flux, catpnt[i], catmax[i], cattype[i], catang[i], 
-                   catred[i], catgreen[i], catblue[i]);
 
-            if(debug)
+            // Draw symbol
+
+            if(symSize > 0)
             {
-               printf("Symbol drawn.\n");
-               fflush(stdout);
+               symbol(wcs, csysimg, epochimg, cat[i].csys, cat[i].epoch,
+                      ra, dec, 0, flux, symNPnt, symNMax, symType, symRotAngle, 
+                      ovlyred, ovlygreen, ovlyblue);
+
+               if(debug)
+               {
+                  printf("Symbol drawn.\n");
+                  fflush(stdout);
+               }
+            }
+            else
+            {
+               if(debug)
+               {
+                  printf("Symbol not drawn.\n");
+                  fflush(stdout);
+               }
+            }
+
+
+            // Write label
+
+            if(ilabel >= 0)
+            {
+               strcpy(labelstr, tval(ilabel));
+
+               if(strlen(labelstr) > 0)
+               {
+                  wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
+
+                  draw_label(fontfile, 14, xpix, ypix, labelstr, ovlyred, ovlygreen, ovlyblue);
+               }
+
+               if(debug)
+               {
+                  printf("Label [%s] at (%d,%d)\n", labelstr, xpix, ypix);
+                  fflush(stdout);
+               }
             }
          }
 
@@ -3656,13 +3958,32 @@ int main(int argc, char **argv)
 
       else /* IMAGE INFO */
       {
-         ncol = topen(catfile[i]);
+         ncol = topen(cat[i].file);
 
          if(ncol <= 0)
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid table file [%s].\" ]\n", catfile[i]);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid table file [%s].\" ]\n", cat[i].file);
             exit(1);
          }
+         
+
+         // Color
+
+         icolor = -1;
+
+         if(strlen(cat[i].colorColumn) > 0)
+         {
+            icolor = tcol(cat[i].colorColumn);
+
+            if(icolor < 0)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find color column [%s] in table [%s]\"]\n", cat[i].colorColumn, cat[i].file);
+               exit(1);
+            }
+         }
+
+
+         // Find corner-related information
 
          ira1  = tcol("ra1");
          idec1 = tcol("dec1");
@@ -3716,7 +4037,7 @@ int main(int argc, char **argv)
 
             else
             {
-               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra1', 'dec1', etc. corners or WCS columns in table [%s]\n", catfile[i]);
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Cannot find 'ra1', 'dec1', etc. corners or WCS columns in table [%s]\n", cat[i].file);
                exit(1);
             }
          }
@@ -3731,6 +4052,22 @@ int main(int argc, char **argv)
 
             if(stat < 0)
                break;
+
+
+            ovlyred   = cat[i].red;
+            ovlygreen = cat[i].green;
+            ovlyblue  = cat[i].blue;
+
+            if(icolor >= 0)
+            {
+               if(!tnull(icolor))
+               {
+                  strcpy(colorstr, tval(icolor));
+
+                  (void) colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue);
+               }
+            }
+
 
             if(datatype == FOURCORNERS)
             {
@@ -3863,10 +4200,10 @@ int main(int argc, char **argv)
                                   EQUJ, 2000., &ra4, &dec4, 0.0);
             }
 
-            great_circle(wcs, csysimg, epochimg, csyscat[i], epochcat[i], ra1, dec1, ra2, dec2, catred[i], catgreen[i], catblue[i]);
-            great_circle(wcs, csysimg, epochimg, csyscat[i], epochcat[i], ra2, dec2, ra3, dec3, catred[i], catgreen[i], catblue[i]);
-            great_circle(wcs, csysimg, epochimg, csyscat[i], epochcat[i], ra3, dec3, ra4, dec4, catred[i], catgreen[i], catblue[i]);
-            great_circle(wcs, csysimg, epochimg, csyscat[i], epochcat[i], ra4, dec4, ra1, dec1, catred[i], catgreen[i], catblue[i]);
+            great_circle(wcs, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra1, dec1, ra2, dec2, ovlyred, ovlygreen, ovlyblue);
+            great_circle(wcs, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra2, dec2, ra3, dec3, ovlyred, ovlygreen, ovlyblue);
+            great_circle(wcs, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra3, dec3, ra4, dec4, ovlyred, ovlygreen, ovlyblue);
+            great_circle(wcs, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra4, dec4, ra1, dec1, ovlyred, ovlygreen, ovlyblue);
          }
 
          tclose();
@@ -3878,26 +4215,26 @@ int main(int argc, char **argv)
 
    for(i=0; i<nmark; ++i)
    {
-      flux = marksize[i];
+      flux = mark[i].symSize;
 
-      if(markunits[i] == FRACTIONAL)
+      if(mark[i].symUnits == FRACTIONAL)
          flux = flux * charHeight;
 
-      else if(markunits[i] == SECONDS)
+      else if(mark[i].symUnits == SECONDS)
          flux = flux / 3600.;
  
-      else if(markunits[i] == MINUTES)
+      else if(mark[i].symUnits == MINUTES)
          flux = flux / 60.;
  
-      else if(markunits[i] == DEGREES)
+      else if(mark[i].symUnits == DEGREES)
          flux = flux * 1.;
  
-      else if(markunits[i] == PIXELS)
+      else if(mark[i].symUnits == PIXELS)
          flux = flux * pixScale;
  
-      symbol(wcs, csysimg, epochimg, csysmark[i], epochmark[i],
-             markra[i], markdec[i], markinpix[i], flux, markpnt[i], markmax[i], marktype[i], markang[i], 
-             markred[i], markgreen[i], markblue[i]);
+      symbol(wcs, csysimg, epochimg, mark[i].csys, mark[i].epoch,
+             mark[i].ra, mark[i].dec, mark[i].inpix, flux, mark[i].symNPnt, mark[i].symNMax, mark[i].symType, mark[i].symRotAngle, 
+             mark[i].red, mark[i].green, mark[i].blue);
 
       addOverlay();
    }
@@ -3905,27 +4242,27 @@ int main(int argc, char **argv)
 
    for(i=0; i<nlabel; ++i)
    {
-      if(labelinpix[i] == 0)
+      if(label[i].inpix == 0)
       {
-         ra  = labelx[i];
-         dec = labely[i];
+         ra  = label[i].x;
+         dec = label[i].y;
 
          wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
 
-         labelx[i] = xpix;
-         labely[i] = ypix;
+         label[i].x = xpix;
+         label[i].y = ypix;
 
          if(debug)
          {
-            printf("DEBUG> label [%s]: (%-g,%-g) -> (%-g,%-g)\n", labeltext[i], ra, dec, labelx[i], labely[i]);
+            printf("DEBUG> label [%s]: (%-g,%-g) -> (%-g,%-g)\n", label[i].text, ra, dec, label[i].x, label[i].y);
             fflush(stdout);
          }
       }
 
-      ix = labelx[i];
-      iy = labely[i];
+      ix = label[i].x;
+      iy = label[i].y;
 
-      draw_label(fontfile, 14, ix, iy, labeltext[i], labelred[i], labelgreen[i], labelblue[i]);
+      draw_label(fontfile, 14, ix, iy, label[i].text, label[i].red, label[i].green, label[i].blue);
       addOverlay();
    }
 
@@ -3993,6 +4330,256 @@ int main(int argc, char **argv)
    fflush(stdout);
    exit(0);
 }
+
+
+
+/*************************************************************************/
+/*                                                                       */
+/*  Turn a text string into the appropriate RGV values.  For example     */
+/*  "2.0 circle" or "15p 5 star 36."  The latter has size 15. (pixels),  */
+/*  pentagon "starred", rotated 36 degrees).                             */
+/*                                                                       */
+/*************************************************************************/
+
+int parseSymbol(char *symbolstr, int *symNPnt, int *symNMax, int *symType, double *symRotAngle)
+{
+   int   i, cmdc;
+   char *cmdv[256];
+   char *end;
+
+   cmdc = parsecmd(symbolstr, cmdv);
+
+   if(cmdc <= 0)
+      return 1;
+
+
+   i = 0;
+
+   *symRotAngle = 0.;
+   *symType     = 0;
+
+   if(strncasecmp(cmdv[i], "triangle", 3) == 0)
+   {
+      *symNPnt = 3;
+      *symRotAngle = 120.;
+   }
+
+   else if(strncasecmp(cmdv[i], "box", 3) == 0)
+   {
+      *symNPnt = 4;
+      *symRotAngle = 45.;
+   }
+
+   else if(strncasecmp(cmdv[i], "square", 3) == 0)
+   {
+      *symNPnt = 4;
+      *symRotAngle = 45.;
+   }
+
+   else if(strncasecmp(cmdv[i], "diamond", 3) == 0)
+      *symNPnt = 4;
+
+   else if(strncasecmp(cmdv[i], "pentagon", 3) == 0)
+   {
+      *symNPnt = 5;
+      *symRotAngle = 72.;
+   }
+
+   else if(strncasecmp(cmdv[i], "hexagon", 3) == 0)
+   {
+      *symNPnt = 6;
+      *symRotAngle = 60.;
+   }
+
+   else if(strncasecmp(cmdv[i], "septagon", 3) == 0)
+   {
+      *symNPnt = 7;
+      *symRotAngle = 360./7.;
+   }
+
+   else if(strncasecmp(cmdv[i], "octagon", 3) == 0)
+   {
+      *symNPnt = 8;
+      *symRotAngle = 45.;
+   }
+
+   else if(strncasecmp(cmdv[i], "el", 2) == 0)
+   {
+      *symNPnt = 4;
+      *symRotAngle = 135.;
+      *symNMax = 2;
+   }
+
+   else if(strncasecmp(cmdv[i], "circle", 3) == 0)
+   {
+      *symNPnt = 128;
+      *symRotAngle = 0.;
+   }
+
+   else if(strncasecmp(cmdv[i], "compass", 3) == 0)
+   {
+      *symType = 3;
+      *symNPnt  = 4;
+      *symRotAngle  = 0.;
+   }
+
+   else
+   {
+      *symType = strtol(cmdv[i], &end, 0);
+
+      if(end < (cmdv[i] + (int)strlen(cmdv[i])))
+      {
+         if(strncasecmp(cmdv[i], "polygon", 1) == 0)
+            *symType = 0;
+
+         else if(strncasecmp(cmdv[i], "starred", 2) == 0)
+            *symType = 1;
+
+         else if(strncasecmp(cmdv[i], "skeletal", 2) == 0)
+            *symType = 2;
+
+         else
+            return 1;
+      }
+
+      ++i;
+     
+      if(i < cmdc)
+      {
+         *symNPnt = strtol(cmdv[i], &end, 0);
+
+         if(end < (cmdv[i] + (int)strlen(cmdv[i])) || *symNPnt < 3)
+            return 1;
+
+         ++i;
+        
+         if(i < cmdc)
+         {
+            *symRotAngle = strtod(cmdv[i], &end);
+
+            if(end < (cmdv[i] + (int)strlen(cmdv[i])))
+               return 1;
+
+            ++i;
+         }
+      }
+   }
+
+   return 0;
+}
+
+
+
+
+/*******************************************************/
+/*                                                     */
+/*  Turn a text string into the appropriate RGV values */
+/*                                                     */
+/*******************************************************/
+
+int colorLookup(char *colorin, double *ovlyred, double *ovlygreen, double *ovlyblue)
+{
+   int  j;
+   char colorstr[MAXSTR];
+
+   strcpy(colorstr, colorin);
+
+   if(colorstr[0] == '#')
+      strcpy(colorstr, colorin+1);
+
+   if(strlen(colorstr) == 6 && hexVal(colorstr[0]) >= 0)
+   {
+      for(j=0; j<strlen(colorstr); ++j)
+      {
+         if(hexVal(colorstr[j]) < 0)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Invalid color specification\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         *ovlyred   = hexVal(colorstr[0]) * 16 + hexVal(colorstr[1]);
+         *ovlygreen = hexVal(colorstr[2]) * 16 + hexVal(colorstr[3]);
+         *ovlyblue  = hexVal(colorstr[4]) * 16 + hexVal(colorstr[5]);
+      }
+   }
+
+   else if(strcasecmp(colorstr, "black") == 0)
+   {
+      *ovlyred   =   0;
+      *ovlygreen =   0;
+      *ovlyblue  =   0;
+   }
+
+   else if(strcasecmp(colorstr, "white") == 0)
+   {
+      *ovlyred   = 255;
+      *ovlygreen = 255;
+      *ovlyblue  = 255;
+   }
+
+   else if(strcasecmp(colorstr, "red") == 0)
+   {
+      *ovlyred   = 255;
+      *ovlygreen =   0;
+      *ovlyblue  =   0;
+   }
+
+   else if(strcasecmp(colorstr, "green") == 0)
+   {
+      *ovlyred   =   0;
+      *ovlygreen = 255;
+      *ovlyblue  =   0;
+   }
+
+   else if(strcasecmp(colorstr, "blue") == 0)
+   {
+      *ovlyred   =   0;
+      *ovlygreen =   0;
+      *ovlyblue  = 255;
+   }
+
+   else if(strcasecmp(colorstr, "magenta") == 0)
+   {
+      *ovlyred   = 255;
+      *ovlygreen =   0;
+      *ovlyblue  = 255;
+   }
+
+   else if(strcasecmp(colorstr, "cyan") == 0)
+   {
+      *ovlyred   =   0;
+      *ovlygreen = 255;
+      *ovlyblue  = 255;
+   }
+
+   else if(strcasecmp(colorstr, "yellow") == 0)
+   {
+      *ovlyred   = 255;
+      *ovlygreen = 255;
+      *ovlyblue  =   0;
+   }
+
+   else if(strcasecmp(colorstr, "gray") == 0
+        || strcasecmp(colorstr, "grey") == 0)
+   {
+      *ovlyred   = 128;
+      *ovlygreen = 128;
+      *ovlyblue  = 128;
+   }
+
+   else
+   {
+      *ovlyred   = 128;
+      *ovlygreen = 128;
+      *ovlyblue  = 128;
+   }
+
+   *ovlyred   = *ovlyred   / 255;
+   *ovlygreen = *ovlygreen / 255;
+   *ovlyblue  = *ovlyblue  / 255;
+}
+
 
 int hexVal(char c)
 {
