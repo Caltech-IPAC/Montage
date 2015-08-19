@@ -14,10 +14,15 @@
 
    <script type="text/javascript" src="/js/jquery-1.11.0.min.js"></script>
    <script type="text/javascript" src="/js/jquery-ui-1.10.4.custom.min.js"></script>
+   
    <script type="text/javascript" src="/js/misc/iceGraphics.js"></script>
+
    <script type="text/javascript" src="/js/bgrins-spectrum-77699c6/spectrum.js"></script>
 
    <script type="text/javascript" src="/applications/mViewer/mViewer.js"></script>
+   <script type="text/javascript" src="/applications/mViewer/viewerUtil.js"></script>
+   
+   
    <script type="text/javascript" src="/applications/mViewer/ColorStretch.js"></script>
    <script type="text/javascript" src="/applications/mViewer/LayerControl.js"></script>
    <script type="text/javascript" src="/applications/mViewer/FITSHeaderViewer.js"></script>
@@ -109,8 +114,6 @@
 
          jQuery(window).resize(function(){ resizeWin(); });
 
-         resizeWin();
-
 
          // Create the main image display object
 
@@ -132,6 +135,8 @@
          viewer.addUpdateCallback(updateScale);
          viewer.addUpdateCallback(updateWWT);
 
+	 viewer.addUpdateCallback(initCallback);
+	 viewer.addBoxCallback(processMyBox);
 
          // Create the layer control. As with the color control
          // above, this application will put this into a pop-up dialog.
@@ -236,6 +241,31 @@
       });
 
 
+      function initCallback () {
+        
+          if ((viewer.cmd != "init") && 
+              (viewer.cmd != "replaceimage")) {
+              return;
+          }
+
+/*
+    Resize to fit the canvas
+*/
+//          viewer.resize();
+          
+	  resizeWin();
+
+      }
+
+
+      function processMyBox () 
+      {
+          viewer.grayOut(true, {'opacity':'50'});
+          viewer.grayOutMessage(true);
+
+          processBox (viewer);
+      }
+
 
       // This is where we actually make the color stretch
       // a pop-up dialog.  The controls know nothing about 
@@ -322,11 +352,34 @@
 
       // Pass-through functions to viewer object
 
-      zoomIn        = function() { viewer.zoomIn(); }
-      zoomOut       = function() { viewer.zoomOut(); }
-      zoomReset     = function() { viewer.zoomReset(); }
-      downloadImage = function() { viewer.downloadImage(); }
+      zoomIn = function() 
+      { 
+          viewer.grayOut(true, {'opacity':'50'});
+          viewer.grayOutMessage(true);
+          
+	  viewer.zoomIn(); 
+      }
 
+      zoomOut = function() 
+      { 
+          viewer.grayOut(true, {'opacity':'50'});
+          viewer.grayOutMessage(true);
+          
+          viewer.zoomOut(); 
+      }
+      
+      zoomReset = function() 
+      { 
+          viewer.grayOut(true, {'opacity':'50'});
+          viewer.grayOutMessage(true);
+          
+          viewer.zoomReset(); 
+      }
+      
+      downloadImage = function() 
+      { 
+          viewer.downloadImage(); 
+      }
 
       // Message for functionality that is not ready
 
@@ -342,12 +395,12 @@
       {
          var scale;
 
-         if(viewer.imgData.scale == 0)
-            scale = 0.;
+	 if (viewer.imgData.scale == null)
+	     scale = 0.;
          else
-            scale = 1./viewer.imgData.scale;
-
-         jQuery(".scaleFactor").html(scale.toPrecision(4));
+            scale = viewer.imgData.scale;
+	 
+	 jQuery(".scaleFactor").html(scale);
       }
 
 
@@ -396,6 +449,7 @@
          if(viewer)
             viewer.resize();
       }
+   
    </script>
 </head>
 
@@ -436,7 +490,8 @@
    </div>
 
    <div id="interactionArea">
-      <div id="imgArea"></div>
+      <div id="imgArea" style="height:1000px;width:1000px;position:relative;background-repeat:no-repeat;border:1px solid #d0d0d0;"> 
+      </div>
       <div id="buttonBar"></div>
    </div>
 </div>

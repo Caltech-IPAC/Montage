@@ -14,10 +14,10 @@ Version  Developer        Date     Change
                                    corrections for that image.
 2.2      John Good        27Aug04  Added "[-s statusfile]" to Usage statement
 2.1      John Good        28Jul04  Shouldn't have had a lower RMS cutoff;
-				   this removes overlaps that are actually
-				   just part of a larger tiled image.
+                                   this removes overlaps that are actually
+                                   just part of a larger tiled image.
 2.0      John Good        20Apr04  Changed pixel "sums" to use integral form
-				   and allow for rotated overlap regions
+                                   and allow for rotated overlap regions
 1.9      John Good        09Mar04  Added "level-only" flag
 1.8      John Good        07Mar04  Added checks for whether to use background 
                                    fit. Now must be at least 2% of average image
@@ -29,17 +29,17 @@ Version  Developer        Date     Change
 1.6      John Good        06Oct03  Added NAXIS1,2 as alternatives to ns,nl
 1.5      John Good        25Aug03  Added status file processing
 1.4      John Good        28May03  Changed fittype handling to allow arbitrarily
-				   large number of iterations
+                                   large number of iterations
 1.3      John Good        24Mar03  Fixed max count in error in message 
-				   statement for -i 
+                                   statement for -i 
 1.2      John Good        22Mar03  Fixed error in message statement for -i 
-				   option, and corrected error where -i value 
-				   was being overwritten, and turned on debug
-				   if refimage given
+                                   option, and corrected error where -i value 
+                                   was being overwritten, and turned on debug
+                                   if refimage given
 1.1      John Good        14Mar03  Modified command-line processing
-				   to use getopt() library.  Checks validity of
-				   niteration.  Checks for missing/invalid
-				   images.tbl or fits.tbl.
+                                   to use getopt() library.  Checks validity of
+                                   niteration.  Checks for missing/invalid
+                                   images.tbl or fits.tbl.
 1.0      John Good        29Jan03  Baseline code
 
 */
@@ -295,40 +295,40 @@ int main(int argc, char **argv)
    {
       switch (c) 
       {
-	 case 'a':
-	    useall = 1;
-	    break;
+         case 'a':
+            useall = 1;
+            break;
 
          case 'i':
-	    niteration = strtol(optarg, &end, 0);
+            niteration = strtol(optarg, &end, 0);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"Argument for -i (%s) cannot be interpreted as an integer\"]\n", 
-		  optarg);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Argument for -i (%s) cannot be interpreted as an integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
 
-	    if(niteration < 1)
-	    {
-	       printf ("[struct stat=\"ERROR\", msg=\"Number of iterations too small (%d). This parameter is normally around 5000.\"]\n", i);
-	       exit(1);
-	    }
+            if(niteration < 1)
+            {
+               printf ("[struct stat=\"ERROR\", msg=\"Number of iterations too small (%d). This parameter is normally around 5000.\"]\n", i);
+               exit(1);
+            }
 
-	    if(niteration < 5000)
-	       maxlevel = niteration / 2.;
+            if(niteration < 5000)
+               maxlevel = niteration / 2.;
 
             break;
 
          case 'r':
-	    refimage = strtol(optarg, &end, 0);
+            refimage = strtol(optarg, &end, 0);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"Argument for -r (%s) cannot be interpreted as an integer\"]\n", 
-		  optarg);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Argument for -r (%s) cannot be interpreted as an integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
 
             break;
 
@@ -342,15 +342,15 @@ int main(int argc, char **argv)
             break;
 
          case 'l':
-	    noslope = 1;
+            noslope = 1;
             break;
 
          case 'd':
-	    debug = debugCheck(optarg);
+            debug = debugCheck(optarg);
             break;
 
          default:
-	    printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-l(evel-only)] [-d level] [-a(ll-overlaps)] [-r refimg] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-l(evel-only)] [-d level] [-a(ll-overlaps)] [-r refimg] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
    if(ncols <= 0)
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid image metadata file: %s\"]\n",
-	 imgfile);
+         imgfile);
       exit(1);
    }
 
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
       stat = tread();
 
       if(stat < 0)
-	 break;
+         break;
 
       imgs[nimages].cntr      = atoi(tval(icntr));
       imgs[nimages].naxis1    = atoi(tval(ins));
@@ -469,22 +469,22 @@ int main(int argc, char **argv)
 
       if(nimages >= maximages)
       {
-	 maximages += MAXCNT;
+         maximages += MAXCNT;
 
-	 if(debug >= 2)
-	 {
-	    printf("Reallocating imgs to %d (size %lu) [14]\n", maximages, maximages * sizeof(struct ImgInfo));
-	    fflush(stdout);
-	 }
+         if(debug >= 2)
+         {
+            printf("Reallocating imgs to %d (size %lu) [14]\n", maximages, maximages * sizeof(struct ImgInfo));
+            fflush(stdout);
+         }
 
-	 imgs = (struct ImgInfo *)realloc(imgs, 
-				      maximages * sizeof(struct ImgInfo));
+         imgs = (struct ImgInfo *)realloc(imgs, 
+                                      maximages * sizeof(struct ImgInfo));
 
-	 if(imgs == (struct ImgInfo *)NULL)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (ImgInfo) [1]\"]\n");
-	    exit(1);
-	 }
+         if(imgs == (struct ImgInfo *)NULL)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (ImgInfo) [1]\"]\n");
+            exit(1);
+         }
       }
    }
 
@@ -501,7 +501,7 @@ int main(int argc, char **argv)
    if(ncols <= 0)
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid background fit parameters file: %s\"]\n",
-	 fitfile);
+         fitfile);
       exit(1);
    }
 
@@ -581,7 +581,7 @@ int main(int argc, char **argv)
       stat = tread();
 
       if(stat < 0)
-	 break;
+         break;
 
       fits[nfits].plus      = atoi(tval(iplus));
       fits[nfits].minus     = atoi(tval(iminus));
@@ -622,24 +622,24 @@ int main(int argc, char **argv)
 
       if(nfits >= maxfits-2)
       {
-	 maxfits += MAXCNT;
+         maxfits += MAXCNT;
 
-	 if(debug >= 2)
-	 {
-	    printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
-	    fflush(stdout);
-	 }
+         if(debug >= 2)
+         {
+            printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
+            fflush(stdout);
+         }
 
-	 fits = (struct FitInfo *)realloc(fits, 
-				     maxfits * sizeof(struct FitInfo));
+         fits = (struct FitInfo *)realloc(fits, 
+                                     maxfits * sizeof(struct FitInfo));
 
-	 if(fits == (struct FitInfo *)NULL)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%lu] [2]\"]\n", 
-	       maxfits * sizeof(struct FitInfo));
-	    exit(1);
+         if(fits == (struct FitInfo *)NULL)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%lu] [2]\"]\n", 
+               maxfits * sizeof(struct FitInfo));
+            exit(1);
 
-	 }
+         }
       }
 
 
@@ -670,23 +670,23 @@ int main(int argc, char **argv)
 
       if(nfits >= maxfits-2)
       {
-	 maxfits += MAXCNT;
+         maxfits += MAXCNT;
 
-	 if(debug >= 2)
-	 {
-	    printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
-	    fflush(stdout);
-	 }
+         if(debug >= 2)
+         {
+            printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
+            fflush(stdout);
+         }
 
-	 fits = (struct FitInfo *)realloc(fits, 
-				     maxfits * sizeof(struct FitInfo));
+         fits = (struct FitInfo *)realloc(fits, 
+                                     maxfits * sizeof(struct FitInfo));
 
-	 if(fits == (struct FitInfo *)NULL)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%lu] [3]\"]\n", 
-	       maxfits * sizeof(struct FitInfo));
-	    exit(1);
-	 }
+         if(fits == (struct FitInfo *)NULL)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo) [%lu] [3]\"]\n", 
+               maxfits * sizeof(struct FitInfo));
+            exit(1);
+         }
       }
    }
 
@@ -728,19 +728,19 @@ int main(int argc, char **argv)
 
       if(debug >= 2)
       {
-	 printf("Allocating corrs[%d].neighbors to %d (size %lu) [20]\n", i, corrs[i].maxneighbors, 
-	   corrs[i].maxneighbors * sizeof(struct FitInfo *));
-	 fflush(stdout);
+         printf("Allocating corrs[%d].neighbors to %d (size %lu) [20]\n", i, corrs[i].maxneighbors, 
+           corrs[i].maxneighbors * sizeof(struct FitInfo *));
+         fflush(stdout);
       }
 
       corrs[i].neighbors 
-	 = (struct FitInfo **)malloc(corrs[i].maxneighbors 
-				     * sizeof(struct FitInfo *));
+         = (struct FitInfo **)malloc(corrs[i].maxneighbors 
+                                     * sizeof(struct FitInfo *));
 
       if(corrs[i].neighbors == (struct FitInfo **)NULL)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"malloc() failed (FitInfo *)\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"malloc() failed (FitInfo *)\"]\n");
+         exit(1);
       }
    }
 
@@ -752,14 +752,14 @@ int main(int argc, char **argv)
 
       for(j=0; j<ncorrs; ++j)
       {
-	 if(corrs[j].id < 0)
-	    break;
-	 
-	 if(corrs[j].id == fits[k].plus)
-	 {
-	    index = j;
-	    break;
-	 }
+         if(corrs[j].id < 0)
+            break;
+         
+         if(corrs[j].id == fits[k].plus)
+         {
+            index = j;
+            break;
+         }
       }
 
 
@@ -767,65 +767,65 @@ int main(int argc, char **argv)
 
       if(index < 0)
       {
-	 if(ncorrs >= maxcorrs)
-	 {
-	    maxcorrs += MAXCNT;
+         if(ncorrs >= maxcorrs)
+         {
+            maxcorrs += MAXCNT;
 
-	    if(debug >= 2)
-	    {
-	       printf("Reallocating corrs to %d (size %lu) [17]\n", maxcorrs, maxcorrs * sizeof(struct CorrInfo));
-	       fflush(stdout);
-	    }
+            if(debug >= 2)
+            {
+               printf("Reallocating corrs to %d (size %lu) [17]\n", maxcorrs, maxcorrs * sizeof(struct CorrInfo));
+               fflush(stdout);
+            }
 
-	    corrs = (struct CorrInfo *)realloc(corrs, maxcorrs * sizeof(struct CorrInfo));
+            corrs = (struct CorrInfo *)realloc(corrs, maxcorrs * sizeof(struct CorrInfo));
 
-	    if(corrs == (struct CorrInfo *)NULL)
-	    {
-	       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (CorrInfo) [4]\"]\n");
-	       exit(1);
-	    }
+            if(corrs == (struct CorrInfo *)NULL)
+            {
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (CorrInfo) [4]\"]\n");
+               exit(1);
+            }
 
-	    for(i=maxcorrs-MAXCNT; i<maxcorrs; ++i)
-	    {
-	       corrs[i].id = -1;
+            for(i=maxcorrs-MAXCNT; i<maxcorrs; ++i)
+            {
+               corrs[i].id = -1;
 
-	       corrs[i].a = 0.;
-	       corrs[i].b = 0.;
-	       corrs[i].c = 0.;
+               corrs[i].a = 0.;
+               corrs[i].b = 0.;
+               corrs[i].c = 0.;
 
-	       corrs[i].nneighbors = 0;
-	       corrs[i].maxneighbors = MAXCNT;
+               corrs[i].nneighbors = 0;
+               corrs[i].maxneighbors = MAXCNT;
 
-	       if(debug >= 2)
-	       {
-		  printf("Allocating corrs[%d].maxneighbors to %d (size %lu) [18]\n", i, corrs[i].maxneighbors, 
-		     corrs[i].maxneighbors * sizeof(struct FitInfo *));
-		  fflush(stdout);
-	       }
+               if(debug >= 2)
+               {
+                  printf("Allocating corrs[%d].maxneighbors to %d (size %lu) [18]\n", i, corrs[i].maxneighbors, 
+                     corrs[i].maxneighbors * sizeof(struct FitInfo *));
+                  fflush(stdout);
+               }
 
-	       corrs[i].neighbors 
-		  = (struct FitInfo **)malloc(corrs[i].maxneighbors 
-					      * sizeof(struct FitInfo *));
+               corrs[i].neighbors 
+                  = (struct FitInfo **)malloc(corrs[i].maxneighbors 
+                                              * sizeof(struct FitInfo *));
 
-	       if(corrs[i].neighbors == (struct FitInfo **)NULL)
-	       {
-		  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"malloc() failed (FitInfo *)\"]\n");
-		  exit(1);
-	       }
-	    }
-	 }
+               if(corrs[i].neighbors == (struct FitInfo **)NULL)
+               {
+                  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"malloc() failed (FitInfo *)\"]\n");
+                  exit(1);
+               }
+            }
+         }
 
-	 index = ncorrs;
+         index = ncorrs;
 
-	 corrs[index].id = fits[k].plus;
+         corrs[index].id = fits[k].plus;
 
          if(debug >= 3)
          {
-	    fprintf(fstatus, "corrs[%d].id = %d\n", index, corrs[index].id);
-	    fflush(stdout);
-	 }
+            fprintf(fstatus, "corrs[%d].id = %d\n", index, corrs[index].id);
+            fflush(stdout);
+         }
 
-	 ++ncorrs;
+         ++ncorrs;
       }
 
 
@@ -841,31 +841,31 @@ int main(int argc, char **argv)
 
       if(corrs[index].nneighbors >= corrs[index].maxneighbors)
       {
-	 corrs[index].maxneighbors += MAXCNT;
+         corrs[index].maxneighbors += MAXCNT;
 
-	 if(debug >= 2)
-	 {
-	    printf("Reallocating corrs[%d].neighbors to %d (size %lu) [19]\n", index, corrs[index].maxneighbors, corrs[index].maxneighbors * sizeof(struct FitInfo *));
-	    fflush(stdout);
-	 }
+         if(debug >= 2)
+         {
+            printf("Reallocating corrs[%d].neighbors to %d (size %lu) [19]\n", index, corrs[index].maxneighbors, corrs[index].maxneighbors * sizeof(struct FitInfo *));
+            fflush(stdout);
+         }
 
-	 corrs[index].neighbors 
-	    = (struct FitInfo **)realloc(corrs[index].neighbors,
-				         corrs[index].maxneighbors 
-				         * sizeof(struct FitInfo *));
+         corrs[index].neighbors 
+            = (struct FitInfo **)realloc(corrs[index].neighbors,
+                                         corrs[index].maxneighbors 
+                                         * sizeof(struct FitInfo *));
 
-	 if(corrs[index].neighbors == (struct FitInfo **)NULL)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo *) [5]\"]\n");
-	    exit(1);
-	 }
+         if(corrs[index].neighbors == (struct FitInfo **)NULL)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"realloc() failed (FitInfo *) [5]\"]\n");
+            exit(1);
+         }
       }
    }
 
    if(refimage != 0 && (refimage < 0 || refimage >= ncorrs))
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Debug reference image out of range (0 - %d)\"]\n", 
-	 ncorrs-1);
+         ncorrs-1);
       exit(1);
    }
 
@@ -878,35 +878,35 @@ int main(int argc, char **argv)
    {
       for(i=0; i<ncorrs; ++i)
       {
-	 if(fits[j].plus == corrs[i].id)
-	 {
-	    fits[j].plusimg = &corrs[i];
-	    break;
-	 }
+         if(fits[j].plus == corrs[i].id)
+         {
+            fits[j].plusimg = &corrs[i];
+            break;
+         }
       }
       
       for(i=0; i<ncorrs; ++i)
       {
-	 if(fits[j].minus == corrs[i].id)
-	 {
-	    fits[j].minusimg = &corrs[i];
-	    break;
-	 }
+         if(fits[j].minus == corrs[i].id)
+         {
+            fits[j].minusimg = &corrs[i];
+            break;
+         }
       }
       
       if(debug >= 3)
       {
-	 if(j == 0)
+         if(j == 0)
             printf("\n");
 
          printf("fits[%3d]: (plusimg=%3d  minusimg=%3d) ", 
-	    j, fits[j].plusimg->id, fits[j].minusimg->id);
+            j, fits[j].plusimg->id, fits[j].minusimg->id);
 
          printf(" %12.5e ",  fits[j].a);
          printf(" %12.5e ",  fits[j].b);
          printf(" %12.5e\n", fits[j].c);
 
-	 fflush(stdout);
+         fflush(stdout);
       }
    }
 
@@ -928,37 +928,37 @@ int main(int argc, char **argv)
    {
       for(k=0; k<nfits; ++k)
       {
-	 if(fits[k].npix < areaLimit * avearea)
-	 {
-	    if(debug >= 2)
-	       printf("not using fit %d [%d|%d] (area to small: %d/%-g\n",
-		  k, fits[k].plus, fits[k].minus, fits[k].npix, avearea);
+         if(fits[k].npix < areaLimit * avearea)
+         {
+            if(debug >= 2)
+               printf("not using fit %d [%d|%d] (area to small: %d/%-g\n",
+                  k, fits[k].plus, fits[k].minus, fits[k].npix, avearea);
 
-	    fits[k].use = 0;
+            fits[k].use = 0;
 
-	    continue;
-	 }
+            continue;
+         }
 
-	 xfsize = fits[k].xmax - fits[k].xmin;
-	 yfsize = fits[k].ymax - fits[k].ymin;
+         xfsize = fits[k].xmax - fits[k].xmin;
+         yfsize = fits[k].ymax - fits[k].ymin;
 
-	 xisize1 = imgs[fits[k].plus].naxis1;
-	 yisize1 = imgs[fits[k].plus].naxis2;
+         xisize1 = imgs[fits[k].plus].naxis1;
+         yisize1 = imgs[fits[k].plus].naxis2;
 
-	 xisize2 = imgs[fits[k].minus].naxis1;
-	 yisize2 = imgs[fits[k].minus].naxis2;
+         xisize2 = imgs[fits[k].minus].naxis1;
+         yisize2 = imgs[fits[k].minus].naxis2;
 
-	 if(xfsize < xisize1 * linearLimit
-	 && yfsize < yisize1 * linearLimit
-	 && xfsize < xisize2 * linearLimit
-	 && yfsize < yisize2 * linearLimit)
-	 {
-	    if(debug >= 2)
-	       printf("not using fit %d [%d|%d] (linear size too small: %-g %-g %-g %-g)\n",
-		  k, fits[k].plus, fits[k].minus, xfsize/xisize1, yfsize/yisize1, xfsize/xisize2, yfsize/yisize2);
+         if(xfsize < xisize1 * linearLimit
+         && yfsize < yisize1 * linearLimit
+         && xfsize < xisize2 * linearLimit
+         && yfsize < yisize2 * linearLimit)
+         {
+            if(debug >= 2)
+               printf("not using fit %d [%d|%d] (linear size too small: %-g %-g %-g %-g)\n",
+                  k, fits[k].plus, fits[k].minus, xfsize/xisize1, yfsize/yisize1, xfsize/xisize2, yfsize/yisize2);
 
-	    fits[k].use = 0;
-	 }
+            fits[k].use = 0;
+         }
       }
    }
 
@@ -977,12 +977,12 @@ int main(int argc, char **argv)
 
       for(k=0; k<nfits; ++k)
       {
-	 if(fits[k].use)
-	 {
-	    sumn  += 1.;
-	    sumx  += fits[k].rms;
-	    sumxx += fits[k].rms * fits[k].rms;
-	 }
+         if(fits[k].use)
+         {
+            sumn  += 1.;
+            sumx  += fits[k].rms;
+            sumxx += fits[k].rms * fits[k].rms;
+         }
       }
 
       averms = sumx / sumn;
@@ -990,19 +990,19 @@ int main(int argc, char **argv)
 
       for(k=0; k<nfits; ++k)
       {
-	 if(fits[k].use)
-	 {
-	    if(fits[k].rms > averms + sigmaLimit * sigrms)
-	    {
-	       if(debug >= 2)
-		  printf("not using fit %d [%d|%d] rms too large: %-g/%-g+%-g)\n",
-		     k, fits[k].plus, fits[k].minus, fits[k].rms, averms, sigrms);
+         if(fits[k].use)
+         {
+            if(fits[k].rms > averms + sigmaLimit * sigrms)
+            {
+               if(debug >= 2)
+                  printf("not using fit %d [%d|%d] rms too large: %-g/%-g+%-g)\n",
+                     k, fits[k].plus, fits[k].minus, fits[k].rms, averms, sigrms);
 
-	       fits[k].use = 0;
+               fits[k].use = 0;
 
-	       continue;
-	    }
-	 }
+               continue;
+            }
+         }
       }
    }
 
@@ -1015,28 +1015,28 @@ int main(int argc, char **argv)
    {
       for(i=0; i<ncorrs; ++i)
       {
-	 printf("\n-----\n\nCorrection %d (Image %d)\n\n", i, corrs[i].id);
+         printf("\n-----\n\nCorrection %d (Image %d)\n\n", i, corrs[i].id);
 
-	 for(j=0; j<corrs[i].nneighbors; ++j)
-	 {
-	    printf("\n  neighbor %3d:\n", j+1);
+         for(j=0; j<corrs[i].nneighbors; ++j)
+         {
+            printf("\n  neighbor %3d:\n", j+1);
 
-	    printf("            id: %d\n", corrs[i].neighbors[j]->minus);
+            printf("            id: %d\n", corrs[i].neighbors[j]->minus);
 
-	    printf("       (A,B,C): (%-g,%-g,%-g)\n", 
-	       corrs[i].neighbors[j]->a, 
-	       corrs[i].neighbors[j]->b, 
-	       corrs[i].neighbors[j]->c);   
+            printf("       (A,B,C): (%-g,%-g,%-g)\n", 
+               corrs[i].neighbors[j]->a, 
+               corrs[i].neighbors[j]->b, 
+               corrs[i].neighbors[j]->c);   
 
-	    printf("             x: %5d to %5d\n", 
-	       corrs[i].neighbors[j]->xmin, corrs[i].neighbors[j]->xmax);
+            printf("             x: %5d to %5d\n", 
+               corrs[i].neighbors[j]->xmin, corrs[i].neighbors[j]->xmax);
 
-	    printf("             y: %5d to %5d\n",
-	       corrs[i].neighbors[j]->ymin, corrs[i].neighbors[j]->ymax);
+            printf("             y: %5d to %5d\n",
+               corrs[i].neighbors[j]->ymin, corrs[i].neighbors[j]->ymax);
 
-	    printf("        center: (%-g,%-g)\n", 
-	       corrs[i].neighbors[j]->xcenter, corrs[i].neighbors[j]->ycenter);
-	 }
+            printf("        center: (%-g,%-g)\n", 
+               corrs[i].neighbors[j]->xcenter, corrs[i].neighbors[j]->ycenter);
+         }
       }
    }
 
@@ -1050,19 +1050,19 @@ int main(int argc, char **argv)
       else
       {
          if(iteration < maxlevel)
-	    fittype = LEVEL;
+            fittype = LEVEL;
          else
-	    fittype = BOTH;
+            fittype = BOTH;
       }
 
       if(debug >= 2)
       {
-	 printf("Iteration %d", iteration+1);
-	      if(fittype == LEVEL) printf(" (LEVEL):\n");
-	 else if(fittype == SLOPE) printf(" (SLOPE):\n");
-	 else if(fittype == BOTH)  printf(" (BOTH ):\n");
-	 else                      printf(" (ERROR):\n");
-	 fflush(stdout);
+         printf("Iteration %d", iteration+1);
+              if(fittype == LEVEL) printf(" (LEVEL):\n");
+         else if(fittype == SLOPE) printf(" (SLOPE):\n");
+         else if(fittype == BOTH)  printf(" (BOTH ):\n");
+         else                      printf(" (ERROR):\n");
+         fflush(stdout);
       }
 
       /*********************************************/
@@ -1073,22 +1073,22 @@ int main(int argc, char **argv)
 
       for(i=0; i<ncorrs; ++i)
       {
-	 sumn  = 0.;
-	 sumx  = 0.;
-	 sumy  = 0.;
-	 sumxx = 0.;
-	 sumxy = 0.;
-	 sumyy = 0.;
-	 sumxz = 0.;
-	 sumyz = 0.;
-	 sumz  = 0.;
+         sumn  = 0.;
+         sumx  = 0.;
+         sumy  = 0.;
+         sumxx = 0.;
+         sumxy = 0.;
+         sumyy = 0.;
+         sumxz = 0.;
+         sumyz = 0.;
+         sumz  = 0.;
 
-	 corrs[i].acorrection = 0.;
-	 corrs[i].bcorrection = 0.;
-	 corrs[i].ccorrection = 0.;
+         corrs[i].acorrection = 0.;
+         corrs[i].bcorrection = 0.;
+         corrs[i].ccorrection = 0.;
 
-	 for(j=0; j<corrs[i].nneighbors; ++j)
-	 {
+         for(j=0; j<corrs[i].nneighbors; ++j)
+         {
             /* We have earlier "turned off" some of these because */
             /* the fit was bad (too few points or too noisy).     */
             /* If so, don't include them in the sums.             */
@@ -1097,113 +1097,113 @@ int main(int argc, char **argv)
                continue;
 
 
-	    /* What we do here is essentially a "least squares",   */
-	    /* though rather than go back to the difference files  */
-	    /* we instead use the parameterized value of the plane */
-	    /* fit to that data.                                   */
+            /* What we do here is essentially a "least squares",   */
+            /* though rather than go back to the difference files  */
+            /* we instead use the parameterized value of the plane */
+            /* fit to that data.                                   */
 
-	    imin = corrs[i].neighbors[j]->xmin;
-	    imax = corrs[i].neighbors[j]->xmax;
-	    jmin = corrs[i].neighbors[j]->ymin;
-	    jmax = corrs[i].neighbors[j]->ymax;
+            imin = corrs[i].neighbors[j]->xmin;
+            imax = corrs[i].neighbors[j]->xmax;
+            jmin = corrs[i].neighbors[j]->ymin;
+            jmax = corrs[i].neighbors[j]->ymax;
 
-	    theta = corrs[i].neighbors[j]->boxangle;
+            theta = corrs[i].neighbors[j]->boxangle;
 
-	    Xmin = corrs[i].neighbors[j]->Xmin;
-	    Xmax = corrs[i].neighbors[j]->Xmax;
-	    Ymin = corrs[i].neighbors[j]->Ymin;
-	    Ymax = corrs[i].neighbors[j]->Ymax;
+            Xmin = corrs[i].neighbors[j]->Xmin;
+            Xmax = corrs[i].neighbors[j]->Xmax;
+            Ymin = corrs[i].neighbors[j]->Ymin;
+            Ymax = corrs[i].neighbors[j]->Ymax;
 
-	    if(debug >= 3)
-	    {
-	       printf("\n--------------------------------------------------\n");
-	       printf("\nCorrection %d (%d) / Neighbor %d (%d)\n\nPixel Range:\n",
+            if(debug >= 3)
+            {
+               printf("\n--------------------------------------------------\n");
+               printf("\nCorrection %d (%d) / Neighbor %d (%d)\n\nPixel Range:\n",
                   i, corrs[i].id, j, corrs[i].neighbors[j]->minus);
-	       printf("i:     %12.5e->%12.5e (%12.5e)\n", imin, imax, imax-imin+1);
-	       printf("j:     %12.5e->%12.5e (%12.5e)\n", jmin, jmax, jmax-jmin+1);
-	       printf("X:     %12.5e->%12.5e (%12.5e)\n", Xmin, Xmax, Xmax-Xmin+1);
-	       printf("Y:     %12.5e->%12.5e (%12.5e)\n", Ymin, Ymax, Ymax-Ymin+1);
-	       printf("angle: %-g\n", theta);
-	       printf("\n");
+               printf("i:     %12.5e->%12.5e (%12.5e)\n", imin, imax, imax-imin+1);
+               printf("j:     %12.5e->%12.5e (%12.5e)\n", jmin, jmax, jmax-jmin+1);
+               printf("X:     %12.5e->%12.5e (%12.5e)\n", Xmin, Xmax, Xmax-Xmin+1);
+               printf("Y:     %12.5e->%12.5e (%12.5e)\n", Ymin, Ymax, Ymax-Ymin+1);
+               printf("angle: %-g\n", theta);
+               printf("\n");
 
-	       fflush(stdout);
-	    }
+               fflush(stdout);
+            }
 
-	    sinTheta = sin(theta*dtr);
-	    cosTheta = cos(theta*dtr);
+            sinTheta = sin(theta*dtr);
+            cosTheta = cos(theta*dtr);
 
-	    dsumn = (Xmax - Xmin) * (Ymax - Ymin);
+            dsumn = (Xmax - Xmin) * (Ymax - Ymin);
 
-	    dsumx  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * cosTheta 
-	           - (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta;
+            dsumx  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * cosTheta 
+                   - (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta;
 
-	    dsumy  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * sinTheta 
-	           + (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta;
-	    
-	    dsumxx = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*cosTheta
-		   - 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta*sinTheta
-	           + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*sinTheta;
+            dsumy  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * sinTheta 
+                   + (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta;
+            
+            dsumxx = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*cosTheta
+                   - 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta*sinTheta
+                   + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*sinTheta;
 
-	    dsumyy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * sinTheta*sinTheta
-		   + 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta*cosTheta
-	           + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * cosTheta*cosTheta;
+            dsumyy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * sinTheta*sinTheta
+                   + 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta*cosTheta
+                   + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * cosTheta*cosTheta;
 
-	    dsumxy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*sinTheta
-		   + (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * (cosTheta*cosTheta - sinTheta*sinTheta)
-	           - (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*cosTheta;
+            dsumxy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*sinTheta
+                   + (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * (cosTheta*cosTheta - sinTheta*sinTheta)
+                   - (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*cosTheta;
 
 
-	    if(debug >= 3)
-	    {
-	       printf("\nSums:\n");
-	       printf("dsumn   = %12.5e\n", dsumn);
-	       printf("dsumx   = %12.5e\n", dsumx);
-	       printf("dsumy   = %12.5e\n", dsumy);
-	       printf("dsumxx  = %12.5e\n", dsumxx);
-	       printf("dsumxy  = %12.5e\n", dsumxy);
-	       printf("dsumyy  = %12.5e\n", dsumyy);
-	       printf("\n");
+            if(debug >= 3)
+            {
+               printf("\nSums:\n");
+               printf("dsumn   = %12.5e\n", dsumn);
+               printf("dsumx   = %12.5e\n", dsumx);
+               printf("dsumy   = %12.5e\n", dsumy);
+               printf("dsumxx  = %12.5e\n", dsumxx);
+               printf("dsumxy  = %12.5e\n", dsumxy);
+               printf("dsumyy  = %12.5e\n", dsumyy);
+               printf("\n");
 
-	       fflush(stdout);
-	    }
+               fflush(stdout);
+            }
 
-	    sumn  += dsumn;
-	    sumx  += dsumx;
-	    sumy  += dsumy;
-	    sumxx += dsumxx;
-	    sumxy += dsumxy;
-	    sumyy += dsumyy;
+            sumn  += dsumn;
+            sumx  += dsumx;
+            sumy  += dsumy;
+            sumxx += dsumxx;
+            sumxy += dsumxy;
+            sumyy += dsumyy;
 
-	    index = corrs[i].neighbors[j]->plusimg->id;
+            index = corrs[i].neighbors[j]->plusimg->id;
 
-	    A = corrs[i].neighbors[j]->a;
-	    B = corrs[i].neighbors[j]->b;
-	    C = corrs[i].neighbors[j]->c;
+            A = corrs[i].neighbors[j]->a;
+            B = corrs[i].neighbors[j]->b;
+            C = corrs[i].neighbors[j]->c;
 
-	    sumz  += A * dsumx  + B * dsumy  + C * dsumn;
-	    sumxz += A * dsumxx + B * dsumxy + C * dsumx;
+            sumz  += A * dsumx  + B * dsumy  + C * dsumn;
+            sumxz += A * dsumxx + B * dsumxy + C * dsumx;
             sumyz += A * dsumxy + B * dsumyy + C * dsumy;
-	    
-	    if(debug >= 3)
-	    {
-	       printf("\n");
-	       printf("sumn    = %12.5e\n", sumn);
-	       printf("sumx    = %12.5e\n", sumx);
-	       printf("sumy    = %12.5e\n", sumy);
-	       printf("sumxx   = %12.5e\n", sumxx);
-	       printf("sumxy   = %12.5e\n", sumxy);
-	       printf("sumyy   = %12.5e\n", sumyy);
-	       printf("A       = %12.5e\n", A);
-	       printf("B       = %12.5e\n", B);
-	       printf("C       = %12.5e\n", C);
-	       printf("sumz    = %12.5e\n", sumz);
-	       printf("sumxz   = %12.5e\n", sumxz);
-	       printf("sumyz   = %12.5e\n", sumyz);
-	       printf("\n");
+            
+            if(debug >= 3)
+            {
+               printf("\n");
+               printf("sumn    = %12.5e\n", sumn);
+               printf("sumx    = %12.5e\n", sumx);
+               printf("sumy    = %12.5e\n", sumy);
+               printf("sumxx   = %12.5e\n", sumxx);
+               printf("sumxy   = %12.5e\n", sumxy);
+               printf("sumyy   = %12.5e\n", sumyy);
+               printf("A       = %12.5e\n", A);
+               printf("B       = %12.5e\n", B);
+               printf("C       = %12.5e\n", C);
+               printf("sumz    = %12.5e\n", sumz);
+               printf("sumxz   = %12.5e\n", sumxz);
+               printf("sumyz   = %12.5e\n", sumyz);
+               printf("\n");
 
-	       fflush(stdout);
-	    }
-	 }
+               fflush(stdout);
+            }
+         }
 
 
          /* If we found no overlaps, don't */
@@ -1214,120 +1214,120 @@ int main(int argc, char **argv)
 
 
 
-	 /***********************************/
-	 /* Least-squares plane calculation */
+         /***********************************/
+         /* Least-squares plane calculation */
 
-	 /*** Fill the matrix and vector  ****
+         /*** Fill the matrix and vector  ****
 
-	      |a00  a01 a02| |A|   |b00|
-	      |a10  a11 a12|x|B| = |b01|
-	      |a20  a21 a22| |C|   |b02|
+              |a00  a01 a02| |A|   |b00|
+              |a10  a11 a12|x|B| = |b01|
+              |a20  a21 a22| |C|   |b02|
 
-	 *************************************/
+         *************************************/
 
-	 a[0][0] = sumxx;
-	 a[1][0] = sumxy;
-	 a[2][0] = sumx;
+         a[0][0] = sumxx;
+         a[1][0] = sumxy;
+         a[2][0] = sumx;
 
-	 a[0][1] = sumxy;
-	 a[1][1] = sumyy;
-	 a[2][1] = sumy;
+         a[0][1] = sumxy;
+         a[1][1] = sumyy;
+         a[2][1] = sumy;
 
-	 a[0][2] = sumx;
-	 a[1][2] = sumy;
-	 a[2][2] = sumn;
+         a[0][2] = sumx;
+         a[1][2] = sumy;
+         a[2][2] = sumn;
 
-	 b[0][0] = sumxz;
-	 b[1][0] = sumyz;
-	 b[2][0] = sumz;
+         b[0][0] = sumxz;
+         b[1][0] = sumyz;
+         b[2][0] = sumz;
 
-	 if(debug >= 3)
-	 {
-	    printf("\nMatrix:\n");
-	    printf("| %12.5e %12.5e %12.5e | |A|   |%12.5e|\n", a[0][0], a[0][1], a[0][2], b[0][0]);
-	    printf("| %12.5e %12.5e %12.5e |x|B| = |%12.5e|\n", a[1][0], a[1][1], a[1][2], b[1][0]);
-	    printf("| %12.5e %12.5e %12.5e | |C|   |%12.5e|\n", a[2][0], a[2][1], a[2][2], b[2][0]);
-	    printf("\n");
+         if(debug >= 3)
+         {
+            printf("\nMatrix:\n");
+            printf("| %12.5e %12.5e %12.5e | |A|   |%12.5e|\n", a[0][0], a[0][1], a[0][2], b[0][0]);
+            printf("| %12.5e %12.5e %12.5e |x|B| = |%12.5e|\n", a[1][0], a[1][1], a[1][2], b[1][0]);
+            printf("| %12.5e %12.5e %12.5e | |C|   |%12.5e|\n", a[2][0], a[2][1], a[2][2], b[2][0]);
+            printf("\n");
 
-	    fflush(stdout);
-	 }
-
-
-	 /* Solve */
-
-	 if(fittype == LEVEL)
-	 {
-	    b[0][0] = 0.;
-	    b[1][0] = 0.;
-	    b[2][0] = sumz/sumn;
-
-	    istatus = 0;
-	 }
-	 else if(fittype == SLOPE)
-	 {
-	    n = 2;
-	    istatus = gaussj(a, n, b, m);
-
-	    b[2][0] = 0.;
-	 }
-	 else if(fittype == BOTH)
-	 {
-	    n = 3;
-	    istatus = gaussj(a, n, b, m);
-	 }
-	 else
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid fit type\"]\n");
-	    exit(1);
-	 }
+            fflush(stdout);
+         }
 
 
-	 /* Singular matrix, don't use corrections */
+         /* Solve */
 
-	 if(istatus)
-	 {
-	    b[0][0] = 0.;
-	    b[1][0] = 0.;
-	    b[2][0] = 0.;
-	 }
+         if(fittype == LEVEL)
+         {
+            b[0][0] = 0.;
+            b[1][0] = 0.;
+            b[2][0] = sumz/sumn;
 
-	 /* Apply the corrections */
+            istatus = 0;
+         }
+         else if(fittype == SLOPE)
+         {
+            n = 2;
+            istatus = gaussj(a, n, b, m);
 
-	 if(debug >= 3)
-	 {
-	    printf("\nMatrix Solution:\n");
+            b[2][0] = 0.;
+         }
+         else if(fittype == BOTH)
+         {
+            n = 3;
+            istatus = gaussj(a, n, b, m);
+         }
+         else
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid fit type\"]\n");
+            exit(1);
+         }
 
-	    printf(" |%12.5e|\n", b[0][0]);
-	    printf(" |%12.5e|\n", b[1][0]);
-	    printf(" |%12.5e|\n", b[2][0]);
-	    printf("\n");
 
-	    fflush(stdout);
-	 }
+         /* Singular matrix, don't use corrections */
 
-	 corrs[i].acorrection = b[0][0] / 2.;
-	 corrs[i].bcorrection = b[1][0] / 2.;
-	 corrs[i].ccorrection = b[2][0] / 2.;
+         if(istatus)
+         {
+            b[0][0] = 0.;
+            b[1][0] = 0.;
+            b[2][0] = 0.;
+         }
 
-	 if(debug >= 2)
-	 {
-	    printf("Background corrections (Correction %d (%4d) / Iteration %d) ", 
-	       i, corrs[i].id, iteration+1);
+         /* Apply the corrections */
 
-		 if(fittype == LEVEL) printf(" (LEVEL):\n");
-	    else if(fittype == SLOPE) printf(" (SLOPE):\n");
-	    else if(fittype == BOTH)  printf(" (BOTH ):\n");
-	    else                      printf(" (ERROR):\n");
+         if(debug >= 3)
+         {
+            printf("\nMatrix Solution:\n");
 
-	    if(istatus)
-	       printf("\n***** Singular Matrix ***** \n\n");
+            printf(" |%12.5e|\n", b[0][0]);
+            printf(" |%12.5e|\n", b[1][0]);
+            printf(" |%12.5e|\n", b[2][0]);
+            printf("\n");
 
-	    printf("  A = %12.5e\n",   corrs[i].acorrection);
-	    printf("  B = %12.5e\n",   corrs[i].bcorrection);
-	    printf("  C = %12.5e\n\n", corrs[i].ccorrection);
+            fflush(stdout);
+         }
 
-	    fflush(stdout);
-	 }
+         corrs[i].acorrection = b[0][0] / 2.;
+         corrs[i].bcorrection = b[1][0] / 2.;
+         corrs[i].ccorrection = b[2][0] / 2.;
+
+         if(debug >= 2)
+         {
+            printf("Background corrections (Correction %d (%4d) / Iteration %d) ", 
+               i, corrs[i].id, iteration+1);
+
+                 if(fittype == LEVEL) printf(" (LEVEL):\n");
+            else if(fittype == SLOPE) printf(" (SLOPE):\n");
+            else if(fittype == BOTH)  printf(" (BOTH ):\n");
+            else                      printf(" (ERROR):\n");
+
+            if(istatus)
+               printf("\n***** Singular Matrix ***** \n\n");
+
+            printf("  A = %12.5e\n",   corrs[i].acorrection);
+            printf("  B = %12.5e\n",   corrs[i].bcorrection);
+            printf("  C = %12.5e\n\n", corrs[i].ccorrection);
+
+            fflush(stdout);
+         }
       }
 
 
@@ -1337,32 +1337,32 @@ int main(int argc, char **argv)
 
       for(i=0; i<ncorrs; ++i)
       {
-	 corrs[i].a += corrs[i].acorrection;
-	 corrs[i].b += corrs[i].bcorrection;
-	 corrs[i].c += corrs[i].ccorrection;
+         corrs[i].a += corrs[i].acorrection;
+         corrs[i].b += corrs[i].bcorrection;
+         corrs[i].c += corrs[i].ccorrection;
 
-	 if(debug >= 1)
-	 {
+         if(debug >= 1)
+         {
             if(i == 0)
                printf("\n");
 
             if(refimage == 0 || i == refimage)
             {
-	       printf("Corrected backgrounds (Correction %4d (%4d) / Iteration %4d) ", 
-		  i, corrs[i].id, iteration+1);
+               printf("Corrected backgrounds (Correction %4d (%4d) / Iteration %4d) ", 
+                  i, corrs[i].id, iteration+1);
 
-		    if(fittype == LEVEL) printf(" (LEVEL): ");
-	       else if(fittype == SLOPE) printf(" (SLOPE): ");
-	       else if(fittype == BOTH)  printf(" (BOTH ): ");
-	       else                      printf(" (ERROR): ");
+                    if(fittype == LEVEL) printf(" (LEVEL): ");
+               else if(fittype == SLOPE) printf(" (SLOPE): ");
+               else if(fittype == BOTH)  printf(" (BOTH ): ");
+               else                      printf(" (ERROR): ");
 
-	       printf(" %12.5e ",  corrs[i].a);
-	       printf(" %12.5e ",  corrs[i].b);
-	       printf(" %12.5e\n", corrs[i].c);
+               printf(" %12.5e ",  corrs[i].a);
+               printf(" %12.5e ",  corrs[i].b);
+               printf(" %12.5e\n", corrs[i].c);
 
-	       fflush(stdout);
+               fflush(stdout);
             }
-	 }
+         }
       }
 
 
@@ -1372,40 +1372,40 @@ int main(int argc, char **argv)
 
       for(i=0; i<nfits; ++i)
       {
-	 fits[i].a -= fits[i].plusimg->acorrection;
-	 fits[i].b -= fits[i].plusimg->bcorrection;
-	 fits[i].c -= fits[i].plusimg->ccorrection;
+         fits[i].a -= fits[i].plusimg->acorrection;
+         fits[i].b -= fits[i].plusimg->bcorrection;
+         fits[i].c -= fits[i].plusimg->ccorrection;
 
-	 fits[i].a += fits[i].minusimg->acorrection;
-	 fits[i].b += fits[i].minusimg->bcorrection;
-	 fits[i].c += fits[i].minusimg->ccorrection;
+         fits[i].a += fits[i].minusimg->acorrection;
+         fits[i].b += fits[i].minusimg->bcorrection;
+         fits[i].c += fits[i].minusimg->ccorrection;
 
-	 if(debug >= 2)
-	 {
+         if(debug >= 2)
+         {
             if(i == 0)
                printf("\n");
 
-	    printf("Corrected fit (fit %4d / Iteration %5d) ", 
-	       i, iteration+1);
+            printf("Corrected fit (fit %4d / Iteration %5d) ", 
+               i, iteration+1);
 
-		 if(fittype == LEVEL) printf(" (LEVEL): ");
-	    else if(fittype == SLOPE) printf(" (SLOPE): ");
-	    else if(fittype == BOTH)  printf(" (BOTH ): ");
-	    else                      printf(" (ERROR): ");
+                 if(fittype == LEVEL) printf(" (LEVEL): ");
+            else if(fittype == SLOPE) printf(" (SLOPE): ");
+            else if(fittype == BOTH)  printf(" (BOTH ): ");
+            else                      printf(" (ERROR): ");
 
-	    printf(" %12.5e ",  fits[i].a);
-	    printf(" %12.5e ",  fits[i].b);
-	    printf(" %12.5e\n", fits[i].c);
+            printf(" %12.5e ",  fits[i].a);
+            printf(" %12.5e ",  fits[i].b);
+            printf(" %12.5e\n", fits[i].c);
 
-	    fflush(stdout);
-	 }
+            fflush(stdout);
+         }
       }
 
 
       ++iteration;
 
       if(iteration >= niteration)
-	 break;
+         break;
    }
 
 
@@ -1417,7 +1417,7 @@ int main(int argc, char **argv)
 
    for(i=0; i<ncorrs; ++i)
       fprintf(fout, " %5d  %13.5e  %13.5e  %13.5e\n", 
-	 corrs[i].id, corrs[i].a, corrs[i].b, corrs[i].c);
+         corrs[i].id, corrs[i].a, corrs[i].b, corrs[i].c);
    
    fflush(fout);
    fclose(fout);
@@ -1459,13 +1459,13 @@ int gaussj(float **a, int n, float **b, int m)
       for (j=0; j<n; j++)
       {
          if (ipiv[j] != 1)
-	 {
+         {
             for (k=0; k<n; k++) 
-	    {
+            {
                if (ipiv[k] == 0) 
-	       {
+               {
                   if (fabs(a[j][k]) >= big) 
-		  {
+                  {
                      big = fabs(a[j][k]);
 
                      irow = j;
@@ -1473,16 +1473,16 @@ int gaussj(float **a, int n, float **b, int m)
                   }
                }
 
-	       else if (ipiv[k] > 1) 
-	       {
-		  free_ivector(ipiv);
-		  free_ivector(indxr);
-		  free_ivector(indxc);
+               else if (ipiv[k] > 1) 
+               {
+                  free_ivector(ipiv);
+                  free_ivector(indxr);
+                  free_ivector(indxc);
 
-		  return 1;
-	       }
+                  return 1;
+               }
             }
-	 }
+         }
       }
 
       ++(ipiv[icol]);
@@ -1498,11 +1498,11 @@ int gaussj(float **a, int n, float **b, int m)
 
       if (a[icol][icol] == 0.0)
       {
-	 free_ivector(ipiv);
-	 free_ivector(indxr);
-	 free_ivector(indxc);
+         free_ivector(ipiv);
+         free_ivector(indxr);
+         free_ivector(indxc);
 
-	 return 1;
+         return 1;
       }
 
       pivinv=1.0/a[icol][icol];
@@ -1515,7 +1515,7 @@ int gaussj(float **a, int n, float **b, int m)
       for (ll=0; ll<n; ll++)
       {
          if (ll != icol) 
-	 {
+         {
             dum=a[ll][icol];
 
             a[ll][icol]=0.0;
