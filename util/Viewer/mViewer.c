@@ -900,74 +900,86 @@ int main(int argc, char **argv)
 
          symSize = strtod(argv[i+1], &end);
 
-
          ++i;
 
          if(i+1 < argc && argv[i+1][0] != '-')
          {
             if(strncasecmp(argv[i+1], "triangle", 3) == 0)
             {
-               symNPnt = 3;
+               symNPnt     = 3;
                symRotAngle = 120.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "box", 3) == 0)
             {
-               symNPnt = 4;
+               symNPnt     = 4;
                symRotAngle = 45.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "square", 3) == 0)
             {
-               symNPnt = 4;
+               symNPnt     = 4;
                symRotAngle = 45.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "diamond", 3) == 0)
-               symNPnt = 4;
+            {
+               symNPnt     = 4;
+               ++i;
+            }
 
             else if(strncasecmp(argv[i+1], "pentagon", 3) == 0)
             {
-               symNPnt = 5;
+               symNPnt     = 5;
                symRotAngle = 72.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "hexagon", 3) == 0)
             {
-               symNPnt = 6;
+               symNPnt     = 6;
                symRotAngle = 60.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "septagon", 3) == 0)
             {
-               symNPnt = 7;
+               symNPnt     = 7;
                symRotAngle = 360./7.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "octagon", 3) == 0)
             {
-               symNPnt = 8;
+               symNPnt     = 8;
                symRotAngle = 45.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "el", 2) == 0)
             {
-               symNPnt = 4;
+               symNPnt     = 4;
                symRotAngle = 135.;
                symNMax = 2;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "circle", 3) == 0)
             {
-               symNPnt = 128;
+               symNPnt     = 128;
                symRotAngle = 0.;
+               ++i;
             }
 
             else if(strncasecmp(argv[i+1], "compass", 3) == 0)
             {
-               symType = 3;
-               symNPnt  = 4;
+               symType      = 3;
+               symNPnt      = 4;
                symRotAngle  = 0.;
+               ++i;
             }
 
             else
@@ -1388,7 +1400,7 @@ int main(int argc, char **argv)
                       || argv[i+4][strlen(argv[i+4])-1] == 'l'))
                      grayType = GAUSSIANLOG;
 
-                  i+=1;
+                  i += 1;
                }
                
                else if(argv[i+4][0] == 'a')
@@ -1675,6 +1687,8 @@ int main(int argc, char **argv)
                && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
                    || argv[i+4][strlen(argv[i+4])-1] == 'l'))
                   blueType = GAUSSIANLOG;
+
+               i += 1;
             }
 
             else if(argv[i+4][0] == 'a')
