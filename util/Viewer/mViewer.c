@@ -1415,14 +1415,23 @@ int main(int argc, char **argv)
                   i += 2;
                }
                
-               else if(strcmp(argv[i+4], "lin") == 0)
+               else if(strncmp(argv[i+4], "lin", 3) == 0)
+               {
                   graylogpower = 0;
+                  ++i;
+               }
                
                else if(strcmp(argv[i+4], "log") == 0)
+               {
                   graylogpower = 1;
+                  ++i;
+               }
 
                else if(strcmp(argv[i+4], "loglog") == 0)
+               {
                   graylogpower = 2;
+                  ++i;
+               }
 
                else
                {
@@ -1510,14 +1519,23 @@ int main(int argc, char **argv)
                i += 2;
             }
 
-            else if(strcmp(argv[i+4], "lin") == 0)
+            else if(strncmp(argv[i+4], "lin", 3) == 0)
+            {
                redlogpower = 0;
+               ++i;
+            }
             
             else if(strcmp(argv[i+4], "log") == 0)
+            {
                redlogpower = 1;
+               ++i;
+            }
 
             else if(strcmp(argv[i+4], "loglog") == 0)
+            {
                redlogpower = 2;
+               ++i;
+            }
 
             else
             {
@@ -1607,14 +1625,23 @@ int main(int argc, char **argv)
                i += 2;
             }
 
-            else if(strcmp(argv[i+4], "lin") == 0)
+            else if(strncmp(argv[i+4], "lin", 3) == 0)
+            {
                greenlogpower = 0;
+               ++i;
+            }
             
             else if(strcmp(argv[i+4], "log") == 0)
+            {
                greenlogpower = 1;
+               ++i;
+            }
 
             else if(strcmp(argv[i+4], "loglog") == 0)
+            {
                greenlogpower = 2;
+               ++i;
+            }
 
             else
             {
@@ -1703,14 +1730,23 @@ int main(int argc, char **argv)
                i += 2;
             }
             
-            else if(strcmp(argv[i+4], "lin") == 0)
+            else if(strncmp(argv[i+4], "lin", 3) == 0)
+            {
                bluelogpower = 0;
+               ++i;
+            }
             
             else if(strcmp(argv[i+4], "log") == 0)
+            {
                bluelogpower = 1;
+               ++i;
+            }
 
             else if(strcmp(argv[i+4], "loglog") == 0)
+            {
                bluelogpower = 2;
+               ++i;
+            }
 
             else
             {
