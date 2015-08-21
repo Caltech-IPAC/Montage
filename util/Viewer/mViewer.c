@@ -875,7 +875,8 @@ int main(int argc, char **argv)
          }
 
          symRotAngle  = 0.;
-         symType = 0;
+         symType      = 0;
+         symNMax      = 0;
 
 
          ptr = argv[i+1] + strlen(argv[i+1]) - 1;
@@ -963,7 +964,7 @@ int main(int argc, char **argv)
             {
                symNPnt     = 4;
                symRotAngle = 135.;
-               symNMax = 2;
+               symNMax     = 2;
                ++i;
             }
 
@@ -4407,6 +4408,7 @@ int parseSymbol(char *symbolstr, int *symNPnt, int *symNMax, int *symType, doubl
 
    *symRotAngle = 0.;
    *symType     = 0;
+   *symNMax     = 0;
 
    if(strncasecmp(cmdv[i], "triangle", 3) == 0)
    {
