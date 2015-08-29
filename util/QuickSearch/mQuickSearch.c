@@ -501,9 +501,19 @@ int main(int argc, char **argv)
    ira   = tcol( "ra");
    idec  = tcol( "dec");
 
-   if((iname < 0 || ifile < 0) && (ira < 0 || idec < 0))
+   ira1  = tcol( "ra1");
+   idec1 = tcol( "dec1");
+   ira2  = tcol( "ra2");
+   idec2 = tcol( "dec2");
+   ira3  = tcol( "ra3");
+   idec3 = tcol( "dec3");
+   ira4  = tcol( "ra4");
+   idec4 = tcol( "dec4");
+
+   if((iname < 0 || ifile < 0) && (ira < 0 || idec < 0) 
+   && (ira1 < 0 || idec1 < 0 || ira2 < 0 || idec2 < 0 || ira3 < 0 || idec3 < 0 || ira4 < 0 || idec4 < 0))
    {
-      printf("[struct stat=\"ERROR\", msg=\"Need columns 'identifier' and 'file' for a catalog set list or 'ra' and 'dec' for a catalog (%s)\"]\n", infile);
+      printf("[struct stat=\"ERROR\", msg=\"Need columns 'identifier' and 'file' for a catalog set list or 'ra' and 'dec' or four corners for a catalog (%s)\"]\n", infile);
       fflush(stdout);
       exit(0);
    }

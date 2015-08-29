@@ -229,7 +229,6 @@ int constructRetjson (struct Mviewer *param)
     sprintf (retstr, "{\n");
   
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-
 	fprintf (fp_debug, "imageFile= [%s]\n", param->imageFile);
 	fprintf (fp_debug, "imageType= [%s]\n", param->imageType);
 	fprintf (fp_debug, "nowcs= [%d]\n", param->nowcs);

@@ -132,174 +132,178 @@ function colorLookup (hexcolor)
     inputs:  mViewer handle,
              divID of the text area to write the pick result.
 */
+function erasePickResult (viewer, textareaID)
+{
+    if (viewer.debug) {
+        console.log ("From erasePickResult: cmd= " + viewer.cmd);
+    }
+
+    var datastr ="";
+    
+    if ((viewer.cmd == "zoombox") || 
+        (viewer.cmd == "zoomin") || 
+        (viewer.cmd == "zoomout") || 
+        (viewer.cmd == "zoomreset") || 
+	(viewer.cmd == "replaceimplane") || 
+        (viewer.cmd == "resizeimage") || 
+	((viewer.cmd == "waveplot") && 
+	    (viewer.imgData.imcubeFile.waveplotType == "ave"))) {
+	    
+        var textarea = document.getElementById (textareaID);
+       
+        if (viewer.debug) {
+	    console.log ("textarea= " + textarea);
+        }
+
+        if ((textarea == undefined) ||
+	    (textarea == null)) {
+        
+	    if (viewer.zoomwinHandle != null) {
+
+	        var doc = me.zoomwinHandle.document;
+	        textarea = doc.getElementById("imcoord");
+        	
+	        if (viewer.debug) {
+	            console.log ("(zoomwinHandle) textarea= " + textarea);
+                }
+            }
+        }
+
+        if (textarea != null) {
+
+	    textarea.innerHTML = datastr;
+
+	    if (viewer.debug == 1) {
+	        console.log ("textarea value set to empty string");
+            }
+	}
+    }
+}
+
+
 function processPickResult (viewer, textareaID)
 {
     if (viewer.debug) {
         console.log ("From processPickResult: cmd= " + viewer.cmd);
-        console.log ("textareaID= " + textareaID);
     }
 
     var data = viewer.imgData;
    
     if (data == null)
         return;
+   
+    var waveplottype = "";
+    var cubedata = data.imcubeFile;
 
-    var waveplottype;
-
-    if (viewer.cmd == "waveplot") {
-        
-        var cubedata = imObjHandle.imgData.imcubeFile;
-        if (cubedata == null)
-            return;
-    
+    if (cubedata != null) {
         waveplottype = cubedata.waveplotType;
     }
 
-    if (viewer.debug) {
-	console.log ("waveplottype= " + waveplottype);
+    if ((viewer.cmd == "waveplot") && (waveplottype == "ave")) {
+        return;
     }
 
+    var xs = data.xs;
+    var xe = data.xe;
+    var ys = data.ys;
+    var ye = data.ye;
 
-    var datastr ="";
-    
-    if ((viewer.cmd == "impick") || 
-        ((viewer.cmd == "waveplot") && (waveplottype == "pix"))) 
-    { 
-        var xs = data.xs;
-        var xe = data.xe;
-        var ys = data.ys;
-        var ye = data.ye;
-
-        var pickval = data.pickValue;
+    var pickval = data.pickValue;
         
-        var xpick = data.xPick; 
-        var ypick = data.yPick; 
-        var rapick = data.raPick; 
-        var decpick = data.decPick; 
-        var sexrapick = data.sexraPick; 
-        var sexdecpick = data.sexdecPick; 
+    var xpick = data.xPick; 
+    var ypick = data.yPick; 
+    var rapick = data.raPick; 
+    var decpick = data.decPick; 
+    var sexrapick = data.sexraPick; 
+    var sexdecpick = data.sexdecPick; 
 
-        if (viewer.debug) {
-            console.log (" pickval= " + pickval); 
-            console.log (" xpick= " + xpick + " ypick= " + ypick);
-            console.log (" rapick= " + rapick + " decpick= " + decpick);
-            console.log (" sexrapick= " + sexrapick 
-                + " sexdecpick= " + sexdecpick);
-            console.log (" pickcsys= " + data.pickcsys);
-            console.log ("nowcs= " + viewer.imgData.nowcs);
-        }
+    if (viewer.debug) {
+        console.log (" pickval= " + pickval); 
+        console.log (" xpick= " + xpick + " ypick= " + ypick);
+        console.log (" rapick= " + rapick + " decpick= " + decpick);
+        console.log (" sexrapick= " + sexrapick 
+            + " sexdecpick= " + sexdecpick);
+        console.log (" pickcsys= " + data.pickcsys);
+        console.log ("nowcs= " + viewer.imgData.nowcs);
+    }
 
 /*
     Mark picked value and write x and y axis values in the text area
 */
-        if (viewer.imgData.nowcs == "0") { 
-           
-            var pickcsys;
-            if (data.pickCsys != undefined)
-                pickcsys = data.pickCsys; 
-            else if (data.imCsys != undefined)
-                pickcsys = data.imCsys; 
+    var datastr ="";
         
-	    if ((pickcsys == undefined) || (pickcsys.length == 0)) {
-	        pickcsys = "EQ J2000.";
-            }
+    if (viewer.imgData.nowcs == "0") { 
+           
+        var pickcsys;
+        if (data.pickCsys != undefined)
+            pickcsys = data.pickCsys; 
+        else if (data.imCsys != undefined)
+            pickcsys = data.imCsys; 
+        
+	if ((pickcsys == undefined) || (pickcsys.length == 0)) {
+	    pickcsys = "EQ J2000.";
+        }
     
-            if (viewer.debug) {
-                console.log (" pickcsys= " + data.pickcsys);
-            }
-
-            datastr =  "<b>Coord&nbsp;</b> (RA Dec in " + pickcsys + "):<br />" 
-                + sexrapick + "&nbsp;&nbsp;" 
-	        + sexdecpick + "&nbsp;&nbsp;<br />" 
-	        + rapick + "&nbsp;&nbsp;" 
-	        + decpick + "&nbsp; (deg)<br />"; 
-        }
-
-        datastr = datastr + "<b>Pixel value:</b> " + pickval + "<br />"; 
-
         if (viewer.debug) {
-            console.log ("datastr= " + datastr);
+                console.log (" pickcsys= " + data.pickcsys);
         }
 
+        datastr =  "<b>Coord&nbsp;</b> (RA Dec in " + pickcsys + "):<br />" 
+            + sexrapick + "&nbsp;&nbsp;" 
+	    + sexdecpick + "&nbsp;&nbsp;<br />" 
+	    + rapick + "&nbsp;&nbsp;" 
+	    + decpick + "&nbsp; (deg)<br />"; 
+    }
+
+    datastr = datastr + "<b>Pixel value:</b> " + pickval + "<br />"; 
+
+    if (viewer.debug) {
+        console.log ("datastr= " + datastr);
+    }
+
+    viewer.gc.clearDrawing ();
+    
 /*
     draw the image pick point on image
 */
-        viewer.gc.clearDrawing ();
-        viewer.gc.drawPlus (xpick, ypick, 4, "#ff0000");
+    viewer.gc.drawPlus (xpick, ypick, 4, "#ff0000");
 	    
-        if (viewer.debug) {
-            console.log ("pick value marked");
-        }
-
+    if (viewer.debug) {
+        console.log ("pick value marked");
+    }
     
-        var textarea = document.getElementById (textareaID);
+    var textarea = document.getElementById (textareaID);
        
-        if (viewer.debug) {
-	    console.log ("textarea= " + textarea);
-        }
+    if (viewer.debug) {
+	console.log ("textarea= " + textarea);
+    }
 
-        if ((textarea == undefined) ||
-	    (textarea == null)) {
+    if ((textarea == undefined) ||
+	(textarea == null)) {
         
-	    if (viewer.zoomwinHandle != null) {
+	if (viewer.zoomwinHandle != null) {
 
-	        var doc = viewer.zoomwinHandle.document;
-	        textarea = doc.getElementById(textareaID);
+	    var doc = me.zoomwinHandle.document;
+	    textarea = doc.getElementById("imcoord");
         	
-	        if (viewer.debug) {
-	            console.log ("(zoomwinHandle) textarea= " + textarea);
-                }
+	    if (viewer.debug) {
+	        console.log ("(zoomwinHandle) textarea= " + textarea);
             }
         }
+    }
 
-        if (textarea != null) {
+    if (textarea != null) {
 
-	    textarea.style.fontStyle="Times New Roman";
-	    textarea.style.fontSize="11px";
-	    textarea.style.color = "#0f0f0f";
+        textarea.style.fontStyle="Times New Roman";
+	textarea.style.fontSize="11px";
+	textarea.style.color = "#0f0f0f";
 	
-	    textarea.innerHTML = datastr;
+	textarea.innerHTML = datastr;
 
-	    if (viewer.debug == 1) {
-	        console.log ("textarea value set");
-            }     
-        }
+	if (viewer.debug == 1) {
+	    console.log ("textarea value set");
+        } 
     }
-    else {
-/*
-    clear the pick result text
-*/
-        var textarea = document.getElementById (textareaID);
-       
-        if (viewer.debug) {
-	    console.log ("textarea= " + textarea);
-        }
-
-        if ((textarea == undefined) ||
-	    (textarea == null)) {
-        
-	    if (viewer.zoomwinHandle != null) {
-
-	        var doc = viewer.zoomwinHandle.document;
-	        textarea = doc.getElementById(textareaID);
-        	
-	        if (viewer.debug) {
-	            console.log ("(zoomwinHandle) textarea= " + textarea);
-                }
-            }
-        }
-
-        if (textarea != null) {
-
-	    textarea.innerHTML = datastr;
-
-	    if (viewer.debug == 1) {
-	        console.log ("textarea value set to blank");
-            }     
-        }
-
-    }
-    return;
 
 }
  
@@ -370,14 +374,16 @@ function processBox (viewer)
 	console.log ("xe= " + xe + " ye= " + ye);
     }
 
+
     var imcursormode = updateJSON.imcursorMode;
     
-    if (imcursormode == null) {
+    if ((imcursormode == null) || (imcursormode == "imzoom")) {
         
-	viewer.cmd = "zoombox"; 
-        viewer.submitUpdateRequest ("zoombox"); 
-    }
-    else if (imcursormode == "imzoom") {
+        if ((Math.abs(xe - xs) < 2) && (Math.abs(ye - ys) < 2)) {
+       
+            processClick (viewer);
+	    return;
+        }
         
         viewer.cmd = "zoombox"; 
         viewer.submitUpdateRequest ("zoombox"); 

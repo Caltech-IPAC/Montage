@@ -1,8 +1,10 @@
-/* Module: mFixNaN.c
+/* Module: mExec.c
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
 1.0      John Good        31Jan06  Baseline code
+2.0      John Good        29Aug15  Updated SDSS requires file name change
+                                   due to use of bzip2.
 
 */
 
@@ -201,7 +203,7 @@ int main(int argc, char **argv, char **envp)
    int    naxis1, naxis2, naxismax, nxtile, nytile;
    int    intan, outtan, iscale, ncell, local2MASS;
    int    keepAll, deleteAll, noSubset, infoMsg, levelOnly;
-   int    userRaw, showMarker;
+   int    ftmp, userRaw, showMarker;
 
    double val, factor, shrink;
 
@@ -407,7 +409,7 @@ int main(int argc, char **argv, char **envp)
             break;
 
          case 'e':
-	    allowedError = atof(optarg);
+            allowedError = atof(optarg);
             break;
 
          case 'f':
@@ -463,16 +465,16 @@ int main(int argc, char **argv, char **envp)
             break;
 
          case 's':
-	    shrink = atof(optarg);
+            shrink = atof(optarg);
 
-	    if(shrink <= 0.0)
-	       shrink = 1.;
+            if(shrink <= 0.0)
+               shrink = 1.;
 
             break;
 
-	 case 'S':
-	    local2MASS = 1;
-	    break;
+         case 'S':
+            local2MASS = 1;
+            break;
 
          default:
             printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-r rawdir][-n ntilex][-m ntiley][-l(evel only)][-k(eep all)][-c(lean)][-s shrinkFactor][-o output.fits][-d(ebug) level][-f region.hdr | -h header] survey band [workspace-dir]\"]\n", argv[0]);
@@ -503,8 +505,8 @@ int main(int argc, char **argv, char **envp)
    {
       if(infoMsg)
       {
-	 printf("[struct stat=\"INFO\", msg=\"Tiling %d x %d\"]\n",  ntile, mtile);
-	 fflush(stdout);
+         printf("[struct stat=\"INFO\", msg=\"Tiling %d x %d\"]\n",  ntile, mtile);
+         fflush(stdout);
       }
 
       strcpy(savefile, "");
@@ -534,7 +536,16 @@ int main(int argc, char **argv, char **envp)
    if(strlen(workspace) == 0)
    {
       strcpy(template, "MOSAIC_XXXXXX");
-      strcpy(workspace, mktemp(template));
+
+      mkdtemp(template);
+
+      strcpy(workspace, template);
+
+      chmod(workspace, 0755);
+   }
+   else
+   {
+      mkdir(workspace, 0775);
    }
 
    if(workspace[0] != '/')
@@ -569,15 +580,6 @@ int main(int argc, char **argv, char **envp)
    }
 
 
-   /******************************************************************/
-   /* Make sure the workspace directory of the workspace exists.     */
-   /* Create it if it doesn't.                                       */
-   /******************************************************************/
-
-   mkdir(workspace, 0775);
-
-
-   
    /******************************************************************/
    /* Copy the header template from a file, if that is the way it    */
    /* was given.                                                     */
@@ -972,10 +974,10 @@ int main(int argc, char **argv, char **envp)
 
       if(wcs->equinox == 1950)
       {
-	 if(dflag)
-	    sprintf(locstr, "%dh%02dm%05.2fs&nbsp;-%dd%02dm%04.1fs&nbsp;J1950", rh, rm, rs, dd, dm, ds);
-	 else
-	    sprintf(locstr, "%dh%02dm%05.2fs&nbsp;+%dd%02dm%04.1fs&nbsp;J1950", rh, rm, rs, dd, dm, ds);
+         if(dflag)
+            sprintf(locstr, "%dh%02dm%05.2fs&nbsp;-%dd%02dm%04.1fs&nbsp;J1950", rh, rm, rs, dd, dm, ds);
+         else
+            sprintf(locstr, "%dh%02dm%05.2fs&nbsp;+%dd%02dm%04.1fs&nbsp;J1950", rh, rm, rs, dd, dm, ds);
       }
    }
    else if(wcs->syswcs == WCS_B1950)
@@ -988,10 +990,10 @@ int main(int argc, char **argv, char **envp)
 
       if(wcs->equinox == 1950)
       {
-	 if(dflag)
-	    sprintf(locstr, "%dh%02dm%05.2fs&nbsp;-%dd%02dm%04.1fs&nbsp;B2000", rh, rm, rs, dd, dm, ds);
-	 else
-	    sprintf(locstr, "%dh%02dm%05.2fs&nbsp;+%dd%02dm%04.1fs&nbsp;B2000", rh, rm, rs, dd, dm, ds);
+         if(dflag)
+            sprintf(locstr, "%dh%02dm%05.2fs&nbsp;-%dd%02dm%04.1fs&nbsp;B2000", rh, rm, rs, dd, dm, ds);
+         else
+            sprintf(locstr, "%dh%02dm%05.2fs&nbsp;+%dd%02dm%04.1fs&nbsp;B2000", rh, rm, rs, dd, dm, ds);
       }
    }
    else if(wcs->syswcs == WCS_GALACTIC)
@@ -1040,11 +1042,11 @@ int main(int argc, char **argv, char **envp)
       scale = scale * 1.42;
     
       if(noSubset)
-	 sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote.tbl", 
-	    survey, band, rac, decc, scale, scale);
+         sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote.tbl", 
+            survey, band, rac, decc, scale, scale);
       else
-	 sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote_big.tbl", 
-	    survey, band, rac, decc, scale, scale);
+         sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote_big.tbl", 
+            survey, band, rac, decc, scale, scale);
 
       if(debug >= 4)
       {
@@ -1096,44 +1098,44 @@ int main(int argc, char **argv, char **envp)
 
       if(!noSubset)
       {
-	 sprintf(cmd, "mSubset -f remote_big.tbl region.hdr remote.tbl"); 
+         sprintf(cmd, "mSubset -f remote_big.tbl region.hdr remote.tbl"); 
 
-	 if(debug >= 4)
-	 {
-	    fprintf(fdebug, "[%s]\n", cmd);
-	    fflush(fdebug);
-	 }
+         if(debug >= 4)
+         {
+            fprintf(fdebug, "[%s]\n", cmd);
+            fflush(fdebug);
+         }
 
-	 svc_run(cmd);
+         svc_run(cmd);
 
-	 strcpy( status, svc_value( "stat" ));
+         strcpy( status, svc_value( "stat" ));
 
-	 if (strcmp( status, "ERROR") == 0)
-	 {
-	    strcpy( msg, svc_value( "msg" ));
+         if (strcmp( status, "ERROR") == 0)
+         {
+            strcpy( msg, svc_value( "msg" ));
 
-	    printerr(msg);
-	 }
-	    
-	 nimages = atof(svc_value("nmatches"));
+            printerr(msg);
+         }
+            
+         nimages = atof(svc_value("nmatches"));
 
-	 if (nimages == 0)
-	 {
-	    sprintf( msg, "%s has no data covering this area", survey);
+         if (nimages == 0)
+         {
+            sprintf( msg, "%s has no data covering this area", survey);
 
-	    printerr(msg);
-	 }
+            printerr(msg);
+         }
 
-	 time(&currtime);
+         time(&currtime);
 
-	 if(debug >= 1)
-	 {
-	    fprintf(fdebug, "TIME: mSubset          %6d (%d images)\n",
-	       (int)(currtime - lasttime), nimages);
-	    fflush(fdebug);
-	 }
+         if(debug >= 1)
+         {
+            fprintf(fdebug, "TIME: mSubset          %6d (%d images)\n",
+               (int)(currtime - lasttime), nimages);
+            fflush(fdebug);
+         }
 
-	 lasttime = currtime;
+         lasttime = currtime;
       }
 
 
@@ -1157,10 +1159,10 @@ int main(int argc, char **argv, char **envp)
             fflush(stdout);
          }
 
- 	 if(local2MASS)
- 	    sprintf(cmd, "mArchiveExec -S ../remote.tbl");
- 	 else
- 	    sprintf(cmd, "mArchiveExec ../remote.tbl");
+          if(local2MASS)
+             sprintf(cmd, "mArchiveExec -S ../remote.tbl");
+          else
+             sprintf(cmd, "mArchiveExec ../remote.tbl");
 
          if(debug >= 4)
          {
@@ -1366,7 +1368,7 @@ int main(int argc, char **argv, char **envp)
          if(debug >= 2)
          {
             fprintf(fdebug, "   Distorted TAN for output: max error = %-g, allowed error = %-g\n", 
-	       maxerror, allowedError);
+               maxerror, allowedError);
             fflush(fdebug);
          }
 
@@ -1397,32 +1399,32 @@ int main(int argc, char **argv, char **envp)
    {
       while(1)
       {
-	 istat = tread();
+         istat = tread();
 
-	 if(istat < 0)
-	    break;
+         if(istat < 0)
+            break;
 
-	 strcpy ( infile, tval(ifname));
+         strcpy ( infile, tval(ifname));
 
-	 sprintf(cmd, "mShrink %s/%s shrunken/%s %-g", 
-	    rawdir, infile, infile, shrink);
+         sprintf(cmd, "mShrink %s/%s shrunken/%s %-g", 
+            rawdir, infile, infile, shrink);
 
-	 if(debug >= 4)
-	 {
-	    fprintf(fdebug, "[%s]\n", cmd);
-	    fflush(fdebug);
-	 }
+         if(debug >= 4)
+         {
+            fprintf(fdebug, "[%s]\n", cmd);
+            fflush(fdebug);
+         }
 
-	 svc_run(cmd);
+         svc_run(cmd);
 
-	 strcpy( status, svc_value( "stat" ));
+         strcpy( status, svc_value( "stat" ));
 
-	 if(strcmp( status, "ERROR") == 0)
-	 {
-	    strcpy( msg, svc_value( "msg" ));
+         if(strcmp( status, "ERROR") == 0)
+         {
+            strcpy( msg, svc_value( "msg" ));
 
-	    printerr(msg);
-	 }
+            printerr(msg);
+         }
       }
 
       tseek(0);
@@ -1457,6 +1459,10 @@ int main(int argc, char **argv, char **envp)
          break;
 
       strcpy ( infile, tval(ifname));
+
+      if(strlen(infile) > 4 && strcmp(infile+strlen(infile)-4, ".bz2") == 0)
+         *(infile+strlen(infile)-4) = '\0';
+
       strcpy (outfile, infile);
 
       if(strlen(outfile) > 3 && strcmp(outfile+strlen(outfile)-3, ".gz") == 0)
@@ -1467,20 +1473,20 @@ int main(int argc, char **argv, char **envp)
 
 
       if(strlen(outfile) > 5 &&
-	 strncmp(outfile+strlen(outfile)-5, ".FITS", 5) == 0)
-	    outfile[strlen(outfile)-5] = '\0';
+         strncmp(outfile+strlen(outfile)-5, ".FITS", 5) == 0)
+            outfile[strlen(outfile)-5] = '\0';
 
       else if(strlen(outfile) > 5 &&
-	 strncmp(outfile+strlen(outfile)-5, ".fits", 5) == 0)
-	    outfile[strlen(outfile)-5] = '\0';
+         strncmp(outfile+strlen(outfile)-5, ".fits", 5) == 0)
+            outfile[strlen(outfile)-5] = '\0';
 
       else if(strlen(outfile) > 4 &&
-	 strncmp(outfile+strlen(outfile)-4, ".FIT", 4) == 0)
-	    outfile[strlen(outfile)-4] = '\0';
+         strncmp(outfile+strlen(outfile)-4, ".FIT", 4) == 0)
+            outfile[strlen(outfile)-4] = '\0';
 
       else if(strlen(outfile) > 4 &&
-	 strncmp(outfile+strlen(outfile)-4, ".fit", 4) == 0)
-	    outfile[strlen(outfile)-4] = '\0';
+         strncmp(outfile+strlen(outfile)-4, ".fit", 4) == 0)
+            outfile[strlen(outfile)-4] = '\0';
 
       strcat(outfile, ".fits");
 
@@ -1590,7 +1596,7 @@ int main(int argc, char **argv, char **envp)
             if(debug)
             {
                fprintf(fdebug, "   Distorted TAN on input: max error = %-g, allowed error = %-g\n",
-	          maxerror, allowedError);
+                  maxerror, allowedError);
                fflush(fdebug);
             }
 
@@ -1606,11 +1612,11 @@ int main(int argc, char **argv, char **envp)
           intan = FAILED;
          outtan = FAILED;
 
-	 if(debug)
-	 {
-	    fprintf(fdebug, "   Can't use distorted TAN when projecting between coordinate systems.\n");
-	    fflush(fdebug);
-	 }
+         if(debug)
+         {
+            fprintf(fdebug, "   Can't use distorted TAN when projecting between coordinate systems.\n");
+            fflush(fdebug);
+         }
       }
 
 
@@ -1681,15 +1687,15 @@ int main(int argc, char **argv, char **envp)
       {
          strcpy(goodFile, infile);
 
-	 if(strlen(goodFile) > 3 && strcmp(goodFile+strlen(goodFile)-3, ".gz") == 0)
-	    *(goodFile+strlen(goodFile)-3) = '\0';
+         if(strlen(goodFile) > 3 && strcmp(goodFile+strlen(goodFile)-3, ".gz") == 0)
+            *(goodFile+strlen(goodFile)-3) = '\0';
 
-	 if(debug >= 3)
-	 {
-	    fprintf(fdebug, "%s took %s seconds (%3d of %3d)\n", 
-	       tval(ifname), svc_value("time"), index, nimages);
-	    fflush(fdebug);
-	 }
+         if(debug >= 3)
+         {
+            fprintf(fdebug, "%s took %s seconds (%3d of %3d)\n", 
+               tval(ifname), svc_value("time"), index, nimages);
+            fflush(fdebug);
+         }
       }
 
       if(!keepAll && !userRaw)
@@ -1909,10 +1915,10 @@ int main(int argc, char **argv, char **envp)
             ++failed;
 
 
-	 if(levelOnly)
-	    sprintf(cmd, "mFitplane -l diffs/%s", diffname);
+         if(levelOnly)
+            sprintf(cmd, "mFitplane -l diffs/%s", diffname);
          else
-	    sprintf(cmd, "mFitplane diffs/%s", diffname);
+            sprintf(cmd, "mFitplane diffs/%s", diffname);
 
          if(debug >= 4)
          {
@@ -2051,7 +2057,10 @@ int main(int argc, char **argv, char **envp)
       /**************************************************************/
 
       sprintf(template, "corrected/IMGTBLXXXXXX");
-      strcpy(imgsort, mktemp(template));
+
+      ftmp = mkstemp(template);
+
+      strcpy(imgsort, template);
 
       sprintf(cmd, "mTblSort pimages.tbl cntr %s", imgsort);
 
@@ -2062,6 +2071,8 @@ int main(int argc, char **argv, char **envp)
       }
     
       svc_run(cmd);
+
+      close(ftmp);
 
       strcpy(status, svc_value("stat"));
     
@@ -2078,7 +2089,10 @@ int main(int argc, char **argv, char **envp)
 
 
       sprintf(template, "corrected/CORTBLXXXXXX");
-      strcpy(corrsort, mktemp(template));
+
+      ftmp = mkstemp(template);
+
+      strcpy(corrsort, template);
 
       sprintf(cmd, "mTblSort corrections.tbl id %s", corrsort);
 
@@ -2090,6 +2104,8 @@ int main(int argc, char **argv, char **envp)
     
       svc_run(cmd);
     
+      close(ftmp);
+
       strcpy(status, svc_value("stat"));
     
       if(strcmp( status, "ABORT") == 0
@@ -2740,8 +2756,8 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 2)
       {
-	 fprintf(fdebug, "%s\n", cmd);
-	 fflush(fdebug);
+         fprintf(fdebug, "%s\n", cmd);
+         fflush(fdebug);
       }
 
       system(cmd);
@@ -2755,8 +2771,8 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 2)
       {
-	 fprintf(fdebug, "%s\n", cmd);
-	 fflush(fdebug);
+         fprintf(fdebug, "%s\n", cmd);
+         fflush(fdebug);
       }
 
       system(cmd);
@@ -2790,10 +2806,10 @@ int main(int argc, char **argv, char **envp)
    if(naxismax < 1500)
    {
       if(showMarker)
-	 sprintf(cmd, "mJPEG -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic.fits min max gaussianlog -out mosaic.jpg",
-	    rac, decc);
+         sprintf(cmd, "mJPEG -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic.fits min max gaussianlog -out mosaic.jpg",
+            rac, decc);
       else
-	 sprintf(cmd, "mJPEG -ct 1 -gray mosaic.fits min max gaussianlog -out mosaic.jpg");
+         sprintf(cmd, "mJPEG -ct 1 -gray mosaic.fits min max gaussianlog -out mosaic.jpg");
 
 
       if(debug >= 4)
@@ -2857,10 +2873,10 @@ int main(int argc, char **argv, char **envp)
       lasttime = currtime;
 
       if(showMarker)
-	 sprintf(cmd, "mJPEG -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic_small.fits min max gaussianlog -out mosaic.jpg",
-	    rac, decc);
+         sprintf(cmd, "mJPEG -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic_small.fits min max gaussianlog -out mosaic.jpg",
+            rac, decc);
       else
-	 sprintf(cmd, "mJPEG -ct 1 -gray mosaic_small.fits min max gaussianlog -out mosaic.jpg");
+         sprintf(cmd, "mJPEG -ct 1 -gray mosaic_small.fits min max gaussianlog -out mosaic.jpg");
 
       if(debug >= 4)
       {
@@ -3043,7 +3059,7 @@ int main(int argc, char **argv, char **envp)
    if(infoMsg)
    {
       printf("[struct stat=\"INFO\", msg=\"Mosaic complete (%d sec)\"]\n", 
-	     (int)(currtime - start));
+             (int)(currtime - start));
       fflush(stdout);
    }
 
@@ -3078,7 +3094,7 @@ int stradd(char *header, char *card)
 
    if(clen < 80)
       for(i=clen; i<80; ++i)
-	 header[hlen+i] = ' ';
+         header[hlen+i] = ' ';
 
    header[hlen+80] = '\0';
 

@@ -340,13 +340,13 @@ int extractViewParam (struct Mviewer *param)
 	}
     }
     
-    param->nowcs = 0;
+    param->nowcs = -1;
     str[0] = '\0';
     if (json_val (param->jsonStr, "nowcs", str) != (char *)NULL) 
     {
         istatus = str2Integer (str, &param->nowcs, param->errmsg);
         if (istatus == -1) {
-            param->nowcs = 0;
+            param->nowcs = -1;
 	}
     }
     
@@ -736,6 +736,10 @@ int extractViewParam (struct Mviewer *param)
     strcpy (param->imcubemode, "ave");
     strcpy (param->waveplottype, "");
     strcpy (param->plotjsonfile, "");
+    
+    strcpy (param->plotxaxis, "");
+    strcpy (param->plotyaxis, "");
+    
     strcpy (param->ctype3, "");
     
     param->nfitsplane = 0; 
@@ -789,6 +793,24 @@ int extractViewParam (struct Mviewer *param)
 	    != (char *)NULL) 
 	{
             strcpy (param->plotjsonfile, str);
+        }
+
+	if (json_val (param->jsonStr, "imcubeFile.plotXaxis", str) 
+	    != (char *)NULL) 
+	{
+            strcpy (param->plotxaxis, str);
+        }
+
+	if (json_val (param->jsonStr, "imcubeFile.plotYaxis", str) 
+	    != (char *)NULL) 
+	{
+            strcpy (param->plotyaxis, str);
+        }
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "plotxaxis= [%s] plotyaxis= [%s]\n", 
+	        param->plotxaxis, param->plotyaxis);
+            fflush (fdebug);
         }
 
 

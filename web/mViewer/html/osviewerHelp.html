@@ -1,0 +1,140 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<body>
+<div>
+    
+    <p style="color:#880000;font-size:16px;font-weight:bold;">
+        Osiris Viewer Interface Notes  
+    </p>
+    
+    <p />   
+      Image/Plot Resize 
+      
+    
+    <ul style="list-style-type:none">
+    <li>
+      <p style="font-size:14px;" align="justify" />
+	 
+	  The browser display is divided into three panels: control, image,
+	  and plot panels.  Image and plot sizes can be adjusted by 
+	  resizing the browser window or the individual panel sizes. 
+    </li>
+    </ul>
+
+    <p />   
+      Image Type Selection: 
+      
+    <ul style="list-style-type:none">
+    <li>
+      <p style="font-size:14px;" align="justify" />
+	  The image area displays the "average image" or the "median image"
+	  of multiple image planes with the median image being the default.
+    </li>
+    <li>
+      <p style="font-size:14px;" align="justify" />
+          To alternate the display between an average image and an median
+	  image, use the radio button for "Median"/"Average".
+    </li>
+    <li>
+      <p style="font-size:14px;" align="justify" />
+          The specific image range for averaging or computing median can be 
+	  specified by  "center plane number" and  "number of planes"
+	  via the input fields, slider, or the various increment/decrement 
+	  buttons.
+    </li>
+    </ul>
+    
+    <p />   
+      Plane Averaging Computation: 
+      
+    <ul style="list-style-type:none">
+    <li>
+
+      <p style="font-size:14px;" align="justify" />
+    
+        <font color="#880000" size="2"><b>
+           &#x274A;  
+        </b></font>
+	
+        The plane average is computed by computing the start plane based on
+	the "number of planes to be averaged" and the "center plane number" 
+	as follows: <br />
+	
+	<pre>
+	  nplane: "number of planes to be averaged"
+          cplane: "center plane number"
+	  
+	  splane = cplane - nplane/2;   
+	</pre>
+        
+	then averaging pixels of nplanes together starting from splane.
+
+      <p style="font-size:14px;" align="justify" />
+    
+	So if "center plane" is 100, and the "nplane" is an odd number like
+	9, then the average plane is the average of plane 96 to plane 104
+	 (i.e. 4 planes before plane 100 and 4 planes after plane 100); 
+	however if "nplane" is an even number like 10, then the average plane 
+	is the average of plane 95 to 104 (i.e. 5 planes before plane 100 but
+	only 4 planes after plane 100). 
+
+    </li>
+    </ul>
+
+
+    <p />   
+      Image Cursor Mode: 
+
+    <ul style="list-style-type:none">
+    <li>
+      <p style="font-size:14px;" align="justify" />
+          The action taken when createing a box by clicking and dragging 
+	  the cursor on the image is set by either "Image Zoom" 
+	  or "Wavelength Plot" selections.
+    </li>
+    <li>
+      <p style="font-size:14px;" align="justify" />
+	  
+	  When "Image Zoom" is selected, the area inside the box will be 
+	  zoomed to fill the image display area.
+    </li>
+    <li>
+      <p style="font-size:14px;" align="justify" />
+
+          When "Wavelength Plot" is selected, the wavelength plot will be
+	  produced by averaging all the  pixels inside the box area in 
+	  each plane.  Plane numbers are converted to wavelength and 
+	  the plot is shown in the bottom panel.
+    </li>
+    </ul>
+
+
+    <p />   
+      Zoom and Reset buttons:
+
+
+    <ul style="list-style-type:none">
+    <li>
+    <p style="font-size:14px;" align="justify" />
+       Coarse image zoom steps are available via the image zoom and reset
+          buttons.  
+    </li>
+    <li>
+      <p style="font-size:14px;" align="justify" />
+          Plot zoom-in is available by dragging a box shape on the plot to
+          define a plot zoom area.
+    </li>
+    <li>
+      <p style="font-size:14px;" align="justify" />
+	  plot zoom-out and reset is available via the zoom out and reset
+	  buttons.
+    </li>
+  </ul>      
+      
+</div>
+
+</body>
+</html>
+

@@ -174,20 +174,14 @@ int  imZoom (struct Mviewer *param)
             fflush (fdebug);
         }
 
-        if (fabs(xmax-xmin) < 5) { 
+        if ((fabs(xmax-xmin) < 5) && (fabs(ymax-ymin) < 5)) {
    
-            strcpy (param->errmsg, "Zoom box is less than 5 image pixels wide"
-	        " -- too small for zoom operation."); 
+            strcpy (param->errmsg, 
+	        "Zoom box is less than 5 image pixels in either directions"
+	        " -- too small an area for zoom operation."); 
 	    return (-1);
         }
 
-        if (fabs(ymax-ymin) < 5) {
-   
-            strcpy (param->errmsg, "Zoom box is less than 5 image pixels high"
-	        " -- too small for zoom operation."); 
-	    return (-1);
-        }
-        
 	param->xmin = xmin;
 	param->xmax = xmax;
 	param->ymin = ymin;
@@ -205,9 +199,16 @@ int  imZoom (struct Mviewer *param)
 	        param->cutoutWidth, param->cutoutWidth); 
             fflush (fdebug);
         }
-        
-	param->ns = param->cutoutWidth;
-	param->nl = param->cutoutHeight;
+
+        if (param->cutoutWidth > 0)
+	    param->ns = param->cutoutWidth;
+	else
+	    param->ns = param->imageWidth;
+
+        if (param->cutoutHeight > 0)
+	    param->nl = param->cutoutHeight;
+	else
+	    param->nl = param->imageHeight;
 
 	xmin = param->ss;
 	ymin = param->sl;
