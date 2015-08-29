@@ -64,10 +64,11 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     
     fitsfile  *fitsptr;
     
-    int    debugfile = 0;
+    int    debugfile = 1;
 
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "\nEnter getFitshdr: fname= [%s]\n", fname);
         fflush (fp_debug);
     }
@@ -75,7 +76,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = 0;
     if (fits_open_file (&fitsptr, fname, READONLY, &istatus)) {
 
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "istatus= [%d]\n", istatus);
             fflush (fp_debug);
 	}
@@ -89,7 +91,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = 0;
     istatus = fits_get_num_hdus (fitsptr, &nhdu, &istatus);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, 
 	    "returned fits_get_hdu_num: istatus= [%d] nhdu= [%d]\n",
 	    istatus, nhdu);
@@ -106,7 +109,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = 0;
     istatus = fits_movabs_hdu (fitsptr, hdunum, &hdutype, &istatus);
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, 
 	    "returned fits_movabs_hdu: istatus= [%d] hdutype= [%d]\n",
 	    istatus, hdutype);
@@ -120,7 +124,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "simple", str, (char *)NULL, 
         &istatus);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "istatus (simple)= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -140,7 +145,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "bitpix", str, (char *)NULL, 
         &istatus);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "istatus (bitpix)= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -180,7 +186,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         return (-1);
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "str= [%s]\n", str);
         fflush (fp_debug);
     }
@@ -190,7 +197,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         return (-1);
     }
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "naxis= [%d]\n", hdr->naxis);
         fflush (fp_debug);
     }
@@ -202,7 +210,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     for (l=0; l<hdr->naxis; l++) {
 
 	sprintf (key, "naxis%d", l+1);
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "key= [%s]\n", key);
             fflush (fp_debug);
         }
@@ -211,7 +220,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         istatus = fits_read_key (fitsptr, TSTRING, key, str, (char *)NULL, 
             &istatus);
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "returned fits_read_key (%s): istatus= [%d]\n", 
     	        key, istatus);
             fflush (fp_debug);
@@ -222,7 +232,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
             return (-1);
         }
             
-	if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "str= [%s]\n", str);
             fflush (fp_debug);
         }
@@ -241,7 +252,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "bunit", hdr->bunit, 
         (char *)NULL, &istatus);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "istatus (bunit)= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -256,14 +268,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "BSCALE", bscale, 
             (char *)NULL, &istatus);
         
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "istatus (bscale)= [%d]\n", istatus);
         fflush (fp_debug);
     }
 
     if (istatus != KEY_NO_EXIST) {
         
-	if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "bscale= [%s]\n", bscale);
             fflush (fp_debug);
         }
@@ -277,7 +291,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	}
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "bscaleExsit= [%d]\n",  hdr->bscaleExist);
         if (hdr->bscaleExist) 
 	    fprintf (fp_debug, "bscale= [%lf]\n",  hdr->bscale);
@@ -291,14 +306,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "BZERO", bzero, 
             (char *)NULL, &istatus);
         
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "istatus (bzero)= [%d]\n", istatus);
         fflush (fp_debug);
     }
 
     if (istatus != KEY_NO_EXIST) {
     
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "bzero= [%s]\n", bzero);
             fflush (fp_debug);
         }
@@ -312,7 +329,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	}
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "bzeroExsit= [%d]\n",  hdr->bzeroExist);
         if (hdr->bzeroExist) 
 	    fprintf (fp_debug, "bzero= [%lf]\n",  hdr->bzero);
@@ -326,14 +344,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "BLANK", blank, 
             (char *)NULL, &istatus);
         
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "istatus (blank)= [%d]\n", istatus);
         fflush (fp_debug);
     }
 
     if (istatus != KEY_NO_EXIST) {
     
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "blank= [%s]\n", blank);
             fflush (fp_debug);
         }
@@ -346,7 +366,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	    hdr->blankExist = 0;
         }
     }
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, 
 	    "blankExist= [%d]\n",  hdr->blankExist);
         if (hdr->blankExist)
@@ -361,7 +382,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     for (l=0; l<hdr->naxis; l++) {
 
 	sprintf (key, "cunit%d", l+1);
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "key= [%s]\n", key);
             fflush (fp_debug);
         }
@@ -372,7 +394,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         istatus = fits_read_key (fitsptr, TSTRING, key, str, (char *)NULL, 
             &istatus);
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "returned fits_read_key (%s): istatus= [%d]\n", 
 	        key, istatus);
             fflush (fp_debug);
@@ -393,7 +416,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     for (l=0; l<hdr->naxis; l++) {
 
 	sprintf (key, "ctype%d", l+1);
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "key= [%s]\n", key);
             fflush (fp_debug);
         }
@@ -404,7 +428,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         istatus = fits_read_key (fitsptr, TSTRING, key, str, (char *)NULL, 
             &istatus);
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "returned fits_read_key (%s): istatus= [%d]\n", 
 	        key, istatus);
             fflush (fp_debug);
@@ -643,7 +668,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
             *cptr = '\0';
         }
         
-	if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "str= [%s]\n", str);
             fflush (fp_debug);
         }
@@ -652,7 +678,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
             (strcmp (str, "GLON") == 0) ||
             (strcmp (str, "ELON") == 0)) {
         
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "here1\n");
                 fflush (fp_debug);
             }
@@ -660,7 +687,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	    hdr->axisIndx[0] = l;
             hdr->ns = hdr->naxes[l];
     
-            if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "axisIndx[0]= [%d] ns= [%d]\n", l, hdr->ns); 
                 fflush (fp_debug);
             }
@@ -670,7 +698,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
             (strcmp (str, "GLAT") == 0) ||
             (strcmp (str, "ELAT") == 0)) {
        
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "here2\n");
                 fflush (fp_debug);
             }
@@ -678,14 +707,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
             hdr->nl = hdr->naxes[l];
             hdr->axisIndx[1] = l;
             
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "axisIndx[1]= [%d] nl= [%d]\n", l, hdr->nl); 
                 fflush (fp_debug);
             }
 	}
 	else {
 
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "here3\n");
                 fflush (fp_debug);
             }
@@ -693,7 +724,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	    hdr->nplane = hdr->naxes[l];
             hdr->axisIndx[2] = l;
 	    
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "axisIndx[2]= [%d] nplane= [%d]\n", 
 		    l, hdr->nplane);
                 fflush (fp_debug);
@@ -730,7 +762,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         
         if (istatus == KEY_NO_EXIST) {
 
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "xxx1\n");
                 fflush (fp_debug);
             }
@@ -746,7 +779,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         }
         else {
 	    
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "xxx2: str= [%s]\n", str);
                 fflush (fp_debug);
             }
@@ -770,14 +804,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
             }
         }
             
-	    if (debugfile) {
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "xxx1\n");
                 fflush (fp_debug);
             }
 
     }
 
-            if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "here1\n");
                 fflush (fp_debug);
             }
@@ -845,7 +881,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	}
     }
 
-            if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "here2\n");
                 fflush (fp_debug);
             }
@@ -906,7 +943,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	}
     }
 
-            if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
                 fprintf (fp_debug, "here3\n");
                 fflush (fp_debug);
             }
@@ -922,7 +960,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         strncpy (substr2, substr1, 3); 
         substr2[3] = '\0';
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "substr1= [%s] substr2= [%s]\n", 
 	        substr1, substr2);
             fflush (fp_debug);
@@ -941,7 +980,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         strncpy (substr2, substr1, 2); 
         substr2[2] = '\0';
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
             fprintf (fp_debug, "substr1= [%s] substr2= [%s]\n", 
 	        substr1, substr2);
             fflush (fp_debug);
@@ -952,12 +992,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         }
     }
     
-            if (debugfile) {
-                fprintf (fp_debug, "here4\n");
-                fflush (fp_debug);
-            }
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
-    if (debugfile) {
         fprintf (fp_debug, "csysstr= [%s]\n", hdr->csysstr);
         fflush (fp_debug);
     }
@@ -969,7 +1005,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "EQUINOX", hdr->equinoxstr, 
         (char *)NULL, &istatus);
     
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
         fprintf (fp_debug, "returned EQUINOX: istatus= [%d]\n", istatus);
         fprintf (fp_debug, "equinoxstr= [%s]\n", hdr->equinoxstr);
         fflush (fp_debug);
@@ -985,7 +1022,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	    hdr->haveEquinox = 0;
         }
         
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "equinoxstr= [%s]\n", hdr->equinoxstr);
             fflush (fp_debug);
         }
@@ -1007,7 +1045,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
 	    hdr->haveEpoch = 0;
         }
         
-	if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "epochstr= [%s]\n", hdr->epochstr);
 	    fprintf (fp_debug, "epoch= [%lf]\n", hdr->epoch);
             fflush (fp_debug);
@@ -1053,7 +1092,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         }
     }
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "hdr->epochstr= [%s]\n", hdr->epochstr);
         fflush (fp_debug);
     }
@@ -1063,7 +1103,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     ind0 = hdr->axisIndx[0];
     ind1 = hdr->axisIndx[1];
 
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "ind0= [%d] ind1= [%d]\n", ind0, ind1);
         fflush (fp_debug);
     }
@@ -1142,7 +1183,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "OBJECT", hdr->objname, 
         (char *)NULL, &istatus);
    
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "read keyword OBJECT: istatus= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -1154,15 +1196,33 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         istatus = fits_read_key (fitsptr, TSTRING, "TARGNAME", hdr->objname, 
             (char *)NULL, &istatus);
    
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "read keyword TARGNAME: istatus= [%d]\n", 
 	        istatus);
             fflush (fp_debug);
         }
     }
+
+    if (istatus == KEY_NO_EXIST) {
+    
+        hdr->objname[0] = '\0';
+        istatus = 0;
+        istatus = fits_read_key (fitsptr, TSTRING, "OBJNAME", hdr->objname, 
+            (char *)NULL, &istatus);
+   
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	    fprintf (fp_debug, "read keyword TARGNAME: istatus= [%d]\n", 
+	        istatus);
+            fflush (fp_debug);
+        }
+    }
+
         
-    if (debugfile) {
-	fprintf (fp_debug, "objname(TARGNAME)= [%s]\n", hdr->objname);
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+	fprintf (fp_debug, "objname(OBJNAME)= [%s]\n", hdr->objname);
         fflush (fp_debug);
     }
    
@@ -1171,7 +1231,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "SFILTER", hdr->filter, 
         (char *)NULL, &istatus);
    
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "read keyword SFILTER: istatus= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -1183,14 +1244,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         istatus = fits_read_key (fitsptr, TSTRING, "FILTER", hdr->filter, 
             (char *)NULL, &istatus);
     
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "read keyword FILTER: istatus= [%d]\n", 
 	        istatus);
             fflush (fp_debug);
         }
     }
    
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "filter= [%s]\n", hdr->filter);
         fflush (fp_debug);
     }
@@ -1200,7 +1263,8 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     istatus = fits_read_key (fitsptr, TSTRING, "SSCALE", hdr->pixscale, 
         (char *)NULL, &istatus);
    
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "read keyword SSCALE: istatus= [%d]\n", istatus);
         fflush (fp_debug);
     }
@@ -1212,14 +1276,16 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
         istatus = fits_read_key (fitsptr, TSTRING, "PIXSCALE", hdr->pixscale, 
             (char *)NULL, &istatus);
     
-        if (debugfile) {
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	    fprintf (fp_debug, "read keyword PIXSCALE: istatus= [%d]\n", 
 	        istatus);
             fflush (fp_debug);
         }
     }
    
-    if (debugfile) {
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "pixscale= [%s]\n", hdr->pixscale);
         fflush (fp_debug);
     }

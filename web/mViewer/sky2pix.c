@@ -22,11 +22,7 @@ char* fitsrhead (char *fname, int *lhead, int *nbhead);
 
 extern FILE *fp_debug;
 
-/*
-int sky2pix (char *fitsHeader, double ra_in, double dec_in, int sysin,
-    double epochin, int sysout, double epochout, double *xout, double *yout, 
-    int *outbound, char *errmsg)
-*/
+
 int sky2pix (char *fname, double ra_in, double dec_in, int sysin,
     double epochin, int h, int sysout, double epochout, 
     double *xout, double *yout, int *outbound, char *errmsg)

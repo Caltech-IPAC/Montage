@@ -469,6 +469,13 @@ int extractWaveSpectra (struct Mviewer *param)
     strcpy (colname, "planenum");
     fprintf (fp, "|%-16s|", colname); 
 
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	fprintf (fp_debug, "plotxaxis= [%s] plotyaxis= [%s]\n", 
+	    param->plotxaxis, param->plotyaxis);
+        fflush (fp_debug);
+    }         
+
+
     if ((int)strlen(param->plotxaxis) > 0) {
         sprintf (colname, "%s", param->plotxaxis);
     }

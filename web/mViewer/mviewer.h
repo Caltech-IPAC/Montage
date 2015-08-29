@@ -155,6 +155,8 @@ struct IminfoRec
 struct Mviewer
 {
     char    errmsg[1024];
+    char    status[40];
+
     int     nkey;
 
 /*

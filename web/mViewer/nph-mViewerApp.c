@@ -25,7 +25,7 @@ Input:
 -- project name (to set the cookie name)
 
 
-Date: July 22, 2015 (Mihseh Kong)
+Date: August 18, 2015 (Mihseh Kong)
 */
 #include <unistd.h>
 #include <stdio.h>
@@ -48,6 +48,8 @@ Date: July 22, 2015 (Mihseh Kong)
 #include <cmd.h>
 
 #include "viewerapp.h"
+#include "fitshdr.h"
+
 
 #define MAXSTR 1024
 #define MAXTBL   64
@@ -64,10 +66,12 @@ int checkFileExist (char *fname, char *rootname, char *suffix,
 
 int extractStartupParam (struct ViewerApp *param);
 
+int getFitshdr (char *fromFile, struct FitsHdr *hdr);
+
 int writeJsonFile (struct ViewerApp *param);
 int writePlotJson (struct ViewerApp *param);
 
-int makeStartupHtml (struct ViewerApp *param); 
+int makeStartupHtml (struct ViewerApp *param, struct FitsHdr *hdr); 
 int readStartupParam (struct ViewerApp *param, char *parampath); 
 
 
@@ -79,6 +83,8 @@ int main (int argc, char *argv[], char *envp[])
 
     struct ViewerApp param;
 
+    struct FitsHdr hdr;
+    
     char   *cptr;
     char   cmd[1024];
     char   str[1024];
@@ -106,6 +112,7 @@ int main (int argc, char *argv[], char *envp[])
     if (debugfile) {
         
         sprintf (debugfname, "/tmp/viewerapp_%d.debug", pid);
+
 
 	fp_debug = fopen (debugfname, "w+");
 	if (fp_debug == (FILE *)NULL) {
@@ -147,27 +154,6 @@ int main (int argc, char *argv[], char *envp[])
 	printerr (param.errmsg);
     }
 
-/*
-    if ((int)strlen(param.viewhtml) == 0) {
-
-	strcpy (str, param.viewtemplate);
-
-	cptr = (char *)NULL;
-	cptr = strrchr (str, '.');
-	if (cptr != (char *)NULL) {
-            *cptr = '\0';
-	}
-
-	sprintf (param.viewhtml, "%s.html", str);
-	sprintf (param.viewhtmlpath, "%s/%s.html", param.directory, str);
-
-	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-            fprintf (fp_debug, "viewhtml= [%s]\n", param.viewhtml);
-            fflush (fp_debug);
-        }
-    }
-*/   
-
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
       
         fprintf (fp_debug, "\nhttp_srvr = [%s]\n", param.http_srvr);
@@ -202,12 +188,6 @@ int main (int argc, char *argv[], char *envp[])
         fflush (fp_debug);
     }
     
-    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-        fprintf (fp_debug, "here1\n");
-        fflush (fp_debug);
-    }
-    
-
 
 /*
     Extract imname from filename
@@ -326,6 +306,102 @@ int main (int argc, char *argv[], char *envp[])
 
 
 /*
+    Read FitsHdr to extract special keywords: objname, filter, and pixscale
+    for display.
+    
+    If it is a fits cube, find out nfitsplane too.
+    Note: Only deal with grayfile at present.
+*/
+    param.nfitsplane = 0;
+
+    if (param.isimcube) {
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "here1: isimcube\n");
+            fflush (fp_debug);
+        }
+
+	istatus = getFitshdr (param.imcubepath, &hdr); 
+	    
+	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "returned getFitshdr: istatus= [%d]\n", istatus);
+            fflush (fp_debug);
+        }
+	   
+
+        if (istatus != 0) {
+	    sprintf (param.errmsg, 
+	        "Failed to extract Fits Header from input imcube file [%s]\n",
+	        param.imcubepath);
+            printerr (param.errmsg);
+	}
+            
+	param.nfitsplane = hdr.nplane;
+            
+	strcpy (param.filter, hdr.filter);
+	strcpy (param.objname, hdr.objname);
+	strcpy (param.pixscale, hdr.pixscale);
+
+	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	        
+	    fprintf (fp_debug, "isimcube= [%d]\n", param.isimcube);
+	    fprintf (fp_debug, "nfitsplane= [%d]\n", param.nfitsplane);
+	        
+	    fprintf (fp_debug, "objname= [%s]\n", param.objname);
+	    fprintf (fp_debug, "pixscale= [%s]\n", param.pixscale);
+	    fprintf (fp_debug, "filter= [%s]\n", param.filter);
+		
+	    fprintf (fp_debug, "axisIndx[2]= [%d]\n", hdr.axisIndx[2]);
+	    fprintf (fp_debug, "cdelt[2]= [%lf]\n", 
+	        hdr.cdelt[hdr.axisIndx[2]]);
+	    fprintf (fp_debug, "crval[2]= [%lf]\n", 
+	        hdr.crval[hdr.axisIndx[2]]);
+            fflush (fp_debug);
+        }
+
+        param.cdelt3 = hdr.cdelt[hdr.axisIndx[2]]; 
+        param.crval3 = hdr.crval[hdr.axisIndx[2]]; 
+	
+	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "cdelt3= [%lf]\n", param.cdelt3);
+	    fprintf (fp_debug, "crval3= [%lf]\n", param.crval3);
+            fflush (fp_debug);
+        }
+       
+    }
+    else {
+	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "here2: imfile: %s\n", param.graypath);
+            fflush (fp_debug);
+        }
+
+	istatus = getFitshdr (param.graypath, &hdr); 
+            
+	strcpy (param.filter, hdr.filter);
+	strcpy (param.objname, hdr.objname);
+	strcpy (param.pixscale, hdr.pixscale);
+
+	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "returned getFitshdr: istatus= [%d]\n", istatus);
+		
+	    fprintf (fp_debug, "objname= [%s]\n", param.objname);
+	    fprintf (fp_debug, "pixscale= [%s]\n", param.pixscale);
+	    fprintf (fp_debug, "filter= [%s]\n", param.filter);
+            fflush (fp_debug);
+        }
+	   
+
+        if (istatus != 0) {
+	        sprintf (param.errmsg, 
+	          "Failed to extract Fits Header from input image file [%s]\n",
+		  param.graypath);
+                
+		printerr (param.errmsg);
+	}
+    }
+
+
+/*
     If input jsonfile doesn't exist, create jsonfile
 */
     if ((int)strlen(param.jsonfile) == 0) {
@@ -388,8 +464,6 @@ int main (int argc, char *argv[], char *envp[])
         if (istatus < 0) {
 	    printerr (param.errmsg);
         }
-
-
     }
 
        
@@ -399,7 +473,7 @@ int main (int argc, char *argv[], char *envp[])
     }
 
 
-    istatus = makeStartupHtml (&param); 
+    istatus = makeStartupHtml (&param, &hdr); 
 
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
         fprintf (fp_debug, "returning makeStartupHtml: istatus= [%d]\n",

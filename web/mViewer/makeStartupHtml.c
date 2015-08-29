@@ -1,7 +1,7 @@
 /*
 Theme:  Routine for making the viewer HTML pages from a template.
 
-Date: March 11, 2015 (Mihseh Kong)
+Date: August 18, 2015 (Mihseh Kong)
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +22,6 @@ Date: March 11, 2015 (Mihseh Kong)
 #include <svc.h>
 
 #include "viewerapp.h"
-#include "fitshdr.h"
 
 
 char strtrim (char *);
@@ -36,15 +35,12 @@ int fileCopy (char *fromFile, char *toFile, char *errmsg);
 int writeOptionList (char *filepath, int narr, char **optionarr,
     int selectedIndx, char *errmsg);
 
-int getFitshdr (char *fromFile, struct FitsHdr *hdr);
 
 extern FILE *fp_debug;
 
 
 int makeStartupHtml (struct ViewerApp *param)
 {
-    struct FitsHdr hdr;
-    
     FILE           *fp;
 
     char           viewhtmlpath[1024];
@@ -94,10 +90,7 @@ int makeStartupHtml (struct ViewerApp *param)
 
 	fprintf (fp_debug, "redfile= [%s] grnfile= [%s] bluefile= [%s]\n",
 	    param->redfile, param->grnfile, param->bluefile);
-        fflush (fp_debug);
-    }
 
-    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	fprintf (fp_debug, "viewhtml= [%s]\n", param->viewhtml);
 	fprintf (fp_debug, "directory= [%s]\n", param->directory);
 	fprintf (fp_debug, "Make viewhtml from template\n");
@@ -219,30 +212,13 @@ int makeStartupHtml (struct ViewerApp *param)
             fflush (fp_debug);
         }
 
+
         if (param->isimcube) {
 
             if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	        fprintf (fp_debug, "here1: isimcube\n");
                 fflush (fp_debug);
             }
-
-	    istatus = getFitshdr (param->imcubepath, &hdr); 
-	    
-	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	        fprintf (fp_debug, "returned getFitshdr: istatus= [%d]\n",
-		    istatus);
-                fflush (fp_debug);
-            }
-	   
-
-            if (istatus != 0) {
-	        sprintf (param->errmsg, 
-	          "Failed to extract Fits Header from input imcube file [%s]\n",
-		  param->imcubepath);
-                return (-1);
-	    }
-            
-	    param->nfitsplane = hdr.nplane;
 
             if (param->nfitsplane > 0) {
             
@@ -272,30 +248,6 @@ int makeStartupHtml (struct ViewerApp *param)
                 }
 	   
 	    }
-	}
-	else {
-	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	        fprintf (fp_debug, "here2: imfile: %s\n", param->graypath);
-                fflush (fp_debug);
-            }
-
-	    istatus = getFitshdr (param->graypath, &hdr); 
-            
-	    
-	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	        fprintf (fp_debug, "returned getFitshdr: istatus= [%d]\n",
-		    istatus);
-                fflush (fp_debug);
-            }
-	   
-
-            if (istatus != 0) {
-	        sprintf (param->errmsg, 
-	          "Failed to extract Fits Header from input image file [%s]\n",
-		  param->graypath);
-                return (-1);
-	    }
-            
 	}
 
 
@@ -475,18 +427,9 @@ int makeStartupHtml (struct ViewerApp *param)
 	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	    fprintf (fp_debug, "isimcube= [%d]\n", param->isimcube);
 	    fprintf (fp_debug, "imfile= [%s]\n", imfile);
-	    fprintf (fp_debug, "axisIndx[2]= [%d]\n", hdr.axisIndx[2]);
-	    fprintf (fp_debug, "cdelt[2]= [%lf]\n", hdr.cdelt[hdr.axisIndx[2]]);
-	    fprintf (fp_debug, "crval[2]= [%lf]\n", hdr.crval[hdr.axisIndx[2]]);
-            fflush (fp_debug);
-        }
-
-        cdelt3 = hdr.cdelt[hdr.axisIndx[2]]; 
-        crval3 = hdr.crval[hdr.axisIndx[2]]; 
-	
-	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	    fprintf (fp_debug, "cdelt3= [%lf]\n", cdelt3);
-	    fprintf (fp_debug, "crval3= [%lf]\n", crval3);
+	    
+	    fprintf (fp_debug, "cdelt3= [%lf]\n", param->cdelt3);
+	    fprintf (fp_debug, "crval3= [%lf]\n", param->crval3);
             fflush (fp_debug);
         }
        
@@ -499,8 +442,8 @@ int makeStartupHtml (struct ViewerApp *param)
 	    "httpurl",	        "%s",              param->baseurl,
 	    "isimcube",		"%d",	           param->isimcube,
 	    "nplane",           "%d",              param->nfitsplane,
-	    "cdelt3",           "%lf",             cdelt3,
-	    "crval3",           "%lf",             crval3,
+	    "cdelt3",           "%lf",             param->cdelt3,
+	    "crval3",           "%lf",             param->crval3,
 	    "imfile",           "%s",              imfile,
 	    "grayfile",         "%s",              param->grayfile,
 	    "imcubepath",       "%s",              param->imcubepath,
@@ -525,9 +468,9 @@ int makeStartupHtml (struct ViewerApp *param)
 	    "graylistoption",   "%s",              graylistoptionPath,
 	    "srctbloption",     "%s",              srctbloptionPath,
 	    "iminfooption",     "%s",              iminfooptionPath,
-	    "objname",     	"%s",              hdr.objname,
-	    "filter",     	"%s",              hdr.filter,
-	    "pixscale",     	"%s",              hdr.pixscale,
+	    "objname",     	"%s",              param->objname,
+	    "filter",     	"%s",              param->filter,
+	    "pixscale",     	"%s",              param->pixscale,
 	    "END_PARM");
 
 

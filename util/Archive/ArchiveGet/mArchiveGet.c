@@ -79,6 +79,8 @@ int main(int argc, char **argv)
    char   request [MAXLEN];
    char   urlStr  [MAXLEN];
    char   hostStr [MAXLEN];
+   char   cmd     [MAXLEN];
+   char   fileName[MAXLEN];
  
    char  *proxy;
    char   phostStr[MAXLEN];
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
    fdebug  = stdout;
    fstatus = stdout;
 
-   strcpy(hostStr, "irsa.ipac.caltech.edu");
+   strcpy(hostStr, "vaoweb3.ipac.caltech.edu");
    strcpy(archive_msg, "");
 
    archive_sigset();
@@ -109,22 +111,22 @@ int main(int argc, char **argv)
    {
       switch (c)
       {
-	 case 'd':
-	    debug = 1;
-	    break;
+         case 'd':
+            debug = 1;
+            break;
 
-	 case 'r':
-	    raw = 1;
-	    break;
+         case 'r':
+            raw = 1;
+            break;
 
-	 case 't':
-	    timeout = atoi(optarg);
-	    break;
+         case 't':
+            timeout = atoi(optarg);
+            break;
 
-	 default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage:  %s [-d][-r] remoteref localfile\"]\n",argv[0]);
-	    exit(0);
-	    break;
+         default:
+            printf("[struct stat=\"ERROR\", msg=\"Usage:  %s [-d][-r] remoteref localfile\"]\n",argv[0]);
+            exit(0);
+            break;
       }
    }
 
@@ -143,12 +145,14 @@ int main(int argc, char **argv)
       fflush(fdebug);
    }
 
-   fd = open(argv[optind+1], O_WRONLY | O_CREAT, 0644);
+   strcpy(fileName, argv[optind+1]);
+
+   fd = open(fileName, O_WRONLY | O_CREAT, 0644);
  
    if(fd < 0)
    {
       fprintf(fdebug, "[struct stat=\"ERROR\", msg=\"Output file(%s) open failed\"]\n", 
-	 argv[optind+1]);
+         argv[optind+1]);
       exit(0);
    }
   
@@ -198,17 +202,17 @@ int main(int argc, char **argv)
    if(raw) {
      if(proxy)
        sprintf(request, "GET %s/%s\r\n\r\n",
-	       hostStr, dataref);
+               hostStr, dataref);
      else 
        sprintf(request, "GET %s\r\n\r\n",
-	       dataref);       
+               dataref);       
    } else {
      if(proxy)
        sprintf(request, "GET %s HTTP/1.0\r\n\r\n",
-	       urlStr);
+               urlStr);
      else 
        sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n",
-	       dataref, hostStr);
+               dataref, hostStr);
    }
  
    if(debug)
@@ -236,84 +240,84 @@ int main(int argc, char **argv)
       nread = read(socket, buf, MAXLEN);
  
       if(nread <= 0)
- 	break;
+         break;
 
       if(debug)
       {
-	 fprintf(fdebug, "DEBUG> read %d bytes\n", nread);
-	 fflush(fdebug);
+         fprintf(fdebug, "DEBUG> read %d bytes\n", nread);
+         fflush(fdebug);
       }
       
       if(!pastHeader && ihead == 0 && strncmp(buf, "H", 1) != 0)
       {
-	 if(debug)
-	 {
-	    fprintf(fdebug, "DEBUG> No HTTP header on this one.\n");
-	    fflush(fdebug);
+         if(debug)
+         {
+            fprintf(fdebug, "DEBUG> No HTTP header on this one.\n");
+            fflush(fdebug);
 
-	    for(i=0; i<40; ++i)
-	      lead[i] = buf[i];
+            for(i=0; i<40; ++i)
+              lead[i] = buf[i];
 
-	    lead[40] = '\0';
-	    fprintf(fdebug, "DEBUG> Starts with: [%s]... \n", lead);
-	    fflush(fdebug);
-	 }
+            lead[40] = '\0';
+            fprintf(fdebug, "DEBUG> Starts with: [%s]... \n", lead);
+            fflush(fdebug);
+         }
 
-	 pastHeader = 1;
+         pastHeader = 1;
       }
 
       if(!pastHeader)
       {
-	 for(i=0; i<nread; ++i)
-	 {
-	    head[ihead] = buf[i];
-	    ++ihead;
-	 }
+         for(i=0; i<nread; ++i)
+         {
+            head[ihead] = buf[i];
+            ++ihead;
+         }
 
-	 head[ihead] = '\0';
+         head[ihead] = '\0';
 
-	 if(debug)
-	 {
-	    fprintf(fdebug, "DEBUG> Header ->\n%s\nDEBUG> Length = %d\n",
-	       head, ihead);
-	    fflush(fdebug);
-	 }
+         if(debug)
+         {
+            fprintf(fdebug, "DEBUG> Header ->\n%s\nDEBUG> Length = %d\n",
+               head, ihead);
+            fflush(fdebug);
+         }
 
-	 for(i=0; i<ihead-3; ++i)
-	 {
-	    if(strncmp(head+i, "\r\n\r\n", 4) == 0 && ihead-i-4 > 0)
-	    {
-	       if(debug)
-	       {
-		  fprintf(fdebug, "DEBUG> End of header found: %d - %d\n",
-		     i, i+3);
+         for(i=0; i<ihead-3; ++i)
+         {
+            if(strncmp(head+i, "\r\n\r\n", 4) == 0 && ihead-i-4 > 0)
+            {
+               if(debug)
+               {
+                  fprintf(fdebug, "DEBUG> End of header found: %d - %d\n",
+                     i, i+3);
 
-		  fprintf(fdebug, "DEBUG> Writing %d from header array\n",
-		     ihead-i-4);
+                  fprintf(fdebug, "DEBUG> Writing %d from header array\n",
+                     ihead-i-4);
 
-		  fflush(fdebug);
-	       }
+                  fflush(fdebug);
+               }
 
-	       write(fd, head+i+4, ihead-i-4);
+               write(fd, head+i+4, ihead-i-4);
 
-	       pastHeader = 1;
+               pastHeader = 1;
 
-	       break;
-	    }
-	 }
+               break;
+            }
+         }
       }
       else
       {
-	 count += nread;
+         count += nread;
 
-	 if(debug)
-	 {
-	    fprintf(fdebug, "DEBUG> Writing %d\n", nread);
-	    fflush(fdebug);
-	 }
+         if(debug)
+         {
+            fprintf(fdebug, "DEBUG> Writing %d\n", nread);
+            fflush(fdebug);
+         }
 
-	
-	 write(fd, buf, nread);
+        
+         write(fd, buf, nread);
       }
    }
 
@@ -321,7 +325,19 @@ int main(int argc, char **argv)
 
    alarm(0);
 
-   checkHdr(argv[optind+1], 0, 0);
+
+   /* Unzip the file if necesary */
+
+   if(strlen(fileName) > 4 && strcmp(fileName+strlen(fileName)-4, ".bz2") == 0)
+   {
+      sprintf(cmd, "bunzip2 %s", fileName);
+      system(cmd);
+
+      *(fileName+strlen(fileName)-4) = '\0';
+   }
+
+
+   checkHdr(fileName, 0, 0);
  
    printf("[struct stat=\"OK\", count=\"%d\"]\n", count);
    fflush(fdebug);
@@ -387,7 +403,7 @@ void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref) {
    while(1)
    {
       if(**dataref == ':' || **dataref == '/' || **dataref == '\0')
-	 break;
+         break;
       
       ++*dataref;
    }
@@ -409,10 +425,10 @@ void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref) {
 
       while(1)
       {
-	 if(**dataref == '/' || **dataref == '\0')
-	    break;
-	 
-	 ++*dataref;
+         if(**dataref == '/' || **dataref == '\0')
+            break;
+         
+         ++*dataref;
       } 
 
       **dataref = '\0';
@@ -423,8 +439,8 @@ void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref) {
 
       if(*port <= 0)
       {
-	 printf("[struct stat=\"ERROR\", msg=\"Illegal port number in URL\"]\n");
-	 exit(0);
+         printf("[struct stat=\"ERROR\", msg=\"Illegal port number in URL\"]\n");
+        exit(0);
       }
    }
 }

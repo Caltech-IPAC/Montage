@@ -242,6 +242,8 @@ int writeJsonFile (struct ViewerApp *param)
 	fprintf (fp_debug, "outimtype= [%s]\n", param->outimtype);
 	fprintf (fp_debug, "canvaswidth= [%d] canvasheight= [%d]\n", 
 	    param->canvaswidth, param->canvasheight);
+	fprintf (fp_debug, "objname= [%s] pixscale= [%s] filter= [%s]\n", 
+	    param->objname, param->pixscale, param->filter);
         fflush (fp_debug);
     }
 
@@ -258,15 +260,23 @@ int writeJsonFile (struct ViewerApp *param)
         fprintf(fp, "  \"refHeight\": \"%d\",\n", param->refheight);
     }
 
+    fprintf(fp, "  \"nowcs\": \"%d\",\n", param->nowcs);
+
     if ((int)strlen(param->imcursormode) > 0) {
 	fprintf(fp, "  \"imcursorMode\": \"%s\",\n", param->imcursormode);
     }
 
-/*
-    fprintf(fp, "  \"objName\": \"%s\",\n", param->objname);
-    fprintf(fp, "  \"filter\": \"%s\",\n", param->filter);
-    fprintf(fp, "  \"pixScale\": \"%lf\",\n", param->pixscale);
-*/
+    if ((int)strlen(param->objname) > 0) {
+        fprintf(fp, "  \"objName\": \"%s\",\n", param->objname);
+    }
+
+    if ((int)strlen(param->filter) > 0) {
+        fprintf(fp, "  \"filter\": \"%s\",\n", param->filter);
+    }
+    
+    if ((int)strlen(param->pixscale) > 0) {
+        fprintf(fp, "  \"pixScale\": \"%s\",\n", param->pixscale);
+    }
 
     if (param->isimcube) {
         
@@ -316,12 +326,9 @@ int writeJsonFile (struct ViewerApp *param)
             strcpy (str, "");
 	    fprintf(fp, "    \"waveplotType\": \"%s\",\n", param->waveplottype);
 	    fprintf(fp, "    \"plotjsonFile\": \"%s\",\n", param->plotjsonpath);
-	    fprintf(fp, "    \"plotXpix\": \"%s\",\n", str);
-	    fprintf(fp, "    \"plotYpix\": \"%s\",\n", str);
-	    fprintf(fp, "    \"plotXs\": \"%s\",\n", str);
-	    fprintf(fp, "    \"plotYs\": \"%s\",\n", str);
-	    fprintf(fp, "    \"plotXe\": \"%s\",\n", str);
-	    fprintf(fp, "    \"plotYe\": \"%s\"\n", str);
+	    
+	    fprintf(fp, "    \"plotXaxis\": \"%s\",\n", param->plotxaxis);
+	    fprintf(fp, "    \"plotYaxis\": \"%s\"\n", param->plotyaxis);
 	}
 	else {
 	    fprintf(fp, "    \"centerPlane\": \"%d\"\n", param->centerplane);

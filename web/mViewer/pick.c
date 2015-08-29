@@ -67,7 +67,7 @@ int readPixelValue (char *fname, int ixpix, int iypix, int w, int h,
     
     double           *data;
 
-    int              debugfile = 0;
+    int              debugfile = 1;
 
 
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
@@ -263,6 +263,14 @@ int pick (struct Mviewer *param)
         param->nowcs = hdr.nowcs;
     }
 
+    ixpix = (int) (param->xs + 0.5);
+    iypix = (int) (param->ys + 0.5);
+
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	fprintf (fp_debug, "ixpix= [%d] iypix= [%d]\n", ixpix, iypix);
+	fflush (fp_debug);
+    }
+   
     if (!param->nowcs) {
        
 	sprintf (imcsys, "%s %s", hdr.csysstr, hdr.epochstr);
@@ -290,9 +298,6 @@ int pick (struct Mviewer *param)
 	    return (-1); 
         }
    
-
-        ixpix = (int) (param->xs + 0.5);
-        iypix = (int) (param->ys + 0.5);
 
         if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	    fprintf (fp_debug, "call pix2sky: ixpix= [%d] iypix= [%d]\n",

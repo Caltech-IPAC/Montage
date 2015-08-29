@@ -113,7 +113,7 @@ struct ViewerApp
 
     char    objname[40];
     char    filter[40];
-    double  pixscale;
+    char    pixscale[40];
 
 
 /*

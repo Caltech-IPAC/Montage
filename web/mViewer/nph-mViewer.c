@@ -201,6 +201,8 @@ int main (int argc, char *argv[], char *envp[])
 
     if (debugfile) {
         sprintf (debugfname, "/tmp/mviewer_%d.debug", pid);
+        sprintf (debugfname, 
+	    "/koa/cm/ws/mihseh/montage/web/mViewer/mviewer.debug");
         
         fdebug = fopen (debugfname, "w+");
         if (fdebug == (FILE *)NULL) {
@@ -343,6 +345,10 @@ int main (int argc, char *argv[], char *envp[])
            
                 istatus = getFitshdr (imcubepath, &hdr, param.isimcube);
 
+                if (istatus == -1) {
+                    printError (param.errmsg);
+                }
+
                 if (debugfile) {
                     fprintf (fp_debug, "returned getFitshdr, istatus= [%d]\n", 
 		        istatus);
@@ -415,6 +421,10 @@ int main (int argc, char *argv[], char *envp[])
                 }
            
                 istatus = getFitshdr (param.imcubepath, &hdr, param.isimcube);
+
+                if (istatus == -1) {
+                    printError (param.errmsg);
+                }
 
                 if (debugfile) {
                     fprintf (fp_debug, "returned getFitshdr, istatus= [%d]\n", 
@@ -515,9 +525,10 @@ int main (int argc, char *argv[], char *envp[])
 		        fflush (fp_debug);
                     }
 
-	            if (istatus == -1) {
-	                return (-1);
+                    if (istatus == -1) {
+                        printError (param.errmsg);
                     }
+
                 }
 	        else {
                     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
@@ -538,8 +549,8 @@ int main (int argc, char *argv[], char *envp[])
 		            istatus);
                     }
 
-	            if (istatus == -1) {
-	                return (-1);
+                    if (istatus == -1) {
+                        printError (param.errmsg);
                     }
 
                 }
@@ -788,6 +799,11 @@ int main (int argc, char *argv[], char *envp[])
 	    fprintf (fdebug, "returned pick: istatus= [%d]\n", istatus);
             fflush (fdebug);
         }
+                    
+	if (istatus == -1) {
+            printError (param.errmsg);
+        }
+
     }
     else if (strcasecmp (param.cmd, "waveplot") == 0) { 
         
@@ -799,6 +815,10 @@ int main (int argc, char *argv[], char *envp[])
             }
       
 	    istatus = pick (&param);
+	
+	    if (istatus == -1) {
+                printError (param.errmsg);
+            }
    	
 	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	        fprintf (fdebug, "returned pick: istatus= [%d]\n", istatus);
@@ -813,6 +833,11 @@ int main (int argc, char *argv[], char *envp[])
         }
       
 	istatus = extractWaveSpectra (&param);
+	    
+	if (istatus == -1) {
+            printError (param.errmsg);
+        }
+   	
    	
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	    fprintf (fdebug, "returned extractWaveSpectra: istatus= [%d]\n", 
@@ -853,7 +878,7 @@ int main (int argc, char *argv[], char *envp[])
                 sprintf (param.errmsg, 
                     "Failed to extract FITS image header, errmsg= [%s]", 
 		    hdr.errmsg);
-	        return (-1);
+                printError (param.errmsg);
             }
 
             if (param.nowcs == -1) {
@@ -940,6 +965,10 @@ int main (int argc, char *argv[], char *envp[])
                 fflush (fdebug);
             }
 
+	    if (istatus == -1) {
+                printError (param.errmsg);
+            }
+   	
 	    strcpy (refJpgpath, "");
         }
         
@@ -954,6 +983,17 @@ int main (int argc, char *argv[], char *envp[])
     
         istatus = makeImage (&param);
     
+        if (istatus == -1) {
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "errmsg= [%s]\n", param.errmsg);
+                fflush (fdebug);
+            }
+        }
+
+	if (istatus == -1) {
+            printError (param.errmsg);
+        }
+   	
     
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "returned makeImage: istatus= [%d]\n", istatus);
@@ -962,17 +1002,8 @@ int main (int argc, char *argv[], char *envp[])
     
     }
 
-    if (istatus == -1) {
-        
-	if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "errmsg= [%s]\n", param.errmsg);
-            fflush (fdebug);
-        }
-    }
-
 
     istatus = constructRetjson (&param);
-
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
         fprintf (fdebug, "returned from constructRetjson\n");
