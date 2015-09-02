@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.1      John Good        29Aug15  Make output id column wider; some people have a lot 
+                                   of images
 3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
                                    for new development cycle.
 2.7      John Good        09Dec12  Fix realloc bug (using wrong index variable)
@@ -1413,10 +1415,10 @@ int main(int argc, char **argv)
    /* For each image, print out the final plane */
    /*********************************************/
 
-   fprintf(fout,"|  id |      a       |      b       |      c       |\n");
+   fprintf(fout,"|   id   |      a       |      b       |      c       |\n");
 
    for(i=0; i<ncorrs; ++i)
-      fprintf(fout, " %5d  %13.5e  %13.5e  %13.5e\n", 
+      fprintf(fout, " %8d  %13.5e  %13.5e  %13.5e\n", 
          corrs[i].id, corrs[i].a, corrs[i].b, corrs[i].c);
    
    fflush(fout);

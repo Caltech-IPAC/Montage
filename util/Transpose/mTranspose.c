@@ -90,6 +90,8 @@ int main(int argc, char **argv)
    fitsfile  *inFptr;
    fitsfile  *outFptr;
 
+   FILE      *fstatus;
+
 
    /************************************************/
    /* Make a NaN value to use setting blank pixels */
@@ -168,20 +170,10 @@ int main(int argc, char **argv)
       }
    }
    
-   if (argc < 3 || argc == 4) 
+   if (argc < 5) 
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: mTranspose [-d level] [-s statusfile] in.fits out.fits [outaxis1 outaxis2 [outaxis3 [outaxis4]]]\"]\n");
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: mTranspose [-d level] [-s statusfile] in.fits out.fits outaxis1 outaxis2 [outaxis3 [outaxis4]]\"]\n");
       exit(1);
-   }
-
-   if(strlen(statfile) > 0)
-   {
-      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
-      {
-         printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-            statfile);
-         exit(1);
-      }
    }
 
    strcpy(inputFile, argv[1]);
@@ -208,7 +200,7 @@ int main(int argc, char **argv)
    status = 0;
    if(fits_open_file(&inFptr, inputFile, READONLY, &status))
    {
-      sprintf(errstr, "Image file %s missing or invalid FITS", inputFile);
+      sprintf(errstr, "Input image file %s missing or invalid FITS", inputFile);
       printError(errstr);
    }
 
@@ -250,6 +242,16 @@ int main(int argc, char **argv)
       exit(1);
    }
       
+   if(strlen(statfile) > 0)
+   {
+      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
+      {
+         printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
+            statfile);
+         exit(1);
+      }
+   }
+
    if(argc > 3)
    {
       order[0] = strtol(argv[3], &end, 0);

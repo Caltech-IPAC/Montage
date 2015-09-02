@@ -121,7 +121,11 @@ int main(int argc, char **argv)
    double   *outdata;
    double  **indata;
 
+   char      statfile[MAXSTR];
+
    char     *end;
+
+   FILE     *fstatus;
 
 
    /************************************************/
@@ -157,6 +161,8 @@ int main(int argc, char **argv)
    hdu       = 0;
    mfactor   = 1;
 
+   strcat(statfile, "");
+
    fstatus = stdout;
 
    while ((c = getopt(argc, argv, "d:h:m:s:f")) != EOF) 
@@ -190,12 +196,9 @@ int main(int argc, char **argv)
             break;
             
          case 's':
-            if((fstatus = fopen(optarg, "w+")) == (FILE *)NULL)
-            {
-               printf("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-                  optarg);
-               exit(1);
-            }
+
+            strcat(statfile, optarg);
+
             break;
 
          case 'f':
@@ -215,6 +218,16 @@ int main(int argc, char **argv)
       exit(1);
    }
   
+   if(strlen(statfile) > 0)
+   {
+      if((fstatus = fopen(optarg, "w+")) == (FILE *)NULL)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
+            optarg);
+         exit(1);
+      }
+   }
+
    strcpy(input_file,    argv[optind]);
    strcpy(output_file,   argv[optind + 1]);
 
