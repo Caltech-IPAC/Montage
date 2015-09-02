@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.11     John Good        29Aug15  Increase plus/minus column size; some people
+                                   have a lot of images
 1.10     John Good        29Mar08  Add 'level only' capability
 1.9      Daniel S. Katz   25Jan07  Fixing some small bugs in the MPI version
                                    that were inadvertently introduced after 1.8
@@ -286,7 +288,7 @@ int main(int argc, char **argv)
    missing = 0;
 
 #ifndef MPI
-   fprintf(fout, "| plus|minus|       a    |      b     |      c     | crpix1  | crpix2  | xmin | xmax | ymin | ymax | xcenter | ycenter |  npixel |    rms     |    boxx    |    boxy    |  boxwidth  | boxheight  |   boxang   |\n");
+   fprintf(fout, "|  plus  |  minus |       a    |      b     |      c     | crpix1  | crpix2  | xmin | xmax | ymin | ymax | xcenter | ycenter |  npixel |    rms     |    boxx    |    boxy    |  boxwidth  | boxheight  |   boxang   |\n");
    fflush(fout);
 #endif
 
@@ -384,7 +386,7 @@ int main(int argc, char **argv)
 	 boxheight = atof(svc_value("boxheight"));
 	 boxangle  = atof(svc_value("boxang"));
 
-	 fprintf(fout, " %5d %5d %12.5e %12.5e %12.5e %9.2f %9.2f %6d %6d %6d %6d %9.2f %9.2f %9.0f %12.5e %12.1f %12.1f %12.1f %12.1f %12.1f\n",
+	 fprintf(fout, " %8d %8d %12.5e %12.5e %12.5e %9.2f %9.2f %6d %6d %6d %6d %9.2f %9.2f %9.0f %12.5e %12.1f %12.1f %12.1f %12.1f %12.1f\n",
 	    cntr1, cntr2, a, b, c, crpix1, crpix2, xmin, xmax, ymin, ymax, 
 	    xcenter, ycenter, npixel, rms, boxx, boxy, boxwidth, boxheight, boxangle);
 	 fflush(fout);
@@ -418,8 +420,7 @@ int main(int argc, char **argv)
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Can't open output file.\"]\n");
       fflush(stdout);
    }
-   fprintf(fout, "| plus|minus|       a    |      b     |      c     | crpix1  | crpix2  | xmin | xmax | ymin | ymax | xcenter | ycenter |  npixel |    rms     |    boxx    |    boxy    |  boxwidth  | boxheight  |   boxang   |\n");
-   fprintf(fout, "|%-60s|%-30s|%10s|\n", "fname", "status", "time");
+   fprintf(fout, "|  plus  |  minus |       a    |      b     |      c     | crpix1  | crpix2  | xmin | xmax | ymin | ymax | xcenter | ycenter |  npixel |    rms     |    boxx    |    boxy    |  boxwidth  | boxheight  |   boxang   |\n");
 
    for (i=0;i<MPI_size;i++) {
      (void) sprintf(fitfile, "%s_%d", orig_fitfile, i);

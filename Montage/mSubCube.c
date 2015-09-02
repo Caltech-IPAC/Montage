@@ -47,9 +47,10 @@ extern char content[];
 
 int main(int argc, char **argv)
 {
-   char      infile [1024];
-   char      outfile[1024];
-   char      appname[1024];
+   char      infile  [1024];
+   char      outfile [1024];
+   char      appname [1024];
+   char      statfile[1024];
 
    fitsfile *infptr, *outfptr;
 
@@ -94,9 +95,11 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
+   strcpy(statfile, "");
+
    strcpy(appname, argv[0]);
       
-   if(argc < 2)
+   if(argc < 6)
    {
       printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-P minplane maxplane][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s  [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
       exit(1);
@@ -168,26 +171,21 @@ int main(int argc, char **argv)
       
       if(i<argc-1 && strncmp(argv[i], "-s", 2) == 0)
       {
-         if((fstatus = fopen(argv[i+1], "w+")) == (FILE *)NULL)
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-               argv[i+1]);
-            exit(1);
-         }
+         strcpy(statfile, argv[i+1]);
 
          ++i;
       }
    }
       
-      if(debug)
-      {
-         printf("Enter mSubimage: debug= %d\n", debug);
-         printf("nowcs      = %d\n", nowcs);
-         printf("pixmode    = %d\n", pixmode);
-         printf("shrinkWrap = %d\n", shrinkWrap);
-         printf("allPixels  = %d\n", allPixels);
-         fflush(stdout);
-      }
+   if(debug)
+   {
+      printf("DEBUG> Enter mSubimage: debug= %d\n", debug);
+      printf("DEBUG> nowcs      = %d\n", nowcs);
+      printf("DEBUG> pixmode    = %d\n", pixmode);
+      printf("DEBUG> shrinkWrap = %d\n", shrinkWrap);
+      printf("DEBUG> allPixels  = %d\n", allPixels);
+      fflush(stdout);
+   }
   
 
    if(debug)
@@ -254,6 +252,13 @@ int main(int argc, char **argv)
 
    strcpy(infile,  argv[1]);
    strcpy(outfile, argv[2]);
+
+   if(debug)
+   {
+      printf("DEBUG> infile     = [%s]\n", infile);
+      printf("DEBUG> outfile    = [%s]\n", outfile);
+      fflush(stdout);
+   }
 
    if(allPixels)
    {
@@ -324,6 +329,16 @@ int main(int argc, char **argv)
       }
    }
    
+   if(strlen(statfile) > 0)
+   {
+      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
+      {
+         printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
+            argv[i+1]);
+         exit(1);
+      }
+   }
+
 
    /****************************************/
    /* Open the (unsubsetted) original file */
@@ -331,7 +346,20 @@ int main(int argc, char **argv)
    /****************************************/
 
    if (!pixmode && !nowcs) {
+
+      if(debug)
+      {
+         printf("DEBUG> calling checkHdr(\"%s\") for HDU %d\n", infile, hdu);
+         fflush(stdout);
+      }
+
        checkHdr(infile, 0, hdu);
+
+      if(debug)
+      {
+         printf("DEBUG> done\n");
+         fflush(stdout);
+      }
    }
 
    header[0] = malloc(32768);
@@ -339,6 +367,12 @@ int main(int argc, char **argv)
 
    if(fits_open_file(&infptr, infile, READONLY, &status))
    {
+      if(debug)
+      {
+         printf("DEBUG> Opening infile\n");
+         fflush(stdout);
+      }
+
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Image file %s missing or invalid FITS\"]\n",
          infile);
       exit(1);
@@ -346,6 +380,12 @@ int main(int argc, char **argv)
 
    if(hdu > 0)
    {
+      if(debug)
+      {
+         printf("DEBUG> Moving to HDU %d\n", hdu);
+         fflush(stdout);
+      }
+
       if(fits_movabs_hdu(infptr, hdu+1, NULL, &status))
       {
          fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Can't find HDU %d\"]\n", hdu);
