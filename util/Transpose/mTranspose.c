@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.2      John Good        02Sep15  Warning cleanup
 1.1      John Good        27Jul15  Test results updates
 1.0      John Good        30Jul14  Baseline code
 
@@ -245,7 +246,7 @@ int main(int argc, char **argv)
 
    if(argc < naxis + 3)
    {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Image has %d dimensions.  You must list the output for all of them.\"]\n");
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Image has %ld dimensions.  You must list the output order for all of them.\"]\n", naxis);
       exit(1);
    }
       
@@ -261,7 +262,7 @@ int main(int argc, char **argv)
 
       if(order[0] < 1 || order[0] > naxis)
       {
-         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 1 must be between 1 and %d.\"]\n", naxis);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 1 must be between 1 and %ld.\"]\n", naxis);
          exit(1);
       }
 
@@ -277,7 +278,7 @@ int main(int argc, char **argv)
 
          if(order[1] < 1 || order[1] > naxis)
          {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 must be between 1 and %d.\"]\n", naxis);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 2 must be between 1 and %ld.\"]\n", naxis);
             exit(1);
          }
 
@@ -293,7 +294,7 @@ int main(int argc, char **argv)
 
             if(order[2] < 1 || order[2] > naxis)
             {
-               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 must be between 1 and %d.\"]\n", naxis);
+               fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 3 must be between 1 and %ld.\"]\n", naxis);
                exit(1);
             }
 
@@ -309,7 +310,7 @@ int main(int argc, char **argv)
 
                if(order[3] < 1 || order[3] > naxis)
                {
-                  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 must be between 1 and %d.\"]\n", naxis);
+                  fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Axis ID 4 must be between 1 and %ld.\"]\n", naxis);
                   exit(1);
                }
             }
