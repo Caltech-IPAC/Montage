@@ -26,6 +26,8 @@ struct WorldCoor *wcs;
 double xcorrection;
 double ycorrection;
 
+FILE *fstatus;
+
 extern int debug;
 
 extern char content[];
@@ -80,8 +82,6 @@ int main(int argc, char **argv)
 
    int       status = 0;
 
-   FILE     *fstatus;
-
    struct imageParams params;
 
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
       
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-P minplane maxplane][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s  [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-P minplane maxplane][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
       exit(1);
    }
 
