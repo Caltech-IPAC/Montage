@@ -80,7 +80,10 @@ int main(int argc, char **argv)
 
    int       status = 0;
 
+   FILE     *fstatus;
+
    struct imageParams params;
+
 
    dtr = atan(1.)/45.;
 
