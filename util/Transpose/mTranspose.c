@@ -47,6 +47,8 @@ int   initTransform   (long *naxis, long *NAXIS);
 void  transform       (int i, int j, int k, int l, int *it, int *jt, int *kt, int *lt);
 int   analyzeCTYPE    (fitsfile *inFptr);
 
+FILE *fstatus;
+
 int  debug;
 
 
@@ -89,8 +91,6 @@ int main(int argc, char **argv)
 
    fitsfile  *inFptr;
    fitsfile  *outFptr;
-
-   FILE      *fstatus;
 
 
    /************************************************/
@@ -170,6 +170,12 @@ int main(int argc, char **argv)
       }
    }
    
+   if (argc >= 3 && argc < 5) 
+   {
+      printf ("[struct stat=\"ERROR\", msg=\"You must give input/output files the output axis order list (which will always be at least two integers).\"]\n");
+      exit(1);
+   }
+
    if (argc < 5) 
    {
       printf ("[struct stat=\"ERROR\", msg=\"Usage: mTranspose [-d level] [-s statusfile] in.fits out.fits outaxis1 outaxis2 [outaxis3 [outaxis4]]\"]\n");

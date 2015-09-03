@@ -24,6 +24,8 @@ int debug = 1;
 int isflat;
 
 char content[128];
+
+extern FILE *fstatus;
         
 
 struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct imageParams *params)
