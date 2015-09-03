@@ -94,6 +94,8 @@ static time_t currtime, start;
 
 static int hdu;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */
@@ -124,8 +126,6 @@ int main(int argc, char **argv)
    char      statfile[MAXSTR];
 
    char     *end;
-
-   FILE     *fstatus;
 
 
    /************************************************/
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
    hdu       = 0;
    mfactor   = 1;
 
-   strcat(statfile, "");
+   strcpy(statfile, "");
 
    fstatus = stdout;
 
@@ -220,10 +220,10 @@ int main(int argc, char **argv)
   
    if(strlen(statfile) > 0)
    {
-      if((fstatus = fopen(optarg, "w+")) == (FILE *)NULL)
+      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
       {
          printf("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-            optarg);
+            statfile);
          exit(1);
       }
    }
