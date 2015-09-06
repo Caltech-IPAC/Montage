@@ -2,7 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-1.1      John Good        13Jun11  Fix check for empty table  (was copying the header infinitely sometimes)
+1.3      John Good        02Sep15  Still not quite right: tlen() not liking one record
+1.2      John Good        13Jun11  Fix check for empty table  (was copying the header infinitely sometimes)
 1.1      John Good        25Jun07  Add check for empty table  
                                     (no data records)
 1.0      John Good        06Sep06  Baseline code
@@ -55,7 +56,7 @@ int main(int argc, char **argv)
    if(argc < 4)
    {
       printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] in.tbl colname out.tbl\"]\n",
-	 argv[0]);
+         argv[0]);
       fflush(stdout);
       exit(0);
    }
@@ -63,10 +64,10 @@ int main(int argc, char **argv)
    for(i=1; i<argc; ++i)
    {
       if(strcmp(argv[i], "-d") == 0)
-	 debug = 1;
+         debug = 1;
 
       if(strcmp(argv[i], "-r") == 0)
-	 flip = -1;
+         flip = -1;
    }
 
    if(debug)
@@ -84,7 +85,7 @@ int main(int argc, char **argv)
    if(argc < 4)
    {
       printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] in.tbl colname out.tbl\"]\n",
-	 argv[0]);
+         argv[0]);
       fflush(stdout);
       exit(0);
    }
@@ -146,10 +147,10 @@ int main(int argc, char **argv)
             line[strlen(line) - 1]  = '\0';
 
       if(foundHdr && line[0] != '|')
-	 break;
+         break;
       
       if(line[0] == '|')
-	 foundHdr = 1;
+         foundHdr = 1;
 
       fprintf(fout, "%s\n", line);
       fflush(fout);
@@ -166,7 +167,7 @@ int main(int argc, char **argv)
    if(ncols <= 0)
    {
       printf("[struct stat=\"ERROR\", msg=\"Table file open failed for [%s]\"]\n",
-	 tblname);
+         tblname);
       fflush(stdout);
       exit(0);
    }
@@ -184,19 +185,12 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   if(tlen() == 0)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Table file has no data records\"]\n");
-      fflush(stdout);
-      exit(0);
-   }
-
    icol = tcol(colname);
 
    if(icol < 0)
    {
       printf("[struct stat=\"ERROR\", msg=\"Table does not contain column [%s]\"]\n",
-	 colname);
+         colname);
       fflush(stdout);
       exit(0);
    }
@@ -206,7 +200,7 @@ int main(int argc, char **argv)
    while(1)
    {
       if(tread())
-	 break;
+         break;
       
       data [ndata] = atof(tval(icol));
       recno[ndata] = ndata;
@@ -215,18 +209,18 @@ int main(int argc, char **argv)
 
       if(ndata >= maxdata)
       {
-	 maxdata += MAXDATA;
+         maxdata += MAXDATA;
 
-	 data  = (double *)realloc(data,  maxdata*sizeof(double));
-	 recno = (int    *)realloc(recno, maxdata*sizeof(int));
+         data  = (double *)realloc(data,  maxdata*sizeof(double));
+         recno = (int    *)realloc(recno, maxdata*sizeof(int));
 
-	 if(data  == (double *)NULL
-	 || recno == (int    *)NULL)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Cannot allocate memory for data\"]\n");
-	    fflush(stdout);
-	    exit(0);
-	 }
+         if(data  == (double *)NULL
+         || recno == (int    *)NULL)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot allocate memory for data\"]\n");
+            fflush(stdout);
+            exit(0);
+         }
       }
    }
 
@@ -247,7 +241,8 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   qksort(0, ndata-1);
+   if(ndata > 1)
+      qksort(0, ndata-1);
 
    if(debug)
    {
@@ -317,56 +312,56 @@ void qksort(int ilo, int ihi)
    {
       if (flip*data[uhi] > flip*pivot) 
       {
-	 /* Here, we can reduce the size of the */
-	 /* unpartitioned region and try again. */
+         /* Here, we can reduce the size of the */
+         /* unpartitioned region and try again. */
 
-	 uhi--;
+         uhi--;
       }
       else 
       {
-	 /* Here, data[uhi] <= pivot, so swap */
-	 /* entries at indices ulo and uhi.   */
+         /* Here, data[uhi] <= pivot, so swap */
+         /* entries at indices ulo and uhi.   */
 
-	 tempEntry  = data[ulo];
-	 data[ulo]  = data[uhi];
-	 data[uhi]  = tempEntry;
+         tempEntry  = data[ulo];
+         data[ulo]  = data[uhi];
+         data[uhi]  = tempEntry;
 
-	 tempRecno  = recno[ulo];
-	 recno[ulo] = recno[uhi];
-	 recno[uhi] = tempRecno;
-
-
-	 /* After the swap, data[ulo] <= pivot. */
-
-	 if (flip*data[ulo] < flip*pivot) 
-	 {
-	    /* Swap entries at indices ieq and ulo. */
-
-	    tempEntry  = data[ieq];
-	    data[ieq]  = data[ulo];
-	    data[ulo]  = tempEntry;
-
-	    tempRecno  = recno[ieq];
-	    recno[ieq] = recno[ulo];
-	    recno[ulo] = tempRecno;
+         tempRecno  = recno[ulo];
+         recno[ulo] = recno[uhi];
+         recno[uhi] = tempRecno;
 
 
-	    /* After the swap, data[ieq] < pivot, */
-	    /* so we need to change ieq.          */
+         /* After the swap, data[ulo] <= pivot. */
 
-	    ieq++;
+         if (flip*data[ulo] < flip*pivot) 
+         {
+            /* Swap entries at indices ieq and ulo. */
+
+            tempEntry  = data[ieq];
+            data[ieq]  = data[ulo];
+            data[ulo]  = tempEntry;
+
+            tempRecno  = recno[ieq];
+            recno[ieq] = recno[ulo];
+            recno[ulo] = tempRecno;
 
 
-	    /* We also need to change ulo, but we also need to do  */
-	    /* that when data[ulo] = pivot, so we do it after this */
-	    /* if statement.                                       */
-	 }
-	 
+            /* After the swap, data[ieq] < pivot, */
+            /* so we need to change ieq.          */
 
-	 /* Once again, we can reduce the size of   */
-	 /* the unpartitioned region and try again. */
+            ieq++;
 
-	 ulo++;
+
+            /* We also need to change ulo, but we also need to do  */
+            /* that when data[ulo] = pivot, so we do it after this */
+            /* if statement.                                       */
+         }
+         
+
+         /* Once again, we can reduce the size of   */
+         /* the unpartitioned region and try again. */
+
+         ulo++;
       }
    }
 

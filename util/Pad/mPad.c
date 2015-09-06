@@ -62,18 +62,26 @@ static time_t currtime, start;
 
 int main(int argc, char **argv)
 {
-   int       i, j, jnorm, joffset, status, padline;
-   int       nowcs, haveBar;
-   double    imin, imax, jmin, jmax;
-   double    val, valmin, valmax;
-   int       left, right, top, bottom;
-   long      fpixelin[4], fpixelout[4], nelementsin, nelementsout;
-   double   *inbuffer;
-   double    NaNvalue;
+   int     i, j, jnorm, joffset, status, padline;
+   int     nowcs, haveBar, index, offset;
+   double  imin, imax, jmin, jmax;
+   int     left, right, top, bottom;
+   long    fpixelin[4], fpixelout[4], nelementsin, nelementsout;
+   double *inbuffer;
+   double  val, NaNvalue;
+   double  dataval[256];
 
-   double   *outbuffer;
+   double *outbuffer;
 
-   char     *end;
+   char   *end;
+   char    histfile  [1024];
+   char    line      [1024];
+   char    label     [1024];
+
+   char    datavalStr[256][1024];
+
+   FILE   *fhist;
+
 
 
    /**********************************************/
@@ -110,111 +118,97 @@ int main(int argc, char **argv)
    {
       if(strcmp(argv[i], "-d") == 0)
       {
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
+            exit(1);
+         }
 
-	 debug = strtol(argv[i+1], &end, 0);
+         debug = strtol(argv[i+1], &end, 0);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 if(debug < 0)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
-	    exit(1);
-	 }
+         if(debug < 0)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
 
       else if(strcmp(argv[i], "-bar") == 0)
       {
          haveBar = 1;
 
-	 if(i+6 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Not enough information given to draw color bar\"]\n");
-	    exit(1);
-	 }
+         if(i+6 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Not enough information given to draw color bar\"]\n");
+            exit(1);
+         }
 
-	 imin = strtol(argv[i+1], &end, 0);
+         imin = strtol(argv[i+1], &end, 0);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bar X min string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Bar X min string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 imax = strtol(argv[i+2], &end, 0);
+         imax = strtol(argv[i+2], &end, 0);
 
-	 if(end - argv[i+2] < strlen(argv[i+2]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bar X max string is invalid: '%s'\"]\n", argv[i+2]);
-	    exit(1);
-	 }
+         if(end - argv[i+2] < strlen(argv[i+2]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Bar X max string is invalid: '%s'\"]\n", argv[i+2]);
+            exit(1);
+         }
 
-	 jmin = strtol(argv[i+3], &end, 0);
+         jmin = strtol(argv[i+3], &end, 0);
 
-	 if(end - argv[i+3] < strlen(argv[i+3]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bar Y min string is invalid: '%s'\"]\n", argv[i+3]);
-	    exit(1);
-	 }
+         if(end - argv[i+3] < strlen(argv[i+3]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Bar Y min string is invalid: '%s'\"]\n", argv[i+3]);
+            exit(1);
+         }
 
-	 jmax = strtol(argv[i+4], &end, 0);
+         jmax = strtol(argv[i+4], &end, 0);
 
-	 if(end - argv[i+4] < strlen(argv[i+4]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bar Y max string is invalid: '%s'\"]\n", argv[i+4]);
-	    exit(1);
-	 }
+         if(end - argv[i+4] < strlen(argv[i+4]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Bar Y max string is invalid: '%s'\"]\n", argv[i+4]);
+            exit(1);
+         }
 
-	 valmin = strtod(argv[i+5], &end);
+         strcpy(histfile, argv[i+5]);
 
-	 if(end - argv[i+5] < strlen(argv[i+5]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bar value min string is invalid: '%s'\"]\n", argv[i+5]);
-	    exit(1);
-	 }
-
-	 valmax = strtod(argv[i+6], &end);
-
-	 if(end - argv[i+6] < strlen(argv[i+6]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bar value min string is invalid: '%s'\"]\n", argv[i+6]);
-	    exit(1);
-	 }
-
-         i += 6;
+         i += 5;
       }
 
       else if(strcmp(argv[i], "-val") == 0)
       {
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No value given for NaN conversion\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No value given for NaN conversion\"]\n");
+            exit(1);
+         }
 
-	 NaNvalue = strtod(argv[i+1], &end);
+         NaNvalue = strtod(argv[i+1], &end);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"NaN conversion value string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"NaN conversion value string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
 
       else if(strcmp(argv[i], "-nowcs") == 0)
-	 nowcs = 1;
+         nowcs = 1;
 
       else
          break;
@@ -225,7 +219,7 @@ int main(int argc, char **argv)
 
    if (argc < 6) 
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: mPad [-nowcs][-d level][-val NaN-value][-bar xmin xmax ymin ymax datamin datamax] in.fits out.fits left right top bottom\"]\n");
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: mPad [-nowcs][-d level][-val NaN-value][-bar xmin xmax ymin ymax histfile] in.fits out.fits left right top bottom\"]\n");
       exit(1);
    }
 
@@ -250,6 +244,33 @@ int main(int argc, char **argv)
    }
 
 
+   /***************************/
+   /* Read the histogram file */
+   /***************************/
+
+   if(haveBar)
+   {
+      fhist = fopen(histfile, "r");
+
+      if(fhist == (FILE *)NULL)
+      {
+         printf ("[struct stat=\"ERROR\", msg=\"Cannot open histogram file %s\"]\n", histfile);
+         exit(1);
+      }
+
+      for(i=0; i<15; ++i)
+      fgets(line, 1024, fhist);
+
+      for(i=0; i<256; ++i)
+      {
+         fgets(line, 1024, fhist);
+         sscanf(line, "%s %s", label, datavalStr[i]);
+
+         dataval[i] = atof(datavalStr[i]);
+      }
+   }
+
+
    /************************/
    /* Read the input image */
    /************************/
@@ -266,9 +287,9 @@ int main(int argc, char **argv)
 
       if(!nowcs)
       {
-	 printf("input.crpix1         =  %-g\n",   input.crpix1);
-	 printf("input.crpix2         =  %-g\n",   input.crpix2);
-	 printf("input.flip           =  %d\n",    input.flip);
+         printf("input.crpix1         =  %-g\n",   input.crpix1);
+         printf("input.crpix2         =  %-g\n",   input.crpix2);
+         printf("input.flip           =  %d\n",    input.flip);
       }
 
       fflush(stdout);
@@ -277,14 +298,28 @@ int main(int argc, char **argv)
    output.naxes[0] = input.naxes[0] + left + right;
    output.naxes[1] = input.naxes[1] + top  + bottom;
 
+   if(imin < 0) imin = output.naxes[0] + 1 + imin;
+   if(imax < 0) imax = output.naxes[0] + 1 + imax;
+   if(jmin < 0) jmin = output.naxes[1] + 1 + jmin;
+   if(jmax < 0) jmax = output.naxes[1] + 1 + jmax;
+
+   if(debug >= 1)
+   {
+      printf("imin            -> %d\n",   imin);
+      printf("imax            -> %d\n",   imax);
+      printf("jmin            -> %d\n",   jmin);
+      printf("jmax            -> %d\n",   jmax);
+      fflush(stdout);
+   }
+
    if(!nowcs)
    {
       output.crpix1   = input.crpix1 + left;
 
       if(input.flip)
-	 output.crpix2   = input.crpix2 + top;
+         output.crpix2   = input.crpix2 + top;
       else
-	 output.crpix2   = input.crpix2 + bottom;
+         output.crpix2   = input.crpix2 + bottom;
    }
 
    if(debug >= 1)
@@ -294,8 +329,8 @@ int main(int argc, char **argv)
 
       if(!nowcs)
       {
-	 printf("output.crpix1         =  %-g\n",   output.crpix1);
-	 printf("output.crpix2         =  %-g\n",   output.crpix2);
+         printf("output.crpix1         =  %-g\n",   output.crpix1);
+         printf("output.crpix2         =  %-g\n",   output.crpix2);
       }
 
       fflush(stdout);
@@ -338,7 +373,7 @@ int main(int argc, char **argv)
    /***************************/
 
    if(fits_update_key_lng(output.fptr, "BITPIX", -64,
-			  (char *)NULL, &status))
+                          (char *)NULL, &status))
       printFitsError(status);
 
    if(fits_update_key_lng(output.fptr, "NAXIS1", output.naxes[0],
@@ -352,12 +387,12 @@ int main(int argc, char **argv)
    if(!nowcs)
    {
       if(fits_update_key_dbl(output.fptr, "CRPIX1", output.crpix1, -14,
-				     (char *)NULL, &status))
-	  printFitsError(status);
+                                     (char *)NULL, &status))
+          printFitsError(status);
 
       if(fits_update_key_dbl(output.fptr, "CRPIX2", output.crpix2, -14,
-				     (char *)NULL, &status))
-	  printFitsError(status);
+                                     (char *)NULL, &status))
+          printFitsError(status);
    }
 
 
@@ -371,7 +406,7 @@ int main(int argc, char **argv)
    if(debug >= 1)
    {
       printf("%ld bytes allocated for row of output image pixels\n", 
-	 output.naxes[0] * sizeof(double));
+         output.naxes[0] * sizeof(double));
       fflush(stdout);
    }
 
@@ -380,7 +415,7 @@ int main(int argc, char **argv)
    if(debug >= 1)
    {
       printf("%ld bytes allocated for row of input image pixels\n", 
-	 input.naxes[0] * sizeof(double));
+         input.naxes[0] * sizeof(double));
       fflush(stdout);
    }
 
@@ -418,15 +453,15 @@ int main(int argc, char **argv)
    {
       if(debug >= 2)
       {
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 printf("\rPad initial row %d", j);
+         printf("\rPad initial row %d", j);
 
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 fflush(stdout);
+         fflush(stdout);
       }
 
       jnorm = j;
@@ -435,20 +470,27 @@ int main(int argc, char **argv)
          jnorm = bottom + input.naxes[1] + (padline - j);
 
       for (i=0; i<output.naxes[0]; ++i)
-	 outbuffer[i] = NaNvalue;
+         outbuffer[i] = NaNvalue;
 
       if(haveBar && jnorm >= jmin && jnorm <= jmax)
       {
-         val = valmin + (valmax - valmin)/(jmax - jmin) * (jnorm - jmin);
+         index = (jnorm - jmin) * 255 / (jmax - jmin);
 
-	 for(i=imin; i<=imax; ++i)
-	    outbuffer[i] = val;
+         offset = (jnorm - jmin)/50;
+
+         val = dataval[index];
+
+         if(debug >= 1 && offset * 50 == (jnorm - jmin))
+            printf("BAR LABEL> %d %s\n", jnorm, datavalStr[index]);
+
+         for(i=imin; i<=imax; ++i)
+            outbuffer[i] = val;
       }
 
 
       if (fits_write_pix(output.fptr, TDOUBLE, fpixelout, nelementsout, 
-			 outbuffer, &status))
-	 printFitsError(status);
+                         outbuffer, &status))
+         printFitsError(status);
 
       ++fpixelout[1];
    }
@@ -464,26 +506,26 @@ int main(int argc, char **argv)
    {
       if(debug >= 2)
       {
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 printf("\rProcessing input row %5d", j);
+         printf("\rProcessing input row %5d", j);
 
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 fflush(stdout);
+         fflush(stdout);
       }
 
       for (i=0; i<output.naxes[0]; ++i)
-	 outbuffer[i] = NaNvalue;
+         outbuffer[i] = NaNvalue;
 
 
       /* Read a line from the input file */
 
       if(fits_read_pix(input.fptr, TDOUBLE, fpixelin, nelementsin, NULL,
-		       inbuffer, NULL, &status))
-	 printFitsError(status);
+                       inbuffer, NULL, &status))
+         printFitsError(status);
       
 
       /* For each input pixel */
@@ -494,14 +536,22 @@ int main(int argc, char **argv)
          jnorm = bottom + (input.naxes[1] - j);
 
       for (i=0; i<input.naxes[0]; ++i)
-	 outbuffer[i+left] = inbuffer[i];
+         outbuffer[i+left] = inbuffer[i];
 
       if(haveBar && jnorm >= jmin && jnorm <= jmax)
       {
-         val = valmin + (valmax - valmin)/(jmax - jmin) * (jnorm - jmin);
+         index = (jnorm - jmin) * 255 / (jmax - jmin);
 
-	 for(i=imin; i<=imax; ++i)
-	    outbuffer[i] = val;
+         offset = (jnorm - jmin)/50;
+
+         val = dataval[index];
+
+         if(debug >= 1 && offset * 50 == (jnorm - jmin))
+            printf("BAR LABEL> %d %s\n", jnorm, datavalStr[index]);
+
+
+         for(i=imin; i<=imax; ++i)
+            outbuffer[i] = val;
       }
 
 
@@ -509,8 +559,8 @@ int main(int argc, char **argv)
       /* Write the output buffer */
 
       if (fits_write_pix(output.fptr, TDOUBLE, fpixelout, nelementsout, 
-			 outbuffer, &status))
-	 printFitsError(status);
+                         outbuffer, &status))
+         printFitsError(status);
 
       ++fpixelin [1];
       ++fpixelout[1];
@@ -529,15 +579,15 @@ int main(int argc, char **argv)
    {
       if(debug >= 2)
       {
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 printf("\rPad final row %d", j);
+         printf("\rPad final row %d", j);
 
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 fflush(stdout);
+         fflush(stdout);
       }
 
       jnorm = j + bottom + input.naxes[1];
@@ -546,19 +596,26 @@ int main(int argc, char **argv)
          jnorm = padline - j;
 
       for (i=0; i<output.naxes[0]; ++i)
-	 outbuffer[i] = NaNvalue;
+         outbuffer[i] = NaNvalue;
 
       if(haveBar && jnorm >= jmin && jnorm <= jmax)
       {
-         val = valmin + (valmax - valmin)/(jmax - jmin) * (jnorm - jmin);
+         index = (jnorm - jmin) * 255 / (jmax - jmin);
 
-	 for(i=imin; i<=imax; ++i)
-	    outbuffer[i] = val;
+         offset = (jnorm - jmin)/50;
+
+         val = dataval[index];
+
+         if(debug >= 1 && offset * 50 == (jnorm - jmin))
+            printf("BAR LABEL> %d %s\n", jnorm, datavalStr[index]);
+
+         for(i=imin; i<=imax; ++i)
+            outbuffer[i] = val;
       }
 
       if (fits_write_pix(output.fptr, TDOUBLE, fpixelout, nelementsout, 
-			 outbuffer, &status))
-	 printFitsError(status);
+                         outbuffer, &status))
+         printFitsError(status);
 
       ++fpixelout[1];
    }
@@ -568,7 +625,7 @@ int main(int argc, char **argv)
    {
       time(&currtime);
       printf("\nDone copying data (%d seconds)\n", 
-	 (int)(currtime - start));
+         (int)(currtime - start));
       fflush(stdout);
    }
 
@@ -640,18 +697,18 @@ int readFits(char *fluxfile)
    if(!nowcs)
    {
       if(fits_read_keys_dbl(input.fptr, "CRPIX", 1, 2, crpix, &nfound, &status))
-	 printFitsError(status);
+         printFitsError(status);
 
       input.crpix1 = crpix[0];
       input.crpix2 = crpix[1];
 
       if(fits_get_hdrpos(input.fptr, &keysexist, &keynum, &status))
-	 printFitsError(status);
+         printFitsError(status);
 
       header  = malloc(keysexist * 80 + 1024);
 
       if(fits_get_image_wcs_keys(input.fptr, &header, &status))
-	 printFitsError(status);
+         printFitsError(status);
 
       input.flip = wcs->imflip;
 

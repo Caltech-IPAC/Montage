@@ -137,7 +137,7 @@ int main(int argc, char **argv)
 
    if(argc < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] -gray in.fits minrange maxrange [logpower/gaussian] -out out.hist\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] -file in.fits minrange maxrange [logpower/gaussian/gaussian-log] -out out.hist\"]\n", argv[0]);
       exit(1);
    }
 
@@ -151,12 +151,13 @@ int main(int argc, char **argv)
 
       /* GRAY */
 
-      else if(strcmp(argv[i], "-gray") == 0
+      else if(strcmp(argv[i], "-file") == 0
+           || strcmp(argv[i], "-gray") == 0
            || strcmp(argv[i], "-grey") == 0)
       {
          if(i+3 >= argc)
          {
-            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -gray flag\"]\n");
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -file flag\"]\n");
             fflush(stdout);
             exit(1);
          }
@@ -461,7 +462,7 @@ void printFitsError(int status)
 
    fits_get_errstatus(status, status_str);
 
-   fprintf(fstatus, "[struct stat=\"ERROR\", flag=%d, msg=\"%s\"]\n", status, status_str);
+   fprintf(fstatus, "[struct stat=\"ERROR\", status=%d, msg=\"%s\"]\n", status, status_str);
 
    exit(1);
 }
