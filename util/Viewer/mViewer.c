@@ -1381,7 +1381,7 @@ int main(int argc, char **argv)
          if(strcmp(argv[i+2], "-histfile") == 0)
          {
             strcpy(grayhistfile, argv[i+3]);
-            i += 3;
+            i += 2;
          }
          else
          {
@@ -1447,6 +1447,7 @@ int main(int argc, char **argv)
             
             i += 2;
          }
+
 
          if(fits_open_file(&grayfptr, grayfile, READONLY, &status))
          {

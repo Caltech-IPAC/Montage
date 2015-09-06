@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 
    if(argc < 3)
    {
-      printf("[struct stat=\"ERROR\" msg=\"Usage: mFitHdr infile outfile\"]\n");
+      printf("[struct stat=\"ERROR\" msg=\"Usage: mFixHdr infile outfile\"]\n");
       exit(1);
    }
 
@@ -68,25 +68,25 @@ int main(int argc, char **argv)
    {
       for(i=0; i<80; ++i)
       {
-	 ch = fgetc(fin);
+         ch = fgetc(fin);
 
-	 if(ch == EOF)
-	 {
-	    if(i == 0)
-	    {
-	       done = 1;
-	       break;
-	    }
+         if(ch == EOF)
+         {
+            if(i == 0)
+            {
+               done = 1;
+               break;
+            }
 
-	    printf("[struct stat=\"ERROR\" msg=\"Incomplete header line in [%s] (all must be 80 characters.\"]\n", infile);
-	    exit(1);
-	 }
+            printf("[struct stat=\"ERROR\" msg=\"Incomplete header line in [%s] (all must be 80 characters.\"]\n", infile);
+            exit(1);
+         }
       
-	 line[i] = (char)ch;
+         line[i] = (char)ch;
       }
 
       if(done)
-	 break;
+         break;
       
       line[80] = '\0';
 
@@ -94,19 +94,22 @@ int main(int argc, char **argv)
 
       while(ptr > line && (*ptr == ' ' || *ptr == '\0'))
       {
-	 *ptr = '\0';
-	 --ptr;
+         *ptr = '\0';
+         --ptr;
       }
 
       fprintf(fout, "%s\n", line);
       fflush(fout);
 
       if(strcmp(line, "END") == 0)
-	 break;
+         break;
    }
 
    fclose(fin);
    fclose(fout);
 
+   printf("[struct stat=\"OK\"]\n");
+   fflush(stdout);
+   
    exit(0);
 }
