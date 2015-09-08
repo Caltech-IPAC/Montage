@@ -543,12 +543,26 @@ int main(int argc, char **argv)
       if(params.ibegin < 1              ) params.ibegin = 1;
       if(params.ibegin > params.naxes[0]) params.ibegin = params.naxes[0];
       if(params.iend   > params.naxes[0]) params.iend   = params.naxes[0];
-      if(params.iend   < 0              ) params.iend   = params.naxes[0];
+      if(params.iend   < 1              ) params.iend   = 1;
 
       if(params.jbegin < 1              ) params.jbegin = 1;
       if(params.jbegin > params.naxes[1]) params.jbegin = params.naxes[1];
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
-      if(params.jend   < 0              ) params.jend   = params.naxes[1];
+      if(params.jend   < 1              ) params.jend   = 1;
+
+      if(debug)
+      {
+         printf("\npixmode = TRUE\n");
+         printf("'ra'    = %-g\n", ra);
+         printf("'dec'   = %-g\n", dec);
+         printf("xsize   = %-g\n", xsize);
+         printf("ysize   = %-g\n", ysize);
+         printf("ibegin  = %d\n",  params.ibegin);
+         printf("iend    = %d\n",  params.iend);
+         printf("jbegin  = %d\n",  params.jbegin);
+         printf("jend    = %d\n",  params.jend);
+         fflush(stdout);
+      }
    }
    
    else
@@ -617,15 +631,16 @@ int main(int argc, char **argv)
       if(params.ibegin < 1              ) params.ibegin = 1;
       if(params.ibegin > params.naxes[0]) params.ibegin = params.naxes[0];
       if(params.iend   > params.naxes[0]) params.iend   = params.naxes[0];
-      if(params.iend   < 0              ) params.iend   = params.naxes[0];
+      if(params.iend   < 1              ) params.iend   = 1;
 
       if(params.jbegin < 1              ) params.jbegin = 1;
       if(params.jbegin > params.naxes[1]) params.jbegin = params.naxes[1];
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
-      if(params.jend   < 0              ) params.jend   = params.naxes[1];
+      if(params.jend   < 1              ) params.jend   = 1;
 
       if(debug)
       {
+         printf("\npixmode = FALSE\n");
          printf("cdelt1  = %-g\n", cdelt[0]);
          printf("cdelt2  = %-g\n", cdelt[1]);
          printf("xsize   = %-g\n", xsize);

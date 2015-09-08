@@ -28,7 +28,7 @@ double ycorrection;
 
 FILE *fstatus;
 
-extern int debug;
+int debug;
 
 extern char content[];
 
@@ -187,6 +187,9 @@ int main(int argc, char **argv)
       printf("DEBUG> pixmode    = %d\n", pixmode);
       printf("DEBUG> shrinkWrap = %d\n", shrinkWrap);
       printf("DEBUG> allPixels  = %d\n", allPixels);
+      printf("DEBUG> statfile   = %s\n", statfile);
+      printf("DEBUG> pbegin     = %d\n", params.pbegin);
+      printf("DEBUG> pend       = %d\n", params.pend);
       fflush(stdout);
    }
   
@@ -223,7 +226,7 @@ int main(int argc, char **argv)
    }
 
 
-   if(fstatus != stdout)
+   if(strlen(statfile) > 0)
    {
       argv += 2;
       argc -= 2;
@@ -275,24 +278,23 @@ int main(int argc, char **argv)
    }
    else if(!shrinkWrap)
    {
-      
-         ra  = strtod(argv[3], &end);
+      ra  = strtod(argv[3], &end);
 
-         if(end < argv[3] + (int)strlen(argv[3]))
-         {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Center RA string (%s) cannot be interpreted as a real number\"]\n", 
-               argv[3]);
-            exit(1);
-         }
+      if(end < argv[3] + (int)strlen(argv[3]))
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Center RA string (%s) cannot be interpreted as a real number\"]\n", 
+            argv[3]);
+         exit(1);
+      }
 
-         dec = strtod(argv[4], &end);
+      dec = strtod(argv[4], &end);
 
-         if(end < argv[4] + (int)strlen(argv[4]))
-         {
-            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Center Dec string (%s) cannot be interpreted as a real number\"]\n", 
-               argv[4]);
-            exit(1);
-         }
+      if(end < argv[4] + (int)strlen(argv[4]))
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Center Dec string (%s) cannot be interpreted as a real number\"]\n", 
+            argv[4]);
+         exit(1);
+      }
 
       xsize = strtod(argv[5], &end);
       ysize = xsize;
@@ -331,16 +333,6 @@ int main(int argc, char **argv)
          exit(1);
       }
    }
-   
-   if(strlen(statfile) > 0)
-   {
-      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
-      {
-         printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-            argv[i+1]);
-         exit(1);
-      }
-   }
 
 
    /****************************************/
@@ -356,12 +348,16 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
-       checkHdr(infile, 0, hdu);
-
-      if(debug)
+      checkHdr(infile, 0, hdu);
+   }
+   
+   if(strlen(statfile) > 0)
+   {
+      if((fstatus = fopen(statfile, "w+")) == (FILE *)NULL)
       {
-         printf("DEBUG> done\n");
-         fflush(stdout);
+         printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
+            argv[i+1]);
+         exit(1);
       }
    }
 
@@ -556,15 +552,37 @@ int main(int argc, char **argv)
       params.jbegin = (int)dec;
       params.jend   = (int)(dec + ysize + 0.5);
 
+      if(allPixels)
+      {
+         params.ibegin = 1;
+         params.iend   = params.naxes[0];
+         params.jbegin = 1;
+         params.jend   = params.naxes[1];
+      }
+
       if(params.ibegin < 1              ) params.ibegin = 1;
       if(params.ibegin > params.naxes[0]) params.ibegin = params.naxes[0];
       if(params.iend   > params.naxes[0]) params.iend   = params.naxes[0];
-      if(params.iend   < 0              ) params.iend   = params.naxes[0];
+      if(params.iend   < 1              ) params.iend   = 1;
 
       if(params.jbegin < 1              ) params.jbegin = 1;
       if(params.jbegin > params.naxes[1]) params.jbegin = params.naxes[1];
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
-      if(params.jend   < 0              ) params.jend   = params.naxes[1];
+      if(params.jend   < 1              ) params.jend   = 1;
+
+      if(debug)
+      {
+         printf("\npixmode = TRUE\n");
+         printf("'ra'    = %-g\n", ra);
+         printf("'dec'   = %-g\n", dec);
+         printf("xsize   = %-g\n", xsize);
+         printf("ysize   = %-g\n", ysize);
+         printf("ibegin  = %d\n",  params.ibegin);
+         printf("iend    = %d\n",  params.iend);
+         printf("jbegin  = %d\n",  params.jbegin);
+         printf("jend    = %d\n",  params.jend);
+         fflush(stdout);
+      }
    }
    
    else
@@ -616,6 +634,14 @@ int main(int argc, char **argv)
       params.jbegin = ypix - yoff;
       params.jend   = params.jbegin + floor(2.*yoff + 1.0);
 
+      if(allPixels)
+      {
+         params.ibegin = 1;
+         params.iend   = params.naxes[0];
+         params.jbegin = 1;
+         params.jend   = params.naxes[1];
+      }
+
       if((   params.ibegin <              1
           && params.iend   <              1 )
       || (   params.ibegin > params.naxes[0]
@@ -633,15 +659,16 @@ int main(int argc, char **argv)
       if(params.ibegin < 1              ) params.ibegin = 1;
       if(params.ibegin > params.naxes[0]) params.ibegin = params.naxes[0];
       if(params.iend   > params.naxes[0]) params.iend   = params.naxes[0];
-      if(params.iend   < 0              ) params.iend   = params.naxes[0];
+      if(params.iend   < 1              ) params.iend   = 1;
 
       if(params.jbegin < 1              ) params.jbegin = 1;
       if(params.jbegin > params.naxes[1]) params.jbegin = params.naxes[1];
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
-      if(params.jend   < 0              ) params.jend   = params.naxes[1];
+      if(params.jend   < 1              ) params.jend   = 1;
 
       if(debug)
       {
+         printf("\npixmode = FALSE\n");
          printf("cdelt1  = %-g\n", cdelt[0]);
          printf("cdelt2  = %-g\n", cdelt[1]);
          printf("xsize   = %-g\n", xsize);

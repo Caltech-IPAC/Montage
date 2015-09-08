@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.5      John Good        08Sep15  fits_read_pix() incorrect null value
 1.4      John Good        24Jun07  Added shrinkwrap support
 1.3      John Good        25Aug05  Bug fix: temporary variable tmp should
                                    have been a double for CRPIX calculations
@@ -228,7 +229,7 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
          fflush(stdout);
       }
 
-      if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, NULL,
+      if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
                        buffer, &nullcnt, &status))
          montage_printFitsError(status);
 
@@ -320,7 +321,7 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
          fflush(stdout);
       }
 
-      if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], NULL,
+      if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], &nan,
                        buffer, &nullcnt, &status))
          montage_printFitsError(status);
 

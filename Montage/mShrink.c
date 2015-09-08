@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+4.1      John Good        08Sep15  fits_read_pix() incorrect null value
 4.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
                                    for new development cycle.
 3.1      John Good        27Feb09  Add ability to extract HDU
@@ -676,7 +677,7 @@ int main(int argc, char **argv)
 
             if(fpixel[1] <= input.naxes[1])
             {
-               if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+               if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                                 buffer, &nullcnt, &status))
                   printFitsError(status);
             }
@@ -825,7 +826,7 @@ int main(int argc, char **argv)
                fflush(stdout);
             }
 
-            if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+            if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                              buffer, &nullcnt, &status))
                printFitsError(status);
             
@@ -934,7 +935,7 @@ int main(int argc, char **argv)
          /* Read a line from the input file */
          /***********************************/
 
-         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                           buffer, &nullcnt, &status))
             printFitsError(status);
          

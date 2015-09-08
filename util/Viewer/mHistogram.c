@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        20Jun15  Baseline code (essentially extracted from mViewer)
 
 */
@@ -128,7 +129,28 @@ int main(int argc, char **argv)
    char     *ptr;
 
 
+   /************************************************/
+   /* Make a NaN value to use setting blank pixels */
+   /************************************************/
+
+   union
+   {
+      double d;
+      char   c[8];
+   }
+   value;
+
+   double nan;
+
+   for(i=0; i<8; ++i)
+      value.c[i] = 255;
+
+   nan = value.d;
+
+
+   /**************************/
    /* Command-line arguments */
+   /**************************/
 
    debug   = 0;
    fstatus = stdout;
@@ -662,7 +684,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
                        data, &nullcnt, &status))
          printFitsError(status);
       
@@ -702,7 +724,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
                        data, &nullcnt, &status))
          printFitsError(status);
 

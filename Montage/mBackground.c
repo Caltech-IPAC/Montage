@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.2      John Good        08Sep15  fits_read_pix() incorrect null value
 2.1      John Good        24Apr06  Don't want to fail in table mode when
                                    the image is not in the list.
 2.0      John Good        25Aug05  Updated flag handling (it was buggy)
@@ -584,7 +585,7 @@ int main(int argc, char **argv)
       /* Read a line from the input file */
       /***********************************/
 
-      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
 		       buffer, &nullcnt, &status))
 	 printFitsError(status);
       
@@ -595,7 +596,7 @@ int main(int argc, char **argv)
       }
       else
       {
-	 if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, NULL,
+	 if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
 			  abuffer, &nullcnt, &status))
 	    printFitsError(status);
       }

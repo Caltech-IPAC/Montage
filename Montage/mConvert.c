@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        02Feb06  Baseline code
 
 */
@@ -120,139 +121,139 @@ int main(int argc, char **argv)
       {
          haveStatus = 1;
 
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No status file name given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No status file name given\"]\n");
+            exit(1);
+         }
 
-	 if((fstatus = fopen(argv[i+1], "w+")) == (FILE *)NULL)
-	 {
-	    printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
-	       argv[i+1]);
-	    exit(1);
-	 }
+         if((fstatus = fopen(argv[i+1], "w+")) == (FILE *)NULL)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file: %s\"]\n",
+               argv[i+1]);
+            exit(1);
+         }
 
          ++i;
       }
 
       else if(strcmp(argv[i], "-d") == 0)
       {
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No debug level given\"]\n");
+            exit(1);
+         }
 
-	 debug = strtol(argv[i+1], &end, 0);
+         debug = strtol(argv[i+1], &end, 0);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Debug level string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 if(debug < 0)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
-	    exit(1);
-	 }
+         if(debug < 0)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Debug level value cannot be negative\"]\n");
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
 
       else if(strcmp(argv[i], "-b") == 0)
       {
-	 haveBitpix = 1;
+         haveBitpix = 1;
 
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No bitpix value given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No bitpix value given\"]\n");
+            exit(1);
+         }
 
-	 bitpixo = strtol(argv[i+1], &end, 0);
+         bitpixo = strtol(argv[i+1], &end, 0);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bitpix string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Bitpix string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 if(bitpixo !=   8
-	 && bitpixo !=  16
-	 && bitpixo !=  32
-	 && bitpixo != -32
-	 && bitpixo != -64)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Bitpix must be one of (8, 16, 32, -32, -64)\"]\n");
-	    exit(1);
-	 }
+         if(bitpixo !=   8
+         && bitpixo !=  16
+         && bitpixo !=  32
+         && bitpixo != -32
+         && bitpixo != -64)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Bitpix must be one of (8, 16, 32, -32, -64)\"]\n");
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
 
       else if(strcmp(argv[i], "-min") == 0)
       {
-	 haveRmin = 1;
+         haveRmin = 1;
 
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No range min value given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No range min value given\"]\n");
+            exit(1);
+         }
 
-	 Rmin = strtod(argv[i+1], &end);
+         Rmin = strtod(argv[i+1], &end);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Range min string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Range min string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
 
       else if(strcmp(argv[i], "-max") == 0)
       {
-	 haveRmax = 1;
+         haveRmax = 1;
 
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No range max value given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No range max value given\"]\n");
+            exit(1);
+         }
 
-	 Rmax = strtod(argv[i+1], &end);
+         Rmax = strtod(argv[i+1], &end);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Range max string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Range max string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
 
       else if(strcmp(argv[i], "-blank") == 0)
       {
-	 haveBlank = 1;
+         haveBlank = 1;
 
-	 if(i+1 >= argc)
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"No blank value given\"]\n");
-	    exit(1);
-	 }
+         if(i+1 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No blank value given\"]\n");
+            exit(1);
+         }
 
-	 blankVal = strtod(argv[i+1], &end);
+         blankVal = strtod(argv[i+1], &end);
 
-	 if(end - argv[i+1] < strlen(argv[i+1]))
-	 {
-	    printf("[struct stat=\"ERROR\", msg=\"Blank string is invalid: '%s'\"]\n", argv[i+1]);
-	    exit(1);
-	 }
+         if(end - argv[i+1] < strlen(argv[i+1]))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Blank string is invalid: '%s'\"]\n", argv[i+1]);
+            exit(1);
+         }
 
-	 ++i;
+         ++i;
       }
    }
 
@@ -386,18 +387,18 @@ int main(int argc, char **argv)
    {
       if(bitpixi == 8)
       {
-	 Rmin =   0.;
-	 Rmax = 255.;
+         Rmin =   0.;
+         Rmax = 255.;
       }
       else if(bitpixi == 16)
       {
-	 Rmin = -32767.;
-	 Rmax =  32768.;
+         Rmin = -32767.;
+         Rmax =  32768.;
       }
       else if(bitpixi == 32)
       {
-	 Rmin = -2147483647.;
-	 Rmax =  2147483648.;
+         Rmin = -2147483647.;
+         Rmax =  2147483648.;
       }
    }
 
@@ -430,12 +431,12 @@ int main(int argc, char **argv)
    if(bitpixo > 0)
    {
       if(fits_update_key_dbl(outfptr, "BSCALE", bscaleo, -14,
-				     (char *)NULL, &status))
-	 printFitsError(status);
+                                     (char *)NULL, &status))
+         printFitsError(status);
 
       if(fits_update_key_dbl(outfptr, "BZERO", bzeroo, -14,
-				     (char *)NULL, &status))
-	 printFitsError(status);
+                                     (char *)NULL, &status))
+         printFitsError(status);
    }
    else
    {
@@ -491,15 +492,15 @@ int main(int argc, char **argv)
    {
       if(debug >= 2)
       {
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 printf("\rProcessing input row %5d  ", j);
+         printf("\rProcessing input row %5d  ", j);
 
-	 if(debug >= 3)
-	    printf("\n");
+         if(debug >= 3)
+            printf("\n");
 
-	 fflush(stdout);
+         fflush(stdout);
       }
 
 
@@ -507,9 +508,9 @@ int main(int argc, char **argv)
       /* Read a line from the input file */
       /***********************************/
 
-      if(fits_read_pix(infptr, TDOUBLE, fpixeli, nelementsi, NULL,
-		       inbuffer, &nullcnt, &status))
-	 printFitsError(status);
+      if(fits_read_pix(infptr, TDOUBLE, fpixeli, nelementsi, &nan,
+                       inbuffer, &nullcnt, &status))
+         printFitsError(status);
       
       ++fpixeli[1];
 
@@ -520,25 +521,25 @@ int main(int argc, char **argv)
 
       for (i=0; i<naxes[0]; ++i)
       {
-	 outbuffer[i] = inbuffer[i];
+         outbuffer[i] = inbuffer[i];
 
-	 if(bitpixo > 0)
-	 {
-	    if(mNaN(outbuffer[i]))
-	    {
-	       outbuffer[i] = blankVal * bscaleo + bzeroo;
-	    }
-	    else
-	    {
-	       val = (outbuffer[i] - bzeroo) / bscaleo;
+         if(bitpixo > 0)
+         {
+            if(mNaN(outbuffer[i]))
+            {
+               outbuffer[i] = blankVal * bscaleo + bzeroo;
+            }
+            else
+            {
+               val = (outbuffer[i] - bzeroo) / bscaleo;
 
-	       if(val < rmin)
-		  outbuffer[i] = rmin * bscaleo + bzeroo;
+               if(val < rmin)
+                  outbuffer[i] = rmin * bscaleo + bzeroo;
 
-	       else if(val > rmax)
-		  outbuffer[i] = rmax * bscaleo + bzeroo;
-	    }
-	 }
+               else if(val > rmax)
+                  outbuffer[i] = rmax * bscaleo + bzeroo;
+            }
+         }
       }
 
 
@@ -547,8 +548,8 @@ int main(int argc, char **argv)
       /***********************************/
 
       if (fits_write_pix(outfptr, TDOUBLE, fpixelo, nelementso, 
-			 (void *)(outbuffer), &status))
-	 printFitsError(status);
+                         (void *)(outbuffer), &status))
+         printFitsError(status);
 
       ++fpixelo[1];
    }

@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.3      John Good        08Sep15  fits_read_pix() incorrect null value
 1.2      John Good        02Sep15  Warning cleanup
 1.1      John Good        27Jul15  Test results updates
 1.0      John Good        30Jul14  Baseline code
@@ -488,7 +489,7 @@ int main(int argc, char **argv)
 
             status = 0;
 
-            if(fits_read_pix(inFptr, TDOUBLE, fpixel, nAxisIn[0], NULL,
+            if(fits_read_pix(inFptr, TDOUBLE, fpixel, nAxisIn[0], &nan,
                              (void *)indata, &nullcnt, &status))
                printFitsError(status);
 

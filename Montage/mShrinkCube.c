@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        14Apr15  Baseline code, based on mShrink of that date
 
 */
@@ -725,7 +726,7 @@ int main(int argc, char **argv)
 
                      for(m=0; m<mfactor; ++m)
                      {
-                        if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+                        if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                                          mbuffer, &nullcnt, &status))
                            printFitsError(status);
 
@@ -880,7 +881,7 @@ int main(int argc, char **argv)
                      fflush(stdout);
                   }
 
-                  if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+                  if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                                    buffer, &nullcnt, &status))
                      printFitsError(status);
                   
@@ -1012,7 +1013,7 @@ int main(int argc, char **argv)
 
                for(m=0; m<mfactor; ++m)
                {
-                  if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+                  if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                                    mbuffer, &nullcnt, &status))
                      printFitsError(status);
 

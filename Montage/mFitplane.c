@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.7      John Good        08Sep15  fits_read_pix() incorrect null value
 2.6      John Good        15May08  Implement special bounding boxes for small areas
 2.5      John Good        29Mar08  Add 'level only' fitting
 2.4      John Good        21Sep04  Changed exit(1) after WARNING to exit(0)
@@ -16,12 +17,12 @@ Version  Developer        Date     Change
 1.5      John Good        15Sep03  Updated fits_read_pix() call
 1.4      John Good        25Aug03  Added status file processing
 1.3      John Good        13May03  Fixed ERROR structure output formatting
-				   for matrix inversion error condition.
+                                   for matrix inversion error condition.
 1.2      John Good        09May03  Closed the FITS file at the end before
-				   printing out return message.
+                                   printing out return message.
 1.1      John Good        14Mar03  Modified command-line processing
-				   to use getopt() library.  Checks for valid
-				   FITS file.
+                                   to use getopt() library.  Checks for valid
+                                   FITS file.
 1.0      John Good        29Jan03  Baseline code
 
 */
@@ -121,6 +122,24 @@ int main(int argc, char **argv)
    double **b;
    int      m;
 
+
+   /************************************************/
+   /* Make a NaN value to use setting blank pixels */
+   /************************************************/
+
+   union
+   {
+      double d;
+      char   c[8];
+   }
+   value;
+
+   double nan;
+
+   for(i=0; i<8; ++i)
+      value.c[i] = 255;
+
+   nan = value.d;
    
 
    /***************************************/
@@ -140,21 +159,21 @@ int main(int argc, char **argv)
       switch (c) 
       {
          case 'b':
-	    border = strtol(optarg, &end, 0);
+            border = strtol(optarg, &end, 0);
 
-	    if(end < optarg + strlen(optarg))
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"Argument to -b (%s) cannot be interpreted as an integer\"]\n", 
-		  optarg);
-	       exit(1);
-	    }
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Argument to -b (%s) cannot be interpreted as an integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
 
-	    if(border < 0)
-	    {
-	       printf("[struct stat=\"ERROR\", msg=\"Argument to -b (%s) must be a positive integer\"]\n", 
-		  optarg);
-	       exit(1);
-	    }
+            if(border < 0)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Argument to -b (%s) must be a positive integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
 
             break;
 
@@ -176,7 +195,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-b border] [-d level] [-s statusfile] [-l(evel-only)] in.fits\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-b border] [-d level] [-s statusfile] [-l(evel-only)] in.fits\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -256,9 +275,9 @@ int main(int argc, char **argv)
 
    for (j=0; j<naxes[1]; ++j)
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
-		       data[j], &nullcnt, &status))
-	 printFitsError(status);
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
+                       data[j], &nullcnt, &status))
+         printFitsError(status);
 
       ++fpixel[1];
 
@@ -267,22 +286,22 @@ int main(int argc, char **argv)
 
       for(i=0; i<naxes[0]; ++i)
       {
-	 if(!mNaN(data[j][i]))
-	 {
-	    if(i < mini) mini = i;
-	    if(i > maxi) maxi = i;
-	 }
+         if(!mNaN(data[j][i]))
+         {
+            if(i < mini) mini = i;
+            if(i > maxi) maxi = i;
+         }
       }
 
       if(mini < maxi)
       {
-	 xbound[nbound] = mini - crpix[0];
-	 ybound[nbound] =    j - crpix[1];
-	 ++nbound;
+         xbound[nbound] = mini - crpix[0];
+         ybound[nbound] =    j - crpix[1];
+         ++nbound;
 
-	 xbound[nbound] = maxi - crpix[0];
-	 ybound[nbound] =    j - crpix[1];
-	 ++nbound;
+         xbound[nbound] = maxi - crpix[0];
+         ybound[nbound] =    j - crpix[1];
+         ++nbound;
       }
    }
 
@@ -311,16 +330,16 @@ int main(int argc, char **argv)
 
       if(debug >= 1)
       {
-	 printf("\nCenter:    (%-g, %-g)\n",
-	 cgeomGetXcen(), 
-	 cgeomGetYcen());
+         printf("\nCenter:    (%-g, %-g)\n",
+         cgeomGetXcen(), 
+         cgeomGetYcen());
 
-	 printf("Size:      %-g x %-g\n",
-	 cgeomGetWidth(), 
-	 cgeomGetHeight());
+         printf("Size:      %-g x %-g\n",
+         cgeomGetWidth(), 
+         cgeomGetHeight());
 
-	 printf("Rotation:  %-g\n\n",
-	 cgeomGetAngle()); 
+         printf("Rotation:  %-g\n\n",
+         cgeomGetAngle()); 
       }
 
       boxx      = cgeomGetXcen();
@@ -344,10 +363,10 @@ int main(int argc, char **argv)
          boxx += xbound[i];
          boxy += ybound[i];
 
-	 if(xbound[i]-0.5 < minx) minx = xbound[i]-0.5;
-	 if(xbound[i]+0.5 > maxx) maxx = xbound[i]+0.5;
-	 if(ybound[i]-0.5 < miny) miny = ybound[i]-0.5;
-	 if(ybound[i]+0.5 > maxy) maxy = ybound[i]+0.5;
+         if(xbound[i]-0.5 < minx) minx = xbound[i]-0.5;
+         if(xbound[i]+0.5 > maxx) maxx = xbound[i]+0.5;
+         if(ybound[i]-0.5 < miny) miny = ybound[i]-0.5;
+         if(ybound[i]+0.5 > maxy) maxy = ybound[i]+0.5;
       }
 
       boxx = boxx/nbound;
@@ -373,7 +392,7 @@ int main(int argc, char **argv)
       a[i] = (double *)malloc(n*sizeof(double));
 
       for(j=0; j<n; ++j)
-	 a[i][j] = 0.;
+         a[i][j] = 0.;
    }
 
 
@@ -390,7 +409,7 @@ int main(int argc, char **argv)
       b[i] = (double *)malloc(m*sizeof(double));
 
       for(j=0; j<m; ++j)
-	 b[i][j] = 0.;
+         b[i][j] = 0.;
    }
 
 
@@ -420,57 +439,57 @@ int main(int argc, char **argv)
 
       for (j=border; j<naxes[1]-border; ++j)
       {
-	 ypos = j - crpix[1];
+         ypos = j - crpix[1];
 
-	 for (i=border; i<naxes[0]-border; ++i)
-	 {
-	    xpos = i - crpix[0];
-	    
-	    pixel_value = data[j][i];
+         for (i=border; i<naxes[0]-border; ++i)
+         {
+            xpos = i - crpix[0];
+            
+            pixel_value = data[j][i];
 
-	    if(mNaN(pixel_value))
-	       continue;
+            if(mNaN(pixel_value))
+               continue;
 
-	    if(rms > 0.)
-	    {
-	       fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
+            if(rms > 0.)
+            {
+               fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
 
-	       dz = fabs(pixel_value - fit);
+               dz = fabs(pixel_value - fit);
 
-	       if(dz > 2*rms)
-		  continue;
-	    }
-
-
-	    if(debug >= 3)
-	    {
-	       printf("%12.4e at (%7.2f, %7.2f) [%4d,%4d]\n", 
-		  pixel_value, xpos, ypos, i, j);
-	       fflush(stdout);
-	    }
+               if(dz > 2*rms)
+                  continue;
+            }
 
 
-	    /* Sums needed for least-squares */
-	    /* plane fitting                 */
-
-	    sumxx += xpos*xpos;
-	    sumyy += ypos*ypos;
-	    sumxy += xpos*ypos;
-	    sumx  += xpos;
-	    sumy  += ypos;
-	    sumxz += xpos*pixel_value;
-	    sumyz += ypos*pixel_value;
-	    sumz  += pixel_value;
-	    sumn  += 1.;
+            if(debug >= 3)
+            {
+               printf("%12.4e at (%7.2f, %7.2f) [%4d,%4d]\n", 
+                  pixel_value, xpos, ypos, i, j);
+               fflush(stdout);
+            }
 
 
-	    /* Region info */
+            /* Sums needed for least-squares */
+            /* plane fitting                 */
 
-	    if(xpos < xmin) xmin = xpos;
-	    if(xpos > xmax) xmax = xpos;
-	    if(ypos < ymin) ymin = ypos;
-	    if(ypos > ymax) ymax = ypos;
-	 }
+            sumxx += xpos*xpos;
+            sumyy += ypos*ypos;
+            sumxy += xpos*ypos;
+            sumx  += xpos;
+            sumy  += ypos;
+            sumxz += xpos*pixel_value;
+            sumyz += ypos*pixel_value;
+            sumz  += pixel_value;
+            sumn  += 1.;
+
+
+            /* Region info */
+
+            if(xpos < xmin) xmin = xpos;
+            if(xpos > xmax) xmax = xpos;
+            if(ypos < ymin) ymin = ypos;
+            if(ypos > ymax) ymax = ypos;
+         }
       }
 
       xcenter = sumx / sumn;
@@ -483,9 +502,9 @@ int main(int argc, char **argv)
 
       /*** Fill the matrix and vector  ****
 
-	   |a00  a01 a02| |A|   |b00|
-	   |a10  a11 a12|x|B| = |b01|
-	   |a20  a21 a22| |C|   |b02|
+           |a00  a01 a02| |A|   |b00|
+           |a10  a11 a12|x|B| = |b01|
+           |a20  a21 a22| |C|   |b02|
 
       *************************************/
 
@@ -497,44 +516,44 @@ int main(int argc, char **argv)
       }
       else
       {
-	 a[0][0] = sumxx;
-	 a[1][0] = sumxy;
-	 a[2][0] = sumx;
+         a[0][0] = sumxx;
+         a[1][0] = sumxy;
+         a[2][0] = sumx;
 
-	 a[0][1] = sumxy;
-	 a[1][1] = sumyy;
-	 a[2][1] = sumy;
+         a[0][1] = sumxy;
+         a[1][1] = sumyy;
+         a[2][1] = sumy;
 
-	 a[0][2] = sumx;
-	 a[1][2] = sumy;
-	 a[2][2] = sumn;
+         a[0][2] = sumx;
+         a[1][2] = sumy;
+         a[2][2] = sumn;
 
-	 b[0][0] = sumxz;
-	 b[1][0] = sumyz;
-	 b[2][0] = sumz;
+         b[0][0] = sumxz;
+         b[1][0] = sumyz;
+         b[2][0] = sumz;
 
-	 if(debug >= 2)
-	 {
-	    printf("\n");
-	    printf("%12.5e %12.5e %12.5e     %12.5e \n", a[0][0], a[0][1], a[0][2], b[0][0]);
-	    printf("%12.5e %12.5e %12.5e     %12.5e \n", a[1][0], a[1][1], a[1][2], b[1][0]);
-	    printf("%12.5e %12.5e %12.5e     %12.5e \n", a[2][0], a[2][1], a[2][2], b[2][0]);
-	    printf("\n");
-	 }
+         if(debug >= 2)
+         {
+            printf("\n");
+            printf("%12.5e %12.5e %12.5e     %12.5e \n", a[0][0], a[0][1], a[0][2], b[0][0]);
+            printf("%12.5e %12.5e %12.5e     %12.5e \n", a[1][0], a[1][1], a[1][2], b[1][0]);
+            printf("%12.5e %12.5e %12.5e     %12.5e \n", a[2][0], a[2][1], a[2][2], b[2][0]);
+            printf("\n");
+         }
 
 
-	 /* Solve */
+         /* Solve */
 
-	 gaussj(a, n, b, m);
+         gaussj(a, n, b, m);
       }
 
       if(debug >= 2)
       {
-	 printf("\n");
-	 printf("a = %12.5e \n", b[0][0]);
-	 printf("b = %12.5e \n", b[1][0]);
-	 printf("c = %12.5e \n", b[2][0]);
-	 printf("\n");
+         printf("\n");
+         printf("a = %12.5e \n", b[0][0]);
+         printf("b = %12.5e \n", b[1][0]);
+         printf("c = %12.5e \n", b[2][0]);
+         printf("\n");
       }
 
 
@@ -547,34 +566,34 @@ int main(int argc, char **argv)
 
       for (j=border; j<naxes[1]-border; ++j)
       {
-	 ypos = j - crpix[1];
+         ypos = j - crpix[1];
 
-	 for (i=border; i<naxes[0]-border; ++i)
-	 {
-	    xpos = i - crpix[0];
+         for (i=border; i<naxes[0]-border; ++i)
+         {
+            xpos = i - crpix[0];
 
-	    if(mNaN(data[j][i]))
-	       continue;
+            if(mNaN(data[j][i]))
+               continue;
 
-	    pixel_value = data[j][i];
+            pixel_value = data[j][i];
 
-	    fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
+            fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
 
-	    dz = fabs(pixel_value - fit);
+            dz = fabs(pixel_value - fit);
 
-	    if(dz > 2*rms)
-	       continue;
+            if(dz > 2*rms)
+               continue;
 
-	    sumzz += dz * dz;
+            sumzz += dz * dz;
 
-	    ++sumn;
-	 }
+            ++sumn;
+         }
       }
 
       rms = sqrt(sumzz/sumn);
 
       if(debug >= 1)
-	 printf("iteration %d: rms=%-g\n", iteration, rms);
+         printf("iteration %d: rms=%-g\n", iteration, rms);
    }
 
 
@@ -662,13 +681,13 @@ void gaussj(double **a, int n, double **b, int m)
       for (j=0; j<n; j++)
       {
          if (ipiv[j] != 1)
-	 {
+         {
             for (k=0; k<n; k++) 
-	    {
+            {
                if (ipiv[k] == 0) 
-	       {
+               {
                   if (fabs(a[j][k]) >= big) 
-		  {
+                  {
                      big = fabs(a[j][k]);
 
                      irow = j;
@@ -676,10 +695,10 @@ void gaussj(double **a, int n, double **b, int m)
                   }
                }
 
-	       else if (ipiv[k] > 1) 
-		  nrerror("Singular Matrix-1");
+               else if (ipiv[k] > 1) 
+                  nrerror("Singular Matrix-1");
             }
-	 }
+         }
       }
 
       ++(ipiv[icol]);
@@ -694,7 +713,7 @@ void gaussj(double **a, int n, double **b, int m)
       indxc[i] = icol;
 
       if (a[icol][icol] == 0.0)
-	 nrerror("Singular Matrix-2");
+         nrerror("Singular Matrix-2");
 
       pivinv=1.0/a[icol][icol];
 
@@ -706,7 +725,7 @@ void gaussj(double **a, int n, double **b, int m)
       for (ll=0; ll<n; ll++)
       {
          if (ll != icol) 
-	 {
+         {
             dum=a[ll][icol];
 
             a[ll][icol]=0.0;
@@ -736,8 +755,8 @@ void gaussj(double **a, int n, double **b, int m)
 
 void nrerror(char *error_text)
 {
-        fprintf(fstatus, "[struct stat=\"WARNING\", msg=\"%s\"]\n", error_text);
-	exit(0);
+   fprintf(fstatus, "[struct stat=\"WARNING\", msg=\"%s\"]\n", error_text);
+   exit(0);
 }
 
 
@@ -745,14 +764,14 @@ void nrerror(char *error_text)
 
 int *ivector(int nh)
 {
-	int *v;
+   int *v;
 
-	v=(int *)malloc((size_t) (nh*sizeof(int)));
+   v=(int *)malloc((size_t) (nh*sizeof(int)));
 
-	if (!v) 
-	   nrerror("allocation failure in ivector()");
+   if (!v) 
+      nrerror("allocation failure in ivector()");
 
-	return v;
+   return v;
 }
 
 
@@ -760,5 +779,5 @@ int *ivector(int nh)
 
 void free_ivector(int *v)
 {
-	free((char *) v);
+   free((char *) v);
 }

@@ -598,7 +598,7 @@ int main(int argc, char **argv)
       value.c[i] = 255;
 
    mynan = value.d;
-   // mynan = 123.456;
+
 
    dtr = atan(1.)/45.;
 
@@ -1469,6 +1469,8 @@ int main(int argc, char **argv)
       }
 
 
+      /* RED */
+
       else if(strcmp(argv[i], "-red") == 0)
       {
          if(i+3 >= argc)
@@ -1490,67 +1492,86 @@ int main(int argc, char **argv)
          if(!nowcs)
             checkHdr(redfile, 0, hdu);
 
-         strcpy(redminstr, argv[i+2]);
-         strcpy(redmaxstr, argv[i+3]);
 
-         redType = POWER;
+         // Two modes:  histogram from a file or histogram to be computed by this program
 
-         if(i+4 < argc)
+         if(i+3 >= argc)
          {
-            if(argv[i+4][0] == 'g')
-            {
-               redType = GAUSSIAN;
-
-               if(strlen(argv[i+4]) > 1 
-               && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
-                   || argv[i+4][strlen(argv[i+4])-1] == 'l'))
-                  redType = GAUSSIANLOG;
-               
-               i += 1;
-            }
-            
-            else if(argv[i+4][0] == 'a')
-            {
-               redType = ASINH;
-
-               strcpy(redbetastr, "2s");
-
-               if(i+5 < argc)
-                  strcpy(redbetastr, argv[i+5]);
-
-               i += 2;
-            }
-
-            else if(strncmp(argv[i+4], "lin", 3) == 0)
-            {
-               redlogpower = 0;
-               ++i;
-            }
-            
-            else if(strcmp(argv[i+4], "log") == 0)
-            {
-               redlogpower = 1;
-               ++i;
-            }
-
-            else if(strcmp(argv[i+4], "loglog") == 0)
-            {
-               redlogpower = 2;
-               ++i;
-            }
-
-            else
-            {
-               redlogpower = strtol(argv[i+4], &end, 10);
-
-               if(redlogpower < 0  || end < argv[i+4] + strlen(argv[i+4]))
-                  redlogpower = 0.;
-               else
-                  i += 1;
-            }
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -red flag\"]\n");
+            fflush(stdout);
+            exit(1);
          }
-         
-         i += 2;
+
+         if(strcmp(argv[i+2], "-histfile") == 0)
+         {
+            strcpy(redhistfile, argv[i+3]);
+            i += 2;
+         }
+
+         else
+         {
+            strcpy(redminstr, argv[i+2]);
+            strcpy(redmaxstr, argv[i+3]);
+
+            redType = POWER;
+
+            if(i+4 < argc)
+            {
+               if(argv[i+4][0] == 'g')
+               {
+                  redType = GAUSSIAN;
+
+                  if(strlen(argv[i+4]) > 1 
+                  && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
+                      || argv[i+4][strlen(argv[i+4])-1] == 'l'))
+                     redType = GAUSSIANLOG;
+                  
+                  i += 1;
+               }
+               
+               else if(argv[i+4][0] == 'a')
+               {
+                  redType = ASINH;
+
+                  strcpy(redbetastr, "2s");
+
+                  if(i+5 < argc)
+                     strcpy(redbetastr, argv[i+5]);
+
+                  i += 2;
+               }
+
+               else if(strncmp(argv[i+4], "lin", 3) == 0)
+               {
+                  redlogpower = 0;
+                  ++i;
+               }
+               
+               else if(strcmp(argv[i+4], "log") == 0)
+               {
+                  redlogpower = 1;
+                  ++i;
+               }
+
+               else if(strcmp(argv[i+4], "loglog") == 0)
+               {
+                  redlogpower = 2;
+                  ++i;
+               }
+
+               else
+               {
+                  redlogpower = strtol(argv[i+4], &end, 10);
+
+                  if(redlogpower < 0  || end < argv[i+4] + strlen(argv[i+4]))
+                     redlogpower = 0.;
+                  else
+                     i += 1;
+               }
+            }
+            
+            i += 2;
+         }
 
          if(fits_open_file(&redfptr, redfile, READONLY, &status))
          {
@@ -1595,68 +1616,86 @@ int main(int argc, char **argv)
          if(!nowcs)
             checkHdr(greenfile, 0, hdu);
 
-         strcpy(greenminstr, argv[i+2]);
-         strcpy(greenmaxstr, argv[i+3]);
 
-         greenType = POWER;
+         // Two modes:  histogram from a file or histogram to be computed by this program
 
-         if(i+4 < argc)
+         if(i+3 >= argc)
          {
-            if(argv[i+4][0] == 'g')
-            {
-               greenType = GAUSSIAN;
-
-               if(strlen(argv[i+4]) > 1 
-               && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
-                   || argv[i+4][strlen(argv[i+4])-1] == 'l'))
-                  greenType = GAUSSIANLOG;
-
-               i += 1;
-            }
-            
-
-            else if(argv[i+4][0] == 'a')
-            {
-               greenType = ASINH;
-
-               strcpy(greenbetastr, "2s");
-
-               if(i+5 < argc)
-                  strcpy(greenbetastr, argv[i+5]);
-
-               i += 2;
-            }
-
-            else if(strncmp(argv[i+4], "lin", 3) == 0)
-            {
-               greenlogpower = 0;
-               ++i;
-            }
-            
-            else if(strcmp(argv[i+4], "log") == 0)
-            {
-               greenlogpower = 1;
-               ++i;
-            }
-
-            else if(strcmp(argv[i+4], "loglog") == 0)
-            {
-               greenlogpower = 2;
-               ++i;
-            }
-
-            else
-            {
-               greenlogpower = strtol(argv[i+4], &end, 10);
-
-               if(greenlogpower < 0  || end < argv[i+4] + strlen(argv[i+4]))
-                  greenlogpower = 0;
-               else
-                  i += 1;
-            }
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -green flag\"]\n");
+            fflush(stdout);
+            exit(1);
          }
-         
-         i += 2;
+
+         if(strcmp(argv[i+2], "-histfile") == 0)
+         {
+            strcpy(greenhistfile, argv[i+3]);
+            i += 2;
+         }
+
+         else
+         {
+            strcpy(greenminstr, argv[i+2]);
+            strcpy(greenmaxstr, argv[i+3]);
+
+            greenType = POWER;
+
+            if(i+4 < argc)
+            {
+               if(argv[i+4][0] == 'g')
+               {
+                  greenType = GAUSSIAN;
+
+                  if(strlen(argv[i+4]) > 1 
+                  && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
+                      || argv[i+4][strlen(argv[i+4])-1] == 'l'))
+                     greenType = GAUSSIANLOG;
+
+                  i += 1;
+               }
+
+               else if(argv[i+4][0] == 'a')
+               {
+                  greenType = ASINH;
+
+                  strcpy(greenbetastr, "2s");
+
+                  if(i+5 < argc)
+                     strcpy(greenbetastr, argv[i+5]);
+
+                  i += 2;
+               }
+
+               else if(strncmp(argv[i+4], "lin", 3) == 0)
+               {
+                  greenlogpower = 0;
+                  ++i;
+               }
+               
+               else if(strcmp(argv[i+4], "log") == 0)
+               {
+                  greenlogpower = 1;
+                  ++i;
+               }
+
+               else if(strcmp(argv[i+4], "loglog") == 0)
+               {
+                  greenlogpower = 2;
+                  ++i;
+               }
+
+               else
+               {
+                  greenlogpower = strtol(argv[i+4], &end, 10);
+
+                  if(greenlogpower < 0  || end < argv[i+4] + strlen(argv[i+4]))
+                     greenlogpower = 0;
+                  else
+                     i += 1;
+               }
+            }
+            
+            i += 2;
+         }
 
          if(fits_open_file(&greenfptr, greenfile, READONLY, &status))
          {
@@ -1701,67 +1740,86 @@ int main(int argc, char **argv)
          if(!nowcs)
             checkHdr(bluefile, 0, hdu);
 
-         strcpy(blueminstr, argv[i+2]);
-         strcpy(bluemaxstr, argv[i+3]);
 
-         blueType = POWER;
+         // Two modes:  histogram from a file or histogram to be computed by this program
 
-         if(i+4 < argc)
+         if(i+3 >= argc)
          {
-            if(argv[i+4][0] == 'g')
-            {
-               blueType = GAUSSIAN;
-
-               if(strlen(argv[i+4]) > 1 
-               && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
-                   || argv[i+4][strlen(argv[i+4])-1] == 'l'))
-                  blueType = GAUSSIANLOG;
-
-               i += 1;
-            }
-
-            else if(argv[i+4][0] == 'a')
-            {
-               blueType = ASINH;
-
-               strcpy(bluebetastr, "2s");
-
-               if(i+5 < argc)
-                  strcpy(bluebetastr, argv[i+5]);
-
-               i += 2;
-            }
-            
-            else if(strncmp(argv[i+4], "lin", 3) == 0)
-            {
-               bluelogpower = 0;
-               ++i;
-            }
-            
-            else if(strcmp(argv[i+4], "log") == 0)
-            {
-               bluelogpower = 1;
-               ++i;
-            }
-
-            else if(strcmp(argv[i+4], "loglog") == 0)
-            {
-               bluelogpower = 2;
-               ++i;
-            }
-
-            else
-            {
-               bluelogpower = strtol(argv[i+4], &end, 10);
-
-               if(bluelogpower < 0. || end < argv[i+4] + strlen(argv[i+4]))
-                  bluelogpower = 0.;
-               else
-                  i += 1;
-            }
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -blue flag\"]\n");
+            fflush(stdout);
+            exit(1);
          }
-         
-         i += 2;
+
+         if(strcmp(argv[i+2], "-histfile") == 0)
+         {
+            strcpy(bluehistfile, argv[i+3]);
+            i += 2;
+         }
+
+         else
+         {
+            strcpy(blueminstr, argv[i+2]);
+            strcpy(bluemaxstr, argv[i+3]);
+
+            blueType = POWER;
+
+            if(i+4 < argc)
+            {
+               if(argv[i+4][0] == 'g')
+               {
+                  blueType = GAUSSIAN;
+
+                  if(strlen(argv[i+4]) > 1 
+                  && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
+                      || argv[i+4][strlen(argv[i+4])-1] == 'l'))
+                     blueType = GAUSSIANLOG;
+
+                  i += 1;
+               }
+
+               else if(argv[i+4][0] == 'a')
+               {
+                  blueType = ASINH;
+
+                  strcpy(bluebetastr, "2s");
+
+                  if(i+5 < argc)
+                     strcpy(bluebetastr, argv[i+5]);
+
+                  i += 2;
+               }
+               
+               else if(strncmp(argv[i+4], "lin", 3) == 0)
+               {
+                  bluelogpower = 0;
+                  ++i;
+               }
+               
+               else if(strcmp(argv[i+4], "log") == 0)
+               {
+                  bluelogpower = 1;
+                  ++i;
+               }
+
+               else if(strcmp(argv[i+4], "loglog") == 0)
+               {
+                  bluelogpower = 2;
+                  ++i;
+               }
+
+               else
+               {
+                  bluelogpower = strtol(argv[i+4], &end, 10);
+
+                  if(bluelogpower < 0. || end < argv[i+4] + strlen(argv[i+4]))
+                     bluelogpower = 0.;
+                  else
+                     i += 1;
+               }
+            }
+            
+            i += 2;
+         }
 
          if(fits_open_file(&bluefptr, bluefile, READONLY, &status))
          {
@@ -2519,13 +2577,22 @@ int main(int argc, char **argv)
       if(debug)
          printf("\n RED RANGE:\n");
 
-      getRange(redfptr,       redminstr,    redmaxstr,   
-               &redminval,   &redmaxval,    redType,   
-               redbetastr,   &redbetaval,   reddataval,
-               rednaxis1,     rednaxis2, 
-              &rdatamin,     &rdatamax,
-              &median,       &sigma,
-               redPlaneCount, redPlanes);
+      if(strlen(redhistfile) > 0)
+      {
+         readHist(redhistfile, &redminval,  &redmaxval, reddataval, 
+                  &rdatamin, &rdatamax, &median, &sigma, &redType);
+         fflush(stdout);
+      }
+      else
+      {
+         getRange(redfptr,       redminstr,    redmaxstr,   
+                  &redminval,   &redmaxval,    redType,   
+                  redbetastr,   &redbetaval,   reddataval,
+                  rednaxis1,     rednaxis2, 
+                 &rdatamin,     &rdatamax,
+                 &median,       &sigma,
+                  redPlaneCount, redPlanes);
+      }
 
       redminpercent = valuePercentile(redminval);
       redmaxpercent = valuePercentile(redmaxval);
@@ -2546,13 +2613,22 @@ int main(int argc, char **argv)
       if(debug)
          printf("\n GREEN RANGE:\n");
 
-      getRange(greenfptr,     greenminstr,  greenmaxstr, 
-               &greenminval, &greenmaxval,  greenType, 
-               greenbetastr, &greenbetaval, greendataval,
-               greennaxis1,   greennaxis2,
-              &gdatamin,     &gdatamax,
-              &median,       &sigma,
-               greenPlaneCount, greenPlanes);
+      if(strlen(greenhistfile) > 0)
+      {
+         readHist(greenhistfile, &greenminval,  &greenmaxval, greendataval, 
+                  &gdatamin, &gdatamax, &median, &sigma, &greenType);
+         fflush(stdout);
+      }
+      else
+      {
+         getRange(greenfptr,     greenminstr,  greenmaxstr, 
+                  &greenminval, &greenmaxval,  greenType, 
+                  greenbetastr, &greenbetaval, greendataval,
+                  greennaxis1,   greennaxis2,
+                 &gdatamin,     &gdatamax,
+                 &median,       &sigma,
+                  greenPlaneCount, greenPlanes);
+      }
 
       greenminpercent = valuePercentile(greenminval);
       greenmaxpercent = valuePercentile(greenmaxval);
@@ -2573,13 +2649,22 @@ int main(int argc, char **argv)
       if(debug)
          printf("\n BLUE RANGE:\n");
 
-      getRange(bluefptr,      blueminstr,   bluemaxstr,  
-               &blueminval,  &bluemaxval,   blueType,  
-               bluebetastr,  &bluebetaval,  bluedataval,
-               bluenaxis1,    bluenaxis2,  
-              &bdatamin,     &bdatamax,
-              &median,       &sigma,
-               bluePlaneCount, bluePlanes);
+      if(strlen(bluehistfile) > 0)
+      {
+         readHist(bluehistfile, &blueminval,  &bluemaxval, bluedataval, 
+                  &bdatamin, &bdatamax, &median, &sigma, &blueType);
+         fflush(stdout);
+      }
+      else
+      {
+         getRange(bluefptr,      blueminstr,   bluemaxstr,  
+                  &blueminval,  &bluemaxval,   blueType,  
+                  bluebetastr,  &bluebetaval,  bluedataval,
+                  bluenaxis1,    bluenaxis2,  
+                 &bdatamin,     &bdatamax,
+                 &median,       &sigma,
+                  bluePlaneCount, bluePlanes);
+      }
 
       blueminpercent = valuePercentile(blueminval);
       bluemaxpercent = valuePercentile(bluemaxval);
@@ -2784,7 +2869,7 @@ int main(int argc, char **argv)
          {
             fpixelRed[1] = j - redyoff + 1;
 
-            if(fits_read_pix(redfptr, TDOUBLE, fpixelRed, rednaxis1, NULL,
+            if(fits_read_pix(redfptr, TDOUBLE, fpixelRed, rednaxis1, &mynan,
                              rfitsbuf, &nullcnt, &status))
                printFitsError(status);
          }
@@ -2796,7 +2881,7 @@ int main(int argc, char **argv)
          {
             fpixelGreen[1] = j - greenyoff + 1;
 
-            if(fits_read_pix(greenfptr, TDOUBLE, fpixelGreen, greennaxis1, NULL,
+            if(fits_read_pix(greenfptr, TDOUBLE, fpixelGreen, greennaxis1, &mynan,
                              gfitsbuf, &nullcnt, &status))
                printFitsError(status);
          }
@@ -2808,7 +2893,7 @@ int main(int argc, char **argv)
          {
             fpixelBlue[1] = j - blueyoff + 1;
 
-            if(fits_read_pix(bluefptr, TDOUBLE, fpixelBlue, bluenaxis1, NULL,
+            if(fits_read_pix(bluefptr, TDOUBLE, fpixelBlue, bluenaxis1, &mynan,
                              bfitsbuf, &nullcnt, &status))
                printFitsError(status);
          }
@@ -3554,7 +3639,7 @@ int main(int argc, char **argv)
 
          fpixelGray[1] = j+1;
 
-         if(fits_read_pix(grayfptr, TDOUBLE, fpixelGray, nelements, NULL,
+         if(fits_read_pix(grayfptr, TDOUBLE, fpixelGray, nelements, &mynan,
                           fitsbuf, &nullcnt, &status))
             printFitsError(status);
 
@@ -5280,7 +5365,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &mynan,
                        data, &nullcnt, &status))
          printFitsError(status);
       
@@ -5320,7 +5405,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &mynan,
                        data, &nullcnt, &status))
          printFitsError(status);
 

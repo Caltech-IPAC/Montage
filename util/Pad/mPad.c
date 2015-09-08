@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        04Apr11  Baseline code
 
 */
@@ -523,7 +524,7 @@ int main(int argc, char **argv)
 
       /* Read a line from the input file */
 
-      if(fits_read_pix(input.fptr, TDOUBLE, fpixelin, nelementsin, NULL,
+      if(fits_read_pix(input.fptr, TDOUBLE, fpixelin, nelementsin, &nan,
                        inbuffer, NULL, &status))
          printFitsError(status);
       

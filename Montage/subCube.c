@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        15May15  Baseline code, based on subImage.c of that date.
 
 */
@@ -19,7 +20,7 @@ Version  Developer        Date     Change
 #include "subCube.h"
 #include "mNaN.h"
 
-int debug = 1;
+extern int debug;
 
 int isflat;
 
@@ -60,7 +61,7 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    if(debug)
    {
       for(i=0; i<4; ++i)
-         printf("naxis%d = %ld\n",  i+1, params->naxes[i]);
+         printf("subCube> naxis%d = %ld\n",  i+1, params->naxes[i]);
 
       fflush(stdout);
    }
@@ -178,24 +179,24 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
 
    if(debug)
    {
-      printf("naxis1 -> %ld\n", params->nelements);
-      printf("naxis2 -> %d\n",  naxis2);
+      printf("subCube> naxis1 -> %ld\n", params->nelements);
+      printf("subCube> naxis2 -> %d\n",  naxis2);
 
       if(params->naxis > 2)
-         printf("naxis3 -> %d\n",  naxis3);
+         printf("subCube> naxis3 -> %d\n",  naxis3);
 
       if(params->naxis > 3)
-         printf("naxis4 -> %d\n",  naxis4);
+         printf("subCube> naxis4 -> %d\n",  naxis4);
 
       if(params->isDSS)
       {
-         printf("cnpix1 -> %-g\n", params->cnpix[0]+params->ibegin-1);
-         printf("cnpix2 -> %-g\n", params->cnpix[1]+params->jbegin-1);
+         printf("subCube> cnpix1 -> %-g\n", params->cnpix[0]+params->ibegin-1);
+         printf("subCube> cnpix2 -> %-g\n", params->cnpix[1]+params->jbegin-1);
       }
       else
       {
-         printf("crpix1 -> %-g\n", params->crpix[0]-params->ibegin+1);
-         printf("crpix2 -> %-g\n", params->crpix[1]-params->jbegin+1);
+         printf("subCube> crpix1 -> %-g\n", params->crpix[0]-params->ibegin+1);
+         printf("subCube> crpix2 -> %-g\n", params->crpix[1]-params->jbegin+1);
       }
 
       fflush(stdout);
@@ -262,20 +263,23 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
          for (j=params->jbegin; j<=params->jend; ++j)
          {
-            fpixel[1] = j;
-
-            if(debug >= 2)
+            if(debug)
             {
-               printf("Processing input image row %5d\n", j);
+               printf("copyData> Processing input plane %5d/%5d, row %5d:   ", j4, j3, j);
                fflush(stdout);
             }
 
-            if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, NULL,
+            fpixel[1] = j;
+
+            if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
                              buffer, &nullcnt, &status))
                montage_printFitsError(status);
 
             for(i=0; i<params->nelements; ++i)
             {
+               if(debug && i<11)
+                  printf(" %-g", buffer[i-1]);
+
                if(!mNaN(buffer[i]))
                {
                   if(mNaN(refval))
@@ -285,6 +289,9 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
                      isflat = 0;
                }
             }
+
+            if(debug)
+               printf("\n");
 
             if (fits_write_pix(outfptr, TDOUBLE, fpixelo, params->nelements,
                                (void *)buffer, &status))
@@ -364,18 +371,21 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
       {
          for (j=1; j<=naxes[1]; ++j)
          {
-            if(debug >= 2)
+            if(debug)
             {
-               printf("Processing image row %5d\n", j);
+               printf("dataRange> input plane %5d/%5d, row %5d: \n", j4, j3, j);
                fflush(stdout);
             }
 
-            if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], NULL,
+            if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], &nan,
                              buffer, &nullcnt, &status))
                montage_printFitsError(status);
 
             for(i=1; i<=naxes[0]; ++i)
             {
+               if(debug && i<11)
+                  printf(" %-g", buffer[i-1]);
+
                if(!mNaN(buffer[i-1]))
                {
                   if(buffer[i-1] != nan)
@@ -387,6 +397,9 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
                   }
                }
             }
+
+            if(debug)
+               printf("\n");
 
             ++fpixel[1];
          }
