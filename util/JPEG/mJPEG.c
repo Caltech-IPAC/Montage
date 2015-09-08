@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.7      John Good        08Sep15  fits_read_pix() incorrect null value
 3.6      John Good        24Jun07  Added correction for CAR projection error
 3.5      John Good        17May07  Added compass 'rose' and 'no WCS' options
 3.4      John Good        07Feb06  Fixed output keyword printing (some
@@ -1699,7 +1700,7 @@ int main(int argc, char **argv)
 	 {
 	    fpixel[1] = j - redyoff + 1;
 
-	    if(fits_read_pix(redfptr, TDOUBLE, fpixel, rednaxis1, NULL,
+	    if(fits_read_pix(redfptr, TDOUBLE, fpixel, rednaxis1, &nan,
 			     rfitsbuf, &nullcnt, &status))
 	       printFitsError(status);
 	 }
@@ -1711,7 +1712,7 @@ int main(int argc, char **argv)
 	 {
 	    fpixel[1] = j - greenyoff + 1;
 
-	    if(fits_read_pix(greenfptr, TDOUBLE, fpixel, greennaxis1, NULL,
+	    if(fits_read_pix(greenfptr, TDOUBLE, fpixel, greennaxis1, &nan,
 			     gfitsbuf, &nullcnt, &status))
 	       printFitsError(status);
 	 }
@@ -1723,7 +1724,7 @@ int main(int argc, char **argv)
 	 {
 	    fpixel[1] = j - blueyoff + 1;
 
-	    if(fits_read_pix(bluefptr, TDOUBLE, fpixel, bluenaxis1, NULL,
+	    if(fits_read_pix(bluefptr, TDOUBLE, fpixel, bluenaxis1, &nan,
 			     bfitsbuf, &nullcnt, &status))
 	       printFitsError(status);
 	 }
@@ -2431,7 +2432,7 @@ int main(int argc, char **argv)
 
 	 fpixel[1] = j+1;
 
-         if(fits_read_pix(grayfptr, TDOUBLE, fpixel, nelements, NULL,
+         if(fits_read_pix(grayfptr, TDOUBLE, fpixel, nelements, &nan,
                           fitsbuf, &nullcnt, &status))
             printFitsError(status);
 
@@ -3251,7 +3252,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
 		       data, &nullcnt, &status))
 	 printFitsError(status);
       
@@ -3288,7 +3289,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
 		       data, &nullcnt, &status))
 	 printFitsError(status);
 

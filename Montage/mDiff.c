@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.1      John Good        08Sep15  fits_read_pix() incorrect null value
 3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
                                    for new development cycle.
 2.7      John Good        19Sep06  The area check for including a pixel was
@@ -563,7 +564,7 @@ int main(int argc, char **argv)
          /* Read a line from the input file */
          /***********************************/
 
-         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                           buffer, &nullcnt, &status))
             printFitsError(status);
          
@@ -575,7 +576,7 @@ int main(int argc, char **argv)
          }
          else
          {
-         if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, NULL,
+         if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
                           abuffer, &nullcnt, &status))
             printFitsError(status);
          }

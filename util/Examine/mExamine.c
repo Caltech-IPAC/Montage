@@ -3,9 +3,10 @@
 
 Version  Developer        Date     Change
 
-1.0      John Good        13Feb08  Baseline code
+2.1      John Good        08Sep15  fits_read_pix() incorrect null value
 2.0      John Good        15Apr15  Complete revamp, with more image info 
                                    and region statistics.
+1.0      John Good        13Feb08  Baseline code
 */
 
 #include <stdio.h>
@@ -26,6 +27,8 @@ Version  Developer        Date     Change
 #include "mNaN.h"
 
 #define STRLEN  1024
+
+int getPlanes(char *, int *);
 
 
 
@@ -50,6 +53,9 @@ int main(int argc, char **argv)
    int    locinpix, radinpix;
    int    npix, nnull, first;
    int    ixpix, iypix;
+
+   int    planes[256];
+   int    planeCount, hdu;
 
    char   infile[1024];
 
@@ -106,6 +112,25 @@ int main(int argc, char **argv)
    int       ibegin, iend, jbegin, jend;
    long      fpixel[4], nelements;
    double   *data;
+
+
+   /************************************************/
+   /* Make a NaN value to use setting blank pixels */
+   /************************************************/
+
+   union
+   {
+      double d;
+      char   c[8];
+   }
+   value;
+
+   double nan;
+
+   for(i=0; i<8; ++i)
+      value.c[i] = 255;
+
+   nan = value.d;
 
 
    dtr = atan(1.)/45.;
@@ -178,6 +203,13 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
+   planeCount = getPlanes(infile, planes);
+
+   if(planeCount > 0)
+      hdu = planes[0];
+   else
+      hdu = 0;
+
 
    /* Open the FITS file and initialize the WCS transform */
 
@@ -186,6 +218,15 @@ int main(int argc, char **argv)
    {
       printf("[struct stat=\"ERROR\", msg=\"Cannot open FITS file %s\"]\n", infile);
       exit(1);
+   }
+
+   if(hdu > 0)
+   {
+      if(fits_movabs_hdu(fptr, hdu+1, NULL, &status))
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Can't find HDU %d\"]\n", hdu);
+         exit(1);
+      }
    }
 
    status = 0;
@@ -258,16 +299,19 @@ int main(int argc, char **argv)
          strcpy(csys_str, "EQUB");
       }
    }
+
    if(strncmp(ctype1, "LON-", 4) == 0)
    {
       csys = GAL;
       strcpy(csys_str, "GAL");
    }
+
    if(strncmp(ctype1, "GLON", 4) == 0)
    {
       csys = GAL;
       strcpy(csys_str, "GAL");
    }
+
    if(strncmp(ctype1, "ELON", 4) == 0)
    {
       csys = ECLJ;
@@ -423,6 +467,7 @@ int main(int argc, char **argv)
       }
    }
 
+
    // Then read the data
 
    jbegin = iypix - rpix - 1;
@@ -437,6 +482,11 @@ int main(int argc, char **argv)
    fpixel[1] = jbegin;
    fpixel[2] = 1;
    fpixel[3] = 1;
+
+   if(planeCount > 1)
+      fpixel[2] = planes[1];
+   if(planeCount > 2)
+      fpixel[3] = planes[2];
 
    data = (double *)malloc(nelements * sizeof(double));
 
@@ -482,7 +532,7 @@ int main(int argc, char **argv)
       for (j=jbegin; j<=jend; ++j)
       {
          status = 0;
-         if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, NULL,
+         if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
                           (void *)data, &nullcnt, &status))
          {
             printf("[struct stat=\"ERROR\", msg=\"Error reading FITS data.\"]\n");
@@ -493,7 +543,9 @@ int main(int argc, char **argv)
          {
             if(mNaN(data[i]))
             {
-               printf("%10s ", "NULL");
+               if(debug)
+                  printf("%10s ", "NULL");
+
                ++nnull;
                continue;
             }
@@ -660,4 +712,57 @@ int main(int argc, char **argv)
    fflush(stdout);
 
    return (0);
+}
+
+
+/**************************************************/
+/*                                                */
+/*  Parse the HDU / plane info from the file name */
+/*                                                */
+/**************************************************/
+
+int getPlanes(char *file, int *planes)
+{
+   int   count, len;
+   char *ptr, *ptr1;
+
+   count = 0;
+
+   ptr = file;
+
+   len = strlen(file);
+
+   while(ptr < file+len && *ptr != '[')
+      ++ptr;
+
+   while(1)
+   {
+      if(ptr >= file+len)
+         return count;
+
+      if(*ptr != '[')
+         return count;
+
+      *ptr = '\0';
+      ++ptr;
+
+      ptr1 = ptr;
+
+      while(ptr1 < file+len && *ptr1 != ']')
+         ++ptr1;
+
+      if(ptr1 >= file+len)
+         return count;
+
+      if(*ptr1 != ']')
+         return count;
+
+      *ptr1 = '\0';
+
+      planes[count] = atoi(ptr);
+      ++count;
+
+      ptr = ptr1;
+      ++ptr;
+   }
 }

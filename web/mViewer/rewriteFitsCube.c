@@ -80,13 +80,34 @@ int rewriteFitsCube (char *cubepath, char *outcubepath, char *errmsg)
     int    debugfile = 1;
 
 
+
+/*
+    Make a NaN value to use setting blank pixels 
+*/
+
+    union
+    {
+        double d;
+        char   c[8];
+    }
+    value;
+
+    double nan;
+
+    for(i=0; i<8; ++i)
+        value.c[i] = 255;
+
+    nan = value.d;
+
+
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	
-	fprintf (fp_debug, "\nEnter rewriteFitsCube\n");
-	fprintf (fp_debug, "cubepath= [%s]\n", cubepath);
+	     fprintf (fp_debug, "\nEnter rewriteFitsCube\n");
+	     fprintf (fp_debug, "cubepath= [%s]\n", cubepath);
         fflush (fp_debug);
     }
    
+
 /*
     getFitshdr to analyze if the cube data needs to be re-arranged
 */
@@ -205,7 +226,7 @@ int rewriteFitsCube (char *cubepath, char *outcubepath, char *errmsg)
 	        indx1 = hdr.nl*hdr.ns*j; 
             }
 
-            if (fits_read_pix (infptr, TDOUBLE, fpixel, nelements, NULL,
+            if (fits_read_pix (infptr, TDOUBLE, fpixel, nelements, &nan,
                 fitsbuf1d, &nullcnt, &istatus)) {
 	        break;
 	    }

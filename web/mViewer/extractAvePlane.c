@@ -84,6 +84,25 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
     int    debugfile = 1;
 
 
+/*
+     Make a NaN value to use setting blank pixels
+ */
+
+    union
+    {
+        double d;
+        char   c[8];
+    }
+    value;
+
+    double nan;
+
+    for(i=0; i<8; ++i)
+        value.c[i] = 255;
+
+    nan = value.d;
+
+
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 
 	fprintf (fp_debug, "\nEnter extractAvePlane: cubepath= [%s]\n", 
@@ -466,7 +485,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
 	        }
             }
 
-	    if (fits_read_pix (infptr, TDOUBLE, fpixel, nelements, NULL,
+	    if (fits_read_pix (infptr, TDOUBLE, fpixel, nelements, &nan,
                 fitsbuf, &nullcnt, &istatus)) {
 	        break;
 	    }

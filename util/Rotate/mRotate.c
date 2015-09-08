@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.2      John Good        08Sep15  fits_read_pix() incorrect null value
 1.1      John Good        24Jun07  Added correction for CAR projection error
 1.0      John Good        11May05  Baseline code
 
@@ -703,7 +704,7 @@ int main(int argc, char **argv)
       /* Read a line from the input file */
       /***********************************/
 
-      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, innelements, NULL,
+      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, innelements, &nan,
                        (void *)indata[j-injbegin], &nullcnt, &status))
          printFitsError(status);
       
@@ -857,6 +858,7 @@ int main(int argc, char **argv)
             outdata[i-outibegin] = nan;
          else
             outdata[i-outibegin] = indata[jin-injbegin][iin-inibegin];
+
 
          if(debug >= 3)
          {

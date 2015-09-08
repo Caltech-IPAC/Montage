@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.2      John Good        08Sep15  fits_read_pix() incorrect null value
 2.1      John Good        07Oct07  Bug fix: set fstatus value
 2.0      John Good        11Aug05  Change the code to do a line at a time
                                    (to mimimize memory usage) and the allow 
@@ -394,7 +395,7 @@ int main(int argc, char **argv)
       /***********************************/
 
       status = 0;
-      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, NULL,
+      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
                        inbuffer, NULL, &status))
          printFitsError(status);
       

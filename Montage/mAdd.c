@@ -2,7 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-5.2      Daniel S. Katz          16Jul10  Small change for MPI with new fits library
+5.3      John Good        08Sep15  fits_read_pix() incorrect null value
+5.2      Daniel S. Katz   16Jul10  Small change for MPI with new fits library
 5.1      John Good        09Jul06  Only show maxopen warning in debug mode
 5.0      John Good        07Oct05  Added COUNT averaging mode           
 4.7      John Good        14Jun05  Was losing the first row in every input
@@ -1630,13 +1631,13 @@ int main(int argc, char **argv)
 
             status = 0;
 
-            if(fits_read_pix(input[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
+            if(fits_read_pix(input[ifile].fptr, TDOUBLE, fpixel, nelements, &nan,
                                input_buffer, &nullcnt, &status))
               printFitsError(status);
 
             if(haveAreas)
             {
-               if(fits_read_pix(input_area[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
+               if(fits_read_pix(input_area[ifile].fptr, TDOUBLE, fpixel, nelements, &nan,
                                   input_buffer_area, &nullcnt, &status))
                  printFitsError(status);
             }

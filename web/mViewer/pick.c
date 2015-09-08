@@ -59,7 +59,7 @@ int readPixelValue (char *fname, int ixpix, int iypix, int w, int h,
     
     fitsfile         *fitsptr;
     
-    int              ix, iy;
+    int              i, ix, iy;
     int              istatus;
     int              nullcnt, status, istatus1;
     long             fpixel[4];
@@ -68,6 +68,25 @@ int readPixelValue (char *fname, int ixpix, int iypix, int w, int h,
     double           *data;
 
     int              debugfile = 1;
+
+
+/*
+     Make a NaN value to use setting blank pixels 
+*/
+
+    union
+    {
+        double d;
+        char   c[8];
+    }
+    value;
+
+    double nan;
+
+    for(i=0; i<8; ++i)
+        value.c[i] = 255;
+
+    nan = value.d;
 
 
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
@@ -119,7 +138,7 @@ int readPixelValue (char *fname, int ixpix, int iypix, int w, int h,
     istatus = 0;
     status = 0;
 
-    istatus = fits_read_pix (fitsptr, TDOUBLE, fpixel, npix, NULL,
+    istatus = fits_read_pix (fitsptr, TDOUBLE, fpixel, npix, &nan,
         (void *)data, &nullcnt, &status);
 
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {

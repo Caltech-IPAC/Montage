@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        08May15  Baseline code, based on mAdd.c of this date.
 
 */
@@ -1553,13 +1554,13 @@ int main(int argc, char **argv)
 
                   status = 0;
 
-                  if(fits_read_pix(input[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
+                  if(fits_read_pix(input[ifile].fptr, TDOUBLE, fpixel, nelements, &nan,
                                      input_buffer, &nullcnt, &status))
                     printFitsError(status);
 
                   if(haveAreas)
                   {
-                     if(fits_read_pix(input_area[ifile].fptr, TDOUBLE, fpixel, nelements, NULL,
+                     if(fits_read_pix(input_area[ifile].fptr, TDOUBLE, fpixel, nelements, &nan,
                                         input_buffer_area, &nullcnt, &status))
                        printFitsError(status);
                   }
