@@ -49,7 +49,7 @@ int main(int argc, char **argv)
    int    debug = 0;
 
    int    i, j, offscl, nullcnt;
-   int    status, clockwise;
+   int    status, clockwise, nfound;
    int    locinpix, radinpix;
    int    npix, nnull, first;
    int    ixpix, iypix;
@@ -69,6 +69,9 @@ int main(int argc, char **argv)
    char   ctype2[256];
 
    double equinox;
+
+   long   naxis;
+   long   naxes[10];
 
    double naxis1;
    double naxis2;
@@ -233,6 +236,20 @@ int main(int argc, char **argv)
    if(fits_get_image_wcs_keys(fptr, &header, &status))
    {
       printf("[struct stat=\"ERROR\", msg=\"Cannot find WCS keys in FITS file %s\"]\n", infile);
+      exit(1);
+   }
+
+   status = 0;
+   if(fits_read_key_lng(fptr, "NAXIS", &naxis, (char *)NULL, &status))
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Cannot find NAXIS keyword in FITS file %s\"]\n", infile);
+      exit(1);
+   }
+
+   status = 0;
+   if(fits_read_keys_lng(fptr, "NAXIS", 1, naxis, naxes, &nfound, &status))
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Cannot find NAXIS1,2 keywords in FITS file %s\"]\n", infile);
       exit(1);
    }
 
@@ -638,12 +655,21 @@ int main(int argc, char **argv)
          ++fpixel[1];
       }
 
-      mean = sumflux / npix;
-      rms  = sqrt(sumflux2/npix - mean*mean);
+      mean     = 0.;
+      rms      = 0.;
+      sigmaref = 0.;
+      sigmamin = 0.;
+      sigmamax = 0.;
 
-      sigmaref = (val - mean) / rms; 
-      sigmamin = (min - mean) / rms; 
-      sigmamax = (max - mean) / rms; 
+      if(npix > 0)
+      {
+         mean = sumflux / npix;
+         rms  = sqrt(sumflux2/npix - mean*mean);
+
+         sigmaref = (val - mean) / rms; 
+         sigmamin = (min - mean) / rms; 
+         sigmamax = (max - mean) / rms; 
+      }
    }
    
 
@@ -654,8 +680,16 @@ int main(int argc, char **argv)
    printf(" proj=\"%s\",",     proj);
    printf(" csys=\"%s\",",     csys_str);
    printf(" equinox=%.1f,",    equinox);
+   printf(" naxis=%ld,",       naxis);
    printf(" naxis1=%d,",       (int)naxis1);
    printf(" naxis2=%d,",       (int)naxis2);
+
+   if(naxis > 2)
+      printf(" naxis3=%ld,",    naxes[2]);
+
+   if(naxis > 3)
+      printf(" naxis4=%ld,",    naxes[3]);
+
    printf(" crval1=%.7f,",     crval1);
    printf(" crval2=%.7f,",     crval2);
    printf(" crpix1=%-g,",      crpix1);
