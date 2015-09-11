@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.10     John Good        11Sep15  Incorrectly using column 0 as scale sometimes.
 3.9      T. P. Robitaille 19Aug10  fixed gap issue in MPI version
 3.8      Daniel S. Katz   16Jul10  fixes for MPI version
 3.7      John Good        07Oct07  When using the -r flag, append to stats.tbl
@@ -480,6 +481,7 @@ int main(int argc, char **argv)
 #endif
    }
 
+
    iweight = -1;
 
    if(strlen(weightCol) > 0)
@@ -497,6 +499,9 @@ int main(int argc, char **argv)
 #endif
       }
    }
+
+
+   iscale = -1;
 
    if(strlen(scaleCol) > 0)
    {
