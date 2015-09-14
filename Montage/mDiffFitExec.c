@@ -126,8 +126,8 @@ int main(int argc, char **argv)
             break;
 
          case 'p':
-	    strcpy(path, optarg);
-	    break;
+            strcpy(path, optarg);
+            break;
 
          case 'd':
             debug = 1;
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-l(evel-only)] [-n(o-areas)] [-p projdir] [-s statusfile] diffs.tbl template.hdr diffdir fits.tbl\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-l(evel-only)] [-n(o-areas)] [-p projdir] [-s statusfile] diffs.tbl template.hdr diffdir fits.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
       stat = tread();
 
       if(stat < 0)
-	 break;
+         break;
 
       cntr1 = atoi(tval(icntr1));
       cntr2 = atoi(tval(icntr2));
@@ -276,18 +276,18 @@ int main(int argc, char **argv)
 
       else
       {
-	 if(levelOnly)
-	    sprintf(cmd, "mFitplane -l %s", filePath(diffdir, diffname));
-	 else
-	    sprintf(cmd, "mFitplane %s", filePath(diffdir, diffname));
+         if(levelOnly)
+            sprintf(cmd, "mFitplane -l %s", filePath(diffdir, diffname));
+         else
+            sprintf(cmd, "mFitplane %s", filePath(diffdir, diffname));
 
-	 if(debug)
-	 {
-	    printf("[%s]\n", cmd);
-	    fflush(stdout);
-	 }
+         if(debug)
+         {
+            printf("[%s]\n", cmd);
+            fflush(stdout);
+         }
 
-	 svc_run(cmd);
+         svc_run(cmd);
 
          if(debug)
          {
@@ -297,65 +297,65 @@ int main(int argc, char **argv)
             fflush(stdout);
          }
 
-	 strcpy( status, svc_value( "stat" ));
+         strcpy( status, svc_value( "stat" ));
 
-	 if(strcmp( status, "ABORT") == 0)
-	 {
-	    strcpy( msg, svc_value( "msg" ));
+         if(strcmp( status, "ABORT") == 0)
+         {
+            strcpy( msg, svc_value( "msg" ));
 
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-	    fflush(stdout);
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+            fflush(stdout);
 
-	    exit(1);
-	 }
+            exit(1);
+         }
 
-	 ++count;
-	 if(strcmp( status, "ERROR") == 0)
-	 {
-	    ++ffailed;
+         ++count;
+         if(strcmp( status, "ERROR") == 0)
+         {
+            ++ffailed;
 
-	    if(debug)
-	    {
-	       printf("ERROR: %s\n", svc_value( "msg" ));
-	       fflush(stdout);
-	    }
-	 }
-	 else if(strcmp( status, "WARNING") == 0)
-	 {
-	    ++warning;
+            if(debug)
+            {
+               printf("ERROR: %s\n", svc_value( "msg" ));
+               fflush(stdout);
+            }
+         }
+         else if(strcmp( status, "WARNING") == 0)
+         {
+            ++warning;
 
-	    if(debug)
-	    {
-	       printf("WARNING: %s\n", svc_value( "msg" ));
-	       fflush(stdout);
-	    }
-	 }
-	 else
-	 {
-	    a         = atof(svc_value("a"));
-	    b         = atof(svc_value("b"));
-	    c         = atof(svc_value("c"));
-	    crpix1    = atof(svc_value("crpix1"));
-	    crpix2    = atof(svc_value("crpix2"));
-	    xmin      = atoi(svc_value("xmin"));
-	    xmax      = atoi(svc_value("xmax"));
-	    ymin      = atoi(svc_value("ymin"));
-	    ymax      = atoi(svc_value("ymax"));
-	    xcenter   = atof(svc_value("xcenter"));
-	    ycenter   = atof(svc_value("ycenter"));
-	    npixel    = atof(svc_value("npixel"));
-	    rms       = atof(svc_value("rms"));
-	    boxx      = atof(svc_value("boxx"));
-	    boxy      = atof(svc_value("boxy"));
-	    boxwidth  = atof(svc_value("boxwidth"));
-	    boxheight = atof(svc_value("boxheight"));
-	    boxangle  = atof(svc_value("boxang"));
+            if(debug)
+            {
+               printf("WARNING: %s\n", svc_value( "msg" ));
+               fflush(stdout);
+            }
+         }
+         else
+         {
+            a         = atof(svc_value("a"));
+            b         = atof(svc_value("b"));
+            c         = atof(svc_value("c"));
+            crpix1    = atof(svc_value("crpix1"));
+            crpix2    = atof(svc_value("crpix2"));
+            xmin      = atoi(svc_value("xmin"));
+            xmax      = atoi(svc_value("xmax"));
+            ymin      = atoi(svc_value("ymin"));
+            ymax      = atoi(svc_value("ymax"));
+            xcenter   = atof(svc_value("xcenter"));
+            ycenter   = atof(svc_value("ycenter"));
+            npixel    = atof(svc_value("npixel"));
+            rms       = atof(svc_value("rms"));
+            boxx      = atof(svc_value("boxx"));
+            boxy      = atof(svc_value("boxy"));
+            boxwidth  = atof(svc_value("boxwidth"));
+            boxheight = atof(svc_value("boxheight"));
+            boxangle  = atof(svc_value("boxang"));
 
             fprintf(fout, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13.0f %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f \n",
                cntr1, cntr2, a, b, c, crpix1, crpix2, xmin, xmax, ymin, ymax,
                xcenter, ycenter, npixel, rms, boxx, boxy, boxwidth, boxheight, boxangle);
-	    fflush(fout);
-	 }
+            fflush(fout);
+         }
       }
 
 
@@ -365,27 +365,27 @@ int main(int argc, char **argv)
       {
          strcpy(rmname, filePath(diffdir, diffname));
 
-	 if(debug)
-	 {
-	    printf("Remove [%s]\n", rmname);
-	    fflush(stdout);
+         if(debug)
+         {
+            printf("Remove [%s]\n", rmname);
+            fflush(stdout);
          }
 
-	 unlink(rmname);
+         unlink(rmname);
 
-	 if(!noAreas)
-	 {
-	    rmname[strlen(rmname)-5] = '\0';
-	    strcat(rmname, "_area.fits");
+         if(!noAreas)
+         {
+            rmname[strlen(rmname)-5] = '\0';
+            strcat(rmname, "_area.fits");
 
-	    if(debug)
-	    {
-	       printf("Remove [%s]\n", rmname);
-	       fflush(stdout);
-	    }
+            if(debug)
+            {
+               printf("Remove [%s]\n", rmname);
+               fflush(stdout);
+            }
 
-	    unlink(rmname);
-	 }
+            unlink(rmname);
+         }
       }
    }
 

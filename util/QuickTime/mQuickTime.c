@@ -1,11 +1,9 @@
-/* Module: mQuickSearch.c
+/* Module: mQuickTime.c
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-4.0      John Good        11Jan12  Add tree compression and enforce memset()
-3.0      John Good         7Nov07  Added support for point source catalogs
-2.0      John Good        16Oct07  Added memory map persistant storage option
-1.0      John Good        15Feb07  Baseline code
+4.1      John Good        11Sep15  Standardized time handling on MJD-OBS, EXPTIME   
+4.0      John Good        10Apr15  Baseline code based on mQuickSearch at this time.
 */
 
 #define _LARGEFILE64_SOURCE
@@ -56,6 +54,7 @@ typedef struct vec
    double x;
    double y;
    double z;
+   double t;
 }
 Vec;
 
@@ -134,13 +133,16 @@ int       reffd;
 struct Rect *rect;
 struct Rect  search_rect;
 
+double    tmin,    tmax;     // XXXX
+double    tminRef, tmaxRef;  // XXXX
+
 double    search_ra    [4];
 double    search_dec   [4];
 Vec       search_corner[4];
 Vec       search_center;
 double    search_radius;
 double    search_radiusDot;
-double    padDot, matchDot;
+double    padDot, matchDot, pointDot;
 
 int       search_type, tmp_type;
 
@@ -182,12 +184,16 @@ int rdebug = 0;
 
 /***********************************************************************/
 /*                                                                     */
-/* QUICKSEARCH                                                         */
+/* QUICKTIME                                                           */
 /*                                                                     */
 /* Creates a R-Tree of images and searches it to find find images      */
 /* overlapping a specific location.  The input image tables are in     */
 /* the form output by mImgTbl and are analyzed to construct RA,Dec     */
 /* bounding boxes (which is what the R-Tree is based on).              */
+/*                                                                     */
+/* This version of the program includes a fourth dimension: time.      */
+/* It is fully indexed (being linear, it is actually much easier       */
+/* than the spatial processing).                                       */
 /*                                                                     */
 /* The program can be used in a two-step process to generate memory    */
 /* map files of the R-Tree, etc.  (which can take quite a while)       */
@@ -202,9 +208,11 @@ int rdebug = 0;
 /*    cone  <ra> <dec> <radius>                                        */
 /*    box   <ra1> <dec1> <ra2> <dec2> <ra3> <dec3> <ra4> <dec4>        */
 /*                                                                     */
-/*       These three define a region of interest on                    */
-/*       the sky and are then followed by one or more                  */
-/*       of these two commands:                                        */
+/*    time  <stat_mjd> <duration_sec>                                  */
+/*                                                                     */
+/*       The first three each define a region of interest on           */
+/*       the sky and the fourth one the time range are then            */
+/*       followed by one or more of these two commands:                */
 /*                                                                     */
 /*                                                                     */
 /*    region <outfile.tbl>             Generates a list of the number  */
@@ -251,6 +259,12 @@ int rdebug = 0;
 /*                                     to get a complete list of       */
 /*                                     images).                        */
 /*                                                                     */
+/*                                                                     */
+/* The <user.tbl> file needs to have ra and dec columns for giving     */
+/* the location for each record and mjd_obs / exptime columns giving   */
+/* the time extent.  The location is combined with the radius above    */
+/* to build a spatial search box in x,y,z coordinates and the time     */
+/* columns add the fourth dimension extent.                            */
 /*                                                                     */
 /* If you are using the memory map file option, you can use the        */
 /*                                                                     */
@@ -365,8 +379,16 @@ int main(int argc, char **argv)
    double ymin, ymax;
    double zmin, zmax;
 
+   int    iradius;
+
+   int    itime;
+   double time;
+
+   int    iexptime;
+   double exptime;
+
    double len, pad, pad0, padpt;
-   double matchRadius, padMatch, matchDelta;
+   double matchRadius, padMatch, matchDelta, pointDelta;
 
    struct WorldCoor *wcsimg;
 
@@ -516,10 +538,39 @@ int main(int argc, char **argv)
    idec4 = tcol( "dec4");
 
    if((iname < 0 || ifile < 0) && (ira  < 0 || idec  < 0)
-   && ( ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
+   && ( ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0 
     ||  ira3 < 0 || idec3 < 0  ||  ira4 < 0 || idec4 < 0))
    {
-      printf("[struct stat=\"ERROR\", msg=\"Need columns 'identifier' and 'file' for a catalog set list or 'ra' and 'dec' or four corners for a catalog (%s)\"]\n", infile);
+      printf("[struct stat=\"ERROR\", msg=\"Need columns 'identifier' and 'file' for a catalog set list or 'ra' and 'dec' for a catalog or ra1..dec4 for image metadata (%s)\"]\n", infile);
+      fflush(stdout);
+      exit(0);
+   }
+
+   itime = tcol("mjd");
+
+   if(itime < 0)
+      itime = tcol("MJD");
+
+   if(itime < 0)
+      itime = tcol("mjd_obs");
+
+   if(itime < 0)
+      itime = tcol("MJD_OBS");
+
+   if(itime < 0)
+      itime = tcol("mjdobs");
+
+   if(itime < 0)
+      itime = tcol("MJDOBS");
+
+   iexptime = tcol("exptime");
+
+   if(iexptime < 0)
+      iexptime = tcol("EXPTIME");
+
+   if((iname < 0 || ifile < 0) && (itime < 0 || iexptime < 0))
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Need columns 'mjd' and 'exptime' for time range checking in image metadata (%s)\"]\n", infile);
       fflush(stdout);
       exit(0);
    }
@@ -1212,6 +1263,28 @@ int main(int argc, char **argv)
          ira      = tcol( "ra");
          idec     = tcol( "dec");
 
+         itime = tcol("mjd");
+
+         if(itime < 0)
+            itime = tcol("MJD");
+
+         if(itime < 0)
+            itime = tcol("mjd_obs");
+
+         if(itime < 0)
+            itime = tcol("MJD_OBS");
+
+         if(itime < 0)
+            itime = tcol("mjdobs");
+
+         if(itime < 0)
+            itime = tcol("MJDOBS");
+
+         iexptime = tcol("exptime");
+
+         if(iexptime < 0)
+            iexptime = tcol("EXPTIME");
+
          if(ins < 0)
             ins = tcol("naxis1");
 
@@ -1252,6 +1325,8 @@ int main(int argc, char **argv)
             printf("idec3    = %d\n", idec3);
             printf("ira4     = %d\n", ira4);
             printf("idec4    = %d\n", idec4);
+            printf("itime    = %d\n", itime);
+            printf("iexptime = %d\n", iexptime);
             printf("\n");
             fflush(stdout);
          }
@@ -1297,6 +1372,13 @@ int main(int argc, char **argv)
             exit(0);
          }
 
+         if(itime < 0 || iexptime < 0)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Need time range information columns.\"]\n");
+            fflush(stdout);
+            exit(0);
+         }
+
 
          /* Read the table file and process each record */
 
@@ -1318,6 +1400,16 @@ int main(int argc, char **argv)
                printf("\n\n---------------\nREAD image/point %ld\n", nrow);
                fflush(stdout);
             }
+
+            time = atof(tval(itime));
+
+            exptime = atof(tval(iexptime));
+
+            tmin = time;                       // XXX
+            tmax = time + exptime/86400.;      // XXX
+
+            if(tmax <= tmin)
+               tmax = tmin + 1./86400.;
 
 
             /* If we don't have the corners, compute them */
@@ -1648,12 +1740,17 @@ int main(int argc, char **argv)
 
             /* Add this image/point to the R-Tree */
 
+            zmin = 0.; // XXXX
+            zmax = 1.; // XXXX
+
             inrect.boundary[0] = xmin;
             inrect.boundary[1] = ymin;
             inrect.boundary[2] = zmin;
-            inrect.boundary[3] = xmax;
-            inrect.boundary[4] = ymax;
-            inrect.boundary[5] = zmax;
+            inrect.boundary[3] = tmin; // XXXX
+            inrect.boundary[4] = xmax;
+            inrect.boundary[5] = ymax;
+            inrect.boundary[6] = zmax;
+            inrect.boundary[7] = tmax; // XXXX
 
             if(info)
             {
@@ -1857,7 +1954,7 @@ int main(int argc, char **argv)
       loadtime = (double)tp.tv_sec + (double)tp.tv_usec/1000000.;
 
       
-      /* Replace the T-Tree and info files with new versions */
+      /* Replace the R-Tree and info files with new versions */
 
       strcpy(oldname, basefile);
       strcat(oldname, ".rti");
@@ -2072,6 +2169,34 @@ int main(int argc, char **argv)
       }
 
 
+      /* TIME command */
+
+      else if(strncasecmp(cmd, "time", 2) == 0)
+      {
+         if(cmdc < 3)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Command usage: time <mjd> <duration (sec)>\"]\n");
+            fflush(stdout);
+            continue;
+         }
+         
+         tminRef = atof(cmdv[1]);
+         tmaxRef = atof(cmdv[2]);
+
+         if(tmaxRef <= 0.)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Duration must be greater than zero.\"]\n");
+            fflush(stdout);
+            continue;
+         }
+            
+         tmaxRef = tmaxRef / 86400. + tminRef;
+
+         printf("[struct stat=\"OK\", command=\"time\", tmin=%.8f, tmax=%.8f]\n", tminRef, tmaxRef);
+         fflush(stdout);
+      }
+
+
       /* POINT command */
 
       else if(strncasecmp(cmd, "point", 2) == 0)
@@ -2272,6 +2397,8 @@ int main(int argc, char **argv)
                continue;
             }
 
+            iradius = tcol("radius");
+
             prevsrc = -1;
 
             tmp_type    = search_type;
@@ -2294,19 +2421,38 @@ int main(int argc, char **argv)
                point.y = sin(ra*dtr) * cos(dec*dtr);
                point.z = sin(dec*dtr);
 
+               pointDelta = matchDelta;
+               pointDot   = matchDot;
+
+               if(iradius >= 0)
+               {
+                  matchRadius = atof(tval(iradius));
+
+                  pointDot   = cos(matchRadius/3600. * dtr);
+                  pointDelta = tan(matchRadius/3600. * dtr);
+
+                  if(pointDot > padDot)
+                     pointDot = padDot;
+               }
+
                if(rdebug > 2)
                {
-                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f\n\n",
-                     srcid, prevsrc, ra, dec);
+                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f   radius = %11.6f\n\n",
+                     srcid, prevsrc, ra, dec, matchRadius);
                   fflush(stdout);
                }
 
-               search_rect.boundary[0] = point.x - delta - matchDelta;
-               search_rect.boundary[1] = point.y - delta - matchDelta;
-               search_rect.boundary[2] = point.z - delta - matchDelta;
-               search_rect.boundary[3] = point.x + delta + matchDelta;
-               search_rect.boundary[4] = point.y + delta + matchDelta;
-               search_rect.boundary[5] = point.z + delta + matchDelta;
+
+               // Search box defined by a table (e.g. moving target ephemeris)
+               `
+               search_rect.boundary[0] = point.x - delta - pointDelta;
+               search_rect.boundary[1] = point.y - delta - pointDelta;
+               search_rect.boundary[2] = point.z - delta - pointDelta;
+               search_rect.boundary[3] = tmin;                         // XXXX
+               search_rect.boundary[4] = point.x + delta + pointDelta;
+               search_rect.boundary[5] = point.y + delta + pointDelta;
+               search_rect.boundary[6] = point.z + delta + pointDelta;
+               search_rect.boundary[7] = tmax;                         // XXXX
 
                nhits = RTreeSearch(root, &search_rect, (SearchHitCallback)overlapCallback, 0, storageMode);
 
@@ -2928,6 +3074,28 @@ int main(int argc, char **argv)
             ira  = tcol("ra");
             idec = tcol("dec");
 
+            itime = tcol("mjd");
+
+            if(itime < 0)
+               itime = tcol("MJD");
+
+            if(itime < 0)
+               itime = tcol("mjd_obs");
+
+            if(itime < 0)
+               itime = tcol("MJD_OBS");
+
+            if(itime < 0)
+               itime = tcol("mjdobs");
+
+            if(itime < 0)
+               itime = tcol("MJDOBS");
+
+            iexptime = tcol("exptime");
+
+            if(iexptime < 0)
+               iexptime = tcol("EXPTIME");
+
             if(ira < 0)
                ira  = tcol("ra_user");
 
@@ -2940,6 +3108,15 @@ int main(int argc, char **argv)
                fflush(stdout);
                continue;
             }
+
+            if(itime < 0 || iexptime < 0) 
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Need columns 'mjd' and 'exptime' for time range checking in image metadata (%s)\"]\n", filename);
+               fflush(stdout);
+               exit(0);
+            }
+
+            iradius = tcol("radius");
 
             prevsrc  = -1;
             lastid   = -1;
@@ -2962,23 +3139,49 @@ int main(int argc, char **argv)
                ra  = atof(tval(ira));
                dec = atof(tval(idec));
 
+               time    = atof(tval(itime));
+               exptime = atof(tval(iexptime)) / 86400.;
+
+               if(exptime <= 0.)
+                  exptime = 1./86400.;
+
+               tmin = time;            // XXXX
+               tmax = time + exptime;  // XXXX 
+
+
                point.x = cos(ra*dtr) * cos(dec*dtr);
                point.y = sin(ra*dtr) * cos(dec*dtr);
                point.z = sin(dec*dtr);
 
+               pointDelta = matchDelta;
+               pointDot   = matchDot;
+
+               if(iradius >= 0)
+               {
+                  matchRadius = atof(tval(iradius));
+
+                  pointDot   = cos(matchRadius/3600. * dtr);
+                  pointDelta = tan(matchRadius/3600. * dtr);
+
+                  if(pointDot > padDot)
+                     pointDot = padDot;
+               }
+
                if(rdebug > 2)
                {
-                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f\n\n",
-                     srcid, prevsrc, ra, dec);
+                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f   radius = %11.6f\n\n",
+                     srcid, prevsrc, ra, dec, matchRadius);
                   fflush(stdout);
                }
 
-               search_rect.boundary[0] = point.x - delta - matchDelta;
-               search_rect.boundary[1] = point.y - delta - matchDelta;
-               search_rect.boundary[2] = point.z - delta - matchDelta;
-               search_rect.boundary[3] = point.x + delta + matchDelta;
-               search_rect.boundary[4] = point.y + delta + matchDelta;
-               search_rect.boundary[5] = point.z + delta + matchDelta;
+               search_rect.boundary[0] = point.x - delta - pointDelta;
+               search_rect.boundary[1] = point.y - delta - pointDelta;
+               search_rect.boundary[2] = point.z - delta - pointDelta;
+               search_rect.boundary[3] = tmin;                             // XXX
+               search_rect.boundary[4] = point.x + delta + pointDelta;
+               search_rect.boundary[5] = point.y + delta + pointDelta;
+               search_rect.boundary[6] = point.z + delta + pointDelta;
+               search_rect.boundary[7] = tmax;                             // XXX
 
                nhits = RTreeSearch(root, &search_rect, (SearchHitCallback)overlapCallback, 0, storageMode);
 
@@ -3091,9 +3294,11 @@ void findBoundary()
       search_rect.boundary[0] = search_center.x - delta;
       search_rect.boundary[1] = search_center.y - delta;
       search_rect.boundary[2] = search_center.z - delta;
-      search_rect.boundary[3] = search_center.x + delta;
-      search_rect.boundary[4] = search_center.y + delta;
-      search_rect.boundary[5] = search_center.z + delta;
+      search_rect.boundary[3] = 0.;                      // XXXX
+      search_rect.boundary[4] = search_center.x + delta;
+      search_rect.boundary[5] = search_center.y + delta;
+      search_rect.boundary[6] = search_center.z + delta;
+      search_rect.boundary[7] = 1.;                      // XXXX
 
       return;
    }
@@ -3127,9 +3332,11 @@ void findBoundary()
       search_rect.boundary[0] = xmin;
       search_rect.boundary[1] = ymin;
       search_rect.boundary[2] = zmin;
-      search_rect.boundary[3] = xmax;
-      search_rect.boundary[4] = ymax;
-      search_rect.boundary[5] = zmax;
+      search_rect.boundary[3] = 0.;   // XXXX
+      search_rect.boundary[4] = xmax;
+      search_rect.boundary[5] = ymax;
+      search_rect.boundary[6] = zmax;
+      search_rect.boundary[7] = 0.;   // XXXX
    }
 
    else if(search_type == BOX)
@@ -3171,9 +3378,11 @@ void findBoundary()
       search_rect.boundary[0] = xmin;
       search_rect.boundary[1] = ymin;
       search_rect.boundary[2] = zmin;
-      search_rect.boundary[3] = xmax;
-      search_rect.boundary[4] = ymax;
-      search_rect.boundary[5] = zmax;
+      search_rect.boundary[3] = 0.;   // XXXX
+      search_rect.boundary[4] = xmax;
+      search_rect.boundary[5] = ymax;
+      search_rect.boundary[6] = zmax;
+      search_rect.boundary[7] = 0.;   // XXXX
    }
 
    if(rdebug)
@@ -3306,7 +3515,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
       {
          distDot = Dot(&point, &rectinfo[id].center);
 
-         if(distDot > matchDot)
+         if(distDot > pointDot)
          {
             if(rdebug)
             {
