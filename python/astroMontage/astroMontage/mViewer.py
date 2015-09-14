@@ -559,8 +559,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             boxx = float(args[1])
             boxy = float(args[2])
 
-            if self.viewer.pickCallback is not None:
-                self.viewer.pickCallback(boxx, boxy)
+            if self.viewer.pick_callback is not None:
+                self.viewer.pick_callback(boxx, boxy)
 
 
     def update_display(self):
@@ -1191,7 +1191,7 @@ class mViewer():
 
         mvWorkspace = workspace
 
-        self.pickCallback = self.pickLocation
+        self.pick_callback = self.pick_location
 
 
     # Shutdown (removing workspace)
