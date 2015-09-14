@@ -93,21 +93,21 @@ class mvStruct(object):
 
 
 class mvViewOverlay:
-    type        =  ""
-    visible     = True
-    coordSys    =  ""
-    color       =  ""
-    dataFile    =  ""
-    dataCol     =  ""
-    dataRef     =  ""
-    dataType    =  ""
-    symSize     =  ""
-    symType     =  ""
-    symSides    =  ""
-    symRotation =  ""
-    lon         =  ""
-    lat         =  ""
-    text        =  ""
+    type         =  ""
+    visible      = True
+    coord_sys    =  ""
+    color        =  ""
+    data_file    =  ""
+    data_col     =  ""
+    data_ref     =  ""
+    data_type    =  ""
+    sym_size     =  ""
+    sym_type     =  ""
+    sym_sides    =  ""
+    sym_rotation =  ""
+    lon          =  ""
+    lat          =  ""
+    text         =  ""
  
         
     def __str__(self):
@@ -175,11 +175,11 @@ class mvViewOverlay:
 
 
 class mvViewFile:
-    fitsFile    = ""
-    colorTable  = ""
-    stretchMin  = ""
-    stretchMax  = ""
-    stretchMode = ""
+    fits_file    = ""
+    color_table  = ""
+    stretch_min  = ""
+    stretch_max  = ""
+    stretch_mode = ""
 
     def __str__(self):
 
@@ -243,38 +243,38 @@ class mvViewFile:
 
 class mvView:
 
-    viewer        = ""
+    viewer          = ""
 
-    imageFile     = "viewer.jpg"
-    imageType     = "jpg"
-    imageWidth    = "1000"
-    imageHeight   = "1000"
+    image_file      = "viewer.jpg"
+    image_type      = "jpg"
+    image_width     = "1000"
+    image_height    = "1000"
 
-    displayMode   = ""
+    display_mode    = ""
 
-    cutoutXoffset = ""
-    cutoutYoffset = ""
-    canvasHeight  = 1000
-    canvasWidth   = 1000
-    xmin          = ""
-    ymin          = ""
-    xmax          = ""
-    ymax          = ""
-    factor        = ""
+    cutout_x_offset = ""
+    cutout_y_offset = ""
+    canvas_height   = 1000
+    canvas_width    = 1000
+    xmin            = ""
+    ymin            = ""
+    xmax            = ""
+    ymax            = ""
+    factor          = ""
 
-    currentColor          = "black"
+    current_color           = "black"
 
-    currentSymbolType     = "circle"
-    currentSymbolSize     =  1.0
-    currentSymbolSides    =  3
-    currentSymbolRotation =  0.0
+    current_symbol_type     = "circle"
+    current_symbol_size     =  1.0
+    current_symbol_sides    =  3
+    current_symbol_rotation =  0.0
 
-    currentCoordSys       = "Equ J2000"
+    current_coord_sys       = "Equ J2000"
 
-    grayFile  = mvViewFile()
-    redFile   = mvViewFile()
-    greenFile = mvViewFile()
-    blueFile  = mvViewFile()
+    gray_file  = mvViewFile()
+    red_file   = mvViewFile()
+    green_file = mvViewFile()
+    blue_file  = mvViewFile()
 
     overlay = []
 
@@ -377,9 +377,9 @@ class mvView:
 # containing our working files and the "view"
 # object containing the display parameters
 
-mvHandle    = 0
-mvWorkspace = ""
-mvViewData  = ""
+mvHandle     = 0
+mv_workspace = ""
+mvViewData   = ""
 
 
 # The next two objects are used by Tornado as
@@ -393,9 +393,9 @@ class mvMainHandler(tornado.web.RequestHandler):
 
     def get(self):
     
-        global mvWorkspace
+        global mv_workspace
 
-        self.workspace = mvWorkspace
+        self.workspace = mv_workspace
 
         loader = tornado.template.Loader(".")
 
@@ -411,7 +411,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         self.debug = False
 
-        self.workspace = mvWorkspace
+        self.workspace = mv_workspace
         self.view      = mvViewData
         self.viewer    = self.view.viewer
 
@@ -432,21 +432,21 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         # Find the image size
 
-        refFile = self.view.grayFile.fitsFile
+        ref_file = self.view.gray_file.fits_file
 
-        if self.view.displayMode == "":
+        if self.view.display_mode == "":
             print "No images defined. Nothing to display."
             sys.stdout.write('\n>>> ')
             sys.stdout.flush()
             return
 
-        if self.view.displayMode == "grayscale":
-            refFile = self.view.grayFile.fitsFile
+        if self.view.display_mode == "grayscale":
+            ref_file = self.view.gray_file.fits_file
 
-        if self.view.displayMode == "color":
-            refFile = self.view.redFile.fitsFile
+        if self.view.display_mode == "color":
+            ref_file = self.view.red_file.fits_file
 
-        command = "mExamine " + refFile
+        command = "mExamine " + ref_file
 
         if self.debug:
            print "\nMONTAGE Command:\n---------------\n" + command
@@ -467,8 +467,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             sys.stdout.write('\n>>> ')
             sys.stdout.flush()
 
-        subimageWidth  = retval.naxis1
-        subimageHeight = retval.naxis2
+        subimage_width  = retval.naxis1
+        subimage_height = retval.naxis2
 
         if self.view.xmin == "":
             self.view.xmin = 0
@@ -482,8 +482,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         if self.view.ymax == "":
             self.view.ymax = retval.naxis2
 
-        self.view.imageWidth  = retval.naxis1
-        self.view.imageHeight = retval.naxis2
+        self.view.image_width  = retval.naxis1
+        self.view.image_height = retval.naxis2
 
 
         # Process browser request
@@ -498,15 +498,15 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         if cmd == 'resize':
 
-            self.view.canvasWidth  = args[1]
-            self.view.canvasHeight = args[2]
+            self.view.canvas_width  = args[1]
+            self.view.canvas_height = args[2]
 
             if self.view.factor == 0:
 
                 self.view.xmin = 1
-                self.view.xmax = self.view.imageWidth
+                self.view.xmax = self.view.image_width
                 self.view.ymin = 1
-                self.view.ymax = self.view.imageHeight
+                self.view.ymax = self.view.image_height
 
             self.update_display()
 
@@ -514,9 +514,9 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         if cmd == 'zoomReset':
 
             self.view.xmin = 1
-            self.view.xmax = self.view.imageWidth
+            self.view.xmax = self.view.image_width
             self.view.ymin = 1
-            self.view.ymax = self.view.imageHeight
+            self.view.ymax = self.view.image_height
 
             self.update_display()
 
@@ -568,18 +568,18 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         sys.stdout.write('\n>>> ')
         sys.stdout.flush()
         
-        if self.view.displayMode == "":
+        if self.view.display_mode == "":
             print "No images defined. Nothing to display."
             sys.stdout.write('\n>>> ')
             sys.stdout.flush()
             return
 
-        if self.view.displayMode == "grayscale":
+        if self.view.display_mode == "grayscale":
 
             # First cut out the part of the original grayscale image we want
 
             command = "mSubimage -p" 
-            command += " " + self.view.grayFile.fitsFile 
+            command += " " + self.view.gray_file.fits_file 
             command += " " + self.workspace + "/subimage.fits" 
             command += " " + str(self.view.xmin)
             command += " " + str(self.view.ymin)
@@ -614,7 +614,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             # Blue
 
             command = "mSubimage -p" 
-            command += " " + self.view.blueFile.fitsFile 
+            command += " " + self.view.blue_file.fits_file 
             command += " " + self.workspace + "/blue_subimage.fits" 
             command += " " + str(self.view.xmin)
             command += " " + str(self.view.ymin)
@@ -642,7 +642,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             # Green
 
             command = "mSubimage -p" 
-            command += " " + self.view.greenFile.fitsFile 
+            command += " " + self.view.green_file.fits_file 
             command += " " + self.workspace + "/green_subimage.fits" 
             command += " " + str(self.view.xmin)
             command += " " + str(self.view.ymin)
@@ -670,7 +670,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             # Red
 
             command = "mSubimage -p" 
-            command += " " + self.view.redFile.fitsFile 
+            command += " " + self.view.red_file.fits_file 
             command += " " + self.workspace + "/red_subimage.fits" 
             command += " " + str(self.view.xmin)
             command += " " + str(self.view.ymin)
@@ -699,7 +699,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         # Get the size (all three are the same)
 
-        if self.view.displayMode == "grayscale":
+        if self.view.display_mode == "grayscale":
             command = "mExamine " + self.workspace + "/subimage.fits"
         else:
             command = "mExamine " + self.workspace + "/red_subimage.fits"
@@ -723,13 +723,13 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             sys.stdout.write('\n>>> ')
             sys.stdout.flush()
 
-        subimageWidth  = retval.naxis1
-        subimageHeight = retval.naxis2
+        subimage_width  = retval.naxis1
+        subimage_height = retval.naxis2
 
 
 
-        xfactor = float(subimageWidth)  / float(self.view.canvasWidth)
-        yfactor = float(subimageHeight) / float(self.view.canvasHeight)
+        xfactor = float(subimage_width)  / float(self.view.canvas_width)
+        yfactor = float(subimage_height) / float(self.view.canvas_height)
 
         if float(yfactor) > float(xfactor):
             xfactor = yfactor
@@ -737,12 +737,12 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         self.view.factor = xfactor
 
 
-        if self.view.displayMode == "grayscale":
+        if self.view.display_mode == "grayscale":
 
             # Shrink/expand the grayscale cutout to the right size
 
-            xfactor = float(subimageWidth)  / float(self.view.canvasWidth)
-            yfactor = float(subimageHeight) / float(self.view.canvasHeight)
+            xfactor = float(subimage_width)  / float(self.view.canvas_width)
+            yfactor = float(subimage_height) / float(self.view.canvas_height)
 
             if float(yfactor) > float(xfactor):
                 xfactor = yfactor
@@ -869,7 +869,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             if   type == 'grid':
 
                 visible  = self.view.overlay[i].visible
-                coordSys = self.view.overlay[i].coordSys
+                coord_sys = self.view.overlay[i].coord_sys
                 color    = self.view.overlay[i].color
 
                 if visible == True:
@@ -877,65 +877,65 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                     if color != "":
                         command += " -color " + str(color)
 
-                    command += " -grid "  + str(coordSys)
+                    command += " -grid "  + str(coord_sys)
 
 
             elif type == 'catalog':
 
-                visible     = self.view.overlay[i].visible
-                dataFile    = self.view.overlay[i].dataFile
-                dataCol     = self.view.overlay[i].dataCol
-                dataRef     = self.view.overlay[i].dataRef
-                dataType    = self.view.overlay[i].dataType
-                symSize     = self.view.overlay[i].symSize
-                symType     = self.view.overlay[i].symType
-                symSides    = self.view.overlay[i].symSides
-                symRotation = self.view.overlay[i].symRotation
-                color       = self.view.overlay[i].color
+                visible      = self.view.overlay[i].visible
+                data_file    = self.view.overlay[i].data_file
+                data_col     = self.view.overlay[i].data_col
+                data_ref     = self.view.overlay[i].data_ref
+                data_type    = self.view.overlay[i].data_type
+                sym_size     = self.view.overlay[i].sym_size
+                sym_type     = self.view.overlay[i].sym_type
+                sym_sides    = self.view.overlay[i].sym_sides
+                sym_rotation = self.view.overlay[i].sym_rotation
+                color        = self.view.overlay[i].color
 
                 if visible == True:
 
                     if color != "":
                         command += " -color " + str(color)
 
-                    if symType != "" and symSize != "":
-                        command += " -symbol " + str(symSize) + " " + str(symType) + " " + str(symSides) + " " + str(symRotation)
+                    if sym_type != "" and sym_size != "":
+                        command += " -symbol " + str(sym_size) + " " + str(sym_type) + " " + str(sym_sides) + " " + str(sym_rotation)
 
-                    command += " -catalog "  + str(dataFile) + " " + str(dataCol) + " " + str(dataRef) + " " + str(dataType)
+                    command += " -catalog "  + str(data_file) + " " + str(data_col) + " " + str(data_ref) + " " + str(data_type)
 
 
             elif type == 'imginfo':
 
-                visible  = self.view.overlay[i].visible
-                dataFile = self.view.overlay[i].dataFile
-                color    = self.view.overlay[i].color
+                visible   = self.view.overlay[i].visible
+                data_file = self.view.overlay[i].data_file
+                color     = self.view.overlay[i].color
 
                 if visible == True:
 
                     if color != "":
                         command += " -color " + str(color)
 
-                    command += " -imginfo "  + str(dataFile)
+                    command += " -imginfo "  + str(data_file)
 
 
             elif type == 'mark':
 
-                visible     = self.view.overlay[i].visible
-                lon         = self.view.overlay[i].lon
-                lat         = self.view.overlay[i].lat
-                symSize     = self.view.overlay[i].symSize
-                symType     = self.view.overlay[i].symType
-                symSides    = self.view.overlay[i].symSides
-                symRotation = self.view.overlay[i].symRotation
-                color       = self.view.overlay[i].color
+                visible      = self.view.overlay[i].visible
+                lon          = self.view.overlay[i].lon
+                lat          = self.view.overlay[i].lat
+                sym_size     = self.view.overlay[i].sym_size
+                sym_type     = self.view.overlay[i].sym_type
+                sym_sides    = self.view.overlay[i].sym_sides
+                sym_rotation = self.view.overlay[i].sym_rotation
+                color        = self.view.overlay[i].color
 
                 if visible == True:
 
                     if color != "":
                         command += " -color " + str(color)
 
-                    if symType != "" and symSize != "":
-                        command += " -symbol " + str(symSize) + " " + str(symType) + " " + str(symSides) + " " + str(symRotation)
+                    if sym_type != "" and sym_size != "":
+                        command += " -symbol " + str(sym_size) + " " + str(sym_type) + " " + str(sym_sides) + " " + str(sym_rotation)
 
                     command += " -mark "  + str(lon) + " " + str(lat)
 
@@ -960,84 +960,84 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                 print "Invalid overlay type '" + str(type) + "' in view specification."
 
 
-        if self.view.displayMode == "grayscale":
+        if self.view.display_mode == "grayscale":
 
-            fitsFile    = self.workspace + "/shrunken.fits"
-            colorTable  = self.view.grayFile.colorTable
-            stretchMin  = self.view.grayFile.stretchMin
-            stretchMax  = self.view.grayFile.stretchMax
-            stretchMode = self.view.grayFile.stretchMode
+            fits_file    = self.workspace + "/shrunken.fits"
+            color_table  = self.view.gray_file.color_table
+            stretch_min  = self.view.gray_file.stretch_min
+            stretch_max  = self.view.gray_file.stretch_max
+            stretch_mode = self.view.gray_file.stretch_mode
 
-            if colorTable == "":
-               colorTable = 0
+            if color_table == "":
+               color_table = 0
 
-            if stretchMin == "":
-               stretchMin = "-1s"
+            if stretch_min == "":
+               stretch_min = "-1s"
 
-            if stretchMax == "":
-               stretchMax = "max"
+            if stretch_max == "":
+               stretch_max = "max"
 
-            if stretchMode == "":
-               stretchMode = "gaussian-log"
+            if stretch_mode == "":
+               stretch_mode = "gaussian-log"
 
-            command += " -ct " + str(colorTable)
-            command += " -gray " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
+            command += " -ct " + str(color_table)
+            command += " -gray " + str(fits_file) + " " + str(stretch_min) + " " + str(stretch_max) + " " + str(stretch_mode)
 
 
         else:
 
-            fitsFile    = self.workspace + "/red_shrunken.fits"
-            stretchMin  = self.view.redFile.stretchMin
-            stretchMax  = self.view.redFile.stretchMax
-            stretchMode = self.view.redFile.stretchMode
+            fits_file    = self.workspace + "/red_shrunken.fits"
+            stretch_min  = self.view.red_file.stretch_min
+            stretch_max  = self.view.red_file.stretch_max
+            stretch_mode = self.view.red_file.stretch_mode
  
-            if stretchMin == "":
-               stretchMin = "-1s"
+            if stretch_min == "":
+               stretch_min = "-1s"
 
-            if stretchMax == "":
-               stretchMax = "max"
+            if stretch_max == "":
+               stretch_max = "max"
 
-            if stretchMode == "":
-               stretchMode = "gaussian-log"
+            if stretch_mode == "":
+               stretch_mode = "gaussian-log"
 
-            command += " -red " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
+            command += " -red " + str(fits_file) + " " + str(stretch_min) + " " + str(stretch_max) + " " + str(stretch_mode)
  
-            fitsFile    = self.workspace + "/green_shrunken.fits"
-            stretchMin  = self.view.greenFile.stretchMin
-            stretchMax  = self.view.greenFile.stretchMax
-            stretchMode = self.view.greenFile.stretchMode
+            fits_file    = self.workspace + "/green_shrunken.fits"
+            stretch_min  = self.view.green_file.stretch_min
+            stretch_max  = self.view.green_file.stretch_max
+            stretch_mode = self.view.green_file.stretch_mode
  
-            if stretchMin == "":
-               stretchMin = "-1s"
+            if stretch_min == "":
+               stretch_min = "-1s"
 
-            if stretchMax == "":
-               stretchMax = "max"
+            if stretch_max == "":
+               stretch_max = "max"
 
-            if stretchMode == "":
-               stretchMode = "gaussian-log"
+            if stretch_mode == "":
+               stretch_mode = "gaussian-log"
 
-            command += " -green " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
+            command += " -green " + str(fits_file) + " " + str(stretch_min) + " " + str(stretch_max) + " " + str(stretch_mode)
  
-            fitsFile    = self.workspace + "/blue_shrunken.fits"
-            stretchMin  = self.view.blueFile.stretchMin
-            stretchMax  = self.view.blueFile.stretchMax
-            stretchMode = self.view.blueFile.stretchMode
+            fits_file    = self.workspace + "/blue_shrunken.fits"
+            stretch_min  = self.view.blue_file.stretch_min
+            stretch_max  = self.view.blue_file.stretch_max
+            stretch_mode = self.view.blue_file.stretch_mode
 
-            if stretchMin == "":
-               stretchMin = "-1s"
+            if stretch_min == "":
+               stretch_min = "-1s"
 
-            if stretchMax == "":
-               stretchMax = "max"
+            if stretch_max == "":
+               stretch_max = "max"
 
-            if stretchMode == "":
-               stretchMode = "gaussian-log"
+            if stretch_mode == "":
+               stretch_mode = "gaussian-log"
 
-            command += " -blue " + str(fitsFile) + " " + str(stretchMin) + " " + str(stretchMax) + " " + str(stretchMode)
+            command += " -blue " + str(fits_file) + " " + str(stretch_min) + " " + str(stretch_max) + " " + str(stretch_mode)
 
 
-        imageFile = self.view.imageFile
+        image_file = self.view.image_file
 
-        command += " -jpeg " + self.workspace + "/" + str(imageFile) 
+        command += " -jpeg " + self.workspace + "/" + str(image_file) 
 
         if self.debug:
            print "\nMONTAGE Command:\n---------------\n" + command
@@ -1074,7 +1074,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             sys.stdout.flush()
             return
 
-        self.write_message("image " + imageFile)
+        self.write_message("image " + image_file)
 
 
     def on_close(self):
@@ -1112,14 +1112,14 @@ class mvThread(Thread):
     def run(self):
 
         global mvHandle
-        global mvWorkspace
+        global mv_workspace
         global mvViewData
 
         if self.workspace is None:
             print "Please set a workspace location first."
             return
 
-        mvWorkspace = self.workspace
+        mv_workspace = self.workspace
         mvViewData  = self.view
         
         application = tornado.web.Application([
@@ -1189,7 +1189,7 @@ class mViewer():
 
         self.view.viewer = self;
 
-        mvWorkspace = workspace
+        mv_workspace = workspace
 
         self.pick_callback = self.pick_location
 
@@ -1274,7 +1274,7 @@ class mViewer():
             pass
 
         try:
-            os.remove(self.workspace + "/" + str(self.view.imageFile))
+            os.remove(self.workspace + "/" + str(self.view.image_file))
         except:
             pass
 
@@ -1300,84 +1300,84 @@ class mViewer():
            mode = "grayscale"
 
         if mode[0] == 'g':
-            self.view.displayMode = "grayscale"
+            self.view.display_mode = "grayscale"
 
         if mode[0] == 'G':
-            self.view.displayMode = "grayscale"
+            self.view.display_mode = "grayscale"
 
         if mode[0] == 'b':
-            self.view.displayMode = "grayscale"
+            self.view.display_mode = "grayscale"
 
         if mode[0] == 'B':
-            self.view.displayMode = "grayscale"
+            self.view.display_mode = "grayscale"
 
         if mode[0] == 'r':
-            self.view.displayMode = "color"
+            self.view.display_mode = "color"
 
         if mode[0] == 'R':
-            self.view.displayMode = "color"
+            self.view.display_mode = "color"
 
         if mode[0] == 'c':
-            self.view.displayMode = "color"
+            self.view.display_mode = "color"
 
         if mode[0] == 'C':
-            self.view.displayMode = "color"
+            self.view.display_mode = "color"
 
         if mode[0] == 'f':
-            self.view.displayMode = "color"
+            self.view.display_mode = "color"
 
         if mode[0] == 'F':
-            self.view.displayMode = "color"
+            self.view.display_mode = "color"
 
 
-    # Utility function: set the grayFile
+    # Utility function: set the gray_file
 
-    def set_gray_file(self, grayFile):
+    def set_gray_file(self, gray_file):
 
-        self.view.grayFile.fitsFile = grayFile
+        self.view.gray_file.fits_file = gray_file
 
-        if self.view.displayMode == "":
-            self.view.displayMode = "grayscale"
-
-
-    # Utility function: set the blueFile
-
-    def set_blue_file(self, blueFile):
-
-        self.view.blueFile.fitsFile = blueFile
-
-        if self.view.displayMode == "":
-            if self.view.redFile.fitsFile != "" and self.view.greenFile.fitsFile != "":
-                self.view.displayMode = "color"
+        if self.view.display_mode == "":
+            self.view.display_mode = "grayscale"
 
 
-    # Utility function: set the greenFile
+    # Utility function: set the blue_file
 
-    def set_green_file(self, greenFile):
+    def set_blue_file(self, blue_file):
 
-        self.view.greenFile.fitsFile = greenFile
+        self.view.blue_file.fits_file = blue_file
 
-        if self.view.displayMode == "":
-            if self.view.redFile.fitsFile != "" and self.view.blueFile.fitsFile != "":
-                self.view.displayMode = "color"
-
-
-    # Utility function: set the redFile
-
-    def set_red_file(self, redFile):
-
-        self.view.redFile.fitsFile = redFile
-
-        if self.view.displayMode == "":
-            if self.view.greenFile.fitsFile != "" and self.view.blueFile.fitsFile != "":
-                self.view.displayMode = "color"
+        if self.view.display_mode == "":
+            if self.view.red_file.fits_file != "" and self.view.green_file.fits_file != "":
+                self.view.display_mode = "color"
 
 
-    # Utility function: set the currentColor
+    # Utility function: set the green_file
 
-    def set_current_color(self, currentColor):
+    def set_green_file(self, green_file):
 
-        self.view.currentColor = currentColor
+        self.view.green_file.fits_file = green_file
+
+        if self.view.display_mode == "":
+            if self.view.red_file.fits_file != "" and self.view.blue_file.fits_file != "":
+                self.view.display_mode = "color"
+
+
+    # Utility function: set the red_file
+
+    def set_red_file(self, red_file):
+
+        self.view.red_file.fits_file = red_file
+
+        if self.view.display_mode == "":
+            if self.view.green_file.fits_file != "" and self.view.blue_file.fits_file != "":
+                self.view.display_mode = "color"
+
+
+    # Utility function: set the current_color
+
+    def set_current_color(self, current_color):
+
+        self.view.current_color = current_color
 
 
     # Utility function: set the currentSymbol
@@ -1386,84 +1386,84 @@ class mViewer():
     
         nargs = len(arg)
 
-        symbolSides    = ""
-        symbolRotation = ""
+        symbol_sides    = ""
+        symbol_rotation = ""
 
-        symbolSize     = arg[0]
-        symbolType     = arg[1]
+        symbol_size     = arg[0]
+        symbol_type     = arg[1]
 
         if nargs > 2:
-            symbolSides = arg[2]
+            symbol_sides = arg[2]
 
         if nargs > 3:
-            symbolRotation = arg[3]
+            symbol_rotation = arg[3]
 
-        self.view.currentSymbolSize     = symbolSize
-        self.view.currentSymbolType     = symbolType
-        self.view.currentSymbolSides    = symbolSides
-        self.view.currentSymbolRotation = symbolRotation
+        self.view.current_symbol_size     = symbol_size
+        self.view.current_symbol_type     = symbol_type
+        self.view.current_symbol_sides    = symbol_sides
+        self.view.current_symbol_rotation = symbol_rotation
 
 
-    # Utility function: set the coordSys
+    # Utility function: set the coord_sys
 
-    def set_current_coord_sys(self, coordSys):
+    def set_current_coord_sys(self, coord_sys):
 
-        self.view.currentCoordSys = coordSys
+        self.view.current_coord_sys = coord_sys
 
 
     # Utility function: set the color table (grayscale file)
 
-    def set_color_table(self, colorTable):
+    def set_color_table(self, color_table):
 
-        self.view.grayFile.colorTable = colorTable
+        self.view.gray_file.color_table = color_table
 
 
     # Utility function: set the grayscale color stretch
 
-    def set_gray_stretch(self, stretchMin, stretchMax, stretchMode):
+    def set_gray_stretch(self, stretch_min, stretch_max, stretch_mode):
 
-        self.view.grayFile.stretchMin  = stretchMin
-        self.view.grayFile.stretchMax  = stretchMax
-        self.view.grayFile.stretchMode = stretchMode
+        self.view.gray_file.stretch_min  = stretch_min
+        self.view.gray_file.stretch_max  = stretch_max
+        self.view.gray_file.stretch_mode = stretch_mode
 
 
     # Utility function: set the blue color stretch
 
-    def set_blue_stretch(self, stretchMin, stretchMax, stretchMode):
+    def set_blue_stretch(self, stretch_min, stretch_max, stretch_mode):
 
-        self.view.blueFile.stretchMin  = stretchMin
-        self.view.blueFile.stretchMax  = stretchMax
-        self.view.blueFile.stretchMode = stretchMode
+        self.view.blue_file.stretch_min  = stretch_min
+        self.view.blue_file.stretch_max  = stretch_max
+        self.view.blue_file.stretch_mode = stretch_mode
 
 
     # Utility function: set the green color stretch
 
-    def set_green_stretch(self, stretchMin, stretchMax, stretchMode):
+    def set_green_stretch(self, stretch_min, stretch_max, stretch_mode):
 
-        self.view.greenFile.stretchMin  = stretchMin
-        self.view.greenFile.stretchMax  = stretchMax
-        self.view.greenFile.stretchMode = stretchMode
+        self.view.green_file.stretch_min  = stretch_min
+        self.view.green_file.stretch_max  = stretch_max
+        self.view.green_file.stretch_mode = stretch_mode
 
 
     # Utility function: set the red color stretch
 
-    def set_red_stretch(self, stretchMin, stretchMax, stretchMode):
+    def set_red_stretch(self, stretch_min, stretch_max, stretch_mode):
 
-        self.view.redFile.stretchMin  = stretchMin
-        self.view.redFile.stretchMax  = stretchMax
-        self.view.redFile.stretchMode = stretchMode
+        self.view.red_file.stretch_min  = stretch_min
+        self.view.red_file.stretch_max  = stretch_max
+        self.view.red_file.stretch_mode = stretch_mode
 
 
     # Utility function: add a grid overlay
 
-    def add_grid(self, coordSys):
+    def add_grid(self, coord_sys):
 
         ovly = mvViewOverlay()
 
         ovly.type     = "grid"
         ovly.visible  =  True
-        ovly.color    =  self.view.currentColor
-        ovly.coordSys =  coordSys
+        ovly.color    =  self.view.current_color
+        ovly.coord_sys =  coord_sys
 
         self.view.overlay.append(ovly)
 
@@ -1472,22 +1472,22 @@ class mViewer():
 
     # Utility function: add a catalog overlay
 
-    def add_catalog(self, dataFile, dataCol, dataRef, dataType):
+    def add_catalog(self, data_file, data_col, data_ref, data_type):
 
         ovly = mvViewOverlay()
 
-        ovly.type        = "catalog"
-        ovly.visible     =  True
-        ovly.symSize     =  self.view.currentSymbolSize
-        ovly.symType     =  self.view.currentSymbolType
-        ovly.symSides    =  self.view.currentSymbolSides
-        ovly.symRotation =  self.view.currentSymbolRotation
-        ovly.coordSys    =  self.view.currentCoordSys
-        ovly.dataFile    =  dataFile
-        ovly.dataCol     =  dataCol
-        ovly.dataRef     =  dataRef
-        ovly.dataType    =  dataType 
-        ovly.color       =  self.view.currentColor
+        ovly.type         = "catalog"
+        ovly.visible      =  True
+        ovly.sym_size     =  self.view.current_symbol_size
+        ovly.sym_type     =  self.view.current_symbol_type
+        ovly.sym_sides    =  self.view.current_symbol_sides
+        ovly.sym_rotation =  self.view.current_symbol_rotation
+        ovly.coord_sys    =  self.view.current_coord_sys
+        ovly.data_file    =  data_file
+        ovly.data_col     =  data_col
+        ovly.data_ref     =  data_ref
+        ovly.data_type    =  data_type 
+        ovly.color        =  self.view.current_color
 
         self.view.overlay.append(ovly)
 
@@ -1496,15 +1496,15 @@ class mViewer():
 
     # Utility function: add an imginfo overlay
 
-    def add_img_info(self, dataFile):
+    def add_img_info(self, data_file):
 
         ovly = mvViewOverlay()
 
-        ovly.type     = "imginfo"
-        ovly.visible  = True
-        ovly.dataFile = dataFile
-        ovly.color    = self.view.currentColor
-        ovly.coordSys = self.view.currentCoordSys
+        ovly.type      = "imginfo"
+        ovly.visible   = True
+        ovly.data_file = data_file
+        ovly.color     = self.view.current_color
+        ovly.coord_sys = self.view.current_coord_sys
 
         self.view.overlay.append(ovly)
 
@@ -1517,16 +1517,16 @@ class mViewer():
 
         ovly = mvViewOverlay()
 
-        ovly.type        = "mark"
-        ovly.visible     =  True
-        ovly.symSize     =  self.view.currentSymbolSize
-        ovly.symType     =  self.view.currentSymbolType
-        ovly.symSides    =  self.view.currentSymbolSides
-        ovly.symRotation =  self.view.currentSymbolRotation
-        ovly.lon         =  lon
-        ovly.lat         =  lat
-        ovly.coordSys    =  self.view.currentCoordSys
-        ovly.color       =  self.view.currentColor
+        ovly.type         = "mark"
+        ovly.visible      =  True
+        ovly.sym_size     =  self.view.current_symbol_size
+        ovly.sym_type     =  self.view.current_symbol_type
+        ovly.sym_sides    =  self.view.current_symbol_sides
+        ovly.sym_rotation =  self.view.current_symbol_rotation
+        ovly.lon          =  lon
+        ovly.lat          =  lat
+        ovly.coord_sys    =  self.view.current_coord_sys
+        ovly.color        =  self.view.current_color
 
         self.view.overlay.append(ovly)
 
@@ -1539,13 +1539,13 @@ class mViewer():
 
         ovly = mvViewOverlay()
 
-        ovly.type     = "label"
-        ovly.visible  =  True
-        ovly.lon      =  lon
-        ovly.lat      =  lat
-        ovly.text     =  text
-        ovly.coordSys =  self.view.currentCoordSys
-        ovly.color    =  self.view.currentColor
+        ovly.type      = "label"
+        ovly.visible   =  True
+        ovly.lon       =  lon
+        ovly.lat       =  lat
+        ovly.text      =  text
+        ovly.coord_sys =  self.view.current_coord_sys
+        ovly.color     =  self.view.current_color
 
         self.view.overlay.append(ovly)
 
@@ -1558,7 +1558,7 @@ class mViewer():
 
         self.port = random.randint(10000,60000)
 
-        template_file  = resource_filename('astroMontage', 'web/index.html')
+        template_file = resource_filename('astroMontage', 'web/index.html')
         index_file    = self.workspace + "/index.html"
 
         port_string   = str(self.port)
@@ -1616,25 +1616,25 @@ class mViewer():
 
     def pick_location(self, boxx, boxy):
 
-        refFile = []
+        ref_file = []
 
-        if self.view.displayMode == "grayscale":
+        if self.view.display_mode == "grayscale":
 
-            refFile.append(self.view.grayFile.fitsFile)
+            ref_file.append(self.view.gray_file.fits_file)
 
 
-        if self.view.displayMode == "color":
+        if self.view.display_mode == "color":
 
-            refFile.append(self.view.blueFile.fitsFile)
-            refFile.append(self.view.greenFile.fitsFile)
-            refFile.append(self.view.redFile.fitsFile)
+            ref_file.append(self.view.blue_file.fits_file)
+            ref_file.append(self.view.green_file.fits_file)
+            ref_file.append(self.view.red_file.fits_file)
 
         radius = 31
 
-        nfile = len(refFile)
+        nfile = len(ref_file)
 
         for i in range(0, nfile):
-            command = "mExamine -p " + repr(boxx) + "p " + repr(boxy) + "p " + repr(radius) + "p " + refFile[i]
+            command = "mExamine -p " + repr(boxx) + "p " + repr(boxy) + "p " + repr(radius) + "p " + ref_file[i]
 
             if self.debug:
                 print "\nMONTAGE Command:\n---------------\n" + command
@@ -1657,7 +1657,7 @@ class mViewer():
 
             
             print ""
-            print "   File " + refFile[i] + ":"
+            print "   File " + ref_file[i] + ":"
             print ""
             print "                 Flux    (sigma)                 (RA, Dec)         Pix Coord"
             print "                ------------------      -------------------------  ----------"
