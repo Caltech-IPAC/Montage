@@ -563,7 +563,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                 self.viewer.pickCallback(boxx, boxy)
 
 
-    def updateDisplay(self):
+    def update_display(self):
 
         sys.stdout.write('\n>>> ')
         sys.stdout.flush()
@@ -1292,7 +1292,7 @@ class mViewer():
 
     # Utility function: set the display mode (grayscale / color)
 
-    def setDisplayMode(self, mode):
+    def set_display_mode(self, mode):
 
         mode = str(mode)
 
@@ -1332,7 +1332,7 @@ class mViewer():
 
     # Utility function: set the grayFile
 
-    def setGrayFile(self, grayFile):
+    def set_gray_file(self, grayFile):
 
         self.view.grayFile.fitsFile = grayFile
 
@@ -1342,7 +1342,7 @@ class mViewer():
 
     # Utility function: set the blueFile
 
-    def setBlueFile(self, blueFile):
+    def set_blue_file(self, blueFile):
 
         self.view.blueFile.fitsFile = blueFile
 
@@ -1353,7 +1353,7 @@ class mViewer():
 
     # Utility function: set the greenFile
 
-    def setGreenFile(self, greenFile):
+    def set_green_file(self, greenFile):
 
         self.view.greenFile.fitsFile = greenFile
 
@@ -1364,7 +1364,7 @@ class mViewer():
 
     # Utility function: set the redFile
 
-    def setRedFile(self, redFile):
+    def set_red_file(self, redFile):
 
         self.view.redFile.fitsFile = redFile
 
@@ -1375,14 +1375,14 @@ class mViewer():
 
     # Utility function: set the currentColor
 
-    def setCurrentColor(self, currentColor):
+    def set_current_color(self, currentColor):
 
         self.view.currentColor = currentColor
 
 
     # Utility function: set the currentSymbol
 
-    def setCurrentSymbol(self, *arg):
+    def set_current_symbol(self, *arg):
     
         nargs = len(arg)
 
@@ -1406,21 +1406,21 @@ class mViewer():
 
     # Utility function: set the coordSys
 
-    def setCurrentCoordSys(self, coordSys):
+    def set_current_coord_sys(self, coordSys):
 
         self.view.currentCoordSys = coordSys
 
 
     # Utility function: set the color table (grayscale file)
 
-    def setColorTable(self, colorTable):
+    def set_color_table(self, colorTable):
 
         self.view.grayFile.colorTable = colorTable
 
 
     # Utility function: set the grayscale color stretch
 
-    def setGrayStretch(self, stretchMin, stretchMax, stretchMode):
+    def set_gray_stretch(self, stretchMin, stretchMax, stretchMode):
 
         self.view.grayFile.stretchMin  = stretchMin
         self.view.grayFile.stretchMax  = stretchMax
@@ -1429,7 +1429,7 @@ class mViewer():
 
     # Utility function: set the blue color stretch
 
-    def setBlueStretch(self, stretchMin, stretchMax, stretchMode):
+    def set_blue_stretch(self, stretchMin, stretchMax, stretchMode):
 
         self.view.blueFile.stretchMin  = stretchMin
         self.view.blueFile.stretchMax  = stretchMax
@@ -1438,7 +1438,7 @@ class mViewer():
 
     # Utility function: set the green color stretch
 
-    def setGreenStretch(self, stretchMin, stretchMax, stretchMode):
+    def set_green_stretch(self, stretchMin, stretchMax, stretchMode):
 
         self.view.greenFile.stretchMin  = stretchMin
         self.view.greenFile.stretchMax  = stretchMax
@@ -1447,7 +1447,7 @@ class mViewer():
 
     # Utility function: set the red color stretch
 
-    def setRedStretch(self, stretchMin, stretchMax, stretchMode):
+    def set_red_stretch(self, stretchMin, stretchMax, stretchMode):
 
         self.view.redFile.stretchMin  = stretchMin
         self.view.redFile.stretchMax  = stretchMax
@@ -1456,7 +1456,7 @@ class mViewer():
 
     # Utility function: add a grid overlay
 
-    def addGrid(self, coordSys):
+    def add_grid(self, coordSys):
 
         ovly = mvViewOverlay()
 
@@ -1472,7 +1472,7 @@ class mViewer():
 
     # Utility function: add a catalog overlay
 
-    def addCatalog(self, dataFile, dataCol, dataRef, dataType):
+    def add_catalog(self, dataFile, dataCol, dataRef, dataType):
 
         ovly = mvViewOverlay()
 
@@ -1496,7 +1496,7 @@ class mViewer():
 
     # Utility function: add an imginfo overlay
 
-    def addImgInfo(self, dataFile):
+    def add_img_info(self, dataFile):
 
         ovly = mvViewOverlay()
 
@@ -1513,7 +1513,7 @@ class mViewer():
 
     # Utility function: add a marker overlay
 
-    def addMarker(self, lon, lat):
+    def add_marker(self, lon, lat):
 
         ovly = mvViewOverlay()
 
@@ -1535,7 +1535,7 @@ class mViewer():
 
     # Utility function: add a label overlay
 
-    def addLabel(self, lon, lat, text):
+    def add_label(self, lon, lat, text):
 
         ovly = mvViewOverlay()
 
@@ -1554,7 +1554,7 @@ class mViewer():
 
     # Start a second thread to interact with the browser.
 
-    def initBrowserDisplay(self):
+    def init_browser_display(self):
 
         self.port = random.randint(10000,60000)
 
@@ -1614,7 +1614,7 @@ class mViewer():
     # This can be overridden by the developer with a callback of 
     # their own.
 
-    def pickLocation(self, boxx, boxy):
+    def pick_location(self, boxx, boxy):
 
         refFile = []
 
