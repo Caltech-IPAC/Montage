@@ -493,7 +493,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         cmd = args[0]
 
         if cmd == 'update':
-            self.updateDisplay()
+            self.update_display()
 
 
         if cmd == 'resize':
@@ -508,7 +508,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
                 self.view.ymin = 1
                 self.view.ymax = self.view.imageHeight
 
-            self.updateDisplay()
+            self.update_display()
 
 
         if cmd == 'zoomReset':
@@ -518,7 +518,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             self.view.ymin = 1
             self.view.ymax = self.view.imageHeight
 
-            self.updateDisplay()
+            self.update_display()
 
 
         elif cmd == 'zoom':
@@ -551,7 +551,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             self.view.ymin = boxymin
             self.view.ymax = boxymax
 
-            self.updateDisplay()
+            self.update_display()
 
 
         elif cmd == 'pick':
