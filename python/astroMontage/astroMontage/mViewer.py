@@ -535,6 +535,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
             factor = float(self.view.factor)
 
+
             boxxmin = boxxmin * factor
             boxxmax = boxxmax * factor
             boxymin = boxymin * factor
@@ -545,11 +546,54 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             boxymin = boxymin + oldymin
             boxymax = boxymax + oldymin
 
+            box_width  = boxxmax-boxxmin
+            box_height = boxymax-boxymin
 
-            self.view.xmin = boxxmin
-            self.view.xmax = boxxmax
-            self.view.ymin = boxymin
-            self.view.ymax = boxymax
+            box_aspect = float(box_width) / float(box_height)
+
+
+            image_aspect = float(self.view.image_width) / float(self.view.image_height)
+
+
+            if box_aspect < image_aspect:
+
+                box_width = int(box_height / image_aspect)
+
+                box_center = (boxxmax + boxxmin) / 2.
+ 
+                boxxmin = box_center - box_width / 2.
+                boxxmax = box_center + box_width / 2.
+
+                if boxxmin < 0:
+                    boxxmax = boxxmax - boxxmin
+                    boxxmin = 0
+
+                if boxxmax > self.view.image_width:
+                    boxxmax = self.view.image_width
+
+
+            if box_aspect > image_aspect:
+
+                box_height = int(box_width * image_aspect)
+
+                box_center = (boxymax + boxymin) / 2.
+ 
+                boxymin = box_center - box_height / 2.
+                boxymax = box_center + box_height / 2.
+
+                if boxymin < 0:
+                    boxymax = boxymax - boxymin
+                    boxymin = 0
+
+                if boxymax > self.view.image_height:
+                    boxymax = self.view.image_height
+
+
+            self.view.xmin = int(boxxmin)
+            self.view.xmax = int(boxxmax)
+            self.view.ymin = int(boxymin)
+            self.view.ymax = int(boxymax)
+
 
             self.update_display()
 
