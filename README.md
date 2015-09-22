@@ -1,28 +1,40 @@
 Montage
 =======
 
-Image Mosaics for Astronomers
+Montage: The Astronomer's Toolkit for Building Image Mosaics and
+Analyzing Image Metadata 
 
-Montage is a toolkit for assembling Flexible Image Transport System
-(FITS) images into custom mosaics.
+Montage (http://montage.ipac.caltech.edu) is an Open Source toolkit,
+distributed with a BSD 3-clause license, for assembling Flexible
+Image Transport System (FITS) images into mosaics, according to
+the user's custom specifications of coordinates, WCS projection,
+spatial sampling and rotation. The toolkit contains utilities for
+reprojecting and background matching images, assembling them into
+mosaics, visualizing the results, and discovering, analyzing and
+understanding image metadata from archives or the user's images.
+Montage is written in ANSI-C and is portable across all common *nix
+platforms, including Linux, Solaris, and Mac OSX. The distribution
+contains all libraries needed to build the toolkit from a single
+simple "make" command, including the CFITSIO library and WCS
+tools. The toolkit is in wide use in astronomy to support research
+projects, and to support pipeline development, product generation and
+image visualization for major projects and missions; e.g. Spitzer
+Space Telescope, Herschel, Kepler, AKARI and others. Montage is
+used as an exemplar application by the computer science community in
+developing next-generation cyberinfrastructure, especially workflow
+framework on distributed platforms.
 
-Montage has been tested by the Montage team on Linux platforms
-with mosaics built from the 2-Micron All Sky Survey (2MASS) Atlas
-(full-resolution) images. It has been built, tested and the output
-products validated by Montage customers on Unix platforms, including
-Linux, Solaris, Mac OSX, and IBM AIX. It has been used to generate
-mosaics from data released by the Spitzer Space Telescope, the
-Hubble Space Telescope, the Infrared Astronomical Satellite (IRAS),
-the Midcourse Space Experiment (MSX), the Sloan Digital Sky Survey
-(SDSS), and ground-based telescopes such as the National Optical
-Astronomy Observatories (NOAO) 4-m telescope and the William Herschel
-4-m telescope.
+Version 4.0 provides dedicated modules that support building and
+managing mosaics of data cubes; creation of custom PNG and JPEG
+images (with AVM tags) with command-line user control over the image
+attributes (stretch, coordinate overlays, coordinate grids, …),
+and a beta version of a Python wrapper to support creation  of PNG and
+JPEG images. A future release will include, e.g., support for HEALPix.
 
-Montage has also been used to test workflow frameworks on supercomputers
-and cloud systems.
-
-Under a new grant, Montage is being extended to deal with astronomical
-data cubes and packaged for use on cloud computing resources.  The
-current fileset has been uploaded here in preparation for that work
-and consists of the original release with some update and additions
-that have been made over the years but not officially released.
+Montage was funded from 2002 to 2005 by the National Aeronautics and
+Space Administration's Earth Science Technology Office, Computation
+Technologies Project, under Cooperative Agreement Number NCC5-626
+between NASA and the California Institute of Technology. The Montage
+distribution includes an adaptation of the MOPEX algorithm developed
+at the Spitzer Science Center.  Montage is now funded by the National
+Science Foundation under Award Number NSF ACI-1440620.'
