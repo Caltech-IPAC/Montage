@@ -1,10 +1,36 @@
+/*
+   Polygon/polygon overlap (with proximity check).
+
+   User boxes.
+*/
+
 /* Module: mQuickTime.c
+
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-4.1      John Good        11Sep15  Standardized time handling on MJD-OBS, EXPTIME   
-4.0      John Good        10Apr15  Baseline code based on mQuickSearch at this time.
+2.0      John Good        19Sep15  Revamp the callback code that compares a data 
+                                   record geometry with a search geometry
+1.1      John Good        11Sep15  Standardized time handling on MJD-OBS, EXPTIME   
+1.0      John Good        10Apr15  Baseline code based on mQuickSearch at this time.
 */
+
+/*
+   NOTES:  Some details have not been implemented since we have no use cases for 
+   them.  These could be added if need:
+   
+      Table of cones where the radii vary (e.g. for a set of extended objects 
+      like galaxies).
+
+      Polygon-to-polygon overlay where just edges interset (no internal corners).
+
+      User tables with just WCS (we require four corners).  WCS supported for 
+      indexed data.
+
+   Also, the code in TABLES and MATCHES is replicated; could be turned into a 
+   routine and reused.
+*/
+
 
 #define _LARGEFILE64_SOURCE
 
@@ -30,21 +56,32 @@ Version  Developer        Date     Change
 #include <index.h>
 #include <mfmalloc.h>
 
+
+// The deduced syntax of the indexed data
+
 #define NULLMODE       0
 #define WCSMODE        1
 #define CORNERMODE     2
 #define POINTMODE      3
+
+
+// The type of the indexed data 
+// or search region
+
+#define NONE          -1
+#define POINT          0
+#define CONE           1
+#define BOX            2
+
 
 #define MAXRECT    32768
 #define MAXSET        32
 #define MAXSTR      1024
 #define BIGSTR     32768
 
-#define NONE          -1
-#define POINT          0
-#define CONE           1
-#define BOX            2
-#define TABLE          3
+
+char regionTypeStr[4][32] = {"POINT", "CONE", "BOX"};
+
 
 long listNodeCount;
 long nodeCount;
@@ -133,8 +170,7 @@ int       reffd;
 struct Rect *rect;
 struct Rect  search_rect;
 
-double    tmin,    tmax;     // XXXX
-double    tminRef, tmaxRef;  // XXXX
+double    tmin, tmax;
 
 double    search_ra    [4];
 double    search_dec   [4];
@@ -142,7 +178,7 @@ Vec       search_corner[4];
 Vec       search_center;
 double    search_radius;
 double    search_radiusDot;
-double    padDot, matchDot, pointDot;
+double    padDot, matchDot;
 
 int       search_type, tmp_type;
 
@@ -170,9 +206,7 @@ char      tblBlank  [32768];
 char      out_string[32768];
 
 static char *newMap;
-/*
-static char *cntMap;
-*/
+
 
 SearchHitCallback overlapCallback(long id, void* arg);
 
@@ -210,9 +244,13 @@ int rdebug = 0;
 /*                                                                     */
 /*    time  <stat_mjd> <duration_sec>                                  */
 /*                                                                     */
-/*       The first three each define a region of interest on           */
-/*       the sky and the fourth one the time range are then            */
-/*       followed by one or more of these two commands:                */
+/*    exptime <dur> [centered]                                         */
+/*                                                                     */
+/* The first three each define a region of interest on the sky and     */
+/* the fourth one the time range.  The exptime is optional and is      */
+/* used to complete time ranges in the data or time ranges in user     */
+/* input tables.  These commands are then followed by one or more of   */
+/* these two commands:                                                 */
 /*                                                                     */
 /*                                                                     */
 /*    region <outfile.tbl>             Generates a list of the number  */
@@ -387,6 +425,9 @@ int main(int argc, char **argv)
    int    iexptime;
    double exptime;
 
+   double duration;
+   int    isCentered;
+
    double len, pad, pad0, padpt;
    double matchRadius, padMatch, matchDelta, pointDelta;
 
@@ -430,6 +471,12 @@ int main(int argc, char **argv)
    refresh       = 0;
    singleMode    = 0;
 
+   duration   = 0.;
+   isCentered = 0;
+
+   tmin = -1.e9;
+   tmax =  1.e9;
+
 
    /**********************************/
    /* Process command-line arguments */
@@ -444,22 +491,32 @@ int main(int argc, char **argv)
 
    strcpy(basefile, "");
 
-   while ((ch = getopt(argc, argv, "d:mi:o:p:r:")) != EOF)
+   while ((ch = getopt(argc, argv, "cd:D:mi:o:p:r:")) != EOF)
    {
       switch (ch)
       {
-         case 'm':
-            info = 1;
+         case 'c':
+            isCentered = 1;
             break;
 
          case 'd':
             rdebug = debugCheck(optarg);
             break;
 
+         case 'D':
+            duration = atof(optarg);
+            if(duration <= 0.)
+               duration =  1.;
+            break;
+
          case 'i':
             memMapRead = 1;
             useMemMap  = 1;
             strcpy(basefile, optarg);
+            break;
+
+         case 'm':
+            info = 1;
             break;
 
          case 'o':
@@ -568,9 +625,9 @@ int main(int argc, char **argv)
    if(iexptime < 0)
       iexptime = tcol("EXPTIME");
 
-   if((iname < 0 || ifile < 0) && (itime < 0 || iexptime < 0))
+   if((iname < 0 || ifile < 0) && itime < 0)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Need columns 'mjd' and 'exptime' for time range checking in image metadata (%s)\"]\n", infile);
+      printf("[struct stat=\"ERROR\", msg=\"Need column 'mjd' (and optionally 'exptime') for time range checking in image metadata (%s)\"]\n", infile);
       fflush(stdout);
       exit(0);
    }
@@ -730,11 +787,11 @@ int main(int argc, char **argv)
          
          if(rdebug)
          {
-            printf("\nSingle file sizes:\n");
-            printf("%s tlen() = %ld\n", tblfile, nrec);
+            printf("\nSingle file sizes:\n\n");
+            printf("%s tlen() = %ld\n", infile, nrec);
             printf("ncol      = %d\n",  ncol);
             printf("headbytes = %d\n",  tbl_headbytes);
-            printf("reclen    = %d\n",  tbl_reclen);
+            printf("reclen    = %d\n\n",  tbl_reclen);
             fflush(stdout);
          }
 
@@ -816,7 +873,7 @@ int main(int argc, char **argv)
       {
          for(i=0; i<nset; ++i)
          {
-            printf("SET> set[%ld] file=[%s] name=[%s]\n", 
+            printf("\nSET> set[%ld] file=[%s] name=[%s]\n\n", 
                i, set[i].file, set[i].name);
             fflush(stdout);
          }
@@ -826,7 +883,7 @@ int main(int argc, char **argv)
       {
          for(i=0; i<nrect; ++i)
          {
-            printf("RECT> %ld %d %ld %-g %-g %-g\n", 
+            printf("RECT> record %ld /set %d (offset %ld): %-g %-g %-g\n", 
                i, rectinfo[i].setid, rectinfo[i].catoff, 
                rectinfo[i].center.x, rectinfo[i].center.y, rectinfo[i].center.z);
             fflush(stdout);
@@ -1247,6 +1304,7 @@ int main(int argc, char **argv)
             exit(0);
          }
 
+
          ictype1  = tcol( "ctype1");
          ictype2  = tcol( "ctype2");
          iequinox = tcol( "equinox");
@@ -1262,6 +1320,14 @@ int main(int argc, char **argv)
          icrota2  = tcol( "crota2");
          ira      = tcol( "ra");
          idec     = tcol( "dec");
+
+
+         if(ins < 0)
+            ins = tcol("naxis1");
+
+         if(inl < 0)
+            inl = tcol("naxis2");
+
 
          itime = tcol("mjd");
 
@@ -1280,16 +1346,18 @@ int main(int argc, char **argv)
          if(itime < 0)
             itime = tcol("MJDOBS");
 
+
          iexptime = tcol("exptime");
 
          if(iexptime < 0)
             iexptime = tcol("EXPTIME");
 
-         if(ins < 0)
-            ins = tcol("naxis1");
+         if(iexptime < 0)
+            iexptime = tcol("elaptime");
 
-         if(inl < 0)
-            inl = tcol("naxis2");
+         if(iexptime < 0)
+            iexptime = tcol("ELAPTIME");
+
 
          ira1     = tcol( "ra1");
          idec1    = tcol( "dec1");
@@ -1299,6 +1367,7 @@ int main(int argc, char **argv)
          idec3    = tcol( "dec3");
          ira4     = tcol( "ra4");
          idec4    = tcol( "dec4");
+
 
          if(rdebug > 1)
          {
@@ -1372,17 +1441,13 @@ int main(int argc, char **argv)
             exit(0);
          }
 
-         if(itime < 0 || iexptime < 0)
-         {
-            printf("[struct stat=\"ERROR\", msg=\"Need time range information columns.\"]\n");
-            fflush(stdout);
-            exit(0);
-         }
-
 
          /* Read the table file and process each record */
 
          nrow = 0;
+
+         tmin = -1.e9;
+         tmax =  1.e9;
 
          while(1)
          {
@@ -1401,15 +1466,41 @@ int main(int argc, char **argv)
                fflush(stdout);
             }
 
-            time = atof(tval(itime));
 
-            exptime = atof(tval(iexptime));
+            if(itime >= 0)
+            {
+               time = atof(tval(itime));
 
-            tmin = time;                       // XXX
-            tmax = time + exptime/86400.;      // XXX
+               if(iexptime >= 0)
+               {
+                  exptime = atof(tval(iexptime));
 
-            if(tmax <= tmin)
-               tmax = tmin + 1./86400.;
+                  tmin = time;
+                  tmax = time + exptime/86400.;
+
+                  if(tmax <= tmin)
+                     tmax = tmin + 1./86400.;
+               }
+               else
+               {
+                  exptime = duration;
+
+                  if(duration == 0.)
+                     exptime = 1.;
+
+                  if(isCentered)
+                  {
+                     tmin = time - exptime/86400./2.;
+                     tmax = time + exptime/86400./2.;
+                  }
+                  else
+                  {
+                     tmin = time;
+                     tmax = time + exptime/86400.;
+                  }
+               }
+            }
+
 
 
             /* If we don't have the corners, compute them */
@@ -1429,23 +1520,23 @@ int main(int argc, char **argv)
                if(iepoch >= 0)
                   epoch   = atof(tval(iepoch));
 
-               nl      = atoi(tval(inl));
-               ns      = atoi(tval(ins));
+               nl = atoi(tval(inl));
+               ns = atoi(tval(ins));
 
                if(strlen(tval(icrval1)) == 0
                || strlen(tval(icrval2)) == 0)
                   blankRec = 1;
                   
-               crval1  = atof(tval(icrval1));
-               crval2  = atof(tval(icrval2));
+               crval1 = atof(tval(icrval1));
+               crval2 = atof(tval(icrval2));
 
-               crpix1  = atof(tval(icrpix1));
-               crpix2  = atof(tval(icrpix2));
+               crpix1 = atof(tval(icrpix1));
+               crpix2 = atof(tval(icrpix2));
 
-               cdelt1  = atof(tval(icdelt1));
-               cdelt2  = atof(tval(icdelt2));
+               cdelt1 = atof(tval(icdelt1));
+               cdelt2 = atof(tval(icdelt2));
 
-               crota2  = atof(tval(icrota2));
+               crota2 = atof(tval(icrota2));
 
                strcpy(proj, "");
                csys = EQUJ;
@@ -1620,7 +1711,7 @@ int main(int argc, char **argv)
                zmin =  2.;
                zmax = -2.;
 
-               rectinfo[id].datatype = CORNERMODE;
+               rectinfo[id].datatype = BOX;
 
                rectinfo[id].center.x = 0.;
                rectinfo[id].center.y = 0.;
@@ -1692,6 +1783,7 @@ int main(int argc, char **argv)
                   printf("x range: %11.8f %11.8f\n", xmin, xmax);
                   printf("y range: %11.8f %11.8f\n", ymin, ymax);
                   printf("z range: %11.8f %11.8f\n", zmin, zmax);
+                  printf("t range: %11.8f %11.8f\n", tmin, tmax);
                   printf("\n");
 
                   fflush(stdout);
@@ -1701,7 +1793,7 @@ int main(int argc, char **argv)
             {
                /* Pad the point by a small amount (~1 arcsec) */
 
-               rectinfo[id].datatype = POINTMODE;
+               rectinfo[id].datatype = POINT;
 
                rectinfo[id].center.x = cos(ra*dtr) * cos(dec*dtr);
                rectinfo[id].center.y = sin(ra*dtr) * cos(dec*dtr);
@@ -1731,6 +1823,7 @@ int main(int argc, char **argv)
                   printf("x range: %11.8f %11.8f\n", xmin, xmax);
                   printf("y range: %11.8f %11.8f\n", ymin, ymax);
                   printf("z range: %11.8f %11.8f\n", zmin, zmax);
+                  printf("t range: %11.8f %11.8f\n", tmin, tmax);
                   printf("\n");
 
                   fflush(stdout);
@@ -1740,17 +1833,14 @@ int main(int argc, char **argv)
 
             /* Add this image/point to the R-Tree */
 
-            zmin = 0.; // XXXX
-            zmax = 1.; // XXXX
-
             inrect.boundary[0] = xmin;
             inrect.boundary[1] = ymin;
             inrect.boundary[2] = zmin;
-            inrect.boundary[3] = tmin; // XXXX
+            inrect.boundary[3] = tmin;
             inrect.boundary[4] = xmax;
             inrect.boundary[5] = ymax;
             inrect.boundary[6] = zmax;
-            inrect.boundary[7] = tmax; // XXXX
+            inrect.boundary[7] = tmax;
 
             if(info)
             {
@@ -1789,7 +1879,7 @@ int main(int argc, char **argv)
                   printf("corner[%ld]  %13.10f %13.10f %13.10f\n", 
                      j, rectinfo[id].corner[j].x, rectinfo[id].corner[j].y, rectinfo[id].corner[j].z);
 
-               printf("datatype    %d\n", rectinfo[id].datatype);
+               printf("datatype    %s (%d)\n", regionTypeStr[rectinfo[id].datatype], rectinfo[id].datatype);
                fflush(stdout);
             }
 
@@ -2038,8 +2128,7 @@ int main(int argc, char **argv)
 
       /* QUIT command */
 
-      if(strncasecmp(cmd, "quit", 1) == 0
-      || strncasecmp(cmd, "exit", 2) == 0)
+      if(strncasecmp(cmd, "quit", 1) == 0)
          break;
 
 
@@ -2106,7 +2195,7 @@ int main(int argc, char **argv)
                printf("corner[%ld]  %13.10f %13.10f %13.10f\n", 
                   j, rectinfo[id].corner[j].x, rectinfo[id].corner[j].y, rectinfo[id].corner[j].z);
 
-            printf("datatype    %d\n", rectinfo[id].datatype);
+            printf("datatype    %s (%d)\n", regionTypeStr[rectinfo[id].datatype], rectinfo[id].datatype);
             fflush(stdout);
          }
 
@@ -2180,19 +2269,44 @@ int main(int argc, char **argv)
             continue;
          }
          
-         tminRef = atof(cmdv[1]);
-         tmaxRef = atof(cmdv[2]);
+         tmin = atof(cmdv[1]);
+         tmax = atof(cmdv[2]);
 
-         if(tmaxRef <= 0.)
+         if(tmax <= 0.)
          {
             printf("[struct stat=\"ERROR\", msg=\"Duration must be greater than zero.\"]\n");
             fflush(stdout);
             continue;
          }
             
-         tmaxRef = tmaxRef / 86400. + tminRef;
+         tmax = tmax / 86400. + tmin;
 
-         printf("[struct stat=\"OK\", command=\"time\", tmin=%.8f, tmax=%.8f]\n", tminRef, tmaxRef);
+         printf("[struct stat=\"OK\", command=\"time\", tmin=%.8f, tmax=%.8f]\n", tmin, tmax);
+         fflush(stdout);
+      }
+
+
+      /* EXPTIME command */
+
+      else if(strncasecmp(cmd, "exptime", 2) == 0)
+      {
+         if(cmdc < 2)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Command usage: duration <dur> [centered]\"]\n");
+            fflush(stdout);
+            continue;
+         }
+         
+         duration = atof(cmdv[1]);
+
+         if(cmdc > 2)
+            isCentered = 1;
+
+         if(isCentered)
+            printf("[struct stat=\"OK\", command=\"duration\", duration=%.8f, isCentered=1]\n", duration);
+         else
+            printf("[struct stat=\"OK\", command=\"duration\", duration=%.8f, isCentered=0]\n", duration);
+
          fflush(stdout);
       }
 
@@ -2390,19 +2504,102 @@ int main(int argc, char **argv)
             if(idec < 0)
                idec  = tcol("dec_user");
 
-            if(ira < 0 || idec < 0)
+            ira1     = tcol( "ra1");
+            idec1    = tcol( "dec1");
+            ira2     = tcol( "ra2");
+            idec2    = tcol( "dec2");
+            ira3     = tcol( "ra3");
+            idec3    = tcol( "dec3");
+            ira4     = tcol( "ra4");
+            idec4    = tcol( "dec4");
+
+            if((ira  < 0 || idec  < 0)
+            && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0 
+             || ira3 < 0 || idec3 < 0  ||  ira4 < 0 || idec4 < 0))
             {
-               printf("[struct stat=\"ERROR\", msg=\"Table must have columns 'ra' and 'dec'\"]\n");
+               printf("[struct stat=\"ERROR\", msg=\"Need columns 'ra' and 'dec' for a location or ra1..dec4 for regions (%s)\"]\n", filename);
                fflush(stdout);
                continue;
             }
 
+
+            itime = tcol("mjd");
+
+            if(itime < 0)
+               itime = tcol("MJD");
+
+            if(itime < 0)
+               itime = tcol("mjd_obs");
+
+            if(itime < 0)
+               itime = tcol("MJD_OBS");
+
+            if(itime < 0)
+               itime = tcol("mjdobs");
+
+            if(itime < 0)
+               itime = tcol("MJDOBS");
+
+            iexptime = tcol("exptime");
+
+            if(iexptime < 0)
+               iexptime = tcol("EXPTIME");
+
             iradius = tcol("radius");
+
+            if(rdebug > 1)
+            {
+               printf("ira      = %d\n", ira);
+               printf("idec     = %d\n", idec);
+               printf("ira1     = %d\n", ira1);
+               printf("idec1    = %d\n", idec1);
+               printf("ira2     = %d\n", ira2);
+               printf("idec2    = %d\n", idec2);
+               printf("ira3     = %d\n", ira3);
+               printf("idec3    = %d\n", idec3);
+               printf("ira4     = %d\n", ira4);
+               printf("idec4    = %d\n", idec4);
+               printf("itime    = %d\n", itime);
+               printf("iexptime = %d\n", iexptime);
+               printf("iradius  = %d\n", iradius);
+               printf("\n");
+               fflush(stdout);
+            }
+            
+
+            // Determine what kind of data this is
+
+            tblmode = NULLMODE;
+
+            if(ira1     >= 0
+            && idec1    >= 0
+            && ira2     >= 0
+            && idec2    >= 0
+            && ira3     >= 0
+            && idec3    >= 0
+            && ira4     >= 0
+            && idec4    >= 0)
+               tblmode = CORNERMODE;
+
+            else
+            if(ira      >= 0
+            && idec     >= 0)
+               tblmode = POINTMODE;
+
+               if(tblmode == NULLMODE)
+               {
+                  printf("[struct stat=\"ERROR\", msg=\"Need corner columns or at least point source ra and dec.\"]\n");
+                  fflush(stdout);
+                  continue;
+               }
+
+
+            // Loop over the table, checking 
+            // each row agains the R-Tree index
 
             prevsrc = -1;
 
-            tmp_type    = search_type;
-            search_type = TABLE;
+            tmp_type = search_type;
                
             while(1)
             {
@@ -2411,48 +2608,213 @@ int main(int argc, char **argv)
                if(stat < 0)
                   break;
 
-               prevra  = ra;
-               prevdec = dec;
 
-               ra  = atof(tval(ira));
-               dec = atof(tval(idec));
+               // Get the time info
 
-               point.x = cos(ra*dtr) * cos(dec*dtr);
-               point.y = sin(ra*dtr) * cos(dec*dtr);
-               point.z = sin(dec*dtr);
-
-               pointDelta = matchDelta;
-               pointDot   = matchDot;
-
-               if(iradius >= 0)
+               if(itime >= 0)
                {
-                  matchRadius = atof(tval(iradius));
+                  time = atof(tval(itime));
 
-                  pointDot   = cos(matchRadius/3600. * dtr);
-                  pointDelta = tan(matchRadius/3600. * dtr);
+                  if(iexptime >= 0)
+                  {
+                     exptime = atof(tval(iexptime));
 
-                  if(pointDot > padDot)
-                     pointDot = padDot;
+                     tmin = time;
+                     tmax = time + exptime/86400.;
+
+                     if(tmax <= tmin)
+                        tmax = tmin + 1./86400.;
+                  }
+                  else
+                  {
+                     exptime = duration;
+
+                     if(duration == 0.)
+                        exptime = 1.;
+
+                     if(isCentered)
+                     {
+                        tmin = time - exptime/86400./2.;
+                        tmax = time + exptime/86400./2.;
+                     }
+                     else
+                     {
+                        tmin = time;
+                        tmax = time + exptime/86400.;
+                     }
+                  }
                }
 
-               if(rdebug > 2)
+
+               if(tblmode == CORNERMODE)
                {
-                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f   radius = %11.6f\n\n",
-                     srcid, prevsrc, ra, dec, matchRadius);
+                  // Read the corner data
+
+                  corner_ra [0] = atof(tval(ira1));
+                  corner_dec[0] = atof(tval(idec1));
+                  corner_ra [1] = atof(tval(ira2));
+                  corner_dec[1] = atof(tval(idec2));
+                  corner_ra [2] = atof(tval(ira3));
+                  corner_dec[2] = atof(tval(idec3));
+                  corner_ra [3] = atof(tval(ira4));
+                  corner_dec[3] = atof(tval(idec4));
+
+
+                  // Compute the x,y,z vectors for the corners 
+                  // While we are at it, compute the 'average' 
+                  // x,y,z (which we will use as the center of 
+                  // the image)                                
+
+                  xmin =  2.;
+                  xmax = -2.;
+
+                  ymin =  2.;
+                  ymax = -2.;
+
+                  zmin =  2.;
+                  zmax = -2.;
+
+                  search_center.x = 0.;
+                  search_center.y = 0.;
+                  search_center.z = 0.;
+
+                  for(i=0; i<4; ++i)
+                  {
+                     ra  = corner_ra [i] * dtr;
+                     dec = corner_dec[i] * dtr;
+
+                     search_corner[i].x = cos(ra) * cos(dec);
+                     search_corner[i].y = sin(ra) * cos(dec);
+                     search_corner[i].z = sin(dec);
+
+                     search_center.x += search_corner[i].x;
+                     search_center.y += search_corner[i].y;
+                     search_center.z += search_corner[i].z;
+
+                     if(search_corner[i].x < xmin) xmin = search_corner[i].x;
+                     if(search_corner[i].x > xmax) xmax = search_corner[i].x;
+
+                     if(search_corner[i].y < ymin) ymin = search_corner[i].y;
+                     if(search_corner[i].y > ymax) ymax = search_corner[i].y;
+
+                     if(search_corner[i].z < zmin) zmin = search_corner[i].z;
+                     if(search_corner[i].z > zmax) zmax = search_corner[i].z;
+                  }
+
+
+                  /* Use this center to determine   */
+                  /* how much 'bulge' the image has */
+                  /* and pad xmin ... zmax by this  */
+
+                  len = sqrt(search_center.x*search_center.x
+                           + search_center.y*search_center.y
+                           + search_center.z*search_center.z);
+
+                  search_center.x = search_center.x/len;
+                  search_center.y = search_center.y/len;
+                  search_center.z = search_center.z/len;
+
+                  pad = 1. - Dot(&search_corner[0], &search_center);
+
+                  if(pad < pad0)
+                     pad = pad0;
+
+                  xmin -= pad;
+                  xmax += pad;
+                  ymin -= pad;
+                  ymax += pad;
+                  zmin -= pad;
+                  zmax += pad;
+
+
+                  // Search box defined by the BOX table record
+                  
+                  search_rect.boundary[0] = xmin;
+                  search_rect.boundary[1] = ymin;
+                  search_rect.boundary[2] = zmin;
+                  search_rect.boundary[3] = tmin;
+                  search_rect.boundary[4] = xmax;
+                  search_rect.boundary[5] = ymax;
+                  search_rect.boundary[6] = zmax;
+                  search_rect.boundary[7] = tmax;
+
+                  search_type = BOX;
+
+                  if(rdebug > 2)
+                  {
+                     printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld: \n",
+                        srcid, prevsrc);
+
+                     for(i=0; i<4; ++i)
+                     {
+                        printf("Search box corner %ld:  %11.6f %11.6f  -> %11.8f %11.8f %11.8f\n",
+                           i, corner_ra[i], corner_dec[i], search_corner[i].x,
+                              search_corner[i].y, search_corner[i].z);
+                     }
+
+                     fflush(stdout);
+                  }
+               }
+   
+               else if(tblmode == POINTMODE)
+               {
+                  ra  = atof(tval(ira));
+                  dec = atof(tval(idec));
+
+                  search_center.x = cos(ra*dtr) * cos(dec*dtr);
+                  search_center.y = sin(ra*dtr) * cos(dec*dtr);
+                  search_center.z = sin(dec*dtr);
+
+                  pointDelta       = matchDelta;
+                  search_radiusDot = matchDot;
+
+
+                  if(iradius >= 0)
+                  {
+                     matchRadius = atof(tval(iradius));
+
+                     search_radiusDot = cos(matchRadius/3600. * dtr);
+                     pointDelta       = tan(matchRadius/3600. * dtr);
+
+                     if(search_radiusDot > padDot)
+                        search_radiusDot = padDot;
+                  }
+
+
+                  // Search box defined by the CONE table record
+                  
+                  search_rect.boundary[0] = search_center.x - delta - pointDelta;
+                  search_rect.boundary[1] = search_center.y - delta - pointDelta;
+                  search_rect.boundary[2] = search_center.z - delta - pointDelta;
+                  search_rect.boundary[3] = tmin;
+                  search_rect.boundary[4] = search_center.x + delta + pointDelta;
+                  search_rect.boundary[5] = search_center.y + delta + pointDelta;
+                  search_rect.boundary[6] = search_center.z + delta + pointDelta;
+                  search_rect.boundary[7] = tmax;
+
+                  search_type = CONE;
+
+                  if(rdebug > 2)
+                  {
+                     printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f   radius = %11.6f\n\n",
+                        srcid, prevsrc, ra, dec, matchRadius);
+                     fflush(stdout);
+                  }
+               }
+
+
+               if(rdebug)
+               {
+                  printf("\nSearch Rectangle (TABLE):\n\n");
+
+                  printf("x: %16.8f %16.8f\n", search_rect.boundary[0], search_rect.boundary[4]);
+                  printf("y: %16.8f %16.8f\n", search_rect.boundary[1], search_rect.boundary[5]);
+                  printf("z: %16.8f %16.8f\n", search_rect.boundary[2], search_rect.boundary[6]);
+                  printf("t: %16.8f %16.8f\n", tmin, tmax);
+
+                  printf("\n");
                   fflush(stdout);
                }
-
-
-               // Search box defined by a table (e.g. moving target ephemeris)
-               `
-               search_rect.boundary[0] = point.x - delta - pointDelta;
-               search_rect.boundary[1] = point.y - delta - pointDelta;
-               search_rect.boundary[2] = point.z - delta - pointDelta;
-               search_rect.boundary[3] = tmin;                         // XXXX
-               search_rect.boundary[4] = point.x + delta + pointDelta;
-               search_rect.boundary[5] = point.y + delta + pointDelta;
-               search_rect.boundary[6] = point.z + delta + pointDelta;
-               search_rect.boundary[7] = tmax;                         // XXXX
 
                nhits = RTreeSearch(root, &search_rect, (SearchHitCallback)overlapCallback, 0, storageMode);
 
@@ -2462,8 +2824,13 @@ int main(int argc, char **argv)
 
                   if(rdebug > 1)
                   {
-                     printf("Source %ld [%.6f %.6f] not matched by any image box\n\n",
-                        srcid, ra, dec);
+                     if(tblmode == CORNERMODE)
+                        printf("Source %ld [box] not matched by any image box\n\n",
+                           srcid);
+                     else
+                        printf("Source %ld [%.6f %.6f] not matched by any image box\n\n",
+                           srcid, ra, dec);
+
                      fflush(stdout);
                   }
                }
@@ -2494,7 +2861,11 @@ int main(int argc, char **argv)
 
             else if(rdebug > 2)
             {
-               printf("Source %8ld  [%11.6f %11.6f] not matched in set %3ld\n\n", prevsrc, ra, dec, i);
+               if(tblmode == CORNERMODE)
+                  printf("Source %8ld  [box] not matched in set %3ld\n\n", prevsrc, i);
+               else
+                  printf("Source %8ld  [%11.6f %11.6f] not matched in set %3ld\n\n", prevsrc, ra, dec, i);
+
                fflush(stdout);
             }
 
@@ -2966,7 +3337,7 @@ int main(int argc, char **argv)
                tblBlank[j] = ' ';
 
 
-         if(rectinfo[subsetSetid].datatype == POINTMODE)
+         if(rectinfo[subsetSetid].datatype == POINT)
          {
             // NAMES
 
@@ -3074,6 +3445,31 @@ int main(int argc, char **argv)
             ira  = tcol("ra");
             idec = tcol("dec");
 
+            if(ira < 0)
+               ira  = tcol("ra_user");
+
+            if(idec < 0)
+               idec  = tcol("dec_user");
+
+            ira1     = tcol( "ra1");
+            idec1    = tcol( "dec1");
+            ira2     = tcol( "ra2");
+            idec2    = tcol( "dec2");
+            ira3     = tcol( "ra3");
+            idec3    = tcol( "dec3");
+            ira4     = tcol( "ra4");
+            idec4    = tcol( "dec4");
+
+            if((ira  < 0 || idec  < 0)
+            && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
+             || ira3 < 0 || idec3 < 0  ||  ira4 < 0 || idec4 < 0))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Need columns 'ra' and 'dec' for a location or ra1..dec4 for regions (%s)\"]\n", filename);
+               fflush(stdout);
+               continue;
+            }
+
+
             itime = tcol("mjd");
 
             if(itime < 0)
@@ -3096,36 +3492,67 @@ int main(int argc, char **argv)
             if(iexptime < 0)
                iexptime = tcol("EXPTIME");
 
-            if(ira < 0)
-               ira  = tcol("ra_user");
-
-            if(idec < 0)
-               idec  = tcol("dec_user");
-
-            if(ira < 0 || idec < 0)
-            {
-               printf("[struct stat=\"ERROR\", msg=\"Table must have columns 'ra' and 'dec'\"]\n");
-               fflush(stdout);
-               continue;
-            }
-
-            if(itime < 0 || iexptime < 0) 
-            {
-               printf("[struct stat=\"ERROR\", msg=\"Need columns 'mjd' and 'exptime' for time range checking in image metadata (%s)\"]\n", filename);
-               fflush(stdout);
-               exit(0);
-            }
 
             iradius = tcol("radius");
+
+
+            if(rdebug > 1)
+            {
+               printf("ira      = %d\n", ira);
+               printf("idec     = %d\n", idec);
+               printf("ira1     = %d\n", ira1);
+               printf("idec1    = %d\n", idec1);
+               printf("ira2     = %d\n", ira2);
+               printf("idec2    = %d\n", idec2);
+               printf("ira3     = %d\n", ira3);
+               printf("idec3    = %d\n", idec3);
+               printf("ira4     = %d\n", ira4);
+               printf("idec4    = %d\n", idec4);
+               printf("itime    = %d\n", itime);
+               printf("iexptime = %d\n", iexptime);
+               printf("iradius  = %d\n", iradius);
+               printf("\n");
+               fflush(stdout);
+            }
+
+
+            // Determine what kind of data this is
+
+            tblmode = NULLMODE;
+
+            if(ira1     >= 0
+            && idec1    >= 0
+            && ira2     >= 0
+            && idec2    >= 0
+            && ira3     >= 0
+            && idec3    >= 0
+            && ira4     >= 0
+            && idec4    >= 0)
+               tblmode = CORNERMODE;
+
+            else
+            if(ira      >= 0
+            && idec     >= 0)
+               tblmode = POINTMODE;
+
+               if(tblmode == NULLMODE)
+               {
+                  printf("[struct stat=\"ERROR\", msg=\"Need corner columns or at least point source ra and dec.\"]\n");
+                  fflush(stdout);
+                  continue;
+               }
+
+
+            // Loop over the table, checking
+            // each row agains the R-Tree index
 
             prevsrc  = -1;
             lastid   = -1;
             srccount =  0;
             srcid    =  0;
 
-            tmp_type    = search_type;
-            search_type = TABLE;
-               
+            tmp_type = search_type;
+
             while(1)
             {
                stat = tread();
@@ -3133,57 +3560,216 @@ int main(int argc, char **argv)
                if(stat < 0)
                   break;
 
-               prevra  = ra;
-               prevdec = dec;
 
-               ra  = atof(tval(ira));
-               dec = atof(tval(idec));
+               // Get the time info
 
-               time    = atof(tval(itime));
-               exptime = atof(tval(iexptime)) / 86400.;
-
-               if(exptime <= 0.)
-                  exptime = 1./86400.;
-
-               tmin = time;            // XXXX
-               tmax = time + exptime;  // XXXX 
-
-
-               point.x = cos(ra*dtr) * cos(dec*dtr);
-               point.y = sin(ra*dtr) * cos(dec*dtr);
-               point.z = sin(dec*dtr);
-
-               pointDelta = matchDelta;
-               pointDot   = matchDot;
-
-               if(iradius >= 0)
+               if(itime >= 0)
                {
-                  matchRadius = atof(tval(iradius));
+                  time = atof(tval(itime));
 
-                  pointDot   = cos(matchRadius/3600. * dtr);
-                  pointDelta = tan(matchRadius/3600. * dtr);
+                  if(iexptime >= 0)
+                  {
+                     exptime = atof(tval(iexptime));
 
-                  if(pointDot > padDot)
-                     pointDot = padDot;
+                     tmin = time;
+                     tmax = time + exptime/86400.;
+
+                     if(tmax <= tmin)
+                        tmax = tmin + 1./86400.;
+                  }
+                  else
+                  {
+                     exptime = duration;
+
+                     if(duration == 0.)
+                        exptime = 1.;
+
+                     if(isCentered)
+                     {
+                        tmin = time - exptime/86400./2.;
+                        tmax = time + exptime/86400./2.;
+                     }
+                     else
+                     {
+                        tmin = time;
+                        tmax = time + exptime/86400.;
+                     }
+                  }
                }
 
-               if(rdebug > 2)
+
+               if(tblmode == CORNERMODE)
                {
-                  printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f   radius = %11.6f\n\n",
-                     srcid, prevsrc, ra, dec, matchRadius);
+                  // Read the corner data
+
+                  corner_ra [0] = atof(tval(ira1));
+                  corner_dec[0] = atof(tval(idec1));
+                  corner_ra [1] = atof(tval(ira2));
+                  corner_dec[1] = atof(tval(idec2));
+                  corner_ra [2] = atof(tval(ira3));
+                  corner_dec[2] = atof(tval(idec3));
+                  corner_ra [3] = atof(tval(ira4));
+                  corner_dec[3] = atof(tval(idec4));
+
+
+                  // Compute the x,y,z vectors for the corners
+                  // While we are at it, compute the 'average'
+                  // x,y,z (which we will use as the center of
+                  // the image)
+
+                  xmin =  2.;
+                  xmax = -2.;
+
+                  ymin =  2.;
+                  ymax = -2.;
+
+                  zmin =  2.;
+                  zmax = -2.;
+
+                  search_center.x = 0.;
+                  search_center.y = 0.;
+                  search_center.z = 0.;
+
+                  for(i=0; i<4; ++i)
+                  {
+                     ra  = corner_ra [i] * dtr;
+                     dec = corner_dec[i] * dtr;
+
+                     search_corner[i].x = cos(ra) * cos(dec);
+                     search_corner[i].y = sin(ra) * cos(dec);
+                     search_corner[i].z = sin(dec);
+
+                     search_center.x += search_corner[i].x;
+                     search_center.y += search_corner[i].y;
+                     search_center.z += search_corner[i].z;
+
+                     if(search_corner[i].x < xmin) xmin = search_corner[i].x;
+                     if(search_corner[i].x > xmax) xmax = search_corner[i].x;
+
+                     if(search_corner[i].y < ymin) ymin = search_corner[i].y;
+                     if(search_corner[i].y > ymax) ymax = search_corner[i].y;
+
+                     if(search_corner[i].z < zmin) zmin = search_corner[i].z;
+                     if(search_corner[i].z > zmax) zmax = search_corner[i].z;
+                  }
+
+
+                  /* Use this center to determine   */
+                  /* how much 'bulge' the image has */
+                  /* and pad xmin ... zmax by this  */
+
+                  len = sqrt(search_center.x*search_center.x
+                           + search_center.y*search_center.y
+                           + search_center.z*search_center.z);
+
+                  search_center.x = search_center.x/len;
+                  search_center.y = search_center.y/len;
+                  search_center.z = search_center.z/len;
+
+                  pad = 1. - Dot(&search_corner[0], &search_center);
+
+                  if(pad < pad0)
+                     pad = pad0;
+
+                  xmin -= pad;
+                  xmax += pad;
+                  ymin -= pad;
+                  ymax += pad;
+                  zmin -= pad;
+                  zmax += pad;
+
+
+                  // Search box defined by the BOX table record
+                  
+                  search_rect.boundary[0] = xmin;
+                  search_rect.boundary[1] = ymin;
+                  search_rect.boundary[2] = zmin;
+                  search_rect.boundary[3] = tmin;
+                  search_rect.boundary[4] = xmax;
+                  search_rect.boundary[5] = ymax;
+                  search_rect.boundary[6] = zmax;
+                  search_rect.boundary[7] = tmax;
+
+                  search_type = BOX;
+
+                  if(rdebug > 2)
+                  {
+                     printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld: \n",
+                        srcid, prevsrc);
+
+                     for(i=0; i<4; ++i)
+                     {
+                        printf("Search box corner %ld:  %11.6f %11.6f  -> %11.8f %11.8f %11.8f\n",
+                           i, corner_ra[i], corner_dec[i], search_corner[i].x,
+                              search_corner[i].y, search_corner[i].z);
+                     }
+
+                     fflush(stdout);
+                  }
+               }
+
+               else if(tblmode == POINTMODE)
+               {
+                  ra  = atof(tval(ira));
+                  dec = atof(tval(idec));
+
+                  search_center.x = cos(ra*dtr) * cos(dec*dtr);
+                  search_center.y = sin(ra*dtr) * cos(dec*dtr);
+                  search_center.z = sin(dec*dtr);
+
+                  pointDelta       = matchDelta;
+                  search_radiusDot = matchDot;
+
+
+                  if(iradius >= 0)
+                  {
+                     matchRadius = atof(tval(iradius));
+
+                     search_radiusDot = cos(matchRadius/3600. * dtr);
+                     pointDelta       = tan(matchRadius/3600. * dtr);
+
+                     if(search_radiusDot > padDot)
+                        search_radiusDot = padDot;
+                  }
+
+
+                  // Search box defined by the CONE table record
+
+                  search_rect.boundary[0] = search_center.x - delta - pointDelta;
+                  search_rect.boundary[1] = search_center.y - delta - pointDelta;
+                  search_rect.boundary[2] = search_center.z - delta - pointDelta;
+                  search_rect.boundary[3] = tmin;
+                  search_rect.boundary[4] = search_center.x + delta + pointDelta;
+                  search_rect.boundary[5] = search_center.y + delta + pointDelta;
+                  search_rect.boundary[6] = search_center.z + delta + pointDelta;
+                  search_rect.boundary[7] = tmax;
+
+                  search_type = CONE;
+
+
+                  if(rdebug > 2)
+                  {
+                     printf("\n------------------\nREAD SOURCE:  srcid = %ld  prevsrc = %ld:  ra = %11.6f   dec = %11.6f   radius = %11.6f\n\n",
+                        srcid, prevsrc, ra, dec, matchRadius);
+                     fflush(stdout);
+                  }
+               }
+
+               if(rdebug)
+               {
+                  printf("\nSearch Rectangle (MATCHES):\n\n");
+
+                  printf("x: %16.8f %16.8f\n", search_rect.boundary[0], search_rect.boundary[4]);
+                  printf("y: %16.8f %16.8f\n", search_rect.boundary[1], search_rect.boundary[5]);
+                  printf("z: %16.8f %16.8f\n", search_rect.boundary[2], search_rect.boundary[6]);
+                  printf("t: %16.8f %16.8f\n", tmin, tmax);
+
+                  printf("\n");
                   fflush(stdout);
                }
 
-               search_rect.boundary[0] = point.x - delta - pointDelta;
-               search_rect.boundary[1] = point.y - delta - pointDelta;
-               search_rect.boundary[2] = point.z - delta - pointDelta;
-               search_rect.boundary[3] = tmin;                             // XXX
-               search_rect.boundary[4] = point.x + delta + pointDelta;
-               search_rect.boundary[5] = point.y + delta + pointDelta;
-               search_rect.boundary[6] = point.z + delta + pointDelta;
-               search_rect.boundary[7] = tmax;                             // XXX
-
                nhits = RTreeSearch(root, &search_rect, (SearchHitCallback)overlapCallback, 0, storageMode);
+
 
                if(nhits <= 0)
                {
@@ -3191,8 +3777,13 @@ int main(int argc, char **argv)
 
                   if(rdebug > 1)
                   {
-                     printf("Source %ld [%.6f %.6f] not matched by any image box\n\n",
-                        srcid, ra, dec);
+                     if(tblmode == CORNERMODE)
+                        printf("Source %ld [box] not matched by any image box\n\n",
+                           srcid);
+                     else
+                        printf("Source %ld [%.6f %.6f] not matched by any image box\n\n",
+                           srcid, ra, dec);
+
                      fflush(stdout);
                   }
                }
@@ -3269,12 +3860,16 @@ int main(int argc, char **argv)
 
 
 
-/***************************************************/
-/*                                                 */
-/* Depending on the type of region, determine the  */
-/* search bounding box.                            */
-/*                                                 */
-/***************************************************/
+/***********************************************************************/
+/*                                                                     */
+/* Depending on the type of region, determine the search bounding box. */
+/*                                                                     */
+/* findBoundary() is used by REGION and SUBSET commands                */
+/* This is where the user has given us a point, a cone, or a box.      */
+/* The time range was given by them using "time <mjd> <duration>".     */
+/* and stored in variables tmin, tmax.                                 */
+/*                                                                     */
+/***********************************************************************/
 
 void findBoundary()
 {
@@ -3294,11 +3889,11 @@ void findBoundary()
       search_rect.boundary[0] = search_center.x - delta;
       search_rect.boundary[1] = search_center.y - delta;
       search_rect.boundary[2] = search_center.z - delta;
-      search_rect.boundary[3] = 0.;                      // XXXX
+      search_rect.boundary[3] = tmin;
       search_rect.boundary[4] = search_center.x + delta;
       search_rect.boundary[5] = search_center.y + delta;
       search_rect.boundary[6] = search_center.z + delta;
-      search_rect.boundary[7] = 1.;                      // XXXX
+      search_rect.boundary[7] = tmin;
 
       return;
    }
@@ -3332,11 +3927,11 @@ void findBoundary()
       search_rect.boundary[0] = xmin;
       search_rect.boundary[1] = ymin;
       search_rect.boundary[2] = zmin;
-      search_rect.boundary[3] = 0.;   // XXXX
+      search_rect.boundary[3] = tmin;
       search_rect.boundary[4] = xmax;
       search_rect.boundary[5] = ymax;
       search_rect.boundary[6] = zmax;
-      search_rect.boundary[7] = 0.;   // XXXX
+      search_rect.boundary[7] = tmax;
    }
 
    else if(search_type == BOX)
@@ -3378,20 +3973,21 @@ void findBoundary()
       search_rect.boundary[0] = xmin;
       search_rect.boundary[1] = ymin;
       search_rect.boundary[2] = zmin;
-      search_rect.boundary[3] = 0.;   // XXXX
+      search_rect.boundary[3] = tmin;
       search_rect.boundary[4] = xmax;
       search_rect.boundary[5] = ymax;
       search_rect.boundary[6] = zmax;
-      search_rect.boundary[7] = 0.;   // XXXX
+      search_rect.boundary[7] = tmax;
    }
 
    if(rdebug)
    {
-      printf("\nSearch rectangle (findBoundary()):\n");
+      printf("\nSearch Rectangle (findBoundary(%s)):\n\n", regionTypeStr[search_type]);
 
-      printf("x: %11.8f %11.8f\n", xmin, xmax);
-      printf("y: %11.8f %11.8f\n", ymin, ymax);
-      printf("z: %11.8f %11.8f\n", zmin, zmax);
+      printf("x: %16.8f %16.8f\n", xmin, xmax);
+      printf("y: %16.8f %16.8f\n", ymin, ymax);
+      printf("z: %16.8f %16.8f\n", zmin, zmax);
+      printf("t: %16.8f %16.8f\n", tmin, tmax);
 
       printf("\n");
       fflush(stdout);
@@ -3424,7 +4020,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
    long  nrec, id;
 
    int    i, setid;
-   int    interior, datamode;
+   int    interior, data_type;
    Vec    normal, X;
    double l, L, len, dist, distDot;
 
@@ -3464,8 +4060,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
          else if(rdebug > 2)
          {
-            printf("<== overlapCallback(): Source %ld [%.6f %.6f] not matched in set %d\n\n",
-               prevsrc, prevra, prevdec, i);
+            printf("<== overlapCallback(): Source %ld not matched in set %d\n\n", prevsrc, i);
             fflush(stdout);
          }
 
@@ -3490,32 +4085,51 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
    id = index - 1;
 
-   setid    = rectinfo[id].setid;
-   nrec     = rectinfo[id].catoff;
-   datamode = rectinfo[id].datatype;
+   setid     = rectinfo[id].setid;
+   nrec      = rectinfo[id].catoff;
+   data_type = rectinfo[id].datatype;
 
    if(rdebug > 1)
    {
-      printf("overlapCallback(): Source %ld MAY be covered by image %ld (record %ld in set %d)\n",
-         srcid, id, nrec, setid);
+
+      printf("overlapCallback(): Source %ld MAY be covered by image %ld (record %ld in set %d) data_type=%s, search_type=%s\n",
+         srcid, id, nrec, setid, regionTypeStr[data_type], regionTypeStr[search_type]);
       fflush(stdout);
    }
 
 
-   if(datamode == POINTMODE)
+
+/***************************************************************************/
+/*                                                                         */
+/*   This is the geometry comparison section.  It uses the following       */
+/*   parameters:                                                           */
+/*                                                                         */
+/*      id: input index for R-Tree datum from which we get                 */
+/*                                                                         */
+/*         rectinfo[id].center (center vector)                             */
+/*         rectinfo[id].corner (four corner vectors)                       */
+/*                                                                         */
+/*                                                                         */
+/*      search_center:    Global xyz vector derived from ra,dec given in   */
+/*                        POINT/CONE/BOX commands or read from user table  */
+/*                                                                         */
+/*      search_radiusDot: Derived from radius given in CONE command        */
+/*                        or read from user table                          */
+/*                                                                         */
+/*                                                                         */
+/*   This logic to check whether a point is inside a cone (using a         */
+/*   radius in the form of pre-calculated dot-product size)                */
+/*   or a polygon (based on vector dot- and cross-product logic).          */
+/*                                                                         */
+/***************************************************************************/
+
+   if(data_type == POINT)                                      // POINT DATA
    {
-      /* POINT DATA                                 */
-      /*                                            */
-      /* There is different code here for each of   */
-      /* the three region types (point, cone, box)  */
-
-      /* Multi-source table input */
-
-      if(search_type == TABLE)
+      if(search_type == CONE)                                  // POINT data / CONE search
       {
-         distDot = Dot(&point, &rectinfo[id].center);
+         distDot = Dot(&search_center, &rectinfo[id].center);
 
-         if(distDot > pointDot)
+         if(distDot > search_radiusDot)
          {
             if(rdebug)
             {
@@ -3525,61 +4139,24 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
             interior = 1;
 
-
-            /* Distance for composite record */
-
-            if(interior)
-               dist = acos(distDot)/dtr;
+            dist = acos(distDot)/dtr;
          }
       }
 
-
-      /* A single cone */
-
-      else if(search_type == CONE)
+      else if(search_type == BOX)                              // POINT data / BOX search
       {
-         /* Check for point in cone */
-
-         distDot = Dot(&search_center, &rectinfo[id].center);
-
-         if(distDot > search_radiusDot)
-            interior = 1;
-      }
-
-
-      /* A single box */
-
-      else if(search_type == BOX)
-      {
-
-         /* Check for point inside search box */
-
          interior = pointInPolygon(&rectinfo[id].center, search_corner);
       }
    }
 
-   else
+   else                                                        // BOX DATA
    {
-      /* IMAGE DATA                                 */
-      /*                                            */
-      /* There is different code here for each of   */
-      /* the three region types (point, cone, box)  */
-
-      /* Multi-source table input */
-
-      if(search_type == TABLE)
-         interior = pointInPolygon(&point, rectinfo[id].corner);
-
-
-      /* A single point-like location */
-
-      else if(search_type == POINT)
+      if(search_type == POINT)                                 // BOX data / POINT search
+      {
          interior = pointInPolygon(&search_center, rectinfo[id].corner);
+      }
 
-
-      /* A single cone */
-
-      else if(search_type == CONE)
+      else if(search_type == CONE)                             // BOX data / CONE search
       {
          /* Check for image center in cone */
 
@@ -3639,10 +4216,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
          }
       }
 
-
-      /* A single box */
-
-      else if(search_type == BOX)
+      else if(search_type == BOX)                              // BOX data / BOX search
       {
 
          /* Image corners inside search box */
@@ -3677,12 +4251,20 @@ SearchHitCallback overlapCallback(long index, void* arg)
       }
    }
 
+
+   // If we ultimately decide the candidate fails, return 1 
+
    if(!interior)
       return((SearchHitCallback)1);
 
 
 
-   /* Log the hit */
+   /*******************************************/
+   /*                                         */
+   /* Having passed the overlap filter above, */
+   /* we can continue with processing the hit */
+   /*                                         */
+   /*******************************************/
 
    if(isMatch && setid == subsetSetid)
    {
@@ -3719,7 +4301,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
       /* tables will have 1- instead of 0-offset.  Most users don't like lists that  */
       /* start with source 0.                                                        */
 
-      if(datamode == POINTMODE)
+      if(data_type == POINTMODE)
       {
          refRec[strlen(refRec)-1] = '\0';
 

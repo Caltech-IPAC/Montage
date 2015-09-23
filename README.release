@@ -1,6 +1,6 @@
 *************************
 * Montage v4.0 README   *
-* May, 2015             *
+* 30 September 2015     *
 *************************
 
 
@@ -9,11 +9,13 @@
 2. Installing Montage
 4. Getting Started
 5. Where to go for help
+6. Acknowledgment
+
 
 1. DOWNLOADING MONTAGE
 
 
-Download as a gripped tar file (15 MB) from the GitHub page at 
+Download as a gzipped tar file (15 MB) from the GitHub page at
 
     https://github.com/Caltech-IPAC/Montage
 
@@ -27,54 +29,79 @@ Montage can be downloaded as a gzipped tar file (Montage_vX.Y.tar.gz), or
 as individual components.  
 
 
-2. LICENSE 
+2. LICENSE
 
 Montage is released under a BSD 3-clause license. See the LICENSE file with this distribution.
 
-Please contact the Montage Help Desk at http://irsa.ipac.caltech.edu/ttweb/solosubmit_Montage.htm if you have any questions about the terms of use. 
+Please contact the Montage Help Desk at
+
+   http://montage.ipac.caltech.edu/cgi-bin/Helpdesk/nph-genTicketForm?projname=Montage&projmail=montage@ipac.caltech.edu
+
+if you have any questions about the terms of use.
 
 
 3. INSTALLING MONTAGE
 
-   i. You will need a gcc compiler. Many systems now come with such a compiler already loaded, but Mac OS 10.X platforms are the most notable exception. You can download Apple's Xcode integrated development environment from https://developer.apple.com/xcode/ (Apple developer account needed; free), or you can download command line tools, including a gcc compiler, from the Xcode downloads page at https://developer.apple.com/downloads/index.action. Before doing any installations or upgrades, however, we recommend you consult with your System Administrator.
+   i. You will need a gcc compiler. Many systems now come with such a compiler already loaded, but Mac OS 10.X 
+      platforms are the most notable exception. You can download Apple's Xcode integrated development environment from 
+      https://developer.apple.com/xcode/ (Apple developer account needed; free), or you can download command line tools, 
+      including a gcc compiler, from the Xcode downloads page at https://developer.apple.com/downloads/index.action. 
+      Before doing any installations or upgrades, however, we recommend you consult with your System Administrator.
 
-To check that you have a gcc compiler installed, go to the command line and type "gcc." If you have a complier installed, you will get a message that looks like: "i686-apple-darwin11-llvm-gcc-4.2: no input files." If you do not have a compiler installed, you will get a "Command not found message."
+      To check that you have a gcc compiler installed, go to the command line and type "gcc." If you have a complier 
+      installed, you will get a message that looks like: "i686-apple-darwin11-llvm-gcc-4.2: no input files." If you do not 
+      have a compiler installed, you will get a "Command not found message."
 
 
-  i.   Unpack the gzipped tar file:
+  ii. Unpack the gzipped tar file:
 
          gunzip Montage_vX.Y.tar.gz
          tar xvf Montage_vX.Y.tar
      
-     This will create the directory Montage_vX.Y, which contains all the 
-     necessary files to build Montage.    
+      This will create the directory Montage_vX.Y, which contains all the
+      necessary files to build Montage.    
 
-  ii.  Go into the Montage directory:
+ iii. Go into the Montage directory:
 
           cd Montage_vX.Y  (though presumably if you are reading
-             this file you are already in the 
-             right directory)
+                            this file you are already in the
+                            right directory)
 
-  iii. Type the following:
+  iv. Type the following:
 
           make
 
-       This will configure and build Montage on your system. The process may take several minutes, and will build all the libraries and executables, and place all the executables in $INSTALL/Montage_vX.Y/bin. Nothing outside the Montage directory will be altered. The build may take up to several minutes, and you will see a a continuous stream of output messages during this process.
+      This will configure and build Montage on your system. The process may take several minutes, and will build all the 
+      libraries and executables, and place all the executables in $INSTALL/Montage_vX.Y/bin. Nothing outside the Montage 
+      directory will be altered. The build may take up to several minutes, and you will see a a continuous stream of 
+      output messages during this process.
 
-   iv.     If you want to be able to run the Montage executables from any directory, you will need to add $INSTALL/Montage_vX.Y/bin to your path.
+  v.  If you want to be able to run the Montage executables from any directory, you will need to add 
+      $INSTALL/Montage_vX.Y/bin to your path.
 
-    For instance, using the bash shell on Linux, after installing Montage in /home/username/Montage_vX.Y, we add the following line to /home/username/.bash-profile:
+      For instance, using the bash shell on Linux, after installing Montage in /home/username/Montage_vX.Y, we add 
+      the following line to /home/username/.bash-profile:
 
-    PATH=$PATH:$HOME/Montage_vX.Y/bin
+         PATH=$PATH:$HOME/Montage_vX.Y/bin
 
-    If you are using csh, you would add the following line to /home/username/.cshrc:
+      If you are using csh, you would add the following line to /home/username/.cshrc:
 
-    set path = ($path /home/username/Montage_vX.Y/bin)
+         set path = ($path /home/username/Montage_vX.Y/bin)
+
 
 4. GETTING STARTED
 
-Montage is a toolkit rather than an application. You may run the  tools from the command line, to embed them in scripts or programs. The best way to get started ais to follow the steps to create a 2MASS mosaic of M101 in the Tutorial at  http://montage.ipac.caltech.edu/docs/m101tutorial.html. To see how to call the tools in scripts, see the user-contributed scripts at http://montage.ipac.caltech.edu/contributed_software.html. You are free to download use and modify these scripts. Please acknowledge the contributor in any publications that result.
+Montage is a toolkit rather than an application. You may run the  tools from the command line, or embed them in scripts or 
+programs. The best way to get started and understand the steps in creating a mosaic is is to follow the steps to create a 
+2MASS mosaic of M101 in the Tutorial at  http://montage.ipac.caltech.edu/docs/m101tutorial.html.
 
+To see how to call the tools in scripts, see the user-contributed scripts at 
+
+   http://montage.ipac.caltech.edu/contributed_software.html
+   
+One script creates a 3-color Digital Sky Survey (DSS) mosaics of the Pleiades, and another makes mosaics and a full-color 
+JPEG of a region of the sky wth images from 2MASS, DSS and SDSS. You are free to download use and modify these scripts. 
+Please acknowledge the contributor in any publications that result.
 
 
 5. WHERE TO GO FOR HELP
@@ -83,16 +110,18 @@ The Montage web site can be found at:
       
      http://montage.ipac.caltech.edu
 
-If you have any questions or problems, you can submit a ticket
-to Montage support at:
+If you have any questions or problems, you can submit a ticket to Montage support at:
 
-     http://irsa.ipac.caltech.edu/ttweb/solosubmit_Montage.htm
+     http://vaoweb3.ipac.caltech.edu/cgi-bin/Helpdesk/nph-genTicketForm?projname=Montage&projmail=montage@ipac.caltech.edu
 
 or e-mail the Montage development team at:
-  
+ 
      montage@ipac.caltech.edu
+
 
 6. ACKNOWLEDGEMENT
 
-If your research uses Montage, please include the following acknowledgement: "This research made use of Montage. It is funded by the National Science Foundation under Grant Number ACI-1440620, and was previously funded by the National Aeronautics and Space Administration's Earth Science Technology Office, Computation Technologies Project, under Cooperative Agreement Number NCC5-626 between NASA and the California Institute of Technology."
-
+If your research uses Montage, please include the following acknowledgement: "This research made use of Montage. It is funded 
+by the National Science Foundation under Grant Number ACI-1440620, and was previously funded by the National Aeronautics and 
+Space Administration's Earth Science Technology Office, Computation Technologies Project, under Cooperative Agreement Number 
+NCC5-626 between NASA and the California Institute of Technology."

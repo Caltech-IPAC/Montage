@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.1      John Good        22Sep15  Add full cube info to template header
 3.0      John Good        29Jul15  Check for cube columns and do a little analysis
 2.7      John Good        27Sep12  Add max pixel size capability
 2.6      John Good        20Aug07  Add 'table of tables' capability
@@ -114,8 +115,9 @@ struct ImgInfo
 
 int main(int argc, char **argv)
 {
-   int     i, c, stat, ncols, nimages, ntables, maxfiles, naxis;
-   int     naxis1, naxis2, northAligned, datatype, nCube, cubeSize;
+   int     i, c, stat, ncols, nimages, ntables, maxfiles;
+   int     naxis1, naxis2, northAligned, datatype, nCube;
+   int     have3d, have4d;
 
    int     sys, ifiles, pad, isPercentage, maxPixel;
    double  equinox, val, pixelScale;
@@ -142,6 +144,11 @@ int main(int argc, char **argv)
    int     ilon2, ilat2;
    int     ilon3, ilat3;
    int     ilon4, ilat4;
+   
+   int     inaxis3, inaxis4;
+   int     icrval3, icrval4;
+   int     icrpix3, icrpix4;
+   int     icdelt3, icdelt4;
 
    char    tblfile  [MAXSTR];
    char    template [MAXSTR];
@@ -155,6 +162,21 @@ int main(int argc, char **argv)
    double  x, y, z;
    double  xmin, ymin, zmin;
    double  xmax, ymax, zmax;
+
+   int     naxis,  colNaxis;
+
+   int     naxis3, colNaxis3;
+   double  crval3, colCrval3;
+   double  crpix3, colCrpix3;
+   double  cdelt3, colCdelt3;
+
+   int     naxis4, colNaxis4;
+   double  crval4, colCrval4;
+   double  crpix4, colCrpix4;
+   double  cdelt4, colCdelt4;
+
+   double  minpix,    maxpix;
+   double  colMinpix, colMaxpix;
 
    double  minCdelt = 360.;
 
@@ -342,7 +364,6 @@ int main(int argc, char **argv)
    /****************************/ 
 
    ntables = 0;
-   nimages = 0;
 
    ncols = topen(tblfile);
 
@@ -394,8 +415,21 @@ int main(int argc, char **argv)
    /* Loop over the set of image metadata files */
    /*********************************************/ 
 
-   nCube    = 0;
-   cubeSize = 0;
+   nimages = 0;
+   nCube   = 0;
+
+   naxis   = 2;
+
+   naxis3  = 0;
+   crval3  = 0.;
+   crpix3  = 0.;
+
+   naxis4  = 0;
+   crval4  = 0.;
+   crpix4  = 0.;
+
+   have3d  = 1;
+   have4d  = 1;
 
    for(ifiles=0; ifiles<ntables; ++ifiles)
    {
@@ -419,10 +453,21 @@ int main(int argc, char **argv)
          exit(1);
       }
 
-      inaxis = tcol("NAXIS");
+      inaxis = tcol("naxis");
 
-      if(inaxis >= 0)
-         ++nCube;
+
+      /* Check for "cube" parameters */
+
+      inaxis3 = tcol("naxis3");
+      icrval3 = tcol("crval3");
+      icrpix3 = tcol("crpix3");
+      icdelt3 = tcol("cdelt3");
+
+      inaxis4 = tcol("naxis4");
+      icrval4 = tcol("crval4");
+      icrpix4 = tcol("crpix4");
+      icdelt4 = tcol("cdelt4");
+
       
 
       /* First check to see if we have four equatorial corners */
@@ -688,6 +733,19 @@ int main(int argc, char **argv)
       /* Read the records and collect the image corners */
       /**************************************************/ 
 
+      if(inaxis3 < 0
+      || icrval3 < 0
+      || icrpix3 < 0
+      || icdelt3 < 0)
+         have3d = 0;
+
+      if(inaxis4 < 0
+      || icrval4 < 0
+      || icrpix4 < 0
+      || icdelt4 < 0)
+         have4d = 0;
+
+
       while(1)
       {
          stat = tread();
@@ -700,19 +758,120 @@ int main(int argc, char **argv)
          if(inaxis >= 0)
          {
             if(tnull(inaxis))
-               naxis = -1;
-            else
-               naxis = atoi(tval(inaxis));
-
-            if(naxis == -1)
-               cubeSize = -1;
+               naxis = -1;           // Empty naxis value means we can't do cube
             else
             {
-               if(cubeSize == 0)
-                  cubeSize = naxis;
+               colNaxis = atoi(tval(inaxis));
+
+               if(nimages == 1)
+                  naxis = colNaxis;  // First naxis value becomes our reference
                else
-                  if(naxis != cubeSize)
-                     cubeSize = -1;
+               {
+                  if(colNaxis == 2)  
+                     naxis = -1;              // An naxis value of 2 means not a cube
+                  else if(colNaxis != naxis)
+                     naxis = -1;              // If we don't match reference, we can't do cube
+               }
+
+               if(colNaxis > 2)
+               {
+                  ++nCube;
+
+                  if(naxis > 2 && have3d)     // Now we check for cube parameter consistency
+                  {
+                     if(tnull(inaxis3)
+                     || tnull(icrval3)
+                     || tnull(icrpix3)
+                     || tnull(icdelt3))
+                        naxis = -1;
+
+                     else
+                     {
+                        colNaxis3 = atoi(tval(inaxis3));
+                        colCrval3 = atof(tval(icrval3)); 
+                        colCrpix3 = atof(tval(icrpix3)); 
+                        colCdelt3 = atof(tval(icdelt3)); 
+                     }
+                  }
+
+                  if(naxis > 3 && have4d)
+                  {
+                     if(tnull(inaxis4)
+                     || tnull(icrval4)
+                     || tnull(icrpix4)
+                     || tnull(icdelt4))
+                        naxis = -1;
+
+                     else
+                     {
+                        colNaxis4 = atoi(tval(inaxis4));
+                        colCrval4 = atof(tval(icrval4)); 
+                        colCrpix4 = atof(tval(icrpix4)); 
+                        colCdelt4 = atof(tval(icdelt4)); 
+                     }
+                  }
+
+                  if(nimages == 1)
+                  {
+                     naxis3 = colNaxis3;      // Taking the first values as reference
+                     crval3 = colCrval3;
+                     crpix3 = colCrpix3;
+                     cdelt3 = colCdelt3;
+
+                     naxis4 = colNaxis4;
+                     crval4 = colCrval4;
+                     crpix4 = colCrpix4;
+                     cdelt4 = colCdelt4;
+                  }
+
+                  if(naxis > 2 && !have3d)    // If it says there are 3 dimensions but
+                     naxis = -1;              // we don't have the columns, give up
+
+                  if(have3d)
+                  {
+                     if(colCrval3 != crval3)  // CRVAL and CDELT must agree
+                        naxis = -1;
+
+                     if(colCdelt3 != cdelt3)
+                        naxis = -1;
+
+                     minpix = -crpix3;           // We use the columns CRPIX3 and NAXIS3
+                     maxpix = -crpix3 + naxis3;  // to adjust the overall range (global
+                                                 // CRPIX4 and NAXIS3)
+                     colMinpix = -colCrpix3;
+                     colMaxpix = -colCrpix3 + colNaxis3;
+
+                     if(colMinpix < minpix) minpix = colMinpix;
+                     if(colMaxpix > maxpix) maxpix = colMaxpix;
+
+                     crpix3 = -minpix;
+                     naxis3 = (int)(maxpix + crpix3 + 0.00001);
+                  }
+
+                  if(naxis > 3 && !have4d)    // Ditto for the fourth dimension
+                     naxis = -1;
+
+                  if(naxis > 3 && have4d)
+                  {
+                     if(colCrval4 != crval4)
+                        naxis = -1;
+
+                     if(colCdelt4 != cdelt4)
+                        naxis = -1;
+
+                     minpix = -crpix4;
+                     maxpix = -crpix4 + naxis4;
+
+                     colMinpix = -colCrpix4;
+                     colMaxpix = -colCrpix4 + colNaxis4;
+
+                     if(colMinpix < minpix) minpix = colMinpix;
+                     if(colMaxpix > maxpix) maxpix = colMaxpix;
+
+                     crpix4 = -minpix;
+                     naxis4 = (int)(maxpix + crpix4 + 0.00001);
+                  }
+               }
             }
          }
 
@@ -837,13 +996,13 @@ int main(int argc, char **argv)
             sprintf(temp, "NAXIS2  = %d",     input.naxis2 ); stradd(header, temp);
             sprintf(temp, "CTYPE1  = '%s'",   input.ctype1 ); stradd(header, temp);
             sprintf(temp, "CTYPE2  = '%s'",   input.ctype2 ); stradd(header, temp);
-            sprintf(temp, "CRVAL1  = %11.6f", input.crval1 ); stradd(header, temp);
-            sprintf(temp, "CRVAL2  = %11.6f", input.crval2 ); stradd(header, temp);
-            sprintf(temp, "CRPIX1  = %11.6f", input.crpix1 ); stradd(header, temp);
-            sprintf(temp, "CRPIX2  = %11.6f", input.crpix2 ); stradd(header, temp);
+            sprintf(temp, "CRVAL1  = %14.9f", input.crval1 ); stradd(header, temp);
+            sprintf(temp, "CRVAL2  = %14.9f", input.crval2 ); stradd(header, temp);
+            sprintf(temp, "CRPIX1  = %14.9f", input.crpix1 ); stradd(header, temp);
+            sprintf(temp, "CRPIX2  = %14.9f", input.crpix2 ); stradd(header, temp);
             sprintf(temp, "CDELT1  = %14.9f", input.cdelt1 ); stradd(header, temp);
             sprintf(temp, "CDELT2  = %14.9f", input.cdelt2 ); stradd(header, temp);
-            sprintf(temp, "CROTA2  = %11.6f", input.crota2 ); stradd(header, temp);
+            sprintf(temp, "CROTA2  = %14.9f", input.crota2 ); stradd(header, temp);
             sprintf(temp, "EQUINOX = %d",     input.equinox); stradd(header, temp);
             sprintf(temp, "END"                            ); stradd(header, temp);
             
@@ -1004,7 +1163,100 @@ int main(int argc, char **argv)
    || ymax - ymin > 1
    || zmax - zmin > 1)
    {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"All-sky data\"]\n");
+      naxis1 = 360. / minCdelt;
+      naxis2 = 180. / minCdelt;
+
+      fprintf(fout, "SIMPLE  = T\n");
+      fprintf(fout, "BITPIX  = -64\n");
+
+      if(naxis == -1)
+         fprintf(fout, "NAXIS   = 2\n");
+      else
+         fprintf(fout, "NAXIS   = %d\n", naxis);
+
+      fprintf(fout, "NAXIS1  = %d\n", naxis1);
+      fprintf(fout, "NAXIS2  = %d\n", naxis2);
+
+      if(naxis > 2)
+         fprintf(fout, "NAXIS3  = %d\n", naxis3);
+
+      if(naxis > 3)
+         fprintf(fout, "NAXIS4  = %d\n", naxis4);
+
+      if(sys == EQUJ)
+      {
+         fprintf(fout, "CTYPE1  = 'RA---AIT'\n");
+         fprintf(fout, "CTYPE2  = 'DEC--AIT'\n");
+         fprintf(fout, "EQUINOX = %-g\n", equinox);
+      }
+      if(sys == EQUB)
+      {
+         fprintf(fout, "CTYPE1  = 'RA---AIT'\n");
+         fprintf(fout, "CTYPE2  = 'DEC--AIT'\n");
+         fprintf(fout, "EQUINOX = %-g\n", equinox);
+      }
+      if(sys == ECLJ)
+      {
+         fprintf(fout, "CTYPE1  = 'ELON-AIT'\n");
+         fprintf(fout, "CTYPE2  = 'ELAT-AIT'\n");
+         fprintf(fout, "EQUINOX = %-g\n", equinox);
+      }
+      if(sys == ECLB)
+      {
+         fprintf(fout, "CTYPE1  = 'ELON-AIT'\n");
+         fprintf(fout, "CTYPE2  = 'ELAT-AIT'\n");
+         fprintf(fout, "EQUINOX = %-g\n", equinox);
+      }
+      if(sys == GAL)
+      {
+         fprintf(fout, "CTYPE1  = 'GLON-AIT'\n");
+         fprintf(fout, "CTYPE2  = 'GLAT-AIT'\n");
+      }
+      if(sys == SGAL)
+      {
+         fprintf(fout, "CTYPE1  = 'SLON-AIT'\n");
+         fprintf(fout, "CTYPE2  = 'SLAT-AIT'\n");
+      }
+      
+      fprintf(fout, "CRVAL1  = %14.9f\n", 0.);
+      fprintf(fout, "CRVAL2  = %14.9f\n", 0.);
+
+      if(naxis > 2)
+         fprintf(fout, "CRVAL3  = %14.9\nf", crval3);
+
+      if(naxis > 3)
+         fprintf(fout, "CRVAL4  = %14.9f\n", crval4);
+
+      fprintf(fout, "CRPIX1  = %14.4f\n", ((double)naxis1 + 1.)/2.);
+      fprintf(fout, "CRPIX2  = %14.4f\n", ((double)naxis2 + 1.)/2.);
+
+      if(naxis > 2)
+         fprintf(fout, "CRPIX3  = %14.9f\n", crpix3);
+
+      if(naxis > 3)
+         fprintf(fout, "CRPIX4  = %14.9f\n", crpix4);
+
+      fprintf(fout, "CDELT1  = %14.9f\n", -minCdelt);
+      fprintf(fout, "CDELT2  = %14.9f\n", minCdelt);
+
+      if(naxis > 2)
+         fprintf(fout, "CDELT3  = %14.9f\n", cdelt3);
+
+      if(naxis > 3)
+         fprintf(fout, "CDELT4  = %14.9f\n", cdelt4);
+
+      fprintf(fout, "CROTA2  = %14.9f\n", 0.);
+      fprintf(fout, "END\n");
+      fflush(fout);
+      fclose(fout);
+
+      strcpy(msg, "");
+
+      if(naxis < 0)
+         strcpy(msg, "  Cube columns exist but are either blank or inconsistent; outputting 2D only.");
+
+      fprintf(fstatus, "[struct stat=\"OK\", msg=\"Large area; defaulting to AITOFF projection.%s\", count=%d, ncube=%d, naxis1=%d, naxis2=%d]\n", 
+         msg, nimages, nCube, naxis1, naxis2);
       fflush(stdout);
       exit(0);
    }
@@ -1062,9 +1314,20 @@ int main(int argc, char **argv)
 
    fprintf(fout, "SIMPLE  = T\n");
    fprintf(fout, "BITPIX  = -64\n");
-   fprintf(fout, "NAXIS   = 2\n");
-   fprintf(fout, "NAXIS1  = %d\n",     naxis1);
-   fprintf(fout, "NAXIS2  = %d\n",     naxis2);
+
+   if(naxis == -1)
+      fprintf(fout, "NAXIS   = 2\n");
+   else
+      fprintf(fout, "NAXIS   = %d\n", naxis);
+
+   fprintf(fout, "NAXIS1  = %d\n", naxis1);
+   fprintf(fout, "NAXIS2  = %d\n", naxis2);
+
+   if(naxis > 2)
+      fprintf(fout, "NAXIS3  = %d\n", naxis3);
+
+   if(naxis > 3)
+      fprintf(fout, "NAXIS4  = %d\n", naxis4);
 
    if(sys == EQUJ)
    {
@@ -1103,10 +1366,31 @@ int main(int argc, char **argv)
    
    fprintf(fout, "CRVAL1  = %14.9f\n", box->centerLon);
    fprintf(fout, "CRVAL2  = %14.9f\n", box->centerLat);
-   fprintf(fout, "CDELT1  = %14.9f\n", -minCdelt);
-   fprintf(fout, "CDELT2  = %14.9f\n", minCdelt);
+
+   if(naxis > 2)
+      fprintf(fout, "CRVAL3  = %14.9f\n", crval3);
+
+   if(naxis > 3)
+      fprintf(fout, "CRVAL4  = %14.9f\n", crval4);
+
    fprintf(fout, "CRPIX1  = %14.4f\n", ((double)naxis1 + 1.)/2.);
    fprintf(fout, "CRPIX2  = %14.4f\n", ((double)naxis2 + 1.)/2.);
+
+   if(naxis > 2)
+      fprintf(fout, "CRPIX3  = %14.9f\n", crpix3);
+
+   if(naxis > 3)
+      fprintf(fout, "CRPIX4  = %14.9f\n", crpix4);
+
+   fprintf(fout, "CDELT1  = %14.9f\n", -minCdelt);
+   fprintf(fout, "CDELT2  = %14.9f\n", minCdelt);
+
+   if(naxis > 2)
+      fprintf(fout, "CDELT3  = %14.9f\n", cdelt3);
+
+   if(naxis > 3)
+      fprintf(fout, "CDELT4  = %14.9f\n", cdelt4);
+
    fprintf(fout, "CROTA2  = %14.9f\n", box->posAngle);
    fprintf(fout, "END\n");
    fflush(fout);
@@ -1155,17 +1439,14 @@ int main(int argc, char **argv)
    {
       strcpy(msg, "");
 
-      if(nCube > 0 && cubeSize != 2)
-      {
-         if(cubeSize == -1)
-            strcmp(msg, "WARNING: Cube data but not of uniform dimensionality.");
-         else
-            sprintf(msg, "%d dimensional cubes, update header as appropriate.", cubeSize);
-      }
+      if(naxis < 0)
+         strcpy(msg, "Cube columns exist but are either blank or inconsistent. Outputting 2D only.");
 
       if(strlen(msg) == 0)
-         fprintf(fstatus, "[struct stat=\"OK\", count=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
+         fprintf(fstatus, "[struct stat=\"OK\", count=%d, ncube=%d, naxis1=%d, naxis2=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
             nimages, 
+            nCube,
+            naxis1, naxis2,
             box->centerLon, box->centerLat,
             minCdelt*naxis1, minCdelt*naxis2,
             box->posAngle,
@@ -1175,9 +1456,11 @@ int main(int argc, char **argv)
             lons[3], lats[3]);
 
       else
-         fprintf(fstatus, "[struct stat=\"OK\", msg=\"%s\", count=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
+         fprintf(fstatus, "[struct stat=\"OK\", msg=\"%s\", count=%d, ncube=%d, naxis1=%d, naxis2=%d, clon=%.6f, clat=%.6f, lonsize=%.6f, latsize=%.6f, posang=%.6f, lon1=%.6f, lat1=%.6f, lon2=%.6f, lat2=%.6f, lon3=%.6f, lat3=%.6f, lon4=%.6f, lat4=%.6f]\n",
             msg,
             nimages, 
+            nCube,
+            naxis1, naxis2,
             box->centerLon, box->centerLat,
             minCdelt*naxis1, minCdelt*naxis2,
             box->posAngle,

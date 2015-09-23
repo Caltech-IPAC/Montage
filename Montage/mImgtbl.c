@@ -57,6 +57,7 @@ int   showCorners;
 int   cntr;
 int   failed;
 int   hdrlen;
+int   haveCubes;
 FILE *tblf;
 FILE *ffields;
 
@@ -138,6 +139,8 @@ int main(int argc, char **argv)
 
     fromlist = 0;
 
+    haveCubes = 1;
+
     nfields   = 0;
     maxfields = 32;
 
@@ -157,24 +160,7 @@ int main(int argc, char **argv)
              break;
  
           case 'C':
-             
-             for(i=0; i<ncube; ++i)
-             {
-                strcpy(fields[nfields].name, cname[i]);
-                strcpy(fields[nfields].type, ctype[i]);
-
-                fields[nfields].width = cwidth[i];
-
-                ++nfields;
-
-                if(nfields >= maxfields)
-                {
-                   maxfields += 32;
-                   
-                   fields = (FIELDS *)
-                                realloc(fields, maxfields * sizeof(FIELDS));
-                }
-             }
+             haveCubes = 0;
              break;
  
           case 'a':
@@ -350,6 +336,31 @@ int main(int argc, char **argv)
     if(strlen(pathname) > 1
     && pathname[strlen(pathname)-1] == '/')
        pathname[strlen(pathname)-1]  = '\0';
+
+
+    /* If we haven't turned them off, add the third */
+    /* and fourth dimension parameter checking      */
+
+    if(haveCubes)
+    {
+       for(i=0; i<ncube; ++i)
+       {
+          strcpy(fields[nfields].name, cname[i]);
+          strcpy(fields[nfields].type, ctype[i]);
+
+          fields[nfields].width = cwidth[i];
+
+          ++nfields;
+
+          if(nfields >= maxfields)
+          {
+             maxfields += 32;
+             
+             fields = (FIELDS *)
+                          realloc(fields, maxfields * sizeof(FIELDS));
+          }
+       }
+    }
 
 
     /* Check to see if directory exists */
