@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 {
    int    c, stat, ncols, count, hdu, failed, nooverlap, exact;
    int    wholeImages, ifname, ihdu, iweight, iscale, restart, inp2p, outp2p;
-   int    tryAltOut, tryAltIn, wcsMatch;
+   int    naxes, tryAltOut, tryAltIn, wcsMatch;
 
    int    energyMode = 0;
 
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
 
    outp2p = FAILED;
 
-   readTemplate(template);
+   naxes = readTemplate(template);
 
    tryAltOut = 1;
 
@@ -860,7 +860,12 @@ int main(int argc, char **argv)
          outp2p = FAILED;
       }
 
-      if(strlen(border) == 0)
+      if(naxes > 2)
+      {
+         sprintf(cmd, "mProjectCube %s %s %s %s %s %s",
+            weightStr, scaleStr, hdustr, infile, outfile, template);
+      }
+      else if(strlen(border) == 0)
       {
          if(!wcsMatch)
             sprintf(cmd, "mProject %s %s %s %s %s %s",
@@ -1042,10 +1047,11 @@ int main(int argc, char **argv)
 
 int readTemplate(char *filename)
 {
-   int       j;
+   int       j, naxes;
    FILE     *fp;
    char      line[MAXSTR];
    char      header[80000];
+   char     *ptr;
 #ifdef MPI
    int       exit_flag;
 #endif
@@ -1087,6 +1093,11 @@ int readTemplate(char *filename)
          fflush(stdout);
       }
 
+      ptr = strstr(line, "NAXIS   =");
+
+      if(ptr != (char *)NULL)
+         naxes = atoi(ptr + 10);
+
       stradd(header, line);
    }
 
@@ -1103,7 +1114,7 @@ int readTemplate(char *filename)
       exit(1);
    }
 
-   return 0;
+   return naxes;
 }
 
 
