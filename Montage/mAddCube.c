@@ -479,20 +479,20 @@ int main(int argc, char **argv)
    ifname  = tcol("fname");
    icdelt1 = tcol("cdelt1");
    icdelt2 = tcol("cdelt2");
-   icdelt3 = tcol("CDELT3");
-   icdelt4 = tcol("CDELT4");
+   icdelt3 = tcol("cdelt3");
+   icdelt4 = tcol("cdelt4");
    icrval1 = tcol("crval1");
    icrval2 = tcol("crval2");
-   icrval3 = tcol("CRVAL3");
-   icrval4 = tcol("CRVAL4");
+   icrval3 = tcol("crval3");
+   icrval4 = tcol("crval4");
    icrpix1 = tcol("crpix1");
    icrpix2 = tcol("crpix2");
-   icrpix3 = tcol("CRPIX3");
-   icrpix4 = tcol("CRPIX4");
+   icrpix3 = tcol("crpix3");
+   icrpix4 = tcol("crpix4");
    inaxis1 = tcol("naxis1");
    inaxis2 = tcol("naxis2");
-   inaxis3 = tcol("NAXIS3");
-   inaxis4 = tcol("NAXIS4");
+   inaxis3 = tcol("naxis3");
+   inaxis4 = tcol("naxis4");
 
    namelen = strlen(path) + tbl_rec[ifname].colwd + 16;
 
