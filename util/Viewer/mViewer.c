@@ -2342,15 +2342,18 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
-      if(crval1 != wcs->xpos
-      || crval2 != wcs->ypos
-      || xinc   != wcs->xinc
-      || yinc   != wcs->yinc
-      || fabs(crota2 - wcs->rot) > 1.e-9)
+      if(!nowcs)
       {
-         printf ("[struct stat=\"ERROR\", msg=\"Red and green FITS images don't have matching projections (use -nowcs flag if you still want to proceed).\"]\n");
-         fflush(stdout);
-         exit(1);
+         if(crval1 != wcs->xpos
+         || crval2 != wcs->ypos
+         || xinc   != wcs->xinc
+         || yinc   != wcs->yinc
+         || fabs(crota2 - wcs->rot) > 1.e-9)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Red and green FITS images don't have matching projections (use -nowcs flag if you still want to proceed).\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
       }
 
       greenxmin = -wcs->xrefpix;
@@ -2435,15 +2438,18 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
-      if(crval1 != wcs->xpos
-      || crval2 != wcs->ypos
-      || xinc   != wcs->xinc
-      || yinc   != wcs->yinc
-      || fabs(crota2 - wcs->rot) > 1.e-9)
+      if(!nowcs)
       {
-         printf ("[struct stat=\"ERROR\", msg=\"Red and blue FITS images don't have matching projections (use -nowcs flag if you still want to proceed).\"]\n");
-         fflush(stdout);
-         exit(1);
+         if(crval1 != wcs->xpos
+         || crval2 != wcs->ypos
+         || xinc   != wcs->xinc
+         || yinc   != wcs->yinc
+         || fabs(crota2 - wcs->rot) > 1.e-9)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Red and blue FITS images don't have matching projections (use -nowcs flag if you still want to proceed).\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
       }
 
       bluexmin = -wcs->xrefpix;
