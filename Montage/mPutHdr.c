@@ -170,8 +170,6 @@ int main(int argc, char **argv)
    strcpy(output_file,   argv[optind + 1]);
    strcpy(template_file, argv[optind + 2]);
 
-   checkHdr(template_file, 1, 0);
-
    if(debug >= 1)
    {
       printf("\ninput_file    = [%s]\n", input_file);
