@@ -901,6 +901,13 @@ int main(int argc, char **argv)
 
          symSize = strtod(argv[i+1], &end);
 
+         if(end < (argv[i+1] + (int)strlen(argv[i+1])))
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol size\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
          ++i;
 
          if(i+1 < argc && argv[i+1][0] != '-')
