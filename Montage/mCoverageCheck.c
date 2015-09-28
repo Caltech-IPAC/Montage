@@ -85,6 +85,7 @@ char   *getHdr();
 int     checkFile          (char *filename);
 int     checkWCS           (struct WorldCoor *wcs, int action);
 int     checkHdr           (char *infile, int hdrflag, int hdu);
+int     stradd             (char *header, char *card);
 
 
 
@@ -218,7 +219,9 @@ int main(int argc, char **argv)
 
    struct WorldCoor *wcsbox, *wcsimg;
 
-   char *header;
+   char  *header;
+   char   tmpHeader[1600];
+   char   temp[80];
    
    char   field     [512][MTBL_MAXSTR];
    int    ifield    [512];
@@ -555,13 +558,26 @@ int main(int argc, char **argv)
          }
       }
 
-      wcsbox = wcskinit (1000, 1000,
-                         "RA---TAN", "DEC--TAN",
-                         500.5, 500.5,
-                         center_ra, center_dec, (double *)NULL,
-                         box_xsize/1000., box_ysize/1000.,
-                         box_rotation, 2000, 0.);
-      
+      strcpy(tmpHeader, "");
+      sprintf(temp, "SIMPLE  = T"                      ); stradd(tmpHeader, temp);
+      sprintf(temp, "BITPIX  = -64"                    ); stradd(tmpHeader, temp);
+      sprintf(temp, "NAXIS   = 2"                      ); stradd(tmpHeader, temp);
+      sprintf(temp, "NAXIS1  = %d",     1000           ); stradd(tmpHeader, temp);
+      sprintf(temp, "NAXIS2  = %d",     1000           ); stradd(tmpHeader, temp);
+      sprintf(temp, "CTYPE1  = '%s'",   "RA---TAN"     ); stradd(tmpHeader, temp);
+      sprintf(temp, "CTYPE2  = '%s'",   "DEC--TAN"     ); stradd(tmpHeader, temp);
+      sprintf(temp, "CRVAL1  = %14.9f", center_ra      ); stradd(tmpHeader, temp);
+      sprintf(temp, "CRVAL2  = %14.9f", center_dec     ); stradd(tmpHeader, temp);
+      sprintf(temp, "CRPIX1  = %14.9f", 500.5          ); stradd(tmpHeader, temp);
+      sprintf(temp, "CRPIX2  = %14.9f", 500.5          ); stradd(tmpHeader, temp);
+      sprintf(temp, "CDELT1  = %14.9f", box_xsize/1000.); stradd(tmpHeader, temp);
+      sprintf(temp, "CDELT2  = %14.9f", box_ysize/1000.); stradd(tmpHeader, temp);
+      sprintf(temp, "CROTA2  = %14.9f", box_rotation   ); stradd(tmpHeader, temp);
+      sprintf(temp, "EQUINOX = %d",     2000           ); stradd(tmpHeader, temp);
+      sprintf(temp, "END"                              ); stradd(tmpHeader, temp);
+
+      wcsbox = wcsinit(tmpHeader);
+
       checkWCS(wcsbox, 0);
                       
       pix2wcs(wcsbox,              -0.5,              -0.5, &point_ra[0], &point_dec[0]);
@@ -1189,13 +1205,26 @@ int main(int argc, char **argv)
             fflush(stdout);
          }
 
-         wcsimg = wcskinit (ns,     nl,
-                               ctype1, ctype2,
-                            crpix1, crpix2,
-                            crval1, crval2, (double *)NULL,
-                            cdelt1, cdelt2,
-                            crota2, equinox, 0.);
-         
+         strcpy(tmpHeader, "");
+         sprintf(temp, "SIMPLE  = T"              ); stradd(tmpHeader, temp);
+         sprintf(temp, "BITPIX  = -64"            ); stradd(tmpHeader, temp);
+         sprintf(temp, "NAXIS   = 2"              ); stradd(tmpHeader, temp);
+         sprintf(temp, "NAXIS1  = %d",     ns     ); stradd(tmpHeader, temp);
+         sprintf(temp, "NAXIS2  = %d",     nl     ); stradd(tmpHeader, temp);
+         sprintf(temp, "CTYPE1  = '%s'",   ctype1 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CTYPE2  = '%s'",   ctype2 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CRVAL1  = %14.9f", crval1 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CRVAL2  = %14.9f", crval2 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CRPIX1  = %14.9f", crpix1 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CRPIX2  = %14.9f", crpix2 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CDELT1  = %14.9f", cdelt1 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CDELT2  = %14.9f", cdelt2 ); stradd(tmpHeader, temp);
+         sprintf(temp, "CROTA2  = %14.9f", crota2 ); stradd(tmpHeader, temp);
+         sprintf(temp, "EQUINOX = %d",     equinox); stradd(tmpHeader, temp);
+         sprintf(temp, "END"                      ); stradd(tmpHeader, temp);
+
+         wcsimg = wcsinit(tmpHeader);
+
          checkWCS(wcsimg, 0);
 
          if(debug)
@@ -1680,13 +1709,26 @@ int main(int argc, char **argv)
               fflush(stdout);
             }
 
-            wcsimg = wcskinit (ns,     nl,
-                               ctype1, ctype2,
-                               crpix1, crpix2,
-                               crval1, crval2, (double *)NULL,
-                               cdelt1, cdelt2,
-                               crota2, equinox, 0.);
-        
+            strcpy(tmpHeader, "");
+            sprintf(temp, "SIMPLE  = T"              ); stradd(tmpHeader, temp);
+            sprintf(temp, "BITPIX  = -64"            ); stradd(tmpHeader, temp);
+            sprintf(temp, "NAXIS   = 2"              ); stradd(tmpHeader, temp);
+            sprintf(temp, "NAXIS1  = %d",     ns     ); stradd(tmpHeader, temp);
+            sprintf(temp, "NAXIS2  = %d",     nl     ); stradd(tmpHeader, temp);
+            sprintf(temp, "CTYPE1  = '%s'",   ctype1 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CTYPE2  = '%s'",   ctype2 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CRVAL1  = %14.9f", crval1 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CRVAL2  = %14.9f", crval2 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CRPIX1  = %14.9f", crpix1 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CRPIX2  = %14.9f", crpix2 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CDELT1  = %14.9f", cdelt1 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CDELT2  = %14.9f", cdelt2 ); stradd(tmpHeader, temp);
+            sprintf(temp, "CROTA2  = %14.9f", crota2 ); stradd(tmpHeader, temp);
+            sprintf(temp, "EQUINOX = %d",     equinox); stradd(tmpHeader, temp);
+            sprintf(temp, "END"                      ); stradd(tmpHeader, temp);
+
+            wcsimg = wcsinit(tmpHeader);
+           
 
             /* If we aren't sure the WCS from the metadata table   */
             /* is adequately defined, go back to the original file */
@@ -2587,4 +2629,25 @@ void Reverse(Vec *v)
    v->x = -v->x;
    v->y = -v->y;
    v->z = -v->z;
+}
+
+
+
+int stradd(char *header, char *card)
+{
+   int i;
+
+   int hlen = strlen(header);
+   int clen = strlen(card);
+
+   for(i=0; i<clen; ++i)
+      header[hlen+i] = card[i];
+
+   if(clen < 80)
+      for(i=clen; i<80; ++i)
+         header[hlen+i] = ' ';
+
+   header[hlen+80] = '\0';
+
+   return(strlen(header));
 }
