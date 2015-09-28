@@ -1,30 +1,8 @@
+
 Montage Release Change History
 
-The current "release" is still a work in progress.  Once it is tested, we will
-produce an official tar file with that version of all the files.  This directory
-is the development code and will continue to evolve.  You can choose to either
-use the tarball or keep up with changes as they come.
 
-
-4.0?  25Mar2015    Once again, library directory names changed to reflect 
-                   version numbers since most of these are outside packages 
-                   that can be replaced by the user if desired (e.g. to change
-                   to a newer version of the WCS library if it has new 
-                   projections).
-                   
-                   ---
-
-                   Time marches on and several modules (checkHdr.c, mAddExec.c,
-                   mBgModel.c, mCoverageCheck.c, mDiff.c, mMakeImg.c, mProject.c, 
-                   mProjectPP.c, mPutHdr.c, mShrink.c, mSubimage.c) have been 
-                   modified slightly to avoid messages from newer versions of 
-                   compilers (especially on Mac OSX).  This involved no algorithmic
-                   changes; mostly just proper handling or returns, etc.
-
-                   ---
-
-                   We are in the process of adding modules and modifying others
-                   to support working with data cubes efficiently:
+4.0   30Sep2015    New modules to support working with data cubes :
 
                       mCubeProj -- Based on mProject, this new module allows 
                       for three- and four-dimensional data files (and is easily
@@ -51,19 +29,33 @@ use the tarball or keep up with changes as they come.
 
                       ---
 
-                      mAdd [not modified yet] -- Coadding multiple images
-                      into a single one (the actual mosaicking) is much
-                      simpler than reprojection so we will probably just
-                      augment the current utility to deal with higher 
-                      dimensionality.
+                      mAddCube -- Coadds the reprojected cubes in an input 
+                      list to form an output mosaic with FITS header keywords specified 
+                      in a header file.
 
-                      mSubimage [not modified yet] -- The same thing is true
-                      for pulling subimages out of a larger one.
+                      mSubCube -- Creates a subimage (or "cutout") of a FITS file 
+                      containing a data cube.
 
-                   Background matching for cubes is both problemmatical and
-                   probably never really needed so until such time as there is
-                   a present need, we are not going to build a multi-dimensional
-                   version of this functionality.
+                      mShrinkCube -- Rescale the spatial dimension of a cube.
+                      Resampling or even averaging in the third dimension is
+                      not generally safe, so we do not attempt it.
+
+                   ---
+
+                   Library directory names have been changed to reflect 
+                   version numbers since most of these are outside packages 
+                   that can be replaced by the user if desired (e.g. to change
+                   to a newer version of the WCS library if it has new 
+                   projections).
+                   
+                   ---
+
+                   Some modules (checkHdr.c, mAddExec.c,
+                   mBgModel.c, mCoverageCheck.c, mDiff.c, mMakeImg.c, mProject.c, 
+                   mProjectPP.c, mPutHdr.c, mShrink.c, mSubimage.c) have been 
+                   modified slightly to avoid messages from newer versions of 
+                   compilers (especially on Mac OSX). No algorithmic
+                   changes; mostly proper handling of returns, etc.
 
                    ---
 
@@ -74,10 +66,16 @@ use the tarball or keep up with changes as they come.
                    There are several overlays possible, including coordinate
                    grids (of any sort and number) catalog overlays (scaled
                    and colored symbols with several shapes), image metadata
-                   outlines, labels and custom markers, and so on.
+                   outlines, labels and custom markers, and so on. mJPEG remains
+                   in the distribution but we do not plan further development.
 
+                   The JPEG files contain AVM tags that allow them to be ingested
+                   into the World Wide Telescope.
+              
                    This utility can be used standalone, in pipelines, or as
                    the basis of an interactive (AJAX GUI) interaction toolkit.
+                   A beta version of the Python wrapper around mViewer has been included 
+                   in the distribution.
 
                    ---
 
@@ -125,9 +123,8 @@ use the tarball or keep up with changes as they come.
                        mPad -- Pad a FITS image with null pixel regions
                        (e.g. so mViewer can have a border).
 
-                       mStats -- Return basic information on a image.
-
-
+                       mExamine -- Return basic information on a image
+                       and optionally on a cone region.
 
 
 
