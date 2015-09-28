@@ -4,13 +4,13 @@ Montage Release Change History
 
 4.0   30Sep2015    New modules to support working with data cubes :
 
-                      mCubeProj -- Based on mProject, this new module allows 
+                      mCubeProj -- Based on mProject, this new module allows
                       for three- and four-dimensional data files (and is easily
-                      extended to more dimensions if we ever find data in that 
-                      form that needs to be projected).  mCubeProj is for now
+                      extended to more dimensions if we ever find data in that
+                      form that needs to be projected). mCubeProj is for now
                       kept separate from mProject even though the spatial
                       code is identical to avoid slowing or introducing bugs
-                      into that heavily-used module.  We may merge them back
+                      into that heavily-used module. We may merge them back
                       together in the future.
 
                       mCubeProj requires that the first two axes are spatial.
@@ -22,85 +22,66 @@ Montage Release Change History
                       mTranspose -- Dealing with reprojection and reselection
                       of axes at the same time is much more complicated than
                       either of those operations and makes the code much more
-                      likely to harbor bugs.  We have opted for requiring the
+                      likely to harbor bugs. We have opted for requiring the
                       spatial dimensions to be the first two in the cube and
                       providing a "transpose" utility to allow reorganizing
                       files where this is not the case.
 
                       ---
 
-                      mAddCube -- Coadds the reprojected cubes in an input 
-                      list to form an output mosaic with FITS header keywords specified 
+                      mAddCube -- Coadds the reprojected cubes in an input
+                      list to form an output mosaic with FITS header keywords specified
                       in a header file.
 
-                      mSubCube -- Creates a subimage (or "cutout") of a FITS file 
+                      mSubCube -- Creates a subimage (or "cutout") of a FITS file
                       containing a data cube.
 
                       mShrinkCube -- Rescale the spatial dimension of a cube.
                       Resampling or even averaging in the third dimension is
                       not generally safe, so we do not attempt it.
 
-                   ---
+                      ---
 
-                   Library directory names have been changed to reflect 
-                   version numbers since most of these are outside packages 
-                   that can be replaced by the user if desired (e.g. to change
-                   to a newer version of the WCS library if it has new 
-                   projections).
-                   
-                   ---
+                      Library directory names have been changed to reflect
+                      version numbers since most of these are outside packages
+                      that can be replaced by the user if desired (e.g. to change
+                      to a newer version of the WCS library if it has new
+                      projections).
 
-                   Some modules (checkHdr.c, mAddExec.c,
-                   mBgModel.c, mCoverageCheck.c, mDiff.c, mMakeImg.c, mProject.c, 
-                   mProjectPP.c, mPutHdr.c, mShrink.c, mSubimage.c) have been 
-                   modified slightly to avoid messages from newer versions of 
-                   compilers (especially on Mac OSX). No algorithmic
-                   changes; mostly proper handling of returns, etc.
+                      ---
 
-                   ---
+                      Some modules (checkHdr.c, mAddExec.c,
+                      mBgModel.c, mCoverageCheck.c, mDiff.c, mMakeImg.c, mProject.c,
+                      mProjectPP.c, mPutHdr.c, mShrink.c, mSubimage.c) have been
+                      modified slightly to avoid messages from newer versions of
+                      compilers (especially on Mac OSX). No algorithmic
+                      changes; mostly proper handling of returns, etc.
 
-                   We have augmented the "JPEG generator" with enough new
-                   functionality that we are rebranding it as a new tool,
-                   mViewer.  mViewer support grayscale, pseudocolor and 
-                   full color (three image) rendering into JPEG or PNG files.
-                   There are several overlays possible, including coordinate
-                   grids (of any sort and number) catalog overlays (scaled
-                   and colored symbols with several shapes), image metadata
-                   outlines, labels and custom markers, and so on. mJPEG remains
-                   in the distribution but we do not plan further development.
+                      ---
 
-                   The JPEG files contain AVM tags that allow them to be ingested
-                   into the World Wide Telescope.
-              
-                   This utility can be used standalone, in pipelines, or as
-                   the basis of an interactive (AJAX GUI) interaction toolkit.
-                   A beta version of the Python wrapper around mViewer has been included 
-                   in the distribution.
+                      We have augmented the "JPEG generator" with enough new
+                      functionality that we are rebranding it as a new tool,
+                      mViewer. mViewer support grayscale, pseudocolor and
+                      full color (three image) rendering into JPEG or PNG files.
+                      There are several overlays possible, including coordinate
+                      grids (of any sort and number) catalog overlays (scaled
+                      and colored symbols with several shapes), image metadata
+                      outlines, labels and custom markers, and so on. mJPEG remains
+                      in the distribution but we do not plan further development.
+                      The JPEG files contain AVM tags that allow them to be ingested
+                      into the World Wide Telescope.
 
-                   ---
+                      This utility can be used standalone, in pipelines, or as
+                      the basis of an interactive (AJAX GUI) interaction toolkit.
+                      A beta version of the Python wrapper around mViewer has been included 
+                      in the distribution.
 
-                   Since we have had to deal with larger and larger image 
-                   metadata tables, we decided to add a fast search capability.
+                      ---
 
-                   mQuickSearch takes on or a set of image metadata tables
-                   and builds an R-Tree index from the coverage information.
-                   The algorithm is very efficient at searching (logN) 
-                   and optimized for extended objects (unlike most DBMS
-                   solutions which are really based on single locations like
-                   image centers).  
-
-                   mQuickSearch can also handle point sources (catalogs)
-                   very efficiently and has been used with several billion
-                   record databases (though the indexing step in that case
-                   takes quite a long time).
-
-                   ---
-
-                   There have been minor updates to several other modules:
-
+                      There have been minor updates to several other modules:
                       Image metadata collection for mImgtbl
                       occasionally ran into trouble with missing
-                      or invalid WCS keywords.  Changed to handle
+                      or invalid WCS keywords. Changed to handle
                       more gracefully.
 
                       mBgModel had a realloc bug where it was point
@@ -108,7 +89,6 @@ Montage Release Change History
 
                       An optional parameter was added to mMakeHdr to
                       set a maximum number of pixels on an image side.
-
                       mOverlaps now checks to see if the image
                       metadata already has the image four corners
                       rather than (re)generating them.
@@ -116,15 +96,14 @@ Montage Release Change History
                       mTblSort had a bug where an empty table would
                       loop forever.
 
+                      Finally, there have been a few additions of minor tools
+                      for which need arose:
 
-                   Finally, there have been a few additions of minor tools
-                   for which need arose:
+                        mPad -- Pad a FITS image with null pixel regions
+                        (e.g. so mViewer can have a border).
 
-                       mPad -- Pad a FITS image with null pixel regions
-                       (e.g. so mViewer can have a border).
-
-                       mExamine -- Return basic information on a image
-                       and optionally on a cone region.
+                        mExamine -- Return basic information on a image
+                        and optionally on a cone region.
 
 
 
