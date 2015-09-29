@@ -279,14 +279,6 @@ int main(int argc, char **argv)
 
    readFits(input_file);
 
-   if(input.bitpix > 0)
-   {
-     if(haveBlank) 
-        nan = input.blank;
-     else
-        nan = 0;
-   }
-
 
    // Error if we are trying to shrink to less than one pixel
 
