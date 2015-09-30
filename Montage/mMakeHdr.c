@@ -1222,7 +1222,7 @@ int main(int argc, char **argv)
       fprintf(fout, "CRVAL2  = %14.9f\n", 0.);
 
       if(naxis > 2)
-         fprintf(fout, "CRVAL3  = %14.9\nf", crval3);
+         fprintf(fout, "CRVAL3  = %14.9f\n", crval3);
 
       if(naxis > 3)
          fprintf(fout, "CRVAL4  = %14.9f\n", crval4);
