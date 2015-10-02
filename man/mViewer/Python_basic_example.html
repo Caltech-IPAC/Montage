@@ -1,0 +1,88 @@
+<html>
+<head>
+   <title>Python mViewer: Basic Example</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Python mViewer:  Basic Example</h1>
+
+<p>mViewer provides a great deal of functionality for presenting regions of the sky but
+the basis for it all is the dispay of a single FITS image in grayscale.  While mViewer 
+can be wrapped in any number of ways to support different user scenarios, we will focus
+on the raw underlying functionality.  
+
+<table>
+<tr>
+<td style="padding: 20px; vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+
+import astroMontage.mViewer as mv
+
+viewer = mv.mViewer()
+
+viewer.set_gray_file("SDSS_g.fits")
+
+viewer.init_browser_display()
+
+
+
+</pre>
+
+<p>The Montage Python package can be downloaded as part of the Montage distribution
+available through GitHub: <a href="https://github.com/Caltech-IPAC/Montage">
+https://github.com/Caltech-IPAC/Montage</a> or, if you already have Montage
+installed, through PyPI. The latter route has the advantage of ensuring that 
+any Python dependencies are also installed (an issue with some Python distributions).</p>
+
+<p>Example data can be downloaded <a href="http://montage.ipac.caltech.edu/mViewer/data">here</a></p>
+
+</ul>
+</td>
+<td style="vertical-align: top;">
+   <div style="text-align: center; background-color: #404080; padding: 10px;">
+      <a href="images/python_basic.png" target="_blank">
+	 <img style="margin:5px; background-color: #404080; width: 400px" src="images/python_basic.png"/>
+      </a><br/>
+      <span style="color: #ffff00; font: italic 10px 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+         Click image to view full resolution in a new tab.
+      </span>
+   </div>
+</td>
+</tr>
+</table>
+
+<p>There is a lot going on here behind the scenes.  The <tt>mViewer</tt> object maintains the 
+state of the view, which can be directly output to PNG or JPEG image files or can be used to
+drive an interactive display.  This display is handled by a separate thread which contacts
+the user's browser and sets up two-way communication with a new window.</p>
+
+<p>Because it is in a browser, we can augment the display with very complicated GUI constructs
+(in Javascript), though the basic use case is a simple minimal display filling the window.
+Because it is in a separate thread, user input through the browser (window resize, zooming,
+selecting image regions) can be processed in parallel with any user input via the Python
+prompt. Even the intial display is automatically resized to fit the display canvas and any 
+time you resize the browser window the image adjusts to fit.</p>
+
+<p>So independent of the command prompt, you can draw a zoom box on the displayed image, click for 
+region statistics or click the zoom-reset icon in the lower right of the display.</p>
+
+<p>mViewer does not have to be used with an interactive display.  All of the images in these 
+examples were created using a script which sent the image to a PNG file using the command
+"<tt>viewer.createImage('output.png', 1000)</tt>" (where 1000 is the size of the larger 
+dimension of the output image).
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("pythonBasicExample");
+   });
+</script>
+</body>
+</html>

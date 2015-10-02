@@ -1,0 +1,196 @@
+<html>
+<head>
+   <title>Montage mViewer Cookbook</title>
+
+   <script>
+   function display(img)
+   {
+      jQuery("#display").html("<img src='symbolImages/" + img + "' width='600'/>");
+   }
+   </script>
+
+   <!--#include virtual="menu.html"-->
+
+<script>
+jQuery(document).ready(function(){
+   display("symbolsSDSS.png");
+});
+</script>
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Cookbook: Symbols</h1>
+  
+<table class="presentation">
+<tr>
+<td style="background-color: #f0f0f0;">
+<div style="height: 700px; overflow-x: hidden; overflow-y: scroll;">
+
+<p>mViewer symbols are drawn using the same infrastructure that is used for coordinate
+grids and other sky drawing.  So they can be of any scale and "track" the coordinate
+system they are drawn in.</p>
+
+<p>When drawn in pixel coordinates the look like basic 2D graphics (click on the command
+text to display the resultant image):</p>
+
+<p><span class="cmdstr" onclick="display('symbolsSDSS.png');">
+mViewer \
+        -ct       0 \<br/>
+        -color    gray \<br/>
+        -grid     equatorial \<br/>
+        -color    yellow \<br/>
+        -symbol   7. polygon  3 -mark  100p  100p \<br/>
+        -symbol   7. starred  3 -mark  200p  100p \<br/>
+        -symbol   7. skeletal 3 -mark  300p  100p \<br/>
+        -symbol   7. polygon  4 -mark  100p  200p \<br/>
+        -symbol   7. starred  4 -mark  200p  200p \<br/>
+        -symbol   7. skeletal 4 -mark  300p  200p \<br/>
+        -symbol   7. polygon  5 -mark  100p  300p \<br/>
+        -symbol   7. starred  5 -mark  200p  300p \<br/>
+        -symbol   7. skeletal 5 -mark  300p  300p \<br/>
+        -symbol   7. polygon  6 -mark  100p  400p \<br/>
+        -symbol   7. starred  6 -mark  200p  400p \<br/>
+        -symbol   7. skeletal 6 -mark  300p  400p \<br/>
+        -symbol   7. polygon  7 -mark  100p  500p \<br/>
+        -symbol   7. starred  7 -mark  200p  500p \<br/>
+        -symbol   7. skeletal 7 -mark  300p  500p \<br/>
+        -symbol   7. polygon  8 -mark  100p  600p \<br/>
+        -symbol   7. starred  8 -mark  200p  600p \<br/>
+        -symbol   7. skeletal 8 -mark  300p  600p \<br/>
+        -symbol   7. polygon  9 -mark  100p  700p \<br/>
+        -symbol   7. starred  9 -mark  200p  700p \<br/>
+        -symbol   7. skeletal 9 -mark  300p  700p \<br/>
+        -symbol  17. compass    -mark  200p  900p \<br/>
+        -symbol   7. box        -mark  300p  900p \<br/>
+        -color    ff9090 \<br/>
+        -symbol   0.25 circle   -mark 1000p 1000p \<br/>
+        -symbol   0.50 circle   -mark 1000p  987p \<br/>
+        -symbol   1.00 circle   -mark 1000p  975p \<br/>
+        -symbol   2.00 circle   -mark 1000p  950p \<br/>
+        -symbol   4.00 circle   -mark 1000p  900p \<br/>
+        -symbol   8.00 circle   -mark 1000p  825p \<br/>
+        -symbol  16.00 circle   -mark 1000p  700p \<br/>
+        -symbol  32.00 circle   -mark 1000p  500p \<br/>
+        -gray     SDSS_r.fits -1s max gaussian-log \<br/>
+        -png      symbolsSDSS.png</span></p>
+
+<p>But when the same symbols are drawn on the sky, they become part of it:</p>
+
+<p><span class="cmdstr" onclick="display('symbolsAllsky.png');">
+mViewer \
+        -ct       0 \<br/>
+        -color    c08080 \<br/>
+        -grid     galactic \<br/>
+        -csys     galactic \<br/>
+        -color    yellow \<br/>
+        -symbol   3. polygon  3 -mark 210 -45 \<br/>
+        -symbol   3. starred  3 -mark 240 -45 \<br/>
+        -symbol   3. skeletal 3 -mark 270 -45 \<br/>
+        -symbol   3. polygon  4 -mark 210 -30 \<br/>
+        -symbol   3. starred  4 -mark 240 -30 \<br/>
+        -symbol   3. skeletal 4 -mark 270 -30 \<br/>
+        -symbol   3. polygon  5 -mark 210 -15 \<br/>
+        -symbol   3. starred  5 -mark 240 -15 \<br/>
+        -symbol   3. skeletal 5 -mark 270 -15 \<br/>
+        -symbol   3. polygon  6 -mark 210  00 \<br/>
+        -symbol   3. starred  6 -mark 240  00 \<br/>
+        -symbol   3. skeletal 6 -mark 270  00 \<br/>
+        -symbol   3. polygon  7 -mark 210  15 \<br/>
+        -symbol   3. starred  7 -mark 240  15 \<br/>
+        -symbol   3. skeletal 7 -mark 270  15 \<br/>
+        -symbol   3. polygon  8 -mark 210  30 \<br/>
+        -symbol   3. starred  8 -mark 240  30 \<br/>
+        -symbol   3. skeletal 8 -mark 270  30 \<br/>
+        -symbol   3. polygon  9 -mark 210  45 \<br/>
+        -symbol   3. starred  9 -mark 240  45 \<br/>
+        -symbol   3. skeletal 9 -mark 270  45 \<br/>
+        -symbol  15. compass    -mark 240  60 \<br/>
+        -symbol   3. box        -mark 270  60 \<br/>
+        -color    green \<br/>
+        -symbol  30. starred  5 -mark   0   0 \<br/>
+        -gray     equatorial.fits -1s max gaussian-log \<br/>
+        -png      symbolsAllsky.png</span></p>
+
+
+<p>Pulling coordinates from a catalog, we can display
+any of the above symbols at each location:</p>
+
+<p><span class="cmdstr" onclick="display('circleSymbol.png');">
+mViewer \<br/>
+        -ct       0 \<br/>
+        -color    yellow \<br/>
+        -symbol   3. circle \<br/>
+        -catalog  tbl/fp_2mass.tbl \<br/>
+        -gray     fits/SDSS_r.fits -1s max gaussian-log \<br/>
+        -png      circleSymbol.png</span></p>
+
+
+<p>But this gives an inaccurate view of the sky, overemphasizing
+the large number of dim sources.  It is better to scale the
+symbols by the brightness of the source (here computed from
+one of the magnitude columns (2MASS J):</p>
+
+<p><span class="cmdstr" onclick="display('scaledSymbol.png');">
+mViewer \<br/>
+        -ct       0 \<br/>
+        -color    yellow \<br/>
+        -symbol   1. circle \<br/>
+        -scalecol  j_m 17 mag \<br/>
+        -catalog  tbl/fp_2mass.tbl \<br/>
+        -gray     fits/SDSS_r.fits -1s max gaussian-log \<br/>
+        -png      scaledSymbol.png</span></p>
+
+
+<p>Another take on the data shows some other parameter as the
+color of the symbol.  Here, the J-K 2MASS astronomical color has been
+converted into an RGB color.  The transform could use any of the
+16-million colors available; we have opted for the 512 colors
+on the B-&gt;G-&gt;R primary lines (points with J magnitude
+but no J-K color are shown in white):</p>
+
+<p><span class="cmdstr" onclick="display('colorSymbol.png');">
+mViewer \<br/>
+        -ct       0 \<br/>
+        -color    yellow \<br/>
+        -symbol   3. circle \<br/>
+        -colorcol color \<br/>
+        -catalog  tbl/fp_2mass.tbl \<br/>
+        -gray     fits/SDSS_r.fits -1s max gaussian-log \<br/>
+        -png      colorSymbol.png</span></p>
+
+
+<p>Of course, there nothing preventing us from combining the
+size and color information:</p>
+
+<p><span class="cmdstr" onclick="display('scaledColorSymbol.png');">
+mViewer \<br/>
+        -ct       0 \<br/>
+        -color    yellow \<br/>
+        -symbol   1. circle \<br/>
+        -scalecol j_m 17 mag \<br/>
+        -colorcol color \<br/>
+        -catalog  tbl/fp_2mass.tbl \<br/>
+        -gray     fits/SDSS_r.fits -1s max gaussian-log \<br/>
+        -png      scaledColorSymbol.png</span></p>
+
+<p>This could be taken further, with shape representing some other
+parameter.  This would make sense if there were a relatively small
+set to choose from (like galaxies vs. stars) but otherwise gets 
+too busy.</p>
+</div>
+
+</td>
+
+<td style="background-color: #b0b0b0; text-align: center; vertical-align: top;">
+<p><div id="display" style="border 1px solid black; width: 600px; height: 600px; background-color: #000000;"></div></p>
+
+Data: <a href="http://montage.ipac.caltech.edu/mViewer/data/fits/SDSS_r.fits">SDSS_r.fits</a>, <a href="http://montage.ipac.caltech.edu/mViewer/data/fits/allsky.fits">allsky.fits</a>, 
+<a href="http://montage.ipac.caltech.edu/mViewer/data/tbl/fp_2mass.tbl">fp_2mass.tbl</a>
+</td>
+</tr>
+</table>
+</div>
+</div>
+
+</body>
+</html>

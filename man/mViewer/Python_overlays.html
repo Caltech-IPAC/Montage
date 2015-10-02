@@ -1,0 +1,101 @@
+<html>
+<head>
+   <title>Montage Viewer in Python</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Overlays</h1>
+
+<p>The image can be overlayed with additional information such as coordinate
+grids and scaled symbols from a source catalog table.  See the mViewer documentation
+sections on <a href="mViewer_simpleOverlays.html">basic overlays</a> and 
+<a href="mViewer_tableOverlays.html">table overlays</a> for more details.</p>
+
+<table>
+<tr>
+<td style="padding: 20px; vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+import astroMontage.mViewer as mv
+
+viewer = mv.mViewer()
+
+viewer.set_red_file("SDSS_r.fits")
+viewer.set_red_stretch("0.1s", "max", "gaussian-log")
+
+viewer.set_green_file("SDSS_g.fits")
+viewer.set_green_stretch("0.1s", "max", "gaussian-log")
+
+viewer.set_blue_file("SDSS_u.fits")
+viewer.set_blue_stretch("0.1s", "max", "gaussian-log")
+
+viewer.set_current_color("8080ff")   
+viewer.add_grid("Equ J2000") 
+
+viewer.set_current_color("90ff90")        
+viewer.add_img_info("mipssed.tbl")
+
+viewer.set_current_color("ff9090")        
+viewer.add_img_info("irspeakup.tbl")
+
+viewer.set_current_color("ffff00")      
+viewer.set_current_symbol(1.0, "circle")  
+viewer.add_catalog("fp_psc.tbl", "j_m", 16, "mag") 
+
+viewer.set_current_color("ffffff")      
+viewer.add_label(202.47083, 47.26614, "Messier 051b")
+
+viewer.set_current_color("000080")      
+viewer.set_current_symbol(8.0, "circle")
+viewer.add_marker(202.49829, 47.26614) 
+
+viewer.set_current_color("ffffff")      
+viewer.add_label(202.41667, 47.21667, "Messier 051a")
+
+viewer.set_current_color("000080")      
+viewer.set_current_symbol(12.0, "circle")
+viewer.add_marker(202.46963, 47.19517) 
+
+viewer.init_browser_display()
+
+
+
+</pre>
+<p>In addition to the commands to add each type of overlay (all of which
+can have multiple instances) there are a couple of "sticky" command
+to set the color and symbol shape for any subsequent overlays until
+changed.  Since we can't assume the user has access to a network at
+all times, we haven't opted for allowing object name resolution inside
+the methods here; all coordinates are in simple decimal degrees.</p>
+
+Again, refer to the <a href="index.html" target="_blank">mViewer</a>
+documentation for more details on things like color syntax, coordinates,
+and symbol shapes.</p>
+</ul>
+</td>
+<td style="vertical-align: top;">
+   <div style="text-align: center; background-color: #404080; padding: 10px;">
+      <a href="images/m51c.jpg" target="_blank">
+         <img style="margin:5px; background-color: #404080; width: 400px" src="images/m51c_small.jpg"/>
+      </a><br/>
+      <span style="color: #ffff00; font: italic 10px 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+         Click image to view full resolution in a new tab.
+      </span>
+   </div>
+</td>
+</tr>
+</table>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("pythonOverlays");
+   });
+</script>
+</body>
+</html>

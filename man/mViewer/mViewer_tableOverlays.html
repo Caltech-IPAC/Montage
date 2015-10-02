@@ -1,0 +1,134 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Table Overlays</h1>
+
+<p>Frequently, we wish to overlay the images with a number of symbols (say all the galaxies
+in the region) or image outlines (like the coverage map for a mission dataset).  The 
+"<tt>-catalog</tt>" and "<tt>-imginfo</tt>" directives let us use a table as input to do this.</p>
+
+<p>The basic commands draw with the current default symbol and color but there are additional
+optional directives that instruct mViewer to use a table column to scale the symbol size,
+read color and/or shape from other columns, and to place custom labels at each location
+instead of (or in addition to) the symbol.  You can start simple and add these additional
+directives as needs require.</p>
+
+<p>Refer back to the previous section for descriptions of the "<tt>-symbol</tt>"
+and "<tt>-color</tt>" directives.  These set the "current" default symbol size, shape and
+color (and label color).</p>
+
+<p>The same table might contain image metadata and symbols (or more frequently labels) to be
+draw, so subsequent <tt>-imginfo</tt> and <tt>-catalog</tt> directives might point to the
+same file but use different columns.</p>
+
+<p><hr width="25%"/></p>
+
+<p><b>Catalogs</b> But let's start with basics.  Having set the symbol size, shape and color, we 
+can use <tt>-catalog data.tbl</tt> to draw that symbol at each location in the table.  The code
+looks for columns "ra" and "dec" (and failing that "lon" and "lat").  If the <tt>-csys</tt>
+directive has been given, it applies the appropriate transform and draws the symbol.</p>
+
+<p>Frequently, the table contains flux, magnitude, or actual size information that can be
+used to scale the symbols.  Adding the <tt>-scalecol</tt> directive before invoking the
+catalog drawing tells the software where to get this scaling data and how to apply it
+(scale linearly or with a log or take the column as a magnitude and scale by logs inversely).</p>
+
+<p>Less frequently, we want to specify the color of the symbol record by record, have different
+shapes for different record subsets, or set the size explicitly (instead of through the scaling
+calculation above).  For these, mViewer allows you to set <tt>-colorcol</tt>, <tt>-shapecol</tt>
+and <tt>-sizecol</tt> directives.</p>
+
+<p>Finally, instead of (or in addition to) the symbol, you may wish to place a custom label
+for each record.  Using the <tt>-labelcol</tt> directive (and optionally setting <tt>-symbol none</tt>)
+provides for this.</p>
+
+<p>Some of these are illustrated below.</p>
+
+<p><hr width="25%"/></p>
+
+<p><b>Image Metadata</b>  The <tt>-imginfo images.tbl</tt> directive looks for four corners coordinates
+in the table (columns ra1, dec1, ... ra4, dec4) or failing that WCS keyword columns from which it can
+calculate the four corners locations.  Using the current color, it draws these outlines on the image.</p>
+
+<p>Like the catalog data above, you can have per-record details, though in this case this is just the
+<tt>-colorcol</tt> directive.</p>
+
+<p><hr width="25%"/></p>
+
+<table>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<p><b>Catalog Data</b></p>
+<p><pre>
+
+
+mViewer -color    ffff00 \   
+        -symbol   1.0 circle \
+        -scalecol j_m 16.0 mag \
+        -catalog  fp_2mass.tbl \
+        -gray     SDSS_g.fits 0s max gaussian-log \     
+        -out      catalog.png
+
+
+</pre></p>
+<p>Example data can be downloaded <a href="http://montage.ipac.caltech.edu/mViewer/data">here</a>.</p>
+
+<p>Tables of coordinates can be overlays as markers, optionally scaled by another table column.
+These tables must be in IPAC ASCII format and the coordinates of the sources in columns <tt>ra</tt>
+and <tt>dec</tt> (or <tt>lon</tt> and <tt>lat</tt>).  The "<tt>-csys</tt>" directive informs any
+needed coordinate transformation.</p>
+
+<p>The "<tt>-symbol</tt>" gives us a base symbol for this catalog and if there isn't any scaling
+column information it is that symbol that will be used.  However, the "<tt>-catalog</tt>" directive
+can include additional relative scaling information in the form of a scaling column, reference 
+value (the value that will map to the default symbol size) and scaling type (linear, logarithmic,
+or magnitude).
+
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/catalog.png"/>
+</td>
+</tr>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<p><b>Image Metadata</b></p>
+<p><pre>
+
+
+mViewer -color    cyan \
+        -imginfo  irsmap.tbl \
+        -gray     SDSS_g.fits 0s max gaussian-log \
+        -out      images.png
+
+
+</pre></p>
+<p>Image metadata tables (also IPAC ASCII) need to have enough information to define the boundaries
+of each image.  The safest way to do this is to include columns for the four corners coordinates
+(named <tt>ra1</tt>, <tt>dec1</tt>, ... <tt>ra4</tt>, <tt>dec4</tt>).  Failing this, mViewer will
+attempt to extract WCS information from columns named after the FITS WCS keywords (<tt>naxis1</tt>,
+<tt>crval2</tt>, <tt>crpix1</tt>, <i>etc.</i>).
+
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/images.png"/>
+</td>
+</tr>
+</table>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerTableOverlays");
+   });
+</script>
+</body>
+</html>

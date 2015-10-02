@@ -1,0 +1,176 @@
+
+div.toc {
+   display: inline-block;
+   padding:15px;
+   background: #f0f0f0;
+}
+
+.toc h3 {
+   font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   text-align: center;
+   color: #400000;
+}
+
+.toc ul {
+   margin: 10px;
+   padding: 0px;
+}
+   
+.toc li {
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   color: #000000;
+   cursor: arrow;
+}
+   
+.toc li.first {
+   margin: 4px 0px 0px 0px;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+   
+.toc li.main {
+   margin: 8px 0px 0px 0px;
+   font: 16px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   color: #000080;
+   cursor: pointer;
+}
+   
+/* unvisited link */
+.toc li a:link {
+   color: #000000;
+   text-decoration: none;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* visited link */
+.toc li a:visited {
+   color: #000000;
+   text-decoration: none;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* mouse over link */
+.toc li a:hover {
+   color: #000000;
+   text-decoration: none;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* selected link */
+.toc li a:active {
+   color: #000000;
+   text-decoration: none;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+   
+/* unvisited link */
+.toc .first a:link {
+   color: #000000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* visited link */
+.toc .first a:visited {
+   color: #000000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* mouse over link */
+.toc .first a:hover {
+   color: #000000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* selected link */
+.toc .first a:active {
+   color: #000000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 13px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+   
+/* unvisited link */
+.toc .main a:link {
+   color: #000080;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 16px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* visited link */
+.toc .main a:visited {
+   color: #000080;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 16px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* mouse over link */
+.toc .main a:hover {
+   color: #000080;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 16px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* selected link */
+.toc .main a:active {
+   color: #000080;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 16px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+   
+/* unvisited link */
+.toc h3 a:link {
+   color: #800000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* visited link */
+.toc h3 a:visited {
+   color: #800000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* mouse over link */
+.toc h3 a:hover {
+   color: #800000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}
+
+/* selected link */
+.toc h3 a:active {
+   color: #800000;
+   text-decoration: none;
+   margin: 4px 0px 0px 0px;
+   font: 20px "Helvetica Neue", Helvetica, Arial, sans-serif;
+   cursor: arrow;
+}

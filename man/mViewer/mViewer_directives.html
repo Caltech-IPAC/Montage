@@ -1,0 +1,51 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Directive Quick Reference</h1>
+
+<p><table class="directives">
+<tr><th>Directive    </th><th>Examples                             </th><th>Description                                                                           </th></tr>
+<tr><td>-gray        </td><td>messier051.fits 1% 99% log           </td><td>Input FITS file for grayscale image                                                   </td></tr>
+<tr><td>-red         </td><td>jband.fits -2s max gaussian-log      </td><td>Input FITS file for red band of color image                                           </td></tr>
+<tr><td>-green       </td><td>hband.fits -2s max gaussian-log      </td><td>Input FITS file for green band of color image                                         </td></tr>
+<tr><td>-blue        </td><td>kband.fits -2s max gaussian-log      </td><td>Input FITS file for blue band of color image                                          </td></tr>
+<tr><td>-out/png     </td><td>messier051.png                       </td><td>Output PNG image                                                                      </td></tr>
+<tr><td>-jpeg        </td><td>messier051.jpg                       </td><td>Output JPEG image                                                                     </td></tr>
+<tr><td>-ct          </td><td>4                                    </td><td>Color table ID for grayscale image (see documentation)                                </td></tr>
+<tr><td>-t           </td><td>1                                    </td><td>Color "enhancement" parameter for color images (see documentation)                    </td></tr>
+<tr><td>-nowcs       </td><td>                                     </td><td>Do not check input FITS files for matching WCS information                            </td></tr>
+<tr><td>-s           </td><td>status.txt                           </td><td>Output completion message to status file (used by workflow managers)                  </td></tr>
+<tr><td>-d           </td><td>                                     </td><td>Turn on debugging output (large and really only for developer use)                    </td></tr>
+<tr><td>-csys        </td><td>Galactic                             </td><td>Coordinate system to be used for marker/label placement                               </td></tr>
+<tr><td>-color       </td><td>green<br/>ffa080                     </td><td>Set current color (used for grid/marks/labels)                                        </td></tr>
+<tr><td>-symbol      </td><td>30p box<br/>2.5s 5 starred 36.       </td><td>Set current symbol size and shape (use "none" to turn of symbols for multi-labelling) </td></tr>
+<tr><td>-grid        </td><td>Equ J2000                            </td><td>Draw an coordinate grid overlay in the current color                                  </td></tr>
+<tr><td>-mark        </td><td>80.89386 -69.7561                    </td><td>Place the current symbol at this location                                             </td></tr>
+<tr><td>-label       </td><td>202.4 47.2 "M 51"                    </td><td>Place the label text given at this location                                           </td></tr>
+<tr><td>-catalog     </td><td>sdss.tbl                             </td><td>Process a table and draw symbols and/or place labels (uses columns ra,dec or lat,lon) </td></tr>
+<tr><td>-imginfo     </td><td>irac.tbl                             </td><td>Process a table and draw image outlines (uses columns ra1, dec1, ... ra4, dec4)       </td></tr>
+<tr><td>-colorcol    </td><td>color                                </td><td>Column to use for symbol/image outline color                                          </td></tr>
+<tr><td>-scalecol    </td><td>vmag 14. mag                         </td><td>Column to use for relative symbol scaling and scaling rules                           </td></tr>
+<tr><td>-sizecol     </td><td>galsize                              </td><td>Column with symbol sizes (not usually used with the scale column)                     </td></tr>
+<tr><td>-shapecol    </td><td>objtype                              </td><td>Column with symbol shapes                                                             </td></tr>
+<tr><td>-labelcol    </td><td>name                                 </td><td>Column with text for location labels                                                  </td></tr>
+</table></p>
+
+<p><b>Note:</b> Some of the examples use file names (<i>e.g.,</i> <tt>jband.fits</tt>) and some<br/> use table column name (<i>e.g.,</i> <tt>galsize</tt>).
+These will be different for your data.</p:>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerDirectives");
+   });
+</script>
+</body>
+</html>

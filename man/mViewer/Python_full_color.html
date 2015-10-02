@@ -1,0 +1,77 @@
+<html>
+<head>
+   <title>Python mViewer:  Full Color</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Python mViewer:  Full Color</h1>
+
+<p>If you have multiple images at different wavelengths, it is often useful to 
+combine them as blue, green and red channels in a "full color" composite.  The Montage
+toolkit contains all the functionality necessary to reproject/resample images to
+a common frame (matched WCS).  See the <a href="mViewer_full_color.html">mViewer
+documents</a> for more details.</p>
+
+<table>
+<tr>
+<td style="padding: 20px; vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+
+import astroMontage.mViewer as mv
+
+viewer = mv.mViewer()
+
+viewer.set_red_file("SDSS_r.fits")
+viewer.set_red_stretch("0.1s", "max", "gaussian-log")
+
+viewer.set_green_file("SDSS_g.fits")
+viewer.set_green_stretch("0.1s", "max", "gaussian-log")
+
+viewer.set_blue_file("SDSS_u.fits")
+viewer.set_blue_stretch("0.1s", "max", "gaussian-log")
+
+viewer.init_browser_display()
+
+
+
+</pre>
+<p>Each image is stretched separately.  We could have left the stretch
+at its default setting but in this case that would have resulted
+in a washed-out background.</p>
+</ul>
+</td>
+<td style="vertical-align: top;">
+   <div style="text-align: center; background-color: #404080; padding: 10px;">
+      <a href="images/python_color.png" target="_blank">
+         <img style="margin:5px; background-color: #404080; width: 400px" src="images/python_color.png"/>
+      </a><br/>
+      <span style="color: #ffff00; font: italic 10px 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+         Click image to view full resolution in a new tab.
+      </span>
+   </div>
+</td>
+</tr>
+</table>
+
+<p>The pseudo-color table used in the previous example is meaningless in this 
+context and will be ignored.  mViewer actually maintains information about 
+a grayscale image and the three (blue, green, red) images separately and there
+is a command ("<tt>viewer.setDisplayMode('color')</tt> or <tt>'grayscale'</tt>)
+for switching between them.  Usually, the user intent is clear and mViewer chooses
+an appropriate mode based on the setup calls.</p>
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("pythonColor");
+   });
+</script>
+</body>
+</html>

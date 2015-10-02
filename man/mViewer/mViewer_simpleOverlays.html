@@ -1,0 +1,177 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Overlay Basics</h1>
+
+mViewer has built-in functionality to draw overlays on the image.  So far these include
+the following:</p>
+
+<ul>
+   <li> Coordinate grids </li>
+   <li> Astronomical source (catalog) scaled symbols </li>
+   <li> Image metadata (outlines) </li>
+   <li> Markers (individual symbols) </li>
+   <li> Labels</li>
+</ul>
+
+<p><hr width="25%"/></p>
+
+
+<p><b>Coordinate Systems, Colors and Symbols</b></p>
+
+<p>In addition to the above there are state directives for color specification,
+coordinate system and symbol reference size/shape). There can be multiple instance of each
+overlay type and the state directives are "sticky".  For instance, if you set the color,
+that color applies to all subsequent overlay directives on the command line until another
+color is specified.  The coordinate system directive applies to all the overlays except "<tt>-grid</tt>",
+where there are specific arguments for this (which don't stick).</p>
+
+<p> All the lines, symbols, and text are drawn / typeset anti-aliased and for labelled curves
+(<i>e.g.,</i> latitude lines) the text follows the curve of the line.  In a few situations 
+some labels get twisted a little too fast and become hard to read but this is very rare.</p>
+
+<p>Colors can be specified in standard HTML hex notation (<i>e.g.,</i> "<tt>f1a3e7</tt>") 
+(see, for instance,  <a href="http://www.w3schools.com/html/html_colors.asp">
+http://www.w3schools.com/html/html_colors.asp</a>) or by a few names for convenience 
+(black, white, red, green, blue, magenta, cyan, yellow, gray).
+A note on hex encoding:  since people are so used to it from HTML, we allow a leading pound sign 
+(<i>e.g.,</i> "<tt>-color #a02ce8</tt>"). However, if put in scripts for shells based on <b>sh</b>
+the pound can be taken as the beginning of a comment block.  So either avoid the pound, use a
+non-sh shell, or put the argument in quotes.</p>
+
+<p>The coordinate system can be Equatorial, Galactic, or Ecliptic (in fact the code just matches
+the first two characters case insensitive so "ga" is adequate).  Where appropriate, the system
+can be followed by epoch/equinox information (B/J for Besselian/Julian and a year).  Of course
+this only applies to Equatorial and Ecliptic since Galactic does not precess.</p>
+
+<p>The symbol directive sets the reference size for symbols and their shape.  The size can be
+one of three variants:  a relative size (based on a fraction of the plot height)[default], in
+arcseconds, arcminutes, or degrees (denoted by a 's', 'm', or 'd' suffix), or in pixels (a 'p' 
+suffix).</p>
+
+<img align="right" src="images/symbols.png" style="margin: 20px;"/>
+
+<p>Symbol drawing can be a little confusing. The text below describes the symbol syntax but
+it is often easier to absorb through examples.  See: <a href="mViewer_cookbookSymbols.html">
+Montage Cookbook: Symbols</a></p>
+
+<p>The symbol shape can be one of a pre-defined set:  triangle, box/square, diamond, pentagon, 
+hexagon, septagon, octagon, el (an right angle between two line segments), circle or compass.  
+The el and compass symbols are usually used as stand-alone "compass rose" markers.</p>
+
+<p>Alternatively, the shape can be a user-defined shape of which there are three types: a simple
+N-sided 'polygon', a 'starred' polygon (2N vertices with every other on a half radius), or a 
+'skeletal' polygon (N points connected to the center by radial lines). This mode requires two 
+parameters in addition to the symbol size: the type and the value of N. Optionally, you can also
+give a rotation angle for any symbol. So "-symbol 2.0s polygon 3" is a triangle with one vertex 
+pointing straight up and "-symbol 2.0s polygon 3 90." is the same triangle but with a vertex 
+pointing to the right.</p>
+
+<p>In the example on the right, we have three symbols, each with five "sides".  The top one is
+a simple five-sided polygon, one arcminute in radius ("<tt>1m polygon 5</tt>").  The middle one
+is "starred" and 30 arcseconds in radius ("<tt>30s starred 5</tt>") and the bottome one is 
+"skeletal" and fifteen arcseconds in radius ("<tt>15s skeletal 5</tt>").</p>
+
+
+<p>Example state directives:</p>
+
+<p><pre>
+
+   -csys Equatorial B1950
+   -csys ga
+   -color red
+   -color ff00ff
+   -symbol 2.0 circle
+   -symbol 15p starred 5 36.
+
+
+</pre></p>
+
+<p> Each of the overlay directives has additional parameters.  Here are examples for the 
+non-table overlays:</p>
+
+<table>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<p><b>Coordinate Grid</b></p>
+<p><pre>
+
+
+mViewer -color yellow  \     
+        -grid Equatorial J2000 \
+        -gray SDSS_g.fits 0s max gaussian-log \     
+        -out  grid.png
+
+
+</pre></p>
+<p>Example data can be downloaded <a href="http://montage.ipac.caltech.edu/mViewer/data">here</a>.</p>
+
+<p>The coordinate system specification is the same as for the "<tt>-csys</tt>" directive above.</p>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/grid.png"/>
+</td>
+</tr>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<p><b>Markers</b></p>
+<p><pre>
+
+
+mViewer -color   yellow \     
+        -csys    Equatorial J2000 \
+        -symbol  3.0 starred 5 36 \
+        -mark    202.41667 47.23333 \
+        -gray    SDSS_g.fits 0s max gaussian-log \     
+        -out     marker.png
+
+
+</pre></p>
+<p>The coordinate system and symbol already being set, all that is needed to place a marker is
+are current coordinates.
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/marker.png"/>
+</td>
+</tr>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<p><b>Labels</b></p>
+<p><pre>
+
+
+mViewer -color   yellow \     
+        -csys    Equatorial J2000 \
+        -label   202.41667 47.23333 "Messier 031" \
+        -gray    SDSS_g.fits 0s max gaussian-log \     
+        -out     label.png
+
+
+</pre></p>
+<p>mViewer uses a general font mechanism but at this point only has one font loaded, so all the
+labelling needs to give are the coordinates and text string.</p>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/label.png"/>
+</td>
+</tr>
+</table>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerOverlays");
+   });
+</script>
+</body>
+</html>

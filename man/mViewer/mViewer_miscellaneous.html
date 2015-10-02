@@ -1,0 +1,32 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Miscellaneous Directives</h1>
+
+There are couple of additional mViewer directives that can be useful under unusual circumstances:</p>
+
+<ul>
+   <li> <b>-nowcs</b> The FITS file has no WCS information, which means we cannot perform
+        any coordinate-base operations.  Nevertheless we still wish to generate a PNG/JPEG
+        of the data array.</li>
+
+   <li> <b>-noflip</b> mViewer analyzes parameters like CDELT and CROTA and flips axes to
+        put North as close to up and East as close to left as is possible without real rotation.
+        Sometimes we want to override this logic.</li>
+</ul>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerMiscellaneous");
+   });
+</script>
+</body>
+</html>

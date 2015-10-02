@@ -1,0 +1,40 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Other Montage Modules</h1>
+
+Of course, all of the other Montage modules can be of use when creating the image files that are
+then sent to mViewer but there are a few that are particulary usefule with regard to presentation:</p>
+
+<p><ul>
+   <li> <b><a href="/docs/mSubimage.html">mSubimage</a>/<a href="/docs/mSubCube.html">mSubCube</a></b>
+        mViewer will alway produce a PNG/JPEG of the whole image it is 
+        given.  To cut out a piece for display, use these tools. This was done for most of the
+        examples on these pages; the original SDSS mosaics used were twice as big in both dimensions.</p>
+
+   <li> <b><a href="/docs/mShrink.html">mShrink</a>/<a href="/docs/mShrinkCube.html">mShrinkCube</a></b>
+        Similarly, mViewer transform one pixel in the FITS files to one
+        display pixel.  To changes the scale, use these tools.  mShrink can shrink (or expand) the
+        scale by non-integer factors.  Alternatively, you can shrink/expand to a target size.</li>
+
+   <li> <b><a href="/docs/mExamine.html">mExamine</a></b>
+        This tool will return overall statistics on an image (<i>e.g.,</i> the
+        pixel scale, center coordinates, and so on.  This is useful in deciding how to run the
+        above tools and particularly useful in the Python/Web applications based on mViewer.</i>
+</ul></p>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerMontageModules");
+   });
+</script>
+</body>
+</html>

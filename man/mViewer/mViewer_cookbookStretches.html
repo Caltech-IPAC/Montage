@@ -1,0 +1,128 @@
+<html>
+<head>
+   <title>Montage mViewer Cookbook</title>
+
+   <script>
+   function display(img)
+   {
+      jQuery("#display").html("<img src='stretchImgs/" + img + "' width='600' height='600'/>");
+   }
+   </script>
+
+   <!--#include virtual="menu.html"-->
+
+<script>
+jQuery(document).ready(function(){
+   display("colorStretch.png");
+});
+</script>
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Cookbook: Data Stretches</h1>
+  
+<table class="presentation">
+<tr>
+<td style="background-color: #f0f0f0;">
+<div style="height: 700px; overflow: auto; overflow-x: hidden;">
+
+<p>mViewer supports several data stretches.  In the following, you can click on a
+command to see the results of its stretch.</p>
+
+<p>The simplest possible stretch processes the image into 256 bins equally spaced
+between the minimum and maximum data values.  For astronomical images this is 
+almost always a bad idea:</p>
+
+<p><span class="cmdstr" onclick="display('min_max_lin.png');">mViewer -ct 1 -gray fits/SDSS_r.fits min max linear -png min_max_lin.png</span></p>
+
+<p>The reason for this is that astronomical images usually have most of their pixel
+values clumped near the low end of the data range (and often all "in the noise").
+The stretch can be improved by applying a non-linear stretch binned in the log
+of the data value (or other functions like sqrt(), which we do not support):</p>
+
+<p><span class="cmdstr" onclick="display('min_max_log.png');">mViewer -ct 1 -gray fits/SDSS_r.fits min max log -png min_max_log.png</span></p>
+
+<p>Many images have extremely high dynamic range, so even log() may not be enough.
+mViewer supports log(log()) and higher variants:</p>
+
+<p><span class="cmdstr" onclick="display('min_max_loglog.png');">mViewer -ct 1 -gray fits/SDSS_r.fits min max loglog -png min_max_loglog.png</span></p>
+
+<p>This tends to de-emphasize the low-level structure to the point where much of it
+vanishes.  That may be a good thing but often is not. So mViewer allows various ways
+of setting the range of the binning.  For instance, stretching from the first 
+percentile in the distribution to the 99th yields:</p>
+
+<p><span class="cmdstr" onclick="display('1_99_log.png');">mViewer -ct 1 -gray fits/SDSS_r.fits  1% 99% log -png 1_99_log.png</span></p>
+
+<p>Of course, to get percentiles you need to generate a histogram.  For a lot of 
+astronomical images this will look like a gaussian (the noise or real low-level
+structure) and a very long positive tail.  It also means we can couch levels in
+terms of "sigma" values:</p>
+
+<p><span class="cmdstr" onclick="display('2s_max_log.png');">mViewer -ct 1 -gray fits/SDSS_r.fits -2s max log -png 2s_max_log.png</span></p>
+
+<p>With the histogram we could also stretch in terms of a histogram equalization.
+However, with the bulk of the distribution being noise/low-level structure, this
+doesn't usually look very good.  Instead, we perform a gaussian histogram equalization
+which is based on the error function (erf()) rather than the histogram itself:</p>
+
+<p><span class="cmdstr" onclick="display('2s_max_gaussian.png');">mViewer -ct 1 -gray fits/SDSS_r.fits -2s max gaussian -png 2s_max_gaussian.png</span></p>
+
+Again, the emphasis is often much more on the values in the long positive tail,
+so we also support distorting the above with a log transform:</p>
+
+<p><span class="cmdstr" onclick="display('2s_max_gaussianlog.png');">mViewer -ct 1 -gray fits/SDSS_r.fits -2s max gaussian-log -png 2s_max_gaussianlog.png</span></p>
+
+<p>This last stretch is will do a creditable job on almost any image.  In fact, the
+only variation that usually needs to be made is the the lower limit:  -2&sigma;
+works well where the low values are real structure and higher values (up to about 
++1&sigma;) may be more appropriate the more the low-level structure is noise.</p>
+
+<p>Also available is a sinh() stretch.  Others could easily be added.</p>
+
+<p>The default image for this page combined a stretch with a "pseudo-color" color table:</p>
+
+<p><span class="cmdstr" onclick="display('colorStretch.png');">mViewer -ct 4 -color ffffff -label 100p 50p "50% max gaussian" -gray fits/SDSS_r.fits 0s max gaussian -png colorStretch.png</span></p>
+
+<p>The mViewer stretching has one more variant.  Sometimes one has a set of images
+that all need to be stretched the same way.  For instance, you might have a set of
+adjacent tiles that are kept as separate files rather than being coadded into one
+giant (an unmanageable) single image.  You still want to display them (perhaps side
+by side) as if they were part of a single whole.</p>
+
+<p>Alternatively, you might have a collection of galaxy image that you want to view on
+the same scale and with the same stretch.</p>
+
+<p>Normally, mViewer analyzes each image separately, resulting in very different stretches.</p>
+
+<p>To get all the images on the same stretch (especially the data-dependent gaussian histogram
+equalization) we can generate a histogram (based on whatever image you wish to use as 
+reference) using the Montage mHistogram module.  This uses the same algorithm as mViewer
+but writes the results to a file.</p>
+
+<p>mViewer can the be told to use this histogram file rather than generating one at run time.
+This is done inside the "-gray" (and "-red", "-green", "-blue") directive using the following
+construct:<p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;Instead of, <i>e.g.</i>, "-gray image.fits -2s max gaussian-log"</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;Use "-gray image.fits -histfile ref.hist"</p>
+
+<p>The same histogram file can thus be applied to as many images as you need.</p>
+
+</div>
+
+</td>
+
+<td style="background-color: #b0b0b0; text-align: center; vertical-align: top;">
+<p><div id="display" style="border 1px solid black; width: 600px; height: 600px; background-color: #000000;"></div></p>
+
+Data: <a href="http://montage.ipac.caltech.edu/mViewer/data/fits/SDSS_r.fits">SDSS_r.fits</a>
+</td>
+</tr>
+</table>
+</div>
+</div>
+
+</body>
+</html>
