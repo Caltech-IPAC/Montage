@@ -25,7 +25,8 @@ The latest version of the Montage code can also be be found at:
 
     http://montage.ipac.caltech.edu/docs/download.html
 
-Montage can be downloaded as a gzipped tar file (Montage_vX.Y.tar.gz)
+Montage can be downloaded as a gzipped tar file (Montage_vX.Y.tar.gz). For individual module updates,
+use GitHub.
 
 
 2. LICENSE
