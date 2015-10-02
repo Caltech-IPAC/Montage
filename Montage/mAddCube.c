@@ -1536,11 +1536,10 @@ int main(int argc, char **argv)
 
                nelements = innaxis1[ifile];
 
-               if (debug >= 3)
+               if (debug >= 4)
                {
-                  printf("Reading line from %d:\n", ifile);
-                  printf("fpixel[1] = %ld\n", fpixel[1]);
-                  printf("nelements = %ld\n", nelements);
+                  printf("Reading %ld pixels from file %d at (%6ld, %6ld, %6ld)\n", 
+                     nelements, ifile, fpixel[3], fpixel[2], fpixel[1]);
                   fflush(stdout);
                }
 
@@ -1768,6 +1767,13 @@ int main(int argc, char **argv)
             fpixel[2] = j3;
             fpixel[3] = j4;
             nelements = output.naxes[0];
+
+            if(debug >= 3)
+            {
+               printf("Writing %ld pixels at (%6d, %6d, %6d) of (%6d, %6d %6d)\n",
+                  nelements, j4, j3, lineout, output.naxes[3], output.naxes[2], output.naxes[1]);
+               fflush(stdout);
+            }
 
             if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements,
                                (void *)(&outdataline[0]), &status))
