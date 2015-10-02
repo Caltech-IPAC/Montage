@@ -229,6 +229,7 @@ int constructRetjson (struct Mviewer *param)
     sprintf (retstr, "{\n");
   
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
 	fprintf (fp_debug, "imageFile= [%s]\n", param->imageFile);
 	fprintf (fp_debug, "imageType= [%s]\n", param->imageType);
 	fprintf (fp_debug, "nowcs= [%d]\n", param->nowcs);
@@ -246,6 +247,10 @@ int constructRetjson (struct Mviewer *param)
 
     if ((int)strlen(param->imageType) == 0) 
         strcpy (param->imageType, "jpeg");
+   
+    sprintf (str, "  \"helpHtml\": \"%s/%s\",\n", 
+        param->baseURL, param->helphtml);
+    strcat (retstr, str);
    
     sprintf (str, "  \"file\": \"%s/%s\",\n", 
         param->baseURL, param->jpgfile);

@@ -13,7 +13,7 @@ function mViewer(workspace, jsonFile, imgDivID)
 {
     var me = this;
 
-    me.debug = true;
+    me.debug = false;
 
     if (me.debug) {
 	console.log ("Enter mViewer: workspace= " + workspace);
