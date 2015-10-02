@@ -43,6 +43,7 @@ int makeStartupHtml (struct ViewerApp *param)
 {
     FILE           *fp;
 
+    char           helphtmlpath[1024];
     char           viewhtmlpath[1024];
     char           viewtemplatepath[1024];
     
@@ -76,6 +77,8 @@ int makeStartupHtml (struct ViewerApp *param)
     int            selectedIndx;
     int            fileExist;
     int            viewhtmlExist;
+    int            helphtmlExist;
+   
    
     double         cdelt3;
     double         crval3;
@@ -101,7 +104,55 @@ int makeStartupHtml (struct ViewerApp *param)
 /*
     Check if viewhtml is in workspace or datadir.
 */
-    viewhtmlExist = 0;
+    
+    if ((int)strlen(param->helphtml) > 0) {
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "\nhelphtml specified in inparam file\n");
+            fflush (fp_debug);
+        }
+     
+        helphtmlExist = 0;
+        helphtmlExist = checkFileExist (param->helphtml, rootname, suffix,
+	    param->directory, helphtmlpath);
+    
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "helphtmlExist (directory)= [%d]\n", 
+	        helphtmlExist);
+	    fprintf (fp_debug, "helphtmlpath= [%s]\n", helphtmlpath);
+            fflush (fp_debug);
+        }
+
+	if (!helphtmlExist) { 
+
+            helphtmlExist = checkFileExist (param->helphtml, rootname, suffix,
+	        param->datadir, fpath);
+    
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	        fprintf (fp_debug, 
+	            "checkFileExist(helphtml): helphtmlExist= [%d]\n", 
+		    helphtmlExist);
+	        fprintf (fp_debug, "fpath= [%s]\n", fpath);
+                fflush (fp_debug);
+            }
+
+	    if (helphtmlExist) {
+                istatus = fileCopy (fpath, helphtmlpath, param->errmsg); 
+            
+	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	            fprintf (fp_debug, 
+		        "helphtml copied from datadir to directory");
+                    fflush (fp_debug);
+                }
+	    }
+	}
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "helphtmlpath= [%s]\n", helphtmlpath);
+            fflush (fp_debug);
+        }
+
+    }
     
     if ((int)strlen(param->viewhtml) > 0) {
 
@@ -110,6 +161,7 @@ int makeStartupHtml (struct ViewerApp *param)
             fflush (fp_debug);
         }
      
+        viewhtmlExist = 0;
         viewhtmlExist = checkFileExist (param->viewhtml, rootname, suffix,
 	    param->directory, viewhtmlpath);
     

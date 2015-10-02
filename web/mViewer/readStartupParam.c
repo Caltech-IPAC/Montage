@@ -122,6 +122,7 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
 
     param->viewtemplate[0] = '\0';
     param->viewhtml[0] = '\0';
+    param->helphtml[0] = '\0';
 
     param->viewcgiurl[0] = '\0';
     param->tblcgiurl[0] = '\0';
@@ -506,6 +507,9 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
 	else if (strcasecmp (name, "viewhtml") == 0) {
 	    strcpy (param->viewhtml, val);
 	}
+	else if (strcasecmp (name, "helphtml") == 0) {
+	    strcpy (param->helphtml, val);
+	}
 	else if (strcasecmp (name, "viewcgiurl") == 0) {
 	    strcpy (param->viewcgiurl, val);
 	}
@@ -632,6 +636,7 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
         fprintf (fp_debug, "isimcube= [%d]\n", param->isimcube);
 	fprintf (fp_debug, "viewtemplate= [%s]\n", param->viewtemplate);
 	fprintf (fp_debug, "viewhtml= [%s]\n", param->viewhtml);
+	fprintf (fp_debug, "helphtml= [%s]\n", param->helphtml);
 	fflush (fp_debug);
     
         

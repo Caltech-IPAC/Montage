@@ -178,7 +178,8 @@ struct Mviewer
     char    jsonStr[30000];
 
     int     nowcs;
-    
+   
+    char    helphtml[1024];
     char    imname[20];
     char    imageType[20];
     char    imageFile[1024];
