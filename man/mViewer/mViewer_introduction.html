@@ -1,0 +1,66 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+   <div id="docArea">
+      <div class="doc">
+      <h1> Montage Viewer:  Introduction</h1>
+
+      <p>The Montage Viewer, mViewer, is a command line application or visualizing FITS images, overlaying content (grids,
+      symbols., ... ) on them and creating PNG or JPEG files.  It can be included in scripts or pipelines. The image of 
+      M51 on the left was created with mViewer, with no manual retouching of the image.</p>
+
+      <p>mViewer has broad applicability for visualizing astronomical data. The following is a list of of its 
+      most useful capabilities:</p>
+
+      <table>
+      <tr><td><div style="text-align: center; vertical-align: top; background-color: #404080; padding: 10px;">
+      <a href="images/m51c.jpg" target="_blank">
+         <img style="margin:5px; background-color: #404080;" src="images/m51c_small.jpg"/>
+      </a><br/>
+      <span style="color: #ffff00; font: italic 10px 'Helvetica Neue', Helvetica, Arial, sans-serif;">Click image to view larger version in a new tab.</span>
+      </td><td style="vertical-align: top; background-color: #f0f0f0;">
+      <ul>
+
+         <li>A range of data stretching algorithms, including a couple of custom stretches
+             based on the idea of histogram matching to a general model of astronomical   
+             brightness distributions (log-trasformed gaussian histogram equalization).</li>
+
+         <li>Gray/pseudo-color display of a single plane image with a number of color
+             tables.</li>
+
+         <li>Full-color (three image) display with optional color enhancement.</li>
+
+         <li>Coordinate grid overlays (any coordinate system, including Besselian/Julian
+             and Equinox selection).</li>
+
+         <li>Astronomical catalog overlays with data in any coordinate system.  Multiple
+             symbols and any color.  Includes optional scaling of the symbols by flux /
+             magnitude based on any table column.</li>
+
+         <li>Image metadata (outlines) overlays.  Uses four corner data if the table 
+             contains this.  Otherwise trys to interpret tables columns as WCS 
+             information.</li>
+
+         <li>Custom <i>ad hoc</i> markers and labels.</li>
+
+         <li>Output as JPEG or PNG, including embedded AVM tags in JPEGs (<i>e.g.,</i> for 
+             export to WWT or for outreach uses).</li>
+
+      </ul>
+      </div></td></tr>
+      </table>
+
+      <p>The low-level mViewer functionality is a stand-alone program suitable for inclusion in scripts or as part of
+      a pipeline. It can also be folded together with Python wrapping code (and a couple of other Montage modules) to 
+      support off-line interactive science visualization of astronomical images or with Javascript and CGI wrappers 
+      as an interactive web service suitable for sites wanting to allow interaction with their image holdings.</p>
+
+      </div>
+   </div>
+</div>
+
+</body>
+</html>

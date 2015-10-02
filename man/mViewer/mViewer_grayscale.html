@@ -1,0 +1,47 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Grayscale Color Tables</h1>
+
+<p><b>Grayscale Color Tables.</b>The "<tt>-gray</tt>" directive described in the previous section 
+defaults to a simple linear black-to-white color table (color table 0 below).  More generally, 
+there is a set of pseudocolor tables to choose from using the "<tt>-ct &lt;number&gt;</tt>" 
+directive (<i>e.g.,</i> "<tt>mViewer -ct 4 -gray SDSS_g.fits -0.5 max gaussian-log -out m51.png</tt>"):</p>
+
+<center>
+<p><table><tr>
+<td><img src="images/ct0.png"  /><br/><center><i>Color table 0 </i></center></td>
+<td><img src="images/ct1.png"  /><br/><center><i>Color table 1 </i></center></td>
+<td><img src="images/ct2.png"  /><br/><center><i>Color table 2 </i></center></td>
+</tr><tr>
+<td><img src="images/ct3.png"  /><br/><center><i>Color table 3 </i></center></td>
+<td><img src="images/ct4.png"  /><br/><center><i>Color table 4 </i></center></td>
+<td><img src="images/ct5.png"  /><br/><center><i>Color table 5 </i></center></td>
+</tr><tr>
+<td><img src="images/ct6.png"  /><br/><center><i>Color table 6 </i></center></td>
+<td><img src="images/ct7.png"  /><br/><center><i>Color table 7 </i></center></td>
+<td><img src="images/ct8.png"  /><br/><center><i>Color table 8 </i></center></td>
+</tr><tr>
+<td><img src="images/ct9.png"  /><br/><center><i>Color table 9 </i></center></td>
+<td><img src="images/ct10.png" /><br/><center><i>Color table 10</i></center></td>
+<td><img src="images/ct11.png" /><br/><center><i>Color table 11</i></center></td>
+</tr></table></p>
+
+Data: <a href="http://montage.ipac.caltech.edu/mViewer/data/fits/SDSS_g.fits">SDSS_g.fits</a>
+</center>
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerColorTable");
+   });
+</script>
+</body>
+</html>

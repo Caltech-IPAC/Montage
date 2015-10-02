@@ -1,0 +1,73 @@
+<html>
+<head>
+   <title>Python mViewer:  Color Tables and Stretching</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Python mViewer:  Color Tables and Stretching</h1>
+
+<p>mViewer provides a dozen pseudo-color tables (reverse grayscale, 'thermal', <i>etc.</i>) 
+and several options for stretching the image.  See the <a href="mViewer_grayscale.html">
+mViewer color table</a> examples for more details.</p>
+
+<table>
+<tr>
+<td style="padding: 20px; vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+
+import astroMontage.mViewer as mv
+
+viewer = mv.mViewer()
+
+viewer.set_gray_file("SDSS_g.fits")
+
+viewer.set_color_table(4)
+viewer.set_gray_stretch("-0.1s", "max", "gaussian-log")
+
+viewer.init_browser_display()
+
+
+
+</pre>
+</ul>
+</td>
+<td style="vertical-align: top;">
+   <div style="text-align: center; background-color: #404080; padding: 10px;">
+      <a href="images/python_stretch.png" target="_blank">
+         <img style="margin:5px; background-color: #404080; width: 400px" src="images/python_stretch.png"/>
+      </a><br/>
+      <span style="color: #ffff00; font: italic 10px 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+         Click image to view full resolution in a new tab.
+      </span>
+   </div>
+</td>
+</tr>
+</table>
+
+<p>The default stretch (used in the previous basic example) is not necessarily the 
+prettiest but is an attempt at maximizing the visual information content.  The data
+is stretched using Gaussian histogram equalization with a logarithmic scaling (so as
+to show detail at the high end without saturation) and at the low end show down to
+-1 "sigma".  If the image has a large area of essentially black space (not uncommon
+in astronomical images), the image mean and sigma probably do represent noise and
+the default stretch will show down into the noise.  By moving the lower value up 
+as we have here, the image will look much cleaner.</p>
+
+<p>On the other hand, for some images the "background" (<i>e.g.</i>, in the Galactic plane)
+represents real astrophysical structure and -1 sigma or even -2 sigma is an appropriate stretch.</p>
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("pythonStretch");
+   });
+</script>
+</body>
+</html>

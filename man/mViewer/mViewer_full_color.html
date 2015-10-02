@@ -1,0 +1,142 @@
+<html>
+<head>
+   <title>Montage mViewer Introduction</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Montage Viewer:  Full Color</h1>
+
+<p><b>Full Color.</b> mViewer supports "full color" by combining three independent images 
+overlayed as blue, green and red layers. Each plane needs its own stretch (when combining 
+data from different sources these can be very different): </p>
+
+<table>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+mViewer -blue  SDSS_u.fits 0s max gaussian-log \     
+        -green SDSS_g.fits 0s max gaussian-log \     
+        -red   SDSS_r.fits 0s max gaussian-log \     
+        -out   m51_sdss_color.png
+
+
+
+</pre>
+
+<p>Example data can be downloaded <a href="http://montage.ipac.caltech.edu/mViewer/data">here</a>.</p>
+
+</ul>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/m51_sdss_color.png"/>
+</td>
+</tr>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+
+There is also a parameter that enhances the color separation between the planes.  Basically,
+it takes the R,G,B values for a pixel, and determines which one is dominant.  Then, while keeping
+the pixel intensity fixed, it emphasizes the dominant color and supresses the other two.
+The directive ("<tt>-t</tt>") takes a single argument which is used a power in the calculation,
+so a value of one is no change and a value of two is a pretty strong change:</p>
+
+<table>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+mViewer -t 1.5 \
+        -blue  SDSS_u.fits 0s max gaussian-log \     
+        -green SDSS_g.fits 0s max gaussian-log \     
+        -red   SDSS_r.fits 0s max gaussian-log \     
+        -out   m51_true_1.5.png
+</pre>
+</ul>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/true_1.5.png"/>
+</td>
+</tr>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+mViewer -t 2.0 \
+        -blue  SDSS_u.fits 0s max gaussian-log \     
+        -green SDSS_g.fits 0s max gaussian-log \     
+        -red   SDSS_r.fits 0s max gaussian-log \     
+        -out   m51_sdss_color.png
+        -out   m51_true_2.0.png
+</pre>
+</ul>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/true_2.0.png"/>
+</td>
+</tr>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+mViewer -t 2.5 \
+        -blue  SDSS_u.fits 0s max gaussian-log \     
+        -green SDSS_g.fits 0s max gaussian-log \     
+        -red   SDSS_r.fits 0s max gaussian-log \     
+        -out   m51_sdss_color.png
+        -out   m51_true_2.5.png
+</pre>
+</ul>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/true_2.5.png"/>
+</td>
+</tr>
+<tr>
+<td style="vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<pre>
+
+
+
+mViewer -t 3.0 \
+        -blue  SDSS_u.fits 0s max gaussian-log \     
+        -green SDSS_g.fits 0s max gaussian-log \     
+        -red   SDSS_r.fits 0s max gaussian-log \     
+        -out   m51_true_3.0.png
+</pre>
+</ul>
+</td>
+<td style="text-align: center; vertical-align: top; background-color: #404080;">
+<img style="margin:5px; background-color: #404080;" src="images/true_3.0.png"/>
+</td>
+</tr>
+</table>
+
+
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("mViewerColor");
+   });
+</script>
+</body>
+</html>

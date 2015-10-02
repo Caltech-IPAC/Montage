@@ -1,0 +1,224 @@
+<html>
+<head>
+   <title>Python mViewer: More Programming Details</title>
+
+   <!--#include virtual="menu.html"-->
+
+<div id="docArea">
+<div class="doc">
+<h1> Python mViewer: More Programming Details</h1>
+
+<h2> Internal 'View' Structure</h2>
+
+<p>Inside each mViewer instance is a "<tt>view</tt>" object (type <tt>mvView</tt>) which
+has no methods (other than the standard <tt>__str__</tt> and <tt>__repr__</tt> for casting
+the contents into text representations) but which contains all the 
+information defining how the display should be rendered.  Once you have
+created an mViewer object (e.g. as variable "<tt>viewer</tt>") the view object
+can be referenced as "<tt>viewer.view</tt>".  Calling "<tt>print viewer.view</tt>" will
+print the contents of the structure, as shown below for the full color
+example.</p>
+
+
+<table>
+<tr>
+<td style="padding: 20px; vertical-align: top; background-color: #f0f0f0;">
+<ul>
+<div style="width: 400px; height: 850px; overflow-y: auto;"><pre>
+
+      current_color: '000080'
+  current_coord_sys: 'Equ J2000'
+current_symbol_size:  12.0
+current_symbol_type: 'circle'
+
+       display_mode: 'color'
+
+          blue_file:
+
+               fits_file: 'SDSS_u.fits'
+             stretch_max: 'max'
+             stretch_min: '0.1s'
+            stretch_mode: 'gaussian-log'
+
+         green_file:
+
+               fits_file: 'SDSS_g.fits'
+             stretch_max: 'max'
+             stretch_min: '0.1s'
+            stretch_mode: 'gaussian-log'
+
+           red_file:
+
+               fits_file: 'SDSS_r.fits'
+             stretch_max: 'max'
+             stretch_min: '0.1s'
+            stretch_mode: 'gaussian-log'
+
+        image_width:  1801
+       image_height:  1801
+
+               xmin:     0
+               xmax:  1801
+               ymin:     0
+               ymax:  1801
+
+       canvas_width:  1000
+      canvas_height:  1000
+
+             factor:  1.801
+
+         image_file: 'viewer.jpg'
+         image_type: 'jpg'
+
+         overlay[0]:
+  
+                   color: '8080ff'
+               coord_sys: 'Equ J2000'
+                    type: 'grid'
+                 visible:  True
+  
+         overlay[1]:
+  
+                   color: '90ff90'
+               coord_sys: 'Equ J2000'
+               data_file: 'mipssed.tbl'
+                    type: 'imginfo'
+                 visible:  True
+  
+         overlay[2]:
+  
+                   color: 'ff9090'
+               coord_sys: 'Equ J2000'
+               data_file: 'irspeakup.tbl'
+                    type: 'imginfo'
+                 visible:  True
+  
+         overlay[3]:
+  
+                   color: 'ffff00'
+               coord_sys: 'Equ J2000'
+                data_col: 'j_m'
+               data_file: 'fp_psc.tbl'
+                data_ref:  16
+               data_type: 'mag'
+                sym_size:  1.0
+                sym_type: 'circle'
+                    type: 'catalog'
+                 visible:  True
+  
+         overlay[4]:
+  
+                   color: 'ffffff'
+               coord_sys: 'Equ J2000'
+                     lat:  47.26614
+                     lon:  202.47083
+                    text: 'Messier 051b'
+                    type: 'label'
+                 visible:  True
+  
+         overlay[5]:
+  
+                   color: '000080'
+               coord_sys: 'Equ J2000'
+                     lat:  47.26614
+                     lon:  202.49829
+                sym_size:  8.0
+                sym_type: 'circle'
+                    type: 'mark'
+                 visible:  True
+  
+         overlay[6]:
+  
+                   color: 'ffffff'
+               coord_sys: 'Equ J2000'
+                     lat:  47.21667
+                     lon:  202.41667
+                    text: 'Messier 051a'
+                    type: 'label'
+                 visible:  True
+  
+         overlay[7]:
+  
+                   color: '000080'
+               coord_sys: 'Equ J2000'
+                     lat:  47.19517
+                     lon:  202.46963
+                sym_size:  12.0
+                sym_type: 'circle'
+                    type: 'mark'
+                 visible:  True
+
+
+
+</pre>
+</div><p/>
+
+<p>Default printing is alphabetical; we've rearrange the
+above for clarity, removed some empty (unused) elements,
+ and added newlines.</p>
+
+</ul>
+</td>
+<td style="padding: 5px; vertical-align: top">
+<div style="padding: 10px;">
+
+<center><a href="images/python_intro.png" target="_blank">
+<img style="margin:5px; background-color: #404080; width: 400px" src="images/m51c_small.jpg"/>
+</a></center><p/>
+
+These values are all available for the user to manipulate; for instance, changing the color for Overlay 6 to green:
+"<tt>viewer.view.overlay[6].color = 'green'</tt>" and then asking the system to redraw the display ("<tt>viewer.draw()</tt>")
+will change just that attribute.</p>
+
+<p>The overlays (and the view object itself) can be assigned to variables and managed like any other data. The utility
+functions used in our examples all return such pointers.  For example, you can say "<tt>mygrid = addGrid('galactic')</tt>"
+when you create the overlay and then later "<tt>mygrid.visible = False</tt>" to hide it.  We have opted for not having
+an extra utility function for controling visibility; use direct attribute manipulation for that.</p> 
+
+<p>You can create your own overlays (and views) from scratch and configure them:</p>
+
+<p><pre>
+        ovly = mvViewOverlay()
+
+        ovly.type      = "grid"
+        ovly.color     = "ffff00"
+        ovly.coord_sys =  coord_sys
+        ovly.visible   =  True
+
+        viewer.view.overlay.append(ovly)
+</pre></p>
+
+<p>So your application could have a collection of views, overlays and even mViewer instances
+(multiple displays) and manage the mixing and matching in whatever way it sees fit.</p>
+
+</div>
+</td>
+</tr>
+</table>
+
+<h2>Workspaces</h2>
+
+mViewer needs some file space to generate cutouts, rescaled images, and the final image.  By default
+this workspace will be created in a standard system temp space and deleted by Python when the 
+interpreter exits.  The user can override by giving a location to the mvViewer() creation call.
+Then the user is responsible for clean-up, though this can be accomplished through mViewer using
+the viewer.close() call.
+
+<h2> GUI Extensions </h2>
+
+<p>One of the reasons for using the browser for display is that this gives us a highly-programmable
+environment (Javascript) for constructing additional GUI components.  In the web service context
+we have pop-ups for interactive color stretching (sliders) and layer (overlay) controls and these
+could easily be added to this environment as well.  More importantly, anyone wishing to use 
+mViewer in a custom context can fairly easily modify the GUI code to include their own buttons,
+forms, and other controls.</p>
+</div>
+</div>
+
+<script>
+   jQuery(document).ready(function () {
+      scrollMenu("pythonProgramming");
+   });
+</script>
+</body>
+</html>
