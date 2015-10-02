@@ -250,6 +250,8 @@ int writeJsonFile (struct ViewerApp *param)
     if ((int)strlen(param->outimtype) == 0) 
         strcpy (param->outimtype, "jpeg");
     
+    fprintf(fp, "  \"helpHtml\": \"%s\",\n", param->helphtml);
+    
     fprintf(fp, "  \"imageFile\": \"%s\",\n", param->imname);
     fprintf(fp, "  \"imageType\": \"%s\",\n", param->outimtype);
     fprintf(fp, "  \"canvasWidth\": \"%d\",\n", param->canvaswidth);
