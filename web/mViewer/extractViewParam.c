@@ -166,6 +166,19 @@ int extractViewParam (struct Mviewer *param)
 /* 
     Parse the JSON: common parameters 
 */
+    param->helphtml[0] = '\0';
+   
+    str[0] = '\0';
+    if (json_val (param->jsonStr, "helpHtml", str)  != (char *)NULL) 
+    {
+        strcpy (param->helphtml, str);
+    }
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "helphtml= [%s]\n", param->helphtml);
+        fflush (fdebug);
+    }
+    
     param->imageFile[0] = '\0';
    
     str[0] = '\0';
