@@ -136,9 +136,10 @@ function erasePickResult (viewer, textareaID)
 {
     if (viewer.debug) {
         console.log ("From erasePickResult: cmd= " + viewer.cmd);
+        console.log ("textareaID= " + textareaID);
     }
 
-    var datastr ="";
+    var datastr ="Click image to see pixel value here.";
     
     if ((viewer.cmd == "zoombox") || 
         (viewer.cmd == "zoomin") || 
@@ -374,16 +375,15 @@ function processBox (viewer)
 	console.log ("xe= " + xe + " ye= " + ye);
     }
 
+    if ((Math.abs(xe - xs) < 2) && (Math.abs(ye - ys) < 2)) {
+       
+        processClick (viewer);
+	return;
+    }
 
     var imcursormode = updateJSON.imcursorMode;
     
     if ((imcursormode == null) || (imcursormode == "imzoom")) {
-        
-        if ((Math.abs(xe - xs) < 2) && (Math.abs(ye - ys) < 2)) {
-       
-            processClick (viewer);
-	    return;
-        }
         
         viewer.cmd = "zoombox"; 
         viewer.submitUpdateRequest ("zoombox"); 

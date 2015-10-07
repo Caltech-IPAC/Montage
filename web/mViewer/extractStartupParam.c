@@ -204,7 +204,8 @@ int extractStartupParam (struct ViewerApp *param)
     }
 
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	fprintf (fp_debug, "param->workspace= [%s]\n", param->workspace);
+	fprintf (fp_debug, "Input workspace: param->workspace= [%s]\n", 
+	    param->workspace);
         fflush (fp_debug); 
     }
 

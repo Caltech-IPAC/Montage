@@ -146,6 +146,10 @@ struct ViewerApp
     char    viewhtmlpath[1024];
     char    helphtml[1024];
     char    helphtmlpath[1024];
+    char    imtypehtml[1024];
+    char    imtypehtmlpath[1024];
+    char    cursorhtml[1024];
+    char    cursorhtmlpath[1024];
     
     char    viewcgiurl[1024];
     char    tblcgiurl[1024];

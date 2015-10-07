@@ -113,7 +113,6 @@ int main (int argc, char *argv[], char *envp[])
         
         sprintf (debugfname, "/tmp/viewerapp_%d.debug", pid);
 
-
 	fp_debug = fopen (debugfname, "w+");
 	if (fp_debug == (FILE *)NULL) {
 	    printf ("Cannot create debug file: %s\n", debugfname);
