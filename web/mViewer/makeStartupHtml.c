@@ -44,6 +44,10 @@ int makeStartupHtml (struct ViewerApp *param)
     FILE           *fp;
 
     char           helphtmlpath[1024];
+    char           imtypehtmlpath[1024];
+    char           cursorhtmlpath[1024];
+    
+    
     char           viewhtmlpath[1024];
     char           viewtemplatepath[1024];
     
@@ -78,6 +82,8 @@ int makeStartupHtml (struct ViewerApp *param)
     int            fileExist;
     int            viewhtmlExist;
     int            helphtmlExist;
+    int            imtypehtmlExist;
+    int            cursorhtmlExist;
    
    
     double         cdelt3;
@@ -104,39 +110,31 @@ int makeStartupHtml (struct ViewerApp *param)
 /*
     Check if viewhtml is in workspace or datadir.
 */
-    
     if ((int)strlen(param->helphtml) > 0) {
 
         if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	    fprintf (fp_debug, "\nhelphtml specified in inparam file\n");
+	    fprintf (fp_debug, "\nhelphtml specified: helphtml= [%s]\n",
+	        param->helphtml);
             fflush (fp_debug);
         }
-     
-        helphtmlExist = 0;
+
         helphtmlExist = checkFileExist (param->helphtml, rootname, suffix,
-	    param->directory, helphtmlpath);
+	    param->datadir, fpath);
     
         if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	    fprintf (fp_debug, "helphtmlExist (directory)= [%d]\n", 
-	        helphtmlExist);
-	    fprintf (fp_debug, "helphtmlpath= [%s]\n", helphtmlpath);
+	    fprintf (fp_debug, 
+	        "checkFileExist(helphtml): helphtmlExist= [%d]\n", 
+		helphtmlExist);
+	    fprintf (fp_debug, "fpath= [%s]\n", fpath);
             fflush (fp_debug);
         }
 
-	if (!helphtmlExist) { 
+	if (helphtmlExist) {
 
-            helphtmlExist = checkFileExist (param->helphtml, rootname, suffix,
-	        param->datadir, fpath);
-    
-            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	        fprintf (fp_debug, 
-	            "checkFileExist(helphtml): helphtmlExist= [%d]\n", 
-		    helphtmlExist);
-	        fprintf (fp_debug, "fpath= [%s]\n", fpath);
-                fflush (fp_debug);
-            }
+            sprintf (helphtmlpath, "%s/%s", param->directory, param->helphtml);
 
-	    if (helphtmlExist) {
+            if (strcasecmp (fpath, helphtmlpath) != 0) {
+
                 istatus = fileCopy (fpath, helphtmlpath, param->errmsg); 
             
 	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
@@ -145,13 +143,119 @@ int makeStartupHtml (struct ViewerApp *param)
                     fflush (fp_debug);
                 }
 	    }
+	    else {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	            fprintf (fp_debug, "helphtmlpath= [%s] already exists\n", 
+		        imtypehtmlpath);
+                    fflush (fp_debug);
+                }
+	    }
+	
 	}
 
         if ((debugfile) && (fp_debug != (FILE *)NULL)) {
 	    fprintf (fp_debug, "helphtmlpath= [%s]\n", helphtmlpath);
             fflush (fp_debug);
         }
+    }
+    
+    if ((int)strlen(param->imtypehtml) > 0) {
 
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "\nimtypehtml specified in inparam file\n");
+            fflush (fp_debug);
+        }
+     
+        imtypehtmlExist = checkFileExist (param->imtypehtml, rootname, suffix,
+	    param->datadir, fpath);
+    
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, 
+	        "checkFileExist(imtypehtml): imtypehtmlExist= [%d]\n", 
+		imtypehtmlExist);
+	    fprintf (fp_debug, "fpath= [%s]\n", fpath);
+            fflush (fp_debug);
+        }
+
+
+	if (imtypehtmlExist) {
+            
+	    sprintf (imtypehtmlpath, "%s/%s", 
+	        param->directory, param->imtypehtml);
+
+            if (strcasecmp (fpath, imtypehtmlpath) != 0) {
+
+                istatus = fileCopy (fpath, imtypehtmlpath, param->errmsg); 
+            
+	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	            fprintf (fp_debug, 
+		        "imtypehtml copied from datadir to directory");
+                    fflush (fp_debug);
+                }
+	    }
+	    else {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	            fprintf (fp_debug, "imtypehtmlpath= [%s] already exists\n", 
+		        imtypehtmlpath);
+                    fflush (fp_debug);
+                }
+	    }
+	
+	}
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "imtypehtmlpath= [%s]\n", imtypehtmlpath);
+            fflush (fp_debug);
+        }
+    }
+    
+    if ((int)strlen(param->cursorhtml) > 0) {
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "\ncursorhtml specified in inparam file\n");
+            fflush (fp_debug);
+        }
+     
+        cursorhtmlExist = checkFileExist (param->cursorhtml, rootname, suffix,
+	    param->datadir, fpath);
+    
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, 
+	        "checkFileExist(cursorhtml): cursorhtmlExist= [%d]\n", 
+		cursorhtmlExist);
+	    fprintf (fp_debug, "fpath= [%s]\n", fpath);
+            fflush (fp_debug);
+        }
+
+	if (cursorhtmlExist) {
+	    
+	    sprintf (cursorhtmlpath, "%s/%s", 
+	        param->directory, param->cursorhtml);
+
+            if (strcasecmp (fpath, cursorhtmlpath) != 0) {
+
+                istatus = fileCopy (fpath, cursorhtmlpath, param->errmsg); 
+            
+	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	            fprintf (fp_debug, 
+		        "cursorhtml copied from datadir to directory");
+                    fflush (fp_debug);
+                }
+	    }
+	    else {
+                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	            fprintf (fp_debug, "cursorhtmlpath= [%s] already exists\n", 
+		        cursorhtmlpath);
+                    fflush (fp_debug);
+                }
+	    }
+	
+	}
+
+        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, "cursorhtmlpath= [%s]\n", cursorhtmlpath);
+            fflush (fp_debug);
+        }
     }
     
     if ((int)strlen(param->viewhtml) > 0) {
@@ -161,39 +265,28 @@ int makeStartupHtml (struct ViewerApp *param)
             fflush (fp_debug);
         }
      
-        viewhtmlExist = 0;
+
         viewhtmlExist = checkFileExist (param->viewhtml, rootname, suffix,
-	    param->directory, viewhtmlpath);
+	    param->datadir, fpath);
     
         if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	    fprintf (fp_debug, "viewhtmlExist (directory)= [%d]\n", 
-	        viewhtmlExist);
-	    fprintf (fp_debug, "viewhtmlpath= [%s]\n", viewhtmlpath);
+	    fprintf (fp_debug, 
+	        "checkFileExist(viewhtml): viewhtmlExist= [%d]\n", 
+		viewhtmlExist);
+	    fprintf (fp_debug, "fpath= [%s]\n", fpath);
             fflush (fp_debug);
         }
 
-	if (!viewhtmlExist) { 
+	if (viewhtmlExist) {
+	    sprintf (viewhtmlpath, "%s/%s", 
+	        param->directory, param->viewhtml);
 
-            viewhtmlExist = checkFileExist (param->viewhtml, rootname, suffix,
-	        param->datadir, fpath);
-    
-            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	        fprintf (fp_debug, 
-	            "checkFileExist(viewhtml): viewhtmlExist= [%d]\n", 
-		    viewhtmlExist);
-	        fprintf (fp_debug, "fpath= [%s]\n", fpath);
+            istatus = fileCopy (fpath, viewhtmlpath, param->errmsg); 
+            
+	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	        fprintf (fp_debug, "viewhtml copied from datadir to directory");
                 fflush (fp_debug);
             }
-
-	    if (viewhtmlExist) {
-                istatus = fileCopy (fpath, viewhtmlpath, param->errmsg); 
-            
-	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	            fprintf (fp_debug, 
-		        "viewhtml copied from datadir to directory");
-                    fflush (fp_debug);
-                }
-	    }
 	}
 
         if ((debugfile) && (fp_debug != (FILE *)NULL)) {
@@ -221,30 +314,16 @@ int makeStartupHtml (struct ViewerApp *param)
 	    param->viewhtml);
 
 	fileExist = checkFileExist (param->viewtemplate, rootname, suffix,
-	    param->directory, viewtemplatepath);
-    
-        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	    fprintf (fp_debug, "fileExist= [%d] viewtemplate in workdir=[%s]\n",
-	        fileExist, param->directory);
-	    fprintf (fp_debug, "viewtemplatepath= [%s]\n", viewtemplatepath);
+	    param->datadir, viewtemplatepath);
+            
+	if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    fprintf (fp_debug, 
+		"viewtemplate fileExist= [%d] in datadir= [%s])\n", 
+	        fileExist, param->datadir);
+	    fprintf (fp_debug, "viewtemplatepath= [%s]\n", 
+		viewtemplatepath);
             fflush (fp_debug);
         }
-
-        if (!fileExist) {
-	    fileExist = checkFileExist (param->viewtemplate, rootname, suffix,
-	        param->datadir, viewtemplatepath);
-            
-	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-	        fprintf (fp_debug, 
-		    "viewtemplate fileExist= [%d] in datadir= [%s])\n", 
-	            fileExist, param->datadir);
-	        fprintf (fp_debug, "viewtemplatepath= [%s]\n", 
-		    viewtemplatepath);
-                fflush (fp_debug);
-            }
-
-        }
-
 
         if (!fileExist) {
 	    strcpy (param->errmsg, 

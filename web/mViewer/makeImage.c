@@ -177,6 +177,9 @@ int makeImage (struct Mviewer *param)
     char   shrunkbluepath[1024];
     char   shrunkrefbluepath[1024];
 
+    char   stretchMin[1024];
+    char   stretchMax[1024];
+
     char   layertype[40];
     char   color[40];
     char   visible[40];
@@ -705,14 +708,27 @@ int makeImage (struct Mviewer *param)
 	    fprintf (fdebug, "\nstretchMax= [%s]\n", param->stretchMax);
 	    fflush (fdebug);
 	}
-    
+   
+        if (strcasecmp (param->stretchMin, "mins") == 0) {
+            strcpy (stretchMin, "min");
+	}
+	else {
+	    strcpy (stretchMin, param->stretchMin);
+	}
+
+        if (strcasecmp (param->stretchMax, "maxs") == 0) {
+            strcpy (stretchMax, "max");
+	}
+	else {
+	    strcpy (stretchMax, param->stretchMax);
+	}
 
 	sprintf (str, "-grey %s %s %s %s ", shrunkimpath,
-	    param->stretchMin, param->stretchMax, param->stretchMode);
+	    stretchMin, stretchMax, param->stretchMode);
         strcat (paramstr, str);
         
         sprintf (str, "-grey %s %s %s %s ", shrunkrefimpath,
-	    param->stretchMin, param->stretchMax, param->stretchMode);
+	    stretchMin, stretchMax, param->stretchMode);
         strcat (refParamstr, str);
     
 	

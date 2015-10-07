@@ -241,17 +241,25 @@ int constructRetjson (struct Mviewer *param)
 	fprintf (fp_debug, "nim= [%d]\n", param->nim); 
 	fprintf (fp_debug, "jpgfile= [%s]\n", param->jpgfile); 
 	fprintf (fp_debug, "refjpgfile= [%s]\n", param->refjpgfile); 
-        
+	fprintf (fp_debug, "helpHtml= [%s]\n", param->helphtml); 
 	fflush (fp_debug);
     }
 
     if ((int)strlen(param->imageType) == 0) 
         strcpy (param->imageType, "jpeg");
    
+    sprintf (str, "  \"baseUrl\": \"%s\",\n", param->baseURL);
+    strcat (retstr, str);
+
+/*
     sprintf (str, "  \"helpHtml\": \"%s/%s\",\n", 
         param->baseURL, param->helphtml);
     strcat (retstr, str);
-   
+*/
+    
+    sprintf (str, "  \"helpHtml\": \"%s\",\n", param->helphtml);
+    strcat (retstr, str);
+
     sprintf (str, "  \"file\": \"%s/%s\",\n", 
         param->baseURL, param->jpgfile);
     strcat (retstr, str);
@@ -366,6 +374,10 @@ int constructRetjson (struct Mviewer *param)
     sprintf (str, "  \"sexdecPick\": \"%s\",\n", param->sexdecpick);
     strcat (retstr, str);
 
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	fprintf (fp_debug, "xxx1\n");
+        fflush (fp_debug);
+    }
 
     if (param->isimcube) {
 
@@ -430,6 +442,11 @@ int constructRetjson (struct Mviewer *param)
 
 	sprintf (str, "   },\n");
         strcat (retstr, str);
+    }
+
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	fprintf (fp_debug, "xxx2\n");
+        fflush (fp_debug);
     }
 
     

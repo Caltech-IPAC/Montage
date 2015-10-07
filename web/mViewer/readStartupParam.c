@@ -123,6 +123,8 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
     param->viewtemplate[0] = '\0';
     param->viewhtml[0] = '\0';
     param->helphtml[0] = '\0';
+    param->imtypehtml[0] = '\0';
+    param->cursorhtml[0] = '\0';
 
     param->viewcgiurl[0] = '\0';
     param->tblcgiurl[0] = '\0';
@@ -509,6 +511,12 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
 	}
 	else if (strcasecmp (name, "helphtml") == 0) {
 	    strcpy (param->helphtml, val);
+	}
+	else if (strcasecmp (name, "imtypehtml") == 0) {
+	    strcpy (param->imtypehtml, val);
+	}
+	else if (strcasecmp (name, "cursorhtml") == 0) {
+	    strcpy (param->cursorhtml, val);
 	}
 	else if (strcasecmp (name, "viewcgiurl") == 0) {
 	    strcpy (param->viewcgiurl, val);
