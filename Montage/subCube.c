@@ -91,6 +91,9 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    params->crpix[0] = wcs->xrefpix;
    params->crpix[1] = wcs->yrefpix;
 
+   if(fits_read_key(infptr, TDOUBLE, "CRPIX3", &(params->crpix[2]), (char *)NULL, &status))
+      montage_printFitsError(status);
+
    if(params->isDSS)
    {
       params->cnpix[0] = wcs->x_pixel_offset;
@@ -168,6 +171,12 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
       if(fits_update_key_lng(outfptr, "NAXIS3", naxis3,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
+
+      tmp = params->crpix[2] - params->pbegin + 1;
+
+      if(fits_update_key_dbl(outfptr, "CRPIX3", tmp, -14,
+                                     (char *)NULL, &status))
+         montage_printFitsError(status);
    }
 
    if(params->naxis > 3)
@@ -183,7 +192,10 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
       printf("subCube> naxis2 -> %d\n",  naxis2);
 
       if(params->naxis > 2)
+      {
          printf("subCube> naxis3 -> %d\n",  naxis3);
+         printf("subCube> crpix3 -> %d\n",  tmp);
+      }
 
       if(params->naxis > 3)
          printf("subCube> naxis4 -> %d\n",  naxis4);

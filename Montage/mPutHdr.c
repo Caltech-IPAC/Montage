@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.1      John Good        11Oct15  Add logic for 3rd and 4th dimension, if there
 2.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
                                    for new development cycle.
 1.1      John Good        15Sep06  Cleaned up usage text
@@ -50,14 +51,13 @@ int  debug;
 struct
 {
    fitsfile         *fptr;
-   long              naxes[2];
+   long              naxes[4];
    struct WorldCoor *wcs;
 }
    input, output;
 
-long bitpix, naxis, naxis1, naxis2;
-
-int  tbitpix, tnaxis, tnaxis1, tnaxis2;
+long  bitpix,  naxis,  naxis1,  naxis2,  naxis3,  naxis4;
+int  tbitpix, tnaxis, tnaxis1, tnaxis2, tnaxis3, tnaxis4;
 
 
 
@@ -82,7 +82,7 @@ int  tbitpix, tnaxis, tnaxis1, tnaxis2;
 
 int main(int argc, char **argv)
 {
-   int       i, j, nullcnt;
+   int       i, j, j2, j3, nullcnt;
    long      fpixel[4], nelements;
    double    *buffer;
 
@@ -187,6 +187,9 @@ int main(int argc, char **argv)
 
    tbitpix = -64;
 
+   tnaxis3 = 1;
+   tnaxis4 = 1;
+
    while(1)
    {
       if(fgets(line, MAXSTR, ftemp) == (char *)NULL)
@@ -200,6 +203,12 @@ int main(int argc, char **argv)
 
       else if(strncmp(line, "NAXIS2  =", 9) == 0)
          tnaxis2 = atoi(line+10);
+
+      else if(strncmp(line, "NAXIS3  =", 9) == 0)
+         tnaxis3 = atoi(line+10);
+
+      else if(strncmp(line, "NAXIS4  =", 9) == 0)
+         tnaxis4 = atoi(line+10);
    }
 
    fclose(ftemp);
@@ -215,23 +224,28 @@ int main(int argc, char **argv)
    {
       printf("input.naxes[0]   =  %ld\n",  input.naxes[0]);
       printf("input.naxes[1]   =  %ld\n",  input.naxes[1]);
-      // printf("input proj       =  %s\n\n", input.wcs->ptype);
+      printf("input.naxes[2]   =  %ld\n",  input.naxes[2]);
+      printf("input.naxes[3]   =  %ld\n",  input.naxes[3]);
 
       fflush(stdout);
    }
 
    if(debug >= 1)
    {
-      printf("\nbitpix: %ld -> %d\n", bitpix, tbitpix);
-      printf(  "naxis:  %ld -> %d\n", naxis, tnaxis);
-      printf(  "naxis1: %ld -> %d\n", input.naxes[0], tnaxis1);
-      printf(  "naxis2: %ld -> %d\n\n", input.naxes[1], tnaxis2);
+      printf("\nbitpix: %ld -> %d\n",   bitpix, tbitpix);
+      printf(  "naxis:  %ld -> %d\n",   naxis, tnaxis);
+      printf(  "naxis1: %ld -> %d\n",   input.naxes[0], tnaxis1);
+      printf(  "naxis2: %ld -> %d\n",   input.naxes[1], tnaxis2);
+      printf(  "naxis3: %ld -> %d\n",   input.naxes[2], tnaxis3);
+      printf(  "naxis4: %ld -> %d\n\n", input.naxes[3], tnaxis4);
       fflush(stdout);
    }
 
    if(tnaxis  != naxis 
    || tnaxis1 != input.naxes[0]
-   || tnaxis2 != input.naxes[1])
+   || tnaxis2 != input.naxes[1]
+   || tnaxis3 != input.naxes[2]
+   || tnaxis4 != input.naxes[3])
    {
       fclose(ftemp);
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"NAXIS/NAXES values cannot be modified using this program.\"]\n");
@@ -240,6 +254,8 @@ int main(int argc, char **argv)
 
    output.naxes[0] = input.naxes[0];
    output.naxes[1] = input.naxes[1];
+   output.naxes[2] = input.naxes[2];
+   output.naxes[3] = input.naxes[3];
 
    if(debug >= 1)
    {
@@ -247,6 +263,8 @@ int main(int argc, char **argv)
       printf("bitpix           =  %d\n",  tbitpix);
       printf("output.naxes[0]  =  %ld\n", output.naxes[0]);
       printf("output.naxes[1]  =  %ld\n", output.naxes[1]);
+      printf("output.naxes[2]  =  %ld\n", output.naxes[2]);
+      printf("output.naxes[3]  =  %ld\n", output.naxes[3]);
 
       fflush(stdout);
    }
@@ -312,6 +330,14 @@ int main(int argc, char **argv)
 
    if(fits_update_key_lng(output.fptr, "NAXIS2", output.naxes[1],
                                   (char *)NULL, &status))
+
+   if(naxis > 2)
+      if(fits_update_key_lng(output.fptr, "NAXIS3", output.naxes[2],
+                                     (char *)NULL, &status))
+
+   if(naxis > 3)
+      if(fits_update_key_lng(output.fptr, "NAXIS4", output.naxes[4],
+                                     (char *)NULL, &status))
       printFitsError(status);
 
 
@@ -342,30 +368,49 @@ int main(int argc, char **argv)
    /***************************/
 
    fpixel[0] = 1;
-   fpixel[1] = 1;
-   fpixel[2] = 1;
-   fpixel[3] = 1;
 
    nelements = input.naxes[0];
 
-   for (j=0; j<input.naxes[1]; ++j)
+   fpixel[3] = 1;
+   
+   for (j3=0; j3<input.naxes[3]; ++j3)
    {
-      if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
-                       buffer, &nullcnt, &status))
-         printFitsError(status);
+      fpixel[2] = 1;
 
-      /*** Example data correction add-on *****
+      for (j2=0; j2<input.naxes[2]; ++j2)
+      {
+         fpixel[1] = 1;
 
-      for(i=0; i<nelements; ++i)
-         if(buffer[i] < -10000) buffer[i] = nan;
+         for (j=0; j<input.naxes[1]; ++j)
+         {
+            if(debug >= 2)
+            {
+               printf("DEBUG> Reading/writing %ld pixels at %ld %ld %ld\n", nelements, fpixel[1], fpixel[2], fpixel[3]);
+               fflush(stdout);
+            }
 
-      ****************************************/
+            if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
+                             buffer, &nullcnt, &status))
+               printFitsError(status);
 
-      if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements, 
-                         buffer, &status))
-         printFitsError(status);
+            /*** Example data correction add-on *****
 
-      ++fpixel[1];
+            for(i=0; i<nelements; ++i)
+               if(buffer[i] < -10000) buffer[i] = nan;
+
+            ****************************************/
+
+            if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements, 
+                               buffer, &status))
+               printFitsError(status);
+
+            ++fpixel[1];
+         }
+
+         ++fpixel[2];
+      }
+
+      ++fpixel[3];
    }
 
    if(debug >= 1)
@@ -452,23 +497,25 @@ int readFits(char *filename)
    if(fits_read_key(input.fptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
       printFitsError(status);
 
+   naxis3 = 1;
+   if(naxis > 2)
+      if(fits_read_key(input.fptr, TLONG, "NAXIS3", &naxis3, (char *)NULL, &status))
+         printFitsError(status);
+
+   naxis4 = 1;
+   if(naxis > 3)
+      if(fits_read_key(input.fptr, TLONG, "NAXIS4", &naxis4, (char *)NULL, &status))
+         printFitsError(status);
+
 
    /****************************************/
    /* Initialize the WCS transform library */
    /****************************************/
 
-   /*
-   input.wcs = wcsinit(header);
-
-   if(input.wcs == (struct WorldCoor *)NULL)
-   {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Input wcsinit() failed.\"]\n");
-      exit(1);
-   }
-   */
-
    input.naxes[0] = naxis1;
    input.naxes[1] = naxis2;
+   input.naxes[2] = naxis3;
+   input.naxes[3] = naxis4;
 
    free(header);
 
