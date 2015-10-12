@@ -20,7 +20,8 @@
 void  makeGrid       (struct WorldCoor *wcs, 
                       int csysimg,  double epochimg, 
                       int csysgrid, double epochgrid,  
-                      double red, double green, double blue);
+                      double red, double green, double blue,
+                      double fontscale);
 
 char *longitude_label(double lon, int ishr);
 char *latitude_label (double lat);
@@ -103,7 +104,8 @@ int gdebug = 0;
 void makeGrid(struct WorldCoor *wcs, 
               int csysimg,  double epochimg, 
               int csysgrid, double epochgrid,  
-              double red, double green, double blue)
+              double red, double green, double blue,
+              double fontscale)
 {
    int    i, side, offscl, use, used_lat, convert;
    int    ii, ilon_label, ilat_label, ishr;
@@ -143,6 +145,12 @@ void makeGrid(struct WorldCoor *wcs,
 
    int meridian; 
 
+   double xsize, ysize, imgsize;
+
+   int    neglon;
+   double coslatmin, coslatmax, coslat;
+   double lonrange, tmpval;
+
    int ispace_lon = 2;
    int istart_lon = 1;
 
@@ -173,6 +181,11 @@ void makeGrid(struct WorldCoor *wcs,
    if(ns < 400)
       fontsize = 8;
 
+   fontsize = (int)(fontsize * fontscale);
+
+   if(fontsize < 1)
+      fontsize = 1;
+
    corner[0].x = -0.5;
    corner[0].y = -0.5;
 
@@ -187,7 +200,21 @@ void makeGrid(struct WorldCoor *wcs,
 
    if(gdebug)
    {
-      printf("makeGrid> Image size = %dx%d\n", ns, nl);
+      printf("makeGrid> Image size = %dx%d (%-gx%-g)\n", ns, nl, xsize, ysize);
+      fflush(stdout);
+   }
+
+
+   /* Find the x,y pixel-based size */
+
+   xsize = ns * wcs->cdelt[0]*dtr;
+   ysize = nl * wcs->cdelt[1]*dtr;
+
+   imgsize = sqrt(xsize*xsize + ysize*ysize);
+
+   if(gdebug)
+   {
+      printf("makeGrid> Image diagonal = %-g\n", imgsize);
       fflush(stdout);
    }
 
@@ -231,6 +258,47 @@ void makeGrid(struct WorldCoor *wcs,
    }
 
 
+   /* Now we have a tricky case to take care of.  We may have a longitude  */
+   /* range of near 360 degrees because of crossing the meridian.  In this */
+   /* case we need to change the value near 360 to be a negative number    */
+   /* and convert values in subsequent checking the same way.              */
+
+   /* We know the rough scale of the image from naxis*cdelt.  We can scale */
+   /* this to a longitude range based on the larger of cos(latmin) and     */
+   /* cos(latmax).  If this is still substantially smaller than the lon    */
+   /* min/max spread, we will do the conversions.                          */
+
+   neglon = 0;
+
+   coslatmin = cos(latmin*dtr);
+   coslatmax = cos(latmax*dtr);
+
+   coslat = coslatmin;
+
+   if(coslatmax < coslat)
+      coslat = coslatmax;
+
+   lonrange = 360.;
+  
+   if(coslat > 0.)
+      lonrange = imgsize / coslat;
+
+   if(lonrange < lonmax - lonmin)
+   {
+      neglon = 1;
+
+      tmpval = lonmax;
+      lonmax = lonmin;
+      lonmin = tmpval - 360.;
+
+      if(gdebug)
+      {
+         printf("makeGrid> Scale check  Lon: %8.4f -> %8.4f\n", lonmin, lonmax);
+         fflush(stdout);
+      }
+   }
+
+
    /* Walk around the image border, finding the exact range of lon/lat */
    /* We also need to detect big jumps in the position and switch to   */
    /* "all-sky" mode.                                                  */
@@ -249,9 +317,13 @@ void makeGrid(struct WorldCoor *wcs,
    {
       convertCoordinates(csysimg,  epochimg,  lonprev, latprev,
                          csysgrid, epochgrid, &reflon, &reflat, 0.0);
+
       lonprev = reflon;
       latprev = reflat;
    }
+
+   if(neglon && lonprev > 180.)
+      lonprev -= 360.;
 
 
    /* convert to sysgrid */
@@ -281,9 +353,13 @@ void makeGrid(struct WorldCoor *wcs,
       {
          convertCoordinates(csysimg,  epochimg,  lon, lat,
                             csysgrid, epochgrid, &reflon, &reflat, 0.0);
+
          lon = reflon;
          lat = reflat;
       }
+
+      if(neglon && lon > 180.)
+         lon -= 360.;
       
       x2 = cos(lat*dtr) * cos(lon*dtr);
       y2 = cos(lat*dtr) * sin(lon*dtr);
@@ -657,6 +733,9 @@ void makeGrid(struct WorldCoor *wcs,
       ++use;
 
       lbllon = lon0 + i*lon_space;
+
+      if(lbllon < 0.)
+         lbllon += 360.;
 
       if(use == ispace_lon)
       {
