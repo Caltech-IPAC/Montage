@@ -2,6 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+2.1      John Good        10Oct15  Add font scaling to coord grid, labels
+2.0      John Good        01Sep15  Organize layer info into structures
 1.3      John Good        09Sep14  Add compass "rose" capability as a variant of "mark"
 1.2      John Good        15Mar11  Fixed drawing bug; didn't flip plot in Y if wcs->imflip=1
 1.1      John Good        13Mar11  Use 1.e-9 for "zero" brightness overlay and 0. for "not drawn"
@@ -119,7 +121,8 @@ void curve               (double *xcurve, double *ycurve, int npt,
 void makeGrid            (struct WorldCoor *wcs,
                           int csysimg,  double epochimg,
                           int csysgrid, double epochgrid,
-                          double red, double green, double blue);
+                          double red, double green, double blue,
+                          double fontscale);
 
 void coord_label         (char *face_path, int fontsize, 
                           double lonlab, double latlab, char *label,
@@ -276,6 +279,7 @@ int main(int argc, char **argv)
 
    struct gridInfo
    {
+      double fontscale;               // Multiplicative factor on default label size
       int    csys;                    // Coordinate system (default EQUJ)
       double epoch;                   // Coordinate epoch (default 2000.)
       double red, green, blue;        // Grid color
@@ -314,6 +318,7 @@ int main(int argc, char **argv)
       char   scaleColumn[MAXSTR];     // Column for data-scaled symbols
 
       char   labelColumn[MAXSTR];     // Column containing label string
+      double fontscale;
    };
 
    struct catInfo cat[MAXCAT];
@@ -326,6 +331,7 @@ int main(int argc, char **argv)
    struct labelInfo
    {
       char   text[MAXSTR];            // Label text
+      double fontscale;               // Multiplicative factor on default label size
 
       double x, y;                    // Label location
       int    inpix;                   // Label location is pixel, not sky, coordinates
@@ -364,7 +370,7 @@ int main(int argc, char **argv)
    // needed thereafter until reset or unset.
 
    int       csys, symUnits, symNPnt, symNMax, symType, scaleType;
-   double    epoch, symSize, symRotAngle, scaleVal;
+   double    epoch, symSize, symRotAngle, scaleVal, fontScale, fontSize;
 
    char      symSizeColumn [MAXSTR];
    char      symShapeColumn[MAXSTR];
@@ -629,6 +635,8 @@ int main(int argc, char **argv)
    scaleVal    = 1.;
    scaleType   = FLUX;
 
+   fontScale   = 1.;
+
    strcpy(symSizeColumn,  "");
    strcpy(symShapeColumn, "");
    strcpy(scaleColumn,    "");
@@ -685,6 +693,23 @@ int main(int argc, char **argv)
 
       else if(strcmp(argv[i], "-nowcs") == 0)
          nowcs = 1;
+      
+
+      /* FONT SCALE */
+
+      else if(strcmp(argv[i], "-fontscale") == 0)
+      {
+         fontScale = strtod(argv[i+1], &end);
+
+         if(fontScale <= 0.  || end < argv[i+1]+strlen(argv[i+1]))
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Font scale parameter must a number greater than zero.\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         ++i;
+      }
       
 
       /* Don't flip the image (to get North up) */
@@ -780,6 +805,8 @@ int main(int argc, char **argv)
       {
          ref = JULIAN;
 
+         grid[ngrid].fontscale = fontScale;
+
          grid[ngrid].csys   = EQUJ;
          grid[ngrid].epoch  = -999.;
 
@@ -856,6 +883,8 @@ int main(int argc, char **argv)
          label[nlabel].y = atof(argv[i+2]);
 
          strcpy(label[nlabel].text, argv[i+3]);
+
+         label[nlabel].fontscale = fontScale;
 
          i += 3;
 
@@ -1214,6 +1243,8 @@ int main(int argc, char **argv)
          strcpy(cat[ncat].labelColumn,    labelColumn);
          strcpy(cat[ncat].symSizeColumn,  symSizeColumn);
          strcpy(cat[ncat].symShapeColumn, symShapeColumn);
+
+         cat[ncat].fontscale = fontScale;
 
          ++ncat;
       }
@@ -1976,6 +2007,7 @@ int main(int argc, char **argv)
 
       for(i=0; i<ngrid; ++i)
       {
+         printf("DEBUG> grid[%d].fontscale   = [%-g]\n", i, grid[i].fontscale );
          printf("DEBUG> grid[%d].csys        = [%d]\n",  i, grid[i].csys );
          printf("DEBUG> grid[%d].epoch       = [%-g]\n", i, grid[i].epoch);
          printf("DEBUG> grid[%d].red         = [%-g]\n", i, grid[i].red  );
@@ -2024,6 +2056,7 @@ int main(int argc, char **argv)
          printf("DEBUG> label[%d].x          = [%-g]\n", i, label[i].x   );
          printf("DEBUG> label[%d].y          = [%-g]\n", i, label[i].y   );
          printf("DEBUG> label[%d].text       = [%s]\n",  i, label[i].text);
+         printf("DEBUG> label[%d].fontscale  = [%-g]\n", i, label[i].fontscale );
       }
 
       printf("\n");
@@ -3788,7 +3821,7 @@ int main(int argc, char **argv)
 
    for(i=0; i<ngrid; ++i)
    {
-      makeGrid(wcs, csysimg, epochimg, grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue);
+      makeGrid(wcs, csysimg, epochimg, grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue, grid[i].fontscale);
       addOverlay();
    }
 
@@ -4092,7 +4125,12 @@ int main(int argc, char **argv)
                {
                   wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
 
-                  draw_label(fontfile, 14, xpix, ypix, labelstr, ovlyred, ovlygreen, ovlyblue);
+                  fontSize = (int)(14. * cat[i].fontscale);
+
+                  if(fontSize < 1)
+                     fontSize = 1;
+
+                  draw_label(fontfile, fontSize, xpix, ypix, labelstr, ovlyred, ovlygreen, ovlyblue);
                }
 
                if(debug)
@@ -4412,7 +4450,12 @@ int main(int argc, char **argv)
       ix = label[i].x;
       iy = label[i].y;
 
-      draw_label(fontfile, 14, ix, iy, label[i].text, label[i].red, label[i].green, label[i].blue);
+      fontSize = (int)(14. * label[i].fontscale);
+
+      if(fontSize < 1)
+         fontSize = 1;
+
+      draw_label(fontfile, fontSize, ix, iy, label[i].text, label[i].red, label[i].green, label[i].blue);
       addOverlay();
    }
 
