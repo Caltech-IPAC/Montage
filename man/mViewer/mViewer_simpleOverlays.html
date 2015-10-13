@@ -158,6 +158,20 @@ mViewer -color   yellow \
 </pre></p>
 <p>mViewer uses a general font mechanism but at this point only has one font loaded, so all the
 labelling needs to give are the coordinates and text string.</p>
+
+<p><b>About Fonts</b> mViewer uses the FreeType library and the FreeSans.ttf font 
+file.  This includes regular Latin and Greek characters (as well as Japanese
+Kana, <i>etc.</i>)  The FreeType library is comfortable with any TrueType font file, 
+sorswapping in an alternative one is straightforward.<p>
+
+<p>The input to the library is Unicode, which many of todays applications (like editors)
+can handle directly.  The details are application-specific, but if you can get special
+characters into the mViewer command (script files are a good way), mViewer will render
+them, <i>e.g.,</i></p>
+
+<pre>
+      -label 88.79294 7.40706 "&alpha; Orionis"
+</pre>
 </td>
 <td style="text-align: center; vertical-align: top; background-color: #404080;">
 <img style="margin:5px; background-color: #404080;" src="images/label.png"/>
