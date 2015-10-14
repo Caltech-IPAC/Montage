@@ -198,12 +198,6 @@ void makeGrid(struct WorldCoor *wcs,
    corner[3].x = (double)ns + 0.5;
    corner[3].y = -0.5;
 
-   if(gdebug)
-   {
-      printf("makeGrid> Image size = %dx%d (%-gx%-g)\n", ns, nl, xsize, ysize);
-      fflush(stdout);
-   }
-
 
    /* Find the x,y pixel-based size */
 
@@ -214,6 +208,7 @@ void makeGrid(struct WorldCoor *wcs,
 
    if(gdebug)
    {
+      printf("makeGrid> Image size = %dx%d (%-gx%-g)\n", ns, nl, xsize, ysize);
       printf("makeGrid> Image diagonal = %-g\n", imgsize);
       fflush(stdout);
    }
@@ -252,8 +247,8 @@ void makeGrid(struct WorldCoor *wcs,
 
    if(gdebug)
    {
-      printf("makeGrid> Corner check Lon: %8.4f -> %8.4f\n", lonmin, lonmax);
-      printf("makeGrid> Corner check Lat: %8.4f -> %8.4f\n", latmin, latmax);
+      printf("makeGrid> Corner check Lon: %8.4f -> %8.4f (%-g)\n", lonmin, lonmax, lonmax-lonmin);
+      printf("makeGrid> Corner check Lat: %8.4f -> %8.4f (%-g)\n", latmin, latmax, latmax-latmin);
       fflush(stdout);
    }
 
@@ -283,7 +278,13 @@ void makeGrid(struct WorldCoor *wcs,
    if(coslat > 0.)
       lonrange = imgsize / coslat;
 
-   if(lonrange < lonmax - lonmin)
+   if(gdebug)
+   {
+      printf("makeGrid> cos(lat): %-g  lonrange: %-g\n", coslat, lonrange);
+      fflush(stdout);
+   }
+
+   if(lonrange < 180. && (lonmax - lonmin) > 180.)
    {
       neglon = 1;
 
