@@ -19,7 +19,7 @@ simple "make" command, including the CFITSIO library and WCS
 tools. The toolkit is in wide use in astronomy to support research
 projects, and to support pipeline development, product generation and
 image visualization for major projects and missions; e.g. Spitzer
-Space Telescope, Herschel, Kepler, AKARI and others. Montage is
+Space Telescope, Herschel, Kepler, AKARI and others. Montage is also
 used as an exemplar application by the computer science community in
 developing next-generation cyberinfrastructure, especially workflow
 framework on distributed platforms.
