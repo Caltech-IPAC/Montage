@@ -12,17 +12,17 @@ spatial sampling and rotation. The toolkit contains utilities for
 reprojecting and background matching images, assembling them into
 mosaics, visualizing the results, and discovering, analyzing and
 understanding image metadata from archives or the user's images.
-Montage is written in ANSI-C and is portable across all common *nix
-platforms, including Linux, Solaris, and Mac OSX. The distribution
-contains all libraries needed to build the toolkit from a single
-simple "make" command, including the CFITSIO library and WCS
-tools. The toolkit is in wide use in astronomy to support research
-projects, and to support pipeline development, product generation and
-image visualization for major projects and missions; e.g. Spitzer
-Space Telescope, Herschel, Kepler, AKARI and others. Montage is also
-used as an exemplar application by the computer science community in
-developing next-generation cyberinfrastructure, especially workflow
-framework on distributed platforms.
+Montage is written in ANSI-C and is portable across all common
+*nix platforms, including Linux, Solaris, Mac OSX and Cygwin on
+Windows. The distribution contains all libraries needed to build the
+toolkit from a single simple "make" command, including the CFITSIO
+library and WCS tools. The toolkit is in wide use in astronomy to
+support research projects, and to support pipeline development,
+product generation and image visualization for major projects and
+missions; e.g. Spitzer Space Telescope, Herschel, Kepler, AKARI and
+others. Montage is used as an exemplar application by the computer
+science community in developing next-generation cyberinfrastructure,
+especially workflow framework on distributed platforms.
 
 Version 4.0 provides dedicated modules that support building and
 managing mosaics of data cubes; creation of custom PNG and JPEG
