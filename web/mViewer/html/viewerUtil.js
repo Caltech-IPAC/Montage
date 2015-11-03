@@ -336,6 +336,9 @@ function processClick (viewer)
     if ((imcursormode == null) || (imcursormode == "imzoom")) {
         
         viewer.cmd = "impick"; 
+	
+	showBlocker ();
+
         viewer.submitUpdateRequest ("impick"); 
     }
     else if (imcursormode == "waveplot") {
@@ -347,6 +350,8 @@ function processClick (viewer)
 	    return;
 
         cubedata.waveplotType = "pix";
+
+	showBlocker ();
 
         viewer.submitUpdateRequest ("waveplot"); 
     }
@@ -386,7 +391,10 @@ function processBox (viewer)
     if ((imcursormode == null) || (imcursormode == "imzoom")) {
         
         viewer.cmd = "zoombox"; 
-        viewer.submitUpdateRequest ("zoombox"); 
+        
+	showBlocker ();
+
+	viewer.submitUpdateRequest ("zoombox"); 
     }
     else if (imcursormode == "waveplot") {
 	
@@ -396,6 +404,8 @@ function processBox (viewer)
 
 	viewer.cmd = "waveplot"; 
         cubedata.waveplotType = "ave";
+
+	showBlocker ();
 
         viewer.submitUpdateRequest ("waveplot"); 
     }

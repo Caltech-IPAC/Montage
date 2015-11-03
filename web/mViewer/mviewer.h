@@ -452,6 +452,8 @@ struct Mviewer
     waveplottype: pix or ave (of a dragged area)
 */
     char    waveplottype[20];
+    char    showplot[20];
+    char    detachplot[20];
 
     char    plottype[20];
     char    plotfile[1024];

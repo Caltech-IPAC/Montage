@@ -328,6 +328,8 @@ int writeJsonFile (struct ViewerApp *param)
             strcpy (str, "");
 	    fprintf(fp, "    \"waveplotType\": \"%s\",\n", param->waveplottype);
 	    fprintf(fp, "    \"plotjsonFile\": \"%s\",\n", param->plotjsonpath);
+	    fprintf(fp, "    \"showPlot\": \"%s\",\n", param->showplot);
+	    fprintf(fp, "    \"detachPlot\": \"%s\",\n", param->detachplot);
 	    
 	    fprintf(fp, "    \"plotXaxis\": \"%s\",\n", param->plotxaxis);
 	    fprintf(fp, "    \"plotYaxis\": \"%s\"\n", param->plotyaxis);

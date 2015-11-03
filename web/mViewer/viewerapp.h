@@ -339,6 +339,8 @@ struct ViewerApp
     char    plotjsonpath[1024];
     
     char    waveplottype[20];
+    char    showplot[20];
+    char    detachplot[20];
 
     char    plottype[20];
     char    waveplotfile[1024];

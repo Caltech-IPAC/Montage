@@ -412,6 +412,11 @@ int constructRetjson (struct Mviewer *param)
 	sprintf(str, "    \"centerPlane\": \"%d\",\n", param->centerplane);
         strcat (retstr, str);
 	
+	sprintf(str, "    \"startPlane\": \"%d\",\n", param->startplane);
+        strcat (retstr, str);
+	sprintf(str, "    \"endPlane\": \"%d\",\n", param->endplane);
+        strcat (retstr, str);
+	
 	sprintf (str, "    \"ctype3\": \"%s\",\n", param->ctype3);
         strcat (retstr, str);
 	sprintf (str, "    \"crval3\": \"%lf\",\n", param->crval3);
@@ -424,6 +429,13 @@ int constructRetjson (struct Mviewer *param)
 	        
 	    sprintf(str, "    \"waveplotType\": \"%s\",\n", 
 		param->waveplottype);
+            strcat (retstr, str);
+
+	    sprintf(str, "    \"showPlot\": \"%s\",\n", 
+		param->showplot);
+            strcat (retstr, str);
+	    sprintf(str, "    \"detachPlot\": \"%s\",\n", 
+		param->detachplot);
             strcat (retstr, str);
 
 	    sprintf (str, "    \"plotjsonFile\": \"%s\",\n", 

@@ -1237,6 +1237,7 @@ int extractStartupParam (struct ViewerApp *param)
 	    "%s",                                param->parampath,
 	    "datadir",	          "%s",          param->datadir,
 	    "nplane",             "%d",          param->nfitsplane,
+	    "nplaneave",          "%d",          param->nplaneave,
 	    "startplane",         "%d",          param->startplane,
 	    "END_PARM");
 

@@ -749,6 +749,8 @@ int extractViewParam (struct Mviewer *param)
     strcpy (param->imcubemode, "ave");
     strcpy (param->waveplottype, "");
     strcpy (param->plotjsonfile, "");
+    strcpy (param->showplot, "true");
+    strcpy (param->detachplot, "false");
     
     strcpy (param->plotxaxis, "");
     strcpy (param->plotyaxis, "");
@@ -806,6 +808,17 @@ int extractViewParam (struct Mviewer *param)
 	    != (char *)NULL) 
 	{
             strcpy (param->plotjsonfile, str);
+        }
+	
+	if (json_val (param->showplot, "imcubeFile.showPlot", str) 
+	    != (char *)NULL) 
+	{
+            strcpy (param->showplot, str);
+        }
+	if (json_val (param->detachplot, "imcubeFile.detachPlot", str) 
+	    != (char *)NULL) 
+	{
+            strcpy (param->detachplot, str);
         }
 
 	if (json_val (param->jsonStr, "imcubeFile.plotXaxis", str) 
@@ -896,6 +909,9 @@ int extractViewParam (struct Mviewer *param)
 	    fprintf (fdebug, "imcubefile= [%s]\n", param->imcubefile);
 	    fprintf (fdebug, "imcubemode= [%s]\n", param->imcubemode);
 	    fprintf (fdebug, "waveplottype= [%s]\n", param->waveplottype);
+	    fprintf (fdebug, "showplot= [%s]\n", param->showplot);
+	    fprintf (fdebug, "detachplot= [%s]\n", param->detachplot);
+	    
 	    fprintf (fdebug, "nfitsplane= [%d]\n", param->nfitsplane);
 	    fprintf (fdebug, "nplaneave= [%d]\n", param->nplaneave);
 	    fprintf (fdebug, "centerplane= [%d]\n", param->centerplane);

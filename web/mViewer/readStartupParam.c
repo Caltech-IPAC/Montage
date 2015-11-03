@@ -119,6 +119,8 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
     param->imcubemode[0] = '\0';
     param->imcursormode[0] = '\0';
     param->waveplottype[0] = '\0';
+    strcpy (param->showplot, "true");
+    strcpy (param->detachplot, "false");
 
     param->viewtemplate[0] = '\0';
     param->viewhtml[0] = '\0';
@@ -258,6 +260,12 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
 	}
 	else if (strcasecmp (name, "waveplottype") == 0) {
 	    strcpy (param->waveplottype, val);
+	}
+	else if (strcasecmp (name, "showplot") == 0) {
+	    strcpy (param->showplot, val);
+	}
+	else if (strcasecmp (name, "detachplot") == 0) {
+	    strcpy (param->detachplot, val);
 	}
 	else if (strcasecmp (name, "isimcube") == 0) {
 	    istatus = str2Integer (val, &param->isimcube, errmsg);
