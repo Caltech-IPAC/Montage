@@ -27,8 +27,29 @@ Version  Developer        Date     Change
 #include "mNaN.h"
 
 #define STRLEN  1024
+#define MAXFLUX 1024
+
+#define REGION  0
+#define APPHOT  1
+
+#define APRAD   30.
 
 int getPlanes(char *, int *);
+
+struct apPhoto 
+{
+   double rad;
+   double flux;
+   double fit;
+   double sum;
+};
+
+struct apPhoto *ap;
+
+int nflux, maxflux;
+
+
+static int radCompare(const void *p1, const void *p2);
 
 
 
@@ -53,6 +74,8 @@ int main(int argc, char **argv)
    int    locinpix, radinpix;
    int    npix, nnull, first;
    int    ixpix, iypix;
+   int    maxi, maxj;
+   int    areaMode;
 
    int    planes[256];
    int    planeCount, hdu;
@@ -93,7 +116,7 @@ int main(int argc, char **argv)
    double rac, decc;
    double racp, deccp;
    double ra1, dec1, ra2, dec2, ra3, dec3, ra4, dec4;
-   double xpix, ypix, rpix;
+   double xpix, ypix, rpix, rap;
 
    double x, y, z;
    double xp, yp, zp;
@@ -101,7 +124,7 @@ int main(int argc, char **argv)
    double rot, beta, dtr;
    double dx, dy, r;
 
-   double sumflux, sumflux2, mean, rms, dot;
+   double sumflux, sumflux2, sumn, mean, background, oldbackground, rms, dot;
    double sigmaref, sigmamax, sigmamin;
    double val, valx, valy, valra, valdec;
    double min, minx, miny, minra, mindec;
@@ -109,12 +132,21 @@ int main(int argc, char **argv)
    double xc, yc, zc;
    double x0, y0, z0;
 
+   double  fluxMin, fluxMax, fluxRef, sigma;
+
    struct WorldCoor *wcs;
 
    fitsfile *fptr;
    int       ibegin, iend, jbegin, jend;
    long      fpixel[4], nelements;
    double   *data;
+
+
+   nflux = 0;
+
+   maxflux = MAXFLUX;
+
+   ap = (struct apPhoto *)malloc(maxflux * sizeof(struct apPhoto));
 
 
    /************************************************/
@@ -146,25 +178,48 @@ int main(int argc, char **argv)
    locinpix = 0;
    radinpix = 0;
 
+   areaMode = REGION;
+
    for(i=0; i<argc; ++i)
    {
-      if(strcmp(argv[i], "-p") == 0)
+      if(strcmp(argv[i], "-p") == 0 
+      || strcmp(argv[i], "-a") == 0)
       {
-         if(i+4 >= argc)
+         if(strcmp(argv[i], "-a") == 0)
+            areaMode = APPHOT;
+
+         if(strcmp(argv[i], "-p") == 0 && i+4 >= argc)
          {
             printf("[struct stat=\"ERROR\", msg=\"No ra, dec, radius location given or file name missing\"]\n");
             exit(1);
          }
 
+         if(strcmp(argv[i], "-a") == 0 && i+3 >= argc)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No ra, dec location given for aperture photometry or file name missing\"]\n");
+            exit(1);
+         }
+
          ra     = atof(argv[i+1]);
          dec    = atof(argv[i+2]);
-         radius = atof(argv[i+3]);
 
-         if(strstr(argv[i+1], "p") != 0) locinpix = 1;
-         if(strstr(argv[i+2], "p") != 0) locinpix = 1;
-         if(strstr(argv[i+3], "p") != 0) radinpix = 1;
+         if(strcmp(argv[i], "-p") == 0)
+         {
+            radius = atof(argv[i+3]);
 
-         i += 3;
+            if(strstr(argv[i+1], "p") != 0) locinpix = 1;
+            if(strstr(argv[i+2], "p") != 0) locinpix = 1;
+            if(strstr(argv[i+3], "p") != 0) radinpix = 1;
+
+            i += 3;
+         }
+         else
+         {
+            radius = APRAD;
+            radinpix = 1;
+
+            i += 2;
+         }
       }
 
       else if(strcmp(argv[i], "-d") == 0)
@@ -181,8 +236,16 @@ int main(int argc, char **argv)
 
    if(radius > 0.)
    {
-      argv += 4;
-      argc -= 4;
+      if(areaMode == REGION)
+      {
+         argv += 4;
+         argc -= 4;
+      }
+      else
+      {
+         argv += 3;
+         argc -= 3;
+      }
    }
 
    if(debug)
@@ -193,7 +256,7 @@ int main(int argc, char **argv)
 
    if(argc < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-p ra dec radius] image.fits\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-p ra dec radius | -a ra dec] image.fits\"]\n", argv[0]);
       exit(1);
    }
 
@@ -600,6 +663,7 @@ int main(int argc, char **argv)
             if(r > rpix)
                continue;
 
+
             if(x == ixpix && y == iypix)
             {
                val = data[i];
@@ -621,6 +685,9 @@ int main(int argc, char **argv)
 
                maxx = x;
                maxy = y;
+
+               maxi = i+ibegin;
+               maxj = j;
             }
             
             if(data[i] > max)
@@ -629,6 +696,9 @@ int main(int argc, char **argv)
 
                maxx = x;
                maxy = y;
+
+               maxi = i+ibegin;
+               maxj = j;
             }
             
             if(data[i] < min)
@@ -675,73 +745,303 @@ int main(int argc, char **argv)
 
    /* Finally, print out parameters */
 
-   printf("[struct stat=\"OK\","); 
-
-   printf(" proj=\"%s\",",     proj);
-   printf(" csys=\"%s\",",     csys_str);
-   printf(" equinox=%.1f,",    equinox);
-   printf(" naxis=%ld,",       naxis);
-   printf(" naxis1=%d,",       (int)naxis1);
-   printf(" naxis2=%d,",       (int)naxis2);
-
-   if(naxis > 2)
-      printf(" naxis3=%ld,",    naxes[2]);
-
-   if(naxis > 3)
-      printf(" naxis4=%ld,",    naxes[3]);
-
-   printf(" crval1=%.7f,",     crval1);
-   printf(" crval2=%.7f,",     crval2);
-   printf(" crpix1=%-g,",      crpix1);
-   printf(" crpix2=%-g,",      crpix2);
-   printf(" cdelt1=%.7f,",     fabs(cdelt1));
-   printf(" cdelt2=%.7f,",     fabs(cdelt2));
-   printf(" crota2=%.4f,",     crota2);
-   printf(" lonc=%.7f,",       lonc);
-   printf(" latc=%.7f,",       latc);
-   printf(" ximgsize=%.6f,",   fabs(naxis1*cdelt1));
-   printf(" yimgsize=%.6f,",   fabs(naxis1*cdelt2));
-   printf(" rotequ=%.4f,",     rot);
-   printf(" rac=%.7f,",        rac);
-   printf(" decc=%.7f,",       decc);
-   printf(" ra1=%.7f,",        ra1);
-   printf(" dec1=%.7f,",       dec1);
-   printf(" ra2=%.7f,",        ra2);
-   printf(" dec2=%.7f,",       dec2);
-   printf(" ra3=%.7f,",        ra3);
-   printf(" dec3=%.7f,",       dec3);
-   printf(" ra4=%.7f,",        ra4);
-   printf(" dec4=%.7f",        dec4);
-
-   if(radius > 0)
+   if(areaMode == REGION && radius == 0)
    {
-      printf(", radius=%.7f,", radius);
-      printf(" radpix=%.2f,",  rpix);
-      printf(" npixel=%d,",    npix);
-      printf(" nnull=%d,",     nnull);
-      printf(" aveflux=%-g,",  mean);
-      printf(" rmsflux=%-g,",  rms);
-      printf(" fluxref=%-g,",  val);
-      printf(" sigmaref=%-g,", sigmaref);
-      printf(" xref=%.0f,",    valx);
-      printf(" yref=%.0f,",    valy);
-      printf(" raref=%.7f,",   valra);
-      printf(" decref=%.7f,",  valdec);
-      printf(" fluxmin=%-g,",  min);
-      printf(" sigmamin=%-g,", sigmamin);
-      printf(" xmin=%.0f,",    minx);
-      printf(" ymin=%.0f,",    miny);
-      printf(" ramin=%.7f,",   minra);
-      printf(" decmin=%.7f,",  mindec);
-      printf(" fluxmax=%-g,",  max);
-      printf(" sigmamax=%-g,", sigmamax);
-      printf(" xmax=%.0f,",    maxx);
-      printf(" ymax=%.0f,",    maxy);
-      printf(" ramax=%.7f,",   maxra);
-      printf(" decmax=%.7f",   maxdec);
+      printf("[struct stat=\"OK\","); 
+
+      printf(" proj=\"%s\",",    proj);
+      printf(" csys=\"%s\",",    csys_str);
+      printf(" equinox=%.1f,",   equinox);
+      printf(" naxis=%ld,",      naxis);
+      printf(" naxis1=%d,",      (int)naxis1);
+      printf(" naxis2=%d,",      (int)naxis2);
+
+      if(naxis > 2)
+         printf(" naxis3=%ld,",   naxes[2]);
+
+      if(naxis > 3)
+         printf(" naxis4=%ld,",   naxes[3]);
+
+      printf(" crval1=%.7f,",    crval1);
+      printf(" crval2=%.7f,",    crval2);
+      printf(" crpix1=%-g,",     crpix1);
+      printf(" crpix2=%-g,",     crpix2);
+      printf(" cdelt1=%.7f,",    fabs(cdelt1));
+      printf(" cdelt2=%.7f,",    fabs(cdelt2));
+      printf(" crota2=%.4f,",    crota2);
+      printf(" lonc=%.7f,",      lonc);
+      printf(" latc=%.7f,",      latc);
+      printf(" ximgsize=%.6f,",  fabs(naxis1*cdelt1));
+      printf(" yimgsize=%.6f,",  fabs(naxis1*cdelt2));
+      printf(" rotequ=%.4f,",    rot);
+      printf(" rac=%.7f,",       rac);
+      printf(" decc=%.7f,",      decc);
+      printf(" ra1=%.7f,",       ra1);
+      printf(" dec1=%.7f,",      dec1);
+      printf(" ra2=%.7f,",       ra2);
+      printf(" dec2=%.7f,",      dec2);
+      printf(" ra3=%.7f,",       ra3);
+      printf(" dec3=%.7f,",      dec3);
+      printf(" ra4=%.7f,",       ra4);
+      printf(" dec4=%.7f",       dec4);
+      printf("]\n");
    }
 
-   printf("]\n");
+   else if(areaMode == REGION && radius > 0)
+   {
+      printf("[struct stat=\"OK\","); 
+
+      printf(" proj=\"%s\",",   proj);
+      printf(" csys=\"%s\",",   csys_str);
+      printf(" equinox=%.1f,",  equinox);
+      printf(" naxis=%ld,",     naxis);
+      printf(" naxis1=%d,",     (int)naxis1);
+      printf(" naxis2=%d,",     (int)naxis2);
+
+      if(naxis > 2)
+         printf(" naxis3=%ld,", naxes[2]);
+
+      if(naxis > 3)
+         printf(" naxis4=%ld,", naxes[3]);
+
+      printf(" crval1=%.7f,",   crval1);
+      printf(" crval2=%.7f,",   crval2);
+      printf(" crpix1=%-g,",    crpix1);
+      printf(" crpix2=%-g,",    crpix2);
+      printf(" cdelt1=%.7f,",   fabs(cdelt1));
+      printf(" cdelt2=%.7f,",   fabs(cdelt2));
+      printf(" crota2=%.4f,",   crota2);
+      printf(" lonc=%.7f,",     lonc);
+      printf(" latc=%.7f,",     latc);
+      printf(" ximgsize=%.6f,", fabs(naxis1*cdelt1));
+      printf(" yimgsize=%.6f,", fabs(naxis1*cdelt2));
+      printf(" rotequ=%.4f,",   rot);
+      printf(" rac=%.7f,",      rac);
+      printf(" decc=%.7f,",     decc);
+      printf(" ra1=%.7f,",      ra1);
+      printf(" dec1=%.7f,",     dec1);
+      printf(" ra2=%.7f,",      ra2);
+      printf(" dec2=%.7f,",     dec2);
+      printf(" ra3=%.7f,",      ra3);
+      printf(" dec3=%.7f,",     dec3);
+      printf(" ra4=%.7f,",      ra4);
+      printf(" dec4=%.7f,",     dec4);
+      printf(" radius=%.7f,",   radius);
+      printf(" radpix=%.2f,",   rpix);
+      printf(" npixel=%d,",     npix);
+      printf(" nnull=%d,",      nnull);
+      printf(" aveflux=%-g,",   mean);
+      printf(" rmsflux=%-g,",   rms);
+      printf(" fluxref=%-g,",   val);
+      printf(" sigmaref=%-g,",  sigmaref);
+      printf(" xref=%.0f,",     valx);
+      printf(" yref=%.0f,",     valy);
+      printf(" raref=%.7f,",    valra);
+      printf(" decref=%.7f,",   valdec);
+      printf(" fluxmin=%-g,",   min);
+      printf(" sigmamin=%-g,",  sigmamin);
+      printf(" xmin=%.0f,",     minx);
+      printf(" ymin=%.0f,",     miny);
+      printf(" ramin=%.7f,",    minra);
+      printf(" decmin=%.7f,",   mindec);
+      printf(" fluxmax=%-g,",   max);
+      printf(" sigmamax=%-g,",  sigmamax);
+      printf(" xmax=%.0f,",     maxx);
+      printf(" ymax=%.0f,",     maxy);
+      printf(" ramax=%.7f,",    maxra);
+      printf(" decmax=%.7f",    maxdec);
+      printf("]\n");
+   }
+
+
+   // Now we process the flux vs. radius data to get
+   // the integrated source flux. 
+   
+   else if(areaMode == APPHOT)
+   {
+      rap = APRAD;
+
+      jbegin = maxj - rap - 1;
+      jend   = maxj + rap + 1;
+
+      ibegin = maxi - rap - 1;
+      iend   = maxi + rap + 1;
+
+      nelements = iend - ibegin + 1;
+
+      fpixel[0] = ibegin;
+      fpixel[1] = jbegin;
+      fpixel[2] = 1;
+      fpixel[3] = 1;
+
+      for (j=jbegin; j<=jend; ++j)
+      {
+         status = 0;
+         if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
+                          (void *)data, &nullcnt, &status))
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Error reading FITS data.\"]\n");
+            exit(1);
+         }
+
+         for(i=0; i<nelements; ++i)
+         {
+            if(mNaN(data[i]))
+               continue;
+
+            r = sqrt(((double)i+ibegin-maxi)*((double)i+ibegin-maxi) + ((double)j-maxj)*((double)j-maxj));
+
+            if(r > rap)
+               continue;
+
+            ap[nflux].rad  = r;
+            ap[nflux].flux = data[i];
+            ap[nflux].fit  = 0.;
+
+            ++nflux;
+            if(nflux >= maxflux)
+            {
+               maxflux += MAXFLUX;
+
+               ap = (struct apPhoto *)realloc(ap, maxflux * sizeof(struct apPhoto));
+            }
+         }
+
+         ++fpixel[1];
+      }
+
+      // Sort the data by radius
+
+      qsort(ap, (size_t)nflux, sizeof(struct apPhoto), radCompare);
+
+
+      // Find the peak flux and the minimum flux.
+
+      // The max is constrained to be in the first quarter of the
+      // data, just to be careful.
+
+      fluxMax = -1.e99;
+      fluxMin =  1.e99;
+
+      for(i=0; i<nflux; ++i)
+      {
+         if(i < nflux/4 && ap[i].flux > fluxMax)
+            fluxMax = ap[i].flux;
+
+         if(ap[i].flux < fluxMin)
+            fluxMin = ap[i].flux;
+      }
+
+
+      // Fit the minimum a little more carefully, iterating
+      // and excluding points more than 3 sigma above the 
+      // minimum.
+
+      background = fluxMin;
+      sigma      = fluxMax - fluxMin;
+
+      for(j=0; j<1000; ++j)
+      {
+            
+         oldbackground = background;
+
+         sumn     = 0.;
+         sumflux  = 0.;
+         sumflux2 = 0.;
+
+         for(i=0; i<nflux; ++i)
+         {
+            if(fabs(ap[i].flux - background) > 3.*sigma)
+               continue;
+
+            sumn     += 1.;
+            sumflux  += ap[i].flux;
+            sumflux2 += ap[i].flux * ap[i].flux;
+         }
+
+         background = sumflux / sumn;
+         sigma      = sqrt(sumflux2/sumn - background*background);
+
+         if(fabs((background - oldbackground) / oldbackground) < 1.e-3)
+            break;
+      }
+
+
+      fluxRef = (fluxMax-fluxMin) / exp(1.);
+
+      for(i=0; i<nflux; ++i)
+      {
+         if(ap[i].flux < fluxRef)
+         {
+            sigma = ap[i].rad;
+            break;
+         }
+      }
+
+      for(i=0; i<nflux; ++i)
+      {
+         ap[i].fit = (fluxMax-background) * exp(-(ap[i].rad * ap[i].rad) / (sigma * sigma)) + background;
+
+         if(i == 0)
+            ap[i].sum = ap[i].flux - background;
+         else
+            ap[i].sum = ap[i-1].sum + (ap[i].flux - background);
+      }
+
+
+      if(debug)
+      {
+         printf("|    rad    |    flux    |     fit     |     sum     |\n");
+         fflush(stdout);
+
+         for(i=0; i<nflux; ++i)
+         {
+            printf("%12.6f %12.6f %12.6f %12.6f  \n", ap[i].rad, ap[i].flux, ap[i].fit, ap[i].sum);
+            fflush(stdout);
+         }
+      }
+
+
+      printf("[struct stat=\"OK\","); 
+
+      printf(" proj=\"%s\",",    proj);
+      printf(" csys=\"%s\",",    csys_str);
+      printf(" equinox=%.1f,",   equinox);
+      printf(" naxis=%ld,",      naxis);
+      printf(" naxis1=%d,",      (int)naxis1);
+      printf(" naxis2=%d,",      (int)naxis2);
+
+      if(naxis > 2)
+         printf(" naxis3=%ld,",   naxes[2]);
+
+      if(naxis > 3)
+         printf(" naxis4=%ld,",   naxes[3]);
+
+      printf(" crval1=%.7f,",    crval1);
+      printf(" crval2=%.7f,",    crval2);
+      printf(" crpix1=%-g,",     crpix1);
+      printf(" crpix2=%-g,",     crpix2);
+      printf(" cdelt1=%.7f,",    fabs(cdelt1));
+      printf(" cdelt2=%.7f,",    fabs(cdelt2));
+      printf(" crota2=%.4f,",    crota2);
+      printf(" lonc=%.7f,",      lonc);
+      printf(" latc=%.7f,",      latc);
+      printf(" ximgsize=%.6f,",  fabs(naxis1*cdelt1));
+      printf(" yimgsize=%.6f,",  fabs(naxis1*cdelt2));
+      printf(" rotequ=%.4f,",    rot);
+      printf(" rac=%.7f,",       rac);
+      printf(" decc=%.7f,",      decc);
+      printf(" ra1=%.7f,",       ra1);
+      printf(" dec1=%.7f,",      dec1);
+      printf(" ra2=%.7f,",       ra2);
+      printf(" dec2=%.7f,",      dec2);
+      printf(" ra3=%.7f,",       ra3);
+      printf(" dec3=%.7f,",      dec3);
+      printf(" ra4=%.7f,",       ra4);
+      printf(" dec4=%.7f,",      dec4);
+      printf("totalflux=%.7e",   ap[nflux/2].sum);
+      printf("]\n");
+   }
 
    fflush(stdout);
 
@@ -799,4 +1099,24 @@ int getPlanes(char *file, int *planes)
       ptr = ptr1;
       ++ptr;
    }
+}
+
+
+
+static int radCompare(const void *p1, const void *p2)
+{
+   struct apPhoto *ap1;
+   struct apPhoto *ap2;
+
+   ap1 = (struct apPhoto *)p1;
+   ap2 = (struct apPhoto *)p2;
+
+   if(ap1->rad < ap2->rad)
+      return -1;
+
+   else if(ap1->rad == ap2->rad)
+      return 0;
+
+   else
+      return 1;
 }

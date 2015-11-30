@@ -5389,12 +5389,6 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
    *rangemax  = maxval + maxextra;
    *rangebeta = betaval + betaextra;
 
-   if(mintype  == VALUE
-   && maxtype  == VALUE
-   && betatype == VALUE
-   && (type == POWER || type == ASINH))
-      return;
-
 
    /* Find the min, max values in the image */
 
