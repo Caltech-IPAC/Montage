@@ -442,8 +442,16 @@ int constructRetjson (struct Mviewer *param)
 		param->plotjsonfile);
             strcat (retstr, str);
 	        
-	    sprintf (str, "    \"plotFile\": \"%s\"\n", 
+	    sprintf (str, "    \"plotFile\": \"%s\",\n", 
 		param->plotpath);
+            strcat (retstr, str);
+	    
+	    sprintf (str, "    \"plotWidth\": \"%d\",\n", 
+		param->plotwidth);
+            strcat (retstr, str);
+
+	    sprintf (str, "    \"plotHeight\": \"%d\"\n", 
+		param->plotheight);
             strcat (retstr, str);
 
         }

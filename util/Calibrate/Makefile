@@ -14,11 +14,16 @@ LIBS   =	-L../../lib -lmtbl -lsvc -lm
 .c.o:
 		$(CC) $(CFLAGS)  -c  $*.c
 
+all:  mCalibrate mCalExec
+
 mCalibrate:		mCalibrate.o
 		$(CC) -o mCalibrate mCalibrate.o $(LIBS)
 
+mCalExec:		mCalExec.o
+		$(CC) -o mCalExec mCalExec.o ../../Montage/filePath.o $(LIBS)
+
 install:
-		cp mCalibrate ../../bin
+		cp mCalibrate mCalExec ../../bin
 
 clean:
-		rm -f mCalibrate *.o
+		rm -f mCalibrate mCalExec *.o

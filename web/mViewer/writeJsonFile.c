@@ -332,7 +332,9 @@ int writeJsonFile (struct ViewerApp *param)
 	    fprintf(fp, "    \"detachPlot\": \"%s\",\n", param->detachplot);
 	    
 	    fprintf(fp, "    \"plotXaxis\": \"%s\",\n", param->plotxaxis);
-	    fprintf(fp, "    \"plotYaxis\": \"%s\"\n", param->plotyaxis);
+	    fprintf(fp, "    \"plotYaxis\": \"%s\",\n", param->plotyaxis);
+	    fprintf(fp, "    \"plotWidth\": \"%d\",\n", param->plotwidth);
+	    fprintf(fp, "    \"plotHeight\": \"%d\"\n", param->plotheight);
 	}
 	else {
 	    fprintf(fp, "    \"centerPlane\": \"%d\"\n", param->centerplane);

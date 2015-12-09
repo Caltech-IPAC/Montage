@@ -764,7 +764,10 @@ int extractViewParam (struct Mviewer *param)
     param->endplane = 1;
     param->crval3 = 0.;
     param->cdelt3 = 0.;
-    
+    param->plotwidth = 600;  
+    param->plotheight = 300;  
+
+
     if (json_val (param->jsonStr, "imcubeFile", str) != (char *)NULL) 
     {
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -838,6 +841,31 @@ int extractViewParam (struct Mviewer *param)
 	        param->plotxaxis, param->plotyaxis);
             fflush (fdebug);
         }
+	
+	if (json_val (param->jsonStr, "imcubeFile.plotWidth", str) 
+	    != (char *)NULL) 
+	{
+	    istatus = str2Integer (str, &param->plotwidth, param->errmsg);
+            if (istatus < 0) {
+                param->plotwidth = 600;
+	    }
+	}
+
+	if (json_val (param->jsonStr, "imcubeFile.plotHeight", str) 
+	    != (char *)NULL) 
+	{
+	    istatus = str2Integer (str, &param->plotheight, param->errmsg);
+            if (istatus < 0) {
+                param->plotheight = 400;
+	    }
+	}
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "plotwidth= [%d] plotheight= [%d]\n", 
+	        param->plotwidth, param->plotheight);
+            fflush (fdebug);
+        }
+
 
 
         if (json_val (param->jsonStr, "imcubeFile.planeNum", str) 
