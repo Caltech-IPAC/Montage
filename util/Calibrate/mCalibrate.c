@@ -22,7 +22,7 @@ Version  Developer        Date     Change
 
 void printError(char *msg);
 
-int debug = 1;
+int debug = 0;
 
 
 /*************************************************************************/

@@ -3,6 +3,7 @@ all:
 	(cd Archive/ArchiveExec; make; make install)
 	(cd Archive/ArchiveGet; ./Configure.sh; make; make install)
 	(cd BestImage; make; make install)
+	(cd Calibrate; make; make install)
 	(cd CatMap; ./Configure.sh; make; make install)
 	(cd Examine; ./Configure.sh; make; make install)
 	(cd Exec; ./Configure.sh; make; make install)
@@ -19,11 +20,13 @@ all:
 	(cd Transpose; ./Configure.sh; make; make install)
 	(cd Viewer; ./Configure.sh; make; make install)
 
+
 clean:
 	(cd Archive/ArchiveList; make clean)
 	(cd Archive/ArchiveExec; make clean)
 	(cd Archive/ArchiveGet; make clean)
 	(cd BestImage; make clean)
+	(cd Calibrate; make clean)
 	(cd CatMap; make clean)
 	(cd Examine; make clean)
 	(cd Exec; make clean)
