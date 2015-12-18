@@ -64,7 +64,7 @@ int main(int argc, char **argv)
    char   msg     [MAXSTR];
    char   status  [32];
 
-   double scale;
+   double scale, offset;
 
    static time_t currtime, start;
 
@@ -186,6 +186,8 @@ int main(int argc, char **argv)
    time(&currtime);
    start = currtime;
 
+   offset = 0.;
+
    while(1)
    {
       istat = tread();
@@ -222,7 +224,16 @@ int main(int argc, char **argv)
 
       scale = atof(svc_value("scale"));
 
-      fprintf(fout, " %14.7e %s\n", scale, tbl_rec_string);
+      if(offset == 0.)
+      {
+         offset = log10(scale);
+
+         offset = floor(offset + 0.5);
+
+         offset = pow(10., offset);
+      }
+
+      fprintf(fout, " %14.7e %s\n", scale/offset, tbl_rec_string);
       fflush(fout);
 
       time(&currtime);
@@ -230,7 +241,7 @@ int main(int argc, char **argv)
       if(debug)
       {
          printf("%s (%-g): %.0f seconds\n", 
-            fname, scale, (double)(currtime - start));
+            fname, scale/offset, (double)(currtime - start));
          fflush(stdout);
          
          start = currtime;
