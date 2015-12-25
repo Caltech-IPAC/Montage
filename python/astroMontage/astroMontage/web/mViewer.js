@@ -1,3 +1,9 @@
+/*******************************************************************/
+/* This is the Javascript for talking to the server (Python)       */
+/* mViewer code.  It deals with canvas resizes, zooming, and picks */
+/* and acts as a passthrough for other request (e.g. stretching)   */
+/*******************************************************************/
+
 function mViewer(client, imgDivID)
 {
    var me = this;
@@ -24,6 +30,15 @@ function mViewer(client, imgDivID)
 
    var resizeTimeout = 0;
 
+
+   // Window resizing can cause some overloading since the
+   // resize events happen more rapidly than the back-end can
+   // regenerate the image.  To avoid this, we use the trick of
+   // having the window resize trigger a timer which then gets 
+   // reinitialized if another resize event come along or, if the
+   // user pauses in their resizing, calls a true "resizeFinal"
+   // method which contacts the back-end.
+
    me.resize = function()
    {
       if(me.debug)
@@ -35,6 +50,9 @@ function mViewer(client, imgDivID)
       resizeTimeout = setTimeout(me.resizeFinal, me.timeoutVal);
    }
 
+
+   // This is the "resizeFinal" code, which sends a "resize <windth> <height>"
+   // command to the back-end Python code.
 
    me.resizeFinal = function()
    {
@@ -66,6 +84,11 @@ function mViewer(client, imgDivID)
       me.client.send(cmd);
    }
 
+
+   // When commands like "resize" or "zoom" are sent to the back-end
+   // they ultimately result in a return request to the Javascript asking
+   // it to display an updated image, update the display in some other
+   // way, or shut down.
 
    me.processUpdate = function(cmd)
    {
@@ -107,6 +130,10 @@ function mViewer(client, imgDivID)
       }
    }
 
+
+   // When the user draws a box on the screen, the most
+   // common reaction (the only one currenty in this code)
+   // is to ask the server to zoom the image based on that box.
 
    me.zoomCallback = function(xmin, ymin, xmax, ymax)
    {
@@ -164,6 +191,9 @@ function mViewer(client, imgDivID)
       me.client.send(cmd);
    }
 
+
+   // Special buttons are provided for resetting the zoom,
+   // zooming in, and zooming out.
 
    me.resetZoom = function()
    {

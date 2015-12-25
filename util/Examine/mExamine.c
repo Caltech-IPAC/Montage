@@ -556,7 +556,13 @@ int main(int argc, char **argv)
    ibegin = ixpix - rpix - 1;
    iend   = ixpix + rpix + 1;
 
+   if(ibegin < 1         ) ibegin = 1;
+   if(iend   > wcs->nxpix) iend   = wcs->nxpix;
+
    nelements = iend - ibegin + 1;
+
+   if(jbegin < 1         ) jbegin = 1;
+   if(jend   > wcs->nypix) jend   = wcs->nxpix;
 
    fpixel[0] = ibegin;
    fpixel[1] = jbegin;
@@ -607,6 +613,9 @@ int main(int argc, char **argv)
       {
          printf("\nDEBUG> Location: (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
          printf("DEBUG> Radius: %.6f\n\n", rpix);
+
+         printf("DEBUG> i: %d to %d\n", ibegin, iend);
+         printf("DEBUG> j: %d to %d\n", jbegin, jend);
       }
 
       for (j=jbegin; j<=jend; ++j)
@@ -615,8 +624,9 @@ int main(int argc, char **argv)
          if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
                           (void *)data, &nullcnt, &status))
          {
-            printf("[struct stat=\"ERROR\", msg=\"Error reading FITS data.\"]\n");
-            exit(1);
+            ++fpixel[1];
+
+            continue;
          }
 
          for(i=0; i<nelements; ++i)

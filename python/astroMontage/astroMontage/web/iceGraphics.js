@@ -2,7 +2,6 @@ function iceGraphics(divID)
 {
    var me = this;
 
-
    var mode  = "DRAW";
    var shape = "BOX";
 
@@ -249,9 +248,10 @@ function iceGraphics(divID)
 
 
 
-   iceCanvas.addEventListener("mousedown", mouseDown, false);
-   iceCanvas.addEventListener("mousemove", mouseMove, false);
-   iceCanvas.addEventListener("mouseup",   mouseUp,   false);
+   iceCanvas.addEventListener("mousedown",  mouseDown, false);
+   iceCanvas.addEventListener("mousemove",  mouseMove, false);
+   iceCanvas.addEventListener("mouseup",    mouseUp,   false);
+   iceCanvas.addEventListener("mouseleave", mouseUp,   false);
 
 
    function mouseDown(e)

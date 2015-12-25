@@ -496,6 +496,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             self.update_display()
 
 
+        # Resizing the canvas
+
         if cmd == 'resize':
 
             self.view.canvas_width  = args[1]
@@ -511,6 +513,8 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             self.update_display()
 
 
+        # Resetting the zoom
+
         if cmd == 'zoomReset':
 
             self.view.xmin = 1
@@ -521,17 +525,51 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             self.update_display()
 
 
-        elif cmd == 'zoom':
+        # Zoom by drawn box or in by sqrt(2) or out by sqrt(2)
 
-            boxxmin = float(args[1])
-            boxxmax = float(args[2])
-            boxymin = float(args[3])
-            boxymax = float(args[4])
+        elif cmd == 'zoom' or cmd == 'zoomIn' or cmd == 'zoomOut':
 
             oldxmin = float(self.view.xmin)
             oldxmax = float(self.view.xmax)
             oldymin = float(self.view.ymin)
             oldymax = float(self.view.ymax)
+
+            if cmd == 'zoom':
+
+                boxxmin = float(args[1])
+                boxxmax = float(args[2])
+                boxymin = float(args[3])
+                boxymax = float(args[4])
+
+
+            elif cmd == 'zoomIn':
+
+                box_width  = oldxmax-oldxmin
+                box_center = (oldxmin + oldxmax) / 2.
+
+                boxxmin = box_center - box_width / sqrt(2.)
+                boxxmax = box_center + box_width / sqrt(2.)
+
+                box_height = oldymax-oldxmin
+                box_center = (oldymin + oldymax) / 2.
+
+                boxxmin = box_center - box_height / sqrt(2.)
+                boxxmax = box_center + box_height / sqrt(2.)
+
+
+            elif cmd == 'zoomOutn':
+
+                box_width  = oldxmax-oldxmin
+                box_center = (oldxmin + oldxmax) / 2.
+
+                boxxmin = box_center - box_width * sqrt(2.)
+                boxxmax = box_center + box_width * sqrt(2.)
+
+                box_height = oldymax-oldxmin
+                box_center = (oldymin + oldymax) / 2.
+
+                boxxmin = box_center - box_height * sqrt(2.)
+                boxxmax = box_center + box_height * sqrt(2.)
 
             factor = float(self.view.factor)
 
