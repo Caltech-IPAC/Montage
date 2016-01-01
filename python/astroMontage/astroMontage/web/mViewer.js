@@ -8,7 +8,7 @@ function mViewer(client, imgDivID)
 {
    var me = this;
 
-   me.debug = false;
+   me.debug = true;
 
    me.client = client;
 
@@ -26,6 +26,10 @@ function mViewer(client, imgDivID)
 
    me.canvasWidth  = jQuery(me.imgDiv).width();
    me.canvasHeight = jQuery(me.imgDiv).height();
+
+
+   me.jsonText;
+   me.jsonData;
 
 
    var resizeTimeout = 0;
@@ -109,6 +113,8 @@ function mViewer(client, imgDivID)
             console.log("DEBUG> Retrieving new JPEG.");
 
          me.gc.setImage(args[1] + "?seed=" + (new Date()).valueOf());
+
+         me.getJSON();
       }
 
       else if(cmd == "updateDisplay")
@@ -128,6 +134,72 @@ function mViewer(client, imgDivID)
       {
          window.close();
       }
+   }
+
+
+
+   me.getJSON = function()
+   {
+      var xmlhttp;
+      var jsonURL;
+
+      if(me.debug)
+         console.log("DEBUG> getJSON()");
+
+      jsonURL = "view.json?seed=" + (new Date()).valueOf();
+
+      try {
+         xmlhttp = new XMLHttpRequest();
+      }
+      catch (e) {
+         xmlhttp=false;
+      }
+
+      if (!xmlhttp && window.createRequest)
+      {
+         try {
+            xmlhttp = window.createRequest();
+         }
+         catch (e) {
+            xmlhttp=false;
+         }
+      }
+
+      xmlhttp.open("GET", jsonURL);
+
+      xmlhttp.send(null);
+
+      xmlhttp.onreadystatechange = function()
+      {
+         if (xmlhttp.readyState==4 && xmlhttp.status==200)
+         {
+            me.jsonText = xmlhttp.responseText;
+
+            me.jsonData = jQuery.parseJSON(xmlhttp.responseText);
+         }
+
+         else if(xmlhttp.status != 200)
+            alert("Remote service error[1].");
+      }
+   }
+
+
+   // Any number of controls may modify the JSON view structure
+   // then call this routine to have it sent to the server to have
+   // the image updated.
+
+   me.updateJSON = function()
+   {
+      if(me.debug)
+         console.log("DEBUG> mViewer.updateJSON()");
+
+      var cmd = "updateJSON '" + JSON.stringify(me.jsonData) + "'";
+
+      if(me.debug)
+         console.log("DEBUG> cmd: " + cmd);
+
+      me.client.send(cmd);
+      
    }
 
 
@@ -206,6 +278,44 @@ function mViewer(client, imgDivID)
       me.grayOut(true);
 
       var cmd = "zoomReset"
+
+      if(me.debug)
+         console.log("DEBUG> cmd: " + cmd);
+
+      me.client.send(cmd);
+   }
+
+
+   me.zoomIn = function()
+   {
+      var tmp;
+
+      if(me.debug)
+         console.log("DEBUG> mViewer.zoomIn()");
+
+      me.grayOutMessage(true);
+      me.grayOut(true);
+
+      var cmd = "zoomIn"
+
+      if(me.debug)
+         console.log("DEBUG> cmd: " + cmd);
+
+      me.client.send(cmd);
+   }
+
+
+   me.zoomOut = function()
+   {
+      var tmp;
+
+      if(me.debug)
+         console.log("DEBUG> mViewer.zoomOut()");
+
+      me.grayOutMessage(true);
+      me.grayOut(true);
+
+      var cmd = "zoomOut"
 
       if(me.debug)
          console.log("DEBUG> cmd: " + cmd);
@@ -336,7 +446,7 @@ function mViewer(client, imgDivID)
 
    /* "Please Wait" message with clock */
 
-   me.grayOutMessage =function(vis)
+   me.grayOutMessage = function(vis)
    {
       var msg = document.getElementById('messageScreenObject');
 

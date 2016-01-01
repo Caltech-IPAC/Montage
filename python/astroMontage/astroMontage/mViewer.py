@@ -15,6 +15,9 @@ import shutil
 import random
 import hashlib
 import shlex
+import math
+import json
+
 
 from pkg_resources import resource_filename
 
@@ -33,6 +36,8 @@ from pkg_resources import resource_filename
 #    mvWSHandler    --  Event handler for Tornado web service toolkit 
 #                        (support file requestss; e.g., JS files)
 #    mvThread       --  Extra thread for browser communications
+
+
 
 
 # This simple class is used to parse return structures
@@ -70,7 +75,7 @@ class mvStruct(object):
         string = ""
         for item in self.__dict__:
             substr = "%20s" % (item)
-            string += substr + " : " + str(self.__dict__[item]) + "\n"
+            string += substr + " : " + str(self.__dict__[item])+ "\n"
         return string[:-1]
 
 
@@ -81,10 +86,12 @@ class mvStruct(object):
             return float(value)
 
 
-# These two classes here are pure data holders to provide 
+# These three classes here are pure data holders to provide 
 # structure for an mViewer display.   The main one (mViewer.mvView) 
 # describes the whole display and contains an arbitrary number 
 # of mViewer.mvViewOverlay objects for the overlays on the main image.
+# It also contains four mViewer.mvViewFile objects for the gray or 
+# red, green, blue file info.
 
 # We also need information on image/canvas sizes and cutout
 # offsets in order to map zoom regions and picks to original
@@ -116,8 +123,6 @@ class mvViewOverlay:
 
         string = ""
 
-        count = 0
-
         for item in thisObj:
 
             val = getattr(self, item)
@@ -134,8 +139,6 @@ class mvViewOverlay:
                 string += substr + ": '" + str(val) + "'\n"
             else:
                 string += substr + ": " + str(val) + "\n"
-
-            count += 1
 
         return string
 
@@ -158,13 +161,29 @@ class mvViewOverlay:
             if val == "": 
                 continue
 
+            objType = val.__class__.__name__
+
             if count > 0:
                 string += ", "
 
-            if isinstance(val, str):
-                string += "'"+ item + "': '" + str(val) + "'"
+
+            if objType == "bool":
+
+                if val == True:
+                    string += '"' + item + '": true'
+                elif val == False:
+                    string += '"' + item + '": false'
+
             else:
-                string += "'"+ item + "': " + str(val)
+
+                if isinstance(val, str):
+                    try:
+                        float(val)
+                        string += '"' + item + '": ' + str(val)
+                    except:
+                        string += '"' + item + '": "' + str(val) + '"'
+                else:
+                    string += '"' + item + '": ' + repr(val)
 
             count += 1
 
@@ -199,10 +218,7 @@ class mvViewFile:
 
             substr = "%40s" % (item)
 
-            if isinstance(val, str):
-                string += substr + ": '" + str(val) + "'\n"
-            else:
-                string += substr + ": " + str(val) + "\n"
+            string += substr + ": '" + str(val) + "'\n"
 
         return string
 
@@ -229,9 +245,13 @@ class mvViewFile:
                 string += ", "
 
             if isinstance(val, str):
-                string += "'"+ item + "': '" + str(val) + "'"
+                try:
+                    float(val)
+                    string += '"' + item + '": ' + str(val)
+                except:
+                    string += '"' + item + '": "' + str(val) + '"'
             else:
-                string += "'"+ item + "': " + str(val)
+                string += '"' + item + '": ' + repr(val)
 
             count += 1
 
@@ -242,8 +262,6 @@ class mvViewFile:
 
 
 class mvView:
-
-    viewer          = ""
 
     image_file      = "viewer.jpg"
     image_type      = "jpg"
@@ -345,7 +363,16 @@ class mvView:
 
             val = getattr(self, item)
 
+
             if item[0:2] == "__": 
+                continue
+
+            objType = val.__class__.__name__
+
+            if objType == "instancemethod":
+                continue
+
+            if objType == "builtin_function_or_method":
                 continue
 
             if val == "": 
@@ -355,15 +382,96 @@ class mvView:
                 string += ", "
 
             if isinstance(val, str):
-                string += "'"+ item + "': '" + str(val) + "'"
+                try:
+                    float(val)
+                    string += '"' + item + '": ' + str(val)
+                except:
+                    string += '"' + item + '": "' + str(val) + '"'
             else:
-                string += "'"+ item + "': " + str(val)
+                string += '"' + item + '": ' + repr(val)
 
             count += 1
 
         string += "}"
 
         return string
+
+
+
+    # Updates coming from Javascript will be 
+    # in the form of a JSON string
+
+    def json_update(self, json_str):
+
+        json_dict = json.loads(json_str)
+
+        self.update_view(json_dict, 0, None)
+        
+
+    # The above code turns the JSON string into a Python dictionary
+    # This routine recursively transfers the values in that dictionary
+    # to this mvView object.  We don't yet deal with the possibility
+    # of the JSON having different structure from the current object;
+    # that would complicate thing considerably.  If we need to we will
+    # deal with updates (e.g. adding an overlay or switching between
+    # grayscale and color) via separate commands.
+
+    def update_view(self, parms, index, parents):
+
+        if parents is None:
+           parents = []
+ 
+        for key, val in parms.iteritems():
+ 
+            newlist = list(parents)
+ 
+            if len(newlist) > 0:
+                newlist.append(index)
+ 
+            newlist.append(str(key))
+ 
+            objType = val.__class__.__name__
+ 
+            if objType == "float" or objType == "int" or objType == "str" or objType == "unicode" or objType == "bool":
+ 
+                newlist.append(str(key))
+ 
+                depth = len(newlist)
+ 
+                depth = depth / 2
+ 
+                element = self
+ 
+                for i in range(0, depth-1):
+ 
+                    name = newlist[2 * i]
+                    ind  = newlist[2 * i + 1]
+ 
+                    element = getattr(element, name)
+ 
+                    elementType = element.__class__.__name__
+ 
+                    if elementType == "list":
+                        element = element[ind]
+ 
+                print str(key) + " | " + str(val)
+
+                if objType == "unicode":
+                    setattr(element, str(key), str(val))
+                else:
+                    setattr(element, str(key), val)
+ 
+            elif objType == "list":
+                 count = 0
+                 for list_item in val:
+                   self.update_view(list_item, count, newlist)
+                   count = count + 1
+ 
+            elif objType == "dict":
+                self.update_view(val, 0, newlist)
+ 
+            else:
+                print "ERROR> We have an object in our dictionary?  There should be no way for this to happen."
 
 
 
@@ -413,7 +521,6 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         self.workspace = mv_workspace
         self.view      = mvViewData
-        self.viewer    = self.view.viewer
 
         self.write_message("mViewer python server connection accepted.")
         self.write_message("")
@@ -456,6 +563,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
         stderr = p.stderr.read()
 
         if stderr:
+            print stderr
             raise Exception(stderr)
             return
 
@@ -496,6 +604,17 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             self.update_display()
 
 
+        # Updated JSON view from client
+
+        if cmd == 'updateJSON':
+
+            jsonStr = args[1]
+
+            self.view.json_update(jsonStr)
+
+            self.update_display()
+
+
         # Resizing the canvas
 
         if cmd == 'resize':
@@ -529,10 +648,17 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
         elif cmd == 'zoom' or cmd == 'zoomIn' or cmd == 'zoomOut':
 
+            # We need to know what the current image ranges were
+
             oldxmin = float(self.view.xmin)
             oldxmax = float(self.view.xmax)
             oldymin = float(self.view.ymin)
             oldymax = float(self.view.ymax)
+
+
+            # For box zooming, we are given the box boundaries
+            # but for zoom in/out we need to calculate them base
+            # on the previous ranges
 
             if cmd == 'zoom':
 
@@ -544,35 +670,83 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
 
             elif cmd == 'zoomIn':
 
-                box_width  = oldxmax-oldxmin
-                box_center = (oldxmin + oldxmax) / 2.
+                box_width  = float(self.view.canvas_width)
+                box_center = box_width / 2.
 
-                boxxmin = box_center - box_width / sqrt(2.)
-                boxxmax = box_center + box_width / sqrt(2.)
+                boxxmin = box_center - box_width / 4.
+                boxxmax = box_center + box_width / 4.
 
-                box_height = oldymax-oldxmin
-                box_center = (oldymin + oldymax) / 2.
+                box_height = float(self.view.canvas_height)
+                box_center = box_height / 2.
 
-                boxxmin = box_center - box_height / sqrt(2.)
-                boxxmax = box_center + box_height / sqrt(2.)
+                boxymin = box_center - box_height / 4.
+                boxymax = box_center + box_height / 4.
 
 
-            elif cmd == 'zoomOutn':
+            elif cmd == 'zoomOut':
 
-                box_width  = oldxmax-oldxmin
-                box_center = (oldxmin + oldxmax) / 2.
+                box_width  = float(self.view.canvas_width)
+                box_center = box_width / 2.
 
-                boxxmin = box_center - box_width * sqrt(2.)
-                boxxmax = box_center + box_width * sqrt(2.)
+                boxxmin = box_center - box_width
+                boxxmax = box_center + box_width
 
-                box_height = oldymax-oldxmin
-                box_center = (oldymin + oldymax) / 2.
+                box_height = float(self.view.canvas_height)
+                box_center = box_height / 2.
 
-                boxxmin = box_center - box_height * sqrt(2.)
-                boxxmax = box_center + box_height * sqrt(2.)
+                boxymin = box_center - box_height
+                boxymax = box_center + box_height
+
+
+            # The box (especially for draw box zooming) will
+            # not have the proportions of the canvas.  Correct 
+            # that here.
+
+            box_width  = boxxmax-boxxmin
+            box_height = boxymax-boxymin
+
+            box_aspect    = float(box_height)              / float(box_width)
+            canvas_aspect = float(self.view.canvas_height) / float(self.view.canvas_width)
+
+
+            # The box is taller and skinner than the canvas;
+            # make it wider.
+
+            ratio = box_aspect / canvas_aspect
+
+            if ratio > 1.:
+
+                box_width = int(box_width * ratio)
+
+                box_center = (boxxmax + boxxmin) / 2.
+ 
+                boxxmin = box_center - box_width / 2.
+                boxxmax = box_center + box_width / 2.
+
+                if boxxmin < 0:
+                    boxxmax = boxxmax - boxxmin
+                    boxxmin = 0
+
+                if boxxmax > self.view.canvas_width:
+                    boxxmax = self.view.canvas_width
+
+
+            # The box is shorter and fatter than the canvas;
+            # make it taller.
+
+            else:
+
+                box_height = int(box_height / ratio)
+
+                box_center = (boxymax + boxymin) / 2.
+ 
+                boxymin = box_center - box_height / 2.
+                boxymax = box_center + box_height / 2.
+
+
+            # Convert the box back to image coordinates
 
             factor = float(self.view.factor)
-
 
             boxxmin = boxxmin * factor
             boxxmax = boxxmax * factor
@@ -584,48 +758,22 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             boxymin = boxymin + oldymin
             boxymax = boxymax + oldymin
 
-            box_width  = boxxmax-boxxmin
-            box_height = boxymax-boxymin
+            if boxxmin < 0:
+                boxxmax = boxxmax - boxxmin
+                boxxmin = 0
 
-            box_aspect = float(box_width) / float(box_height)
+            if boxxmax > self.view.image_width:
+                boxxmax = self.view.image_width
 
+            if boxymin < 0:
+                boxymax = boxymax - boxymin
+                boxymin = 0
 
-            image_aspect = float(self.view.image_width) / float(self.view.image_height)
-
-
-            if box_aspect < image_aspect:
-
-                box_width = int(box_height / image_aspect)
-
-                box_center = (boxxmax + boxxmin) / 2.
- 
-                boxxmin = box_center - box_width / 2.
-                boxxmax = box_center + box_width / 2.
-
-                if boxxmin < 0:
-                    boxxmax = boxxmax - boxxmin
-                    boxxmin = 0
-
-                if boxxmax > self.view.image_width:
-                    boxxmax = self.view.image_width
+            if boxymax > self.view.image_height:
+                boxymax = self.view.image_height
 
 
-            if box_aspect > image_aspect:
-
-                box_height = int(box_width * image_aspect)
-
-                box_center = (boxymax + boxymin) / 2.
- 
-                boxymin = box_center - box_height / 2.
-                boxymax = box_center + box_height / 2.
-
-                if boxymin < 0:
-                    boxymax = boxymax - boxymin
-                    boxymin = 0
-
-                if boxymax > self.view.image_height:
-                    boxymax = self.view.image_height
-
+            # Save them away
 
             self.view.xmin = int(boxxmin)
             self.view.xmax = int(boxxmax)
@@ -641,8 +789,7 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             boxx = float(args[1])
             boxy = float(args[2])
 
-            if self.viewer.pick_callback is not None:
-                self.viewer.pick_callback(boxx, boxy)
+            # self.pick_location(boxx, boxy)
 
 
     def update_display(self):
@@ -1156,6 +1303,17 @@ class mvWSHandler(tornado.websocket.WebSocketHandler):
             sys.stdout.flush()
             return
 
+        # Write the current mvView info to a JSON file in the workspace
+
+        json_file = self.workspace + "/view.json"
+
+        jfile = open(json_file, "w+")
+
+        jfile.write(repr(self.view))
+
+
+        # Tell the browser to get the new images (and JSON)
+
         self.write_message("image " + image_file)
 
 
@@ -1269,11 +1427,11 @@ class mViewer():
         self.workspace = workspace
         self.view      = mvView()
 
-        self.view.viewer = self;
-
         mv_workspace = workspace
 
-        self.pick_callback = self.pick_location
+        if self.debug:
+           print "Workspace: " + mv_workspace
+
 
 
     # Shutdown (removing workspace)

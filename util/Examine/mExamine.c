@@ -146,8 +146,6 @@ int main(int argc, char **argv)
 
    maxflux = MAXFLUX;
 
-   ap = (struct apPhoto *)malloc(maxflux * sizeof(struct apPhoto));
-
 
    /************************************************/
    /* Make a NaN value to use setting blank pixels */
@@ -174,6 +172,7 @@ int main(int argc, char **argv)
    /* Process basic command-line arguments */
 
    radius = 0.;
+   rpix   = 0.;
 
    locinpix = 0;
    radinpix = 0;
@@ -186,7 +185,11 @@ int main(int argc, char **argv)
       || strcmp(argv[i], "-a") == 0)
       {
          if(strcmp(argv[i], "-a") == 0)
+         {
             areaMode = APPHOT;
+
+            ap = (struct apPhoto *)malloc(maxflux * sizeof(struct apPhoto));
+         }
 
          if(strcmp(argv[i], "-p") == 0 && i+4 >= argc)
          {
@@ -497,6 +500,9 @@ int main(int argc, char **argv)
 
    // First find the pixel center/radius
 
+   ixpix = 1;
+   iypix = 1;
+
    if(radius > 0.)
    {
       if(radinpix) 
@@ -571,8 +577,10 @@ int main(int argc, char **argv)
 
    if(planeCount > 1)
       fpixel[2] = planes[1];
+
    if(planeCount > 2)
       fpixel[3] = planes[2];
+
 
    data = (double *)malloc(nelements * sizeof(double));
 
