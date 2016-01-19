@@ -205,8 +205,6 @@ int main (int argc, char *argv[], char *envp[])
 
     if (debugfile) {
         sprintf (debugfname, "/tmp/mviewer_%d.debug", pid);
-//        sprintf (debugfname, 
-//	    "/koa/cm/ws/mihseh/montage/web/mViewer/mviewer.debug");
         
         fdebug = fopen (debugfname, "w+");
         if (fdebug == (FILE *)NULL) {

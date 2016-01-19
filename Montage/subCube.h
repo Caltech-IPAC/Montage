@@ -6,20 +6,28 @@ Version  Developer        Date     Change
 
 */
 
+#define STRLEN 1024
+
 struct imageParams {
-	int ibegin;		/* column offset */
-	int iend;		/* last column */
-	int jbegin;		/* row offset */
-	int jend;		/* last row */
-   int pbegin;    /* first plane */
-   int pend;      /* last plane */
-	long nelements;		/* row length */
-	int nfound;
-	int isDSS;
-	double crpix[10];
-	double cnpix[10];
-	long naxis;
-	long naxes[10];
+	int    ibegin;		            /* column offset */
+	int    iend;		            /* last column */
+	int    jbegin;		            /* row offset */
+	int    jend;		            /* last row */
+   int    kbegin;                /* first 'plane' (third dimensional axis) */
+   int    kend;                  /* last 'plane' */
+   int    lbegin;                /* first 'attribute' (fourth dimensional axis) */
+   int    lend;                  /* last 'attribute' */
+   char   dConstraint[2][1024];  /* constrains for third dimension */
+   int    nrange[2];             /* constraint range info */
+   int    range[2][1024][2];
+	long   nelements;		         /* row length */
+	int    nfound;
+	int    isDSS;
+	double crpix  [10];
+	double cnpix  [10];
+	long   naxis;
+	long   naxes  [10];
+	long   naxesin[10];
 };
 	
 	
@@ -48,5 +56,7 @@ extern void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin,
  * Error reporting function.
  */
 extern void montage_printFitsError(int);
+
+extern int  montage_parseSelectList(int index, struct imageParams *params);
 
 

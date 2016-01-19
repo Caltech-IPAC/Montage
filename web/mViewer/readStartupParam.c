@@ -585,6 +585,12 @@ int readStartupParam (struct ViewerApp *param, char *parampath)
 		istatus = str2Integer (val, &param->plotwidth, errmsg);
 	        if (istatus < 0)
 		    param->plotwidth = 600;
+
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+                fprintf (fp_debug, "From readStartupParam: plotwidth= [%d]\n", 
+		    param->plotwidth);
+                fflush (fp_debug);
+            }
 	}
 	else if (strcasecmp (name, "plotheight") == 0) {
 		istatus = str2Integer (val, &param->plotheight, errmsg);

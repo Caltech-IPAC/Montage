@@ -347,7 +347,7 @@ int extractWaveSpectra (struct Mviewer *param)
             
             fpixel[0] = ixpix;
             fpixel[1] = iypix;
-        
+
             if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                 fprintf (fp_debug, "ixpix= [%d] iypix= [%d]\n", ixpix, iypix);
                 fprintf (fp_debug, "fpixel[0]= [%ld] fpixel[1]= [%ld]\n", 
@@ -387,33 +387,40 @@ int extractWaveSpectra (struct Mviewer *param)
             for (j=iys; j<=iye; j++) {
                 
                 fpixel[1] = j;
-        
+
+/*
                 if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                     fprintf (fp_debug, "j= [%d] fpixel[1]= [%ld]\n", 
                         j, fpixel[1]);
                     fflush (fp_debug);
                 }        
-                
+*/
+
                 for (i=ixs; i<=ixe; i++) {
 
                     fpixel[0] = i;
-                
+
+/*
                     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                         fprintf (fp_debug, "i= [%d] fpixel[0]= [%ld]\n", 
                             i, fpixel[0]);
                         fflush (fp_debug);
                     }
-                    
+*/
+
                     istatus = 0;
                     istatus = fits_read_pix (infptr, TDOUBLE, fpixel, nelements, &nan, 
                                         (void *)data, &nullcnt, &istatus);
-            
+
+
+/*
                     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                         fprintf (fp_debug, 
                             "returned fits_read_pix: istatus= [%d]\n", istatus);
                         fflush (fp_debug);
                     }    
-            
+ */
+
                     if (istatus == -1) {
                         sprintf (param->errmsg, "Failed to read FITS file %s\n",
                             param->imcubepath);
@@ -421,25 +428,26 @@ int extractWaveSpectra (struct Mviewer *param)
                             param->errmsg); 
                         return (-1);
                     }
-
+/*
                     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                         fprintf (fp_debug, "l= [%d] data= [%lf]\n", l, data[0]);
                         fflush (fp_debug);
                     }         
-            
+ */           
                     yarr[l] += (double)data[0]/npixel;
-                    
+  /*                  
                     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                         fprintf (fp_debug, "yarr= [%lf]\n", yarr[l]);
                         fflush (fp_debug);
                     }         
-            
+   */         
                 }
             }
         }
 
     }
 
+/*
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
         for (l=0; l<hdr.nplane; l++) {
             fprintf (fp_debug, "l= [%d] xarr= [%lf] yarr= [%lf]\n", 
@@ -447,6 +455,7 @@ int extractWaveSpectra (struct Mviewer *param)
         }
         fflush (fp_debug);
     }         
+*/
 
     istatus = 0;
     if (fits_close_file (infptr, &istatus)) {
@@ -570,6 +579,23 @@ int extractWaveSpectra (struct Mviewer *param)
         fflush (fp_debug);  
     }
 
+    strcpy (param->plothistvalue, "uniform step"); 
+    strcpy (param->plotcolor, "#008800"); 
+    strcpy (param->plotlinecolor, "#008800"); 
+    strcpy (param->plotbgcolor, "white"); 
+    strcpy (param->plotsymbol, "ball"); 
+    strcpy (param->plotlinestyle, "solid"); 
+    strcpy (param->plotxaxis, "wave"); 
+    strcpy (param->plotxlabel, "Wavelength (nm)"); 
+    strcpy (param->plotyaxis, "flux"); 
+    strcpy (param->plotylabel, "Flux (dn)"); 
+    strcpy (param->plottitle, "");
+    strcpy (param->plotxlabeloffset, "false");
+    strcpy (param->plotylabeloffset, "false");
+    
+    param->plothiststyle = 1;
+
+
     fileExist = checkFileExist (param->plotjsonfile, rootname, suffix,
         param->directory, param->plotjsonpath);
 
@@ -597,11 +623,13 @@ int extractWaveSpectra (struct Mviewer *param)
     }
         
 
+/*
     if (!fileExist) {
-
+*/
 
 /*
-    Create default plot jsonfile
+    Write plot jsonfile: re-write every time because the parameters 
+    (width and height might have changed)
 */
         sprintf (param->plotjsonpath, "%s/%s", 
             param->directory, param->plotjsonfile);
@@ -640,8 +668,14 @@ int extractWaveSpectra (struct Mviewer *param)
          
          fprintf(fp, "   \"jpeg\" :\n");
          fprintf(fp, "   {\n");
+/*
+         fprintf(fp, "      \"width\"  : \"%dpx\",\n", param->plotwidth);
+         fprintf(fp, "      \"height\" : \"%dpx\",\n", param->plotheight);
+*/
          fprintf(fp, "      \"width\"  : %d,\n", param->plotwidth);
          fprintf(fp, "      \"height\" : %d,\n", param->plotheight);
+
+
          fprintf(fp, "      \"background\" : \"%s\"\n", 
              param->plotbgcolor);
          fprintf(fp, "   },\n");
@@ -756,8 +790,9 @@ int extractWaveSpectra (struct Mviewer *param)
         fflush (fp_debug);  
     }
 
+/*
     }
-
+*/
     return (0);
 }
 
