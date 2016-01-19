@@ -294,10 +294,32 @@ int constructRetjson (struct Mviewer *param)
     sprintf (str, "  \"imageHeight\": \"%d\",\n", param->imageHeight);
     strcat (retstr, str);
     
-    sprintf (str, "  \"cutoutWidth\": \"%d\",\n", param->ns);
-    strcat (retstr, str);
-    sprintf (str, "  \"cutoutHeight\": \"%d\",\n", param->nl);
-    strcat (retstr, str);
+    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+
+        fprintf (fp_debug, "cutoutWidth (ns)= [%d] nl= [%d]\n", 
+	    param->ns, param->nl);
+	fflush (fp_debug);
+    }
+
+    
+    if ((strcasecmp (param->cmd, "movebox") == 0) ||
+        (strcasecmp (param->cmd, "zoombox") == 0) ||
+        (strcasecmp (param->cmd, "zoomin") == 0) ||
+        (strcasecmp (param->cmd, "zoomout") == 0) ||
+        (strcasecmp (param->cmd, "resetzoom") == 0)) 
+    {
+        sprintf (str, "  \"cutoutWidth\": \"%d\",\n", param->ns);
+        strcat (retstr, str);
+        sprintf (str, "  \"cutoutHeight\": \"%d\",\n", param->nl);
+        strcat (retstr, str);
+    }
+    else {
+        sprintf (str, "  \"cutoutWidth\": \"%d\",\n", param->cutoutWidth);
+        strcat (retstr, str);
+        sprintf (str, "  \"cutoutHeight\": \"%d\",\n", param->cutoutHeight);
+        strcat (retstr, str);
+    }
+
     sprintf (str, "  \"ss\": \"%.1f\",\n", param->ss);
     strcat (retstr, str);
     sprintf (str, "  \"sl\": \"%.1f\",\n", param->sl);

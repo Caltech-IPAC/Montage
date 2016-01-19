@@ -41,30 +41,62 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    if(fits_read_key_lng(infptr, "NAXIS", &params->naxis, (char *)NULL, &status))
       montage_printFitsError(status);
    
-   if(fits_read_keys_lng(infptr, "NAXIS", 1, params->naxis, params->naxes, &params->nfound, &status))
+   if(fits_read_keys_lng(infptr, "NAXIS", 1, params->naxis, params->naxesin, &params->nfound, &status))
       montage_printFitsError(status);
    
+   params->naxes[0] = params->naxesin[0];
+   params->naxes[1] = params->naxesin[1];
+
    if(params->naxis < 3)
       params->naxes[2] = 1;
-   else
+
+   else if(params->naxes[2] == 0)
    {
-      if(params->pbegin < 0)
-      {
-         params->pbegin = 1;
-         params->pend   = params->naxes[2];
-      }
+      params->naxes[2] = params->naxesin[2];
+      
+      params->kbegin = 1;
+      params->kend   = params->naxes[2];
+   }
+
+   else if(params->kend > params->naxesin[2])
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Some select list values for axis 3 are greater than NAXIS3.\"]\n");
+      fflush(fstatus);
+      exit(1);
    }
 
    if(params->naxis < 4)
       params->naxes[3] = 1;
 
+   else if(params->naxes[3] == 0)
+   {
+      params->naxes[3] = params->naxesin[3];
+      
+      params->lbegin = 1;
+      params->lend   = params->naxes[3];
+   }
+
+   else if(params->lend > params->naxesin[3])
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Some select list values for axis 4 are greater than NAXIS4.\"]\n");
+      fflush(fstatus);
+      exit(1);
+   }
+
    if(debug)
    {
-      for(i=0; i<4; ++i)
-         printf("subCube> naxis%d = %ld\n",  i+1, params->naxes[i]);
+      printf("subCube> naxis1 = %ld\n",  params->naxes[0], params->ibegin, params->iend);
+      printf("subCube> naxis2 = %ld\n",  params->naxes[1], params->jbegin, params->jend);
+
+      if(params->naxis > 2)
+      printf("subCube> naxis3 = %ld\n",  params->naxes[2], params->kbegin, params->kend);
+
+      if(params->naxis > 3)
+      printf("subCube> naxis4 = %ld\n",  params->naxes[3], params->lbegin, params->lend);
 
       fflush(stdout);
    }
+
 
    /****************************************/
    /* Initialize the WCS transform library */
@@ -91,8 +123,11 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    params->crpix[0] = wcs->xrefpix;
    params->crpix[1] = wcs->yrefpix;
 
-   if(fits_read_key(infptr, TDOUBLE, "CRPIX3", &(params->crpix[2]), (char *)NULL, &status))
-      montage_printFitsError(status);
+   fits_read_key(infptr, TDOUBLE, "CRPIX3", &(params->crpix[2]), (char *)NULL, &status);
+   status = 0;
+
+   fits_read_key(infptr, TDOUBLE, "CRPIX4", &(params->crpix[3]), (char *)NULL, &status);
+   status = 0;
 
    if(params->isDSS)
    {
@@ -105,8 +140,7 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
 
 int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imageParams *params)
 {
-   double tmp;
-   int naxis2, naxis3, naxis4;
+   double tmp, tmp3, tmp4;
    int status = 0;
    
    if(fits_copy_header(infptr, outfptr, &status))
@@ -129,11 +163,7 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
                                   (char *)NULL, &status))
       montage_printFitsError(status);
 
-   naxis2 = params->jend - params->jbegin + 1;
-   naxis3 = params->pend - params->pbegin + 1;
-   naxis4 = params->naxes[3];
-
-   if(fits_update_key_lng(outfptr, "NAXIS2", naxis2,
+   if(fits_update_key_lng(outfptr, "NAXIS2", params->naxes[1],
                                   (char *)NULL, &status))
       montage_printFitsError(status);
 
@@ -168,20 +198,26 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
 
    if(params->naxis > 2)
    {
-      if(fits_update_key_lng(outfptr, "NAXIS3", naxis3,
+      if(fits_update_key_lng(outfptr, "NAXIS3", params->naxes[2],
                                      (char *)NULL, &status))
          montage_printFitsError(status);
 
-      tmp = params->crpix[2] - params->pbegin + 1;
+      tmp3 = params->crpix[2] - params->kbegin + 1;
 
-      if(fits_update_key_dbl(outfptr, "CRPIX3", tmp, -14,
+      if(fits_update_key_dbl(outfptr, "CRPIX3", tmp3, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
    }
 
    if(params->naxis > 3)
    {
-      if(fits_update_key_lng(outfptr, "NAXIS4", naxis4,
+      if(fits_update_key_lng(outfptr, "NAXIS4", params->naxes[3],
+                                     (char *)NULL, &status))
+         montage_printFitsError(status);
+
+      tmp4 = params->crpix[3] - params->lbegin + 1;
+
+      if(fits_update_key_dbl(outfptr, "CRPIX4", tmp4, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
    }
@@ -189,16 +225,20 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
    if(debug)
    {
       printf("subCube> naxis1 -> %ld\n", params->nelements);
-      printf("subCube> naxis2 -> %d\n",  naxis2);
+      printf("subCube> naxis2 -> %d\n",  params->naxes[1]);
 
       if(params->naxis > 2)
       {
-         printf("subCube> naxis3 -> %d\n",  naxis3);
-         printf("subCube> crpix3 -> %d\n",  tmp);
+         printf("subCube> naxis3 -> %d\n",  params->naxes[2]);
+         printf("subCube> crpix3 -> %-g\n",  tmp3);
       }
 
       if(params->naxis > 3)
-         printf("subCube> naxis4 -> %d\n",  naxis4);
+      {
+         printf("subCube> naxis4 -> %d\n",  params->naxes[3]);
+         printf("subCube> crpix4 -> %-g\n",  tmp4);
+      }
+
 
       if(params->isDSS)
       {
@@ -222,7 +262,7 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 {
    long    fpixel[4], fpixelo[4];
    int     i, j, nullcnt;
-   int     j3, j4;
+   int     j3, j4, inRange;
    int     status = 0;
    double *buffer, refval;
 
@@ -247,7 +287,7 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
 
    fpixel[1] = params->jbegin;
-   fpixel[2] = params->pbegin;
+   fpixel[2] = params->kbegin;
 
    buffer  = (double *)malloc(params->nelements * sizeof(double));
 
@@ -257,31 +297,112 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
    refval = nan;
 
-   fpixel [0] = params->ibegin;
-   fpixelo[0] = 1;
+   fpixel [0] = params->ibegin;  // Fixed
+   fpixelo[0] = 1;               // Fixed
 
-   for (j4=1; j4<=params->naxes[3]; ++j4)
+   fpixelo[3] = 1;
+
+   for (j4=params->lbegin; j4<=params->lend; ++j4)
    {
-      fpixel [3] = j4;
-      fpixelo[3] = j4;
+      fpixel[3] = j4;
+
+      // If the dimension 4 value isn't in our range list,
+      // we'll skip this one.
+
+      if(params->nrange[1] > 0)
+      {
+         inRange = 0;
+
+         for(i=0; i<params->nrange[1]; ++i)
+         {
+            if(params->range[1][i][1] == -1)
+            {
+               if(j4 == params->range[1][i][0])
+               {
+                  inRange = 1;
+                  break;
+               }
+            }
+
+            else
+            {
+               if(j4 >= params->range[1][i][0]
+               && j4 <= params->range[1][i][1])
+               {
+                  inRange = 1;
+                  break;
+               }
+            }
+         }
+
+         if(!inRange)
+            continue;
+      }
+
+
+      // We want this dimension 4 value
 
       fpixelo[2] = 1;
 
-      for (j3=params->pbegin; j3<=params->pend; ++j3)
+      for (j3=params->kbegin; j3<=params->kend; ++j3)
       {
          fpixel[2] = j3;
+
+         // If the dimension 4 value isn't in our range list,
+         // we'll skip this one.
+
+         if(params->nrange[0] > 0)
+         {
+            inRange = 0;
+
+            for(i=0; i<params->nrange[0]; ++i)
+            {
+               if(params->range[0][i][1] == -1)
+               {
+                  if(j3 == params->range[0][i][0])
+                  {
+                     inRange = 1;
+                     break;
+                  }
+               }
+
+               else
+               {
+                  if(j3 >= params->range[0][i][0]
+                  && j3 <= params->range[0][i][1])
+                  {
+                     inRange = 1;
+                     break;
+                  }
+               }
+            }
+
+            if(!inRange)
+               continue;
+         }
+
+         if(debug)
+         {
+            printf("copyData> Processing input 4/3  %5d %5d",    fpixel[3],  fpixel[2]);
+            printf(                     " to output %5d %5d\n", fpixelo[3], fpixelo[2]);
+            fflush(stdout);
+         }
+
+
+         // We want this dimension 4 value
 
          fpixelo[1] = 1;
 
          for (j=params->jbegin; j<=params->jend; ++j)
          {
+            fpixel[1] = j;
+
             if(debug)
             {
-               printf("copyData> Processing input plane %5d/%5d, row %5d:   ", j4, j3, j);
+               printf("copyData> Processing input %5d/%5d, row %5d",             fpixel[3],  fpixel[2],  fpixel[1]);
+               printf(                " to output %5d/%5d, row %5d: read ... ", fpixelo[3], fpixelo[2], fpixelo[1]);
                fflush(stdout);
             }
-
-            fpixel[1] = j;
 
             if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
                              buffer, &nullcnt, &status))
@@ -289,9 +410,6 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
             for(i=0; i<params->nelements; ++i)
             {
-               if(debug && i<11)
-                  printf(" %-g", buffer[i-1]);
-
                if(!mNaN(buffer[i]))
                {
                   if(mNaN(refval))
@@ -303,7 +421,10 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
             }
 
             if(debug)
-               printf("\n");
+            {
+               printf("write.\n");
+               fflush(stdout);
+            }
 
             if (fits_write_pix(outfptr, TDOUBLE, fpixelo, params->nelements,
                                (void *)buffer, &status))
@@ -314,6 +435,8 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
          ++fpixelo[2];
       }
+
+      ++fpixelo[3];
    }
 
 
@@ -423,6 +546,130 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
    }
 
    free(buffer);
+}
+
+
+/*****************************/
+/*                           */
+/*  Parse D3/D4 select lists */
+/*                           */
+/*****************************/
+
+int montage_parseSelectList(int ind, struct imageParams *params)
+{
+   char *begin, *end, *split, *endstr, *ptr;
+
+   char  list[STRLEN];
+   int   index, nrange, min, max;
+
+   nrange = 0;
+
+   index = ind - 3;
+
+   if(index < 0 || index > 1)
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Select list index can only be 3 or 4.");
+      fflush(fstatus);
+      exit(1);
+   }
+
+   strcpy(list, params->dConstraint[index]);
+
+   endstr = list + strlen(list);
+
+   begin = list;
+
+   while(1)
+   {
+      min =  0;
+      max = -1;
+
+      while(*begin == ' ' && begin < endstr)
+         ++begin;
+
+      if(begin >= endstr)
+         break;
+
+      end = begin;
+
+      while(*end != ',' && end < endstr)
+         ++end;
+
+      *end = '\0';
+
+      split = begin;
+
+      while(*split != ':' && split < end)
+         ++split;
+
+      if(*split == ':')
+      {
+         *split = '\0';
+         ++split;
+      }
+
+      ptr = begin + strlen(begin) - 1;
+
+      while(*ptr == ' ' && ptr >= begin) 
+         *ptr = '\0';
+
+      while(*split == ' ' && split >= end) 
+         *split = '\0';
+
+      ptr = split + strlen(split) - 1;
+
+      while(*ptr == ' ' && ptr >= split) 
+         *ptr = '\0';
+
+      min = strtol(begin, &ptr, 10);
+
+      if(ptr < begin + strlen(begin))
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid range string [%s].\"]\n", begin);
+         fflush(fstatus);
+         exit(1);
+      }
+
+      if(split < end)
+      {
+         max = strtol(split, &ptr, 10);
+
+         if(ptr < split + strlen(split))
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid range string [%s].\"]\n", split);
+            fflush(fstatus);
+            exit(1);
+         }
+      }
+
+      if(max != -1 && min > max)
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Range max less than min.\"]\n");
+         fflush(fstatus);
+         exit(1);
+      }
+
+      if(min < 1)
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"FITS index ranges cannot be less than one.\"]\n");
+         fflush(fstatus);
+         exit(1);
+      }
+
+      params->range[index][nrange][0] = min;
+      params->range[index][nrange][1] = max;
+
+      ++nrange;
+
+      begin = end;
+
+      ++begin;
+
+      if(begin >= endstr)
+         break;
+   }
+
+   params->nrange[index] = nrange;
 }
 
 

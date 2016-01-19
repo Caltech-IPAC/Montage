@@ -88,6 +88,10 @@ int extractViewParam (struct Mviewer *param);
 int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube);
 int imZoom (struct Mviewer *param);
 
+int subsetImage (char *imPath, int ns_orig, int nl_orig, int xflip, int yflip,
+    int nowcs, char *subsetimpath, double ss, double sl, double ns, double nl, 
+    char *errmsg);
+
 int makeImage (struct Mviewer *param);
 int pick (struct Mviewer *param);
 
@@ -201,6 +205,8 @@ int main (int argc, char *argv[], char *envp[])
 
     if (debugfile) {
         sprintf (debugfname, "/tmp/mviewer_%d.debug", pid);
+//        sprintf (debugfname, 
+//	    "/koa/cm/ws/mihseh/montage/web/mViewer/mviewer.debug");
         
         fdebug = fopen (debugfname, "w+");
         if (fdebug == (FILE *)NULL) {
@@ -707,7 +713,7 @@ int main (int argc, char *argv[], char *envp[])
     if (!param.iscolor) {
 
 	if ((strcasecmp (param.cmd, "init") == 0) ||
-	    (strcasecmp (param.cmd, "replaceimage") == 0) ||
+	    (strcasecmp (param.cmd, "replaceimplane") == 0) ||
 	    (strcasecmp (param.cmd, "resetzoom") == 0))
         {	
 	    strcpy (param.subsetimfile, "");
@@ -730,7 +736,7 @@ int main (int argc, char *argv[], char *envp[])
     } 
     else {
 	if ((strcasecmp (param.cmd, "init") == 0) ||
-	    (strcasecmp (param.cmd, "replaceimage") == 0) ||
+	    (strcasecmp (param.cmd, "replaceimplane") == 0) ||
 	    (strcasecmp (param.cmd, "resetzoom") == 0))
         {	
 	    strcpy (param.subsetredfile, "");
@@ -784,6 +790,11 @@ int main (int argc, char *argv[], char *envp[])
     "waveplot" doesn't need to call makeImage, just extract the wavelength
     spectra into a plot file.
 */
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "XXX\n");
+        fflush (fdebug);
+    }
+
     if (strcasecmp (param.cmd, "impick") == 0) { 
 
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -844,8 +855,12 @@ int main (int argc, char *argv[], char *envp[])
         }
     }
     else {
-	if ((strcasecmp (param.cmd, "init") == 0) ||
-	    (strcasecmp (param.cmd, "replaceimage") == 0)) 
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "XXX here0\n");
+            fflush (fdebug);
+        }
+   
+	if (strcasecmp (param.cmd, "init") == 0) 
         {     
 /*
     First look at image header to check if WCS info exists
@@ -947,6 +962,7 @@ int main (int argc, char *argv[], char *envp[])
             (strcasecmp (param.cmd, "zoombox") == 0) ||
             (strcasecmp (param.cmd, "zoomin") == 0) ||
             (strcasecmp (param.cmd, "zoomout") == 0) ||
+            (strcasecmp (param.cmd, "replaceimplane") == 0) ||
             (strcasecmp (param.cmd, "resetzoom") == 0)) 
 	{
         

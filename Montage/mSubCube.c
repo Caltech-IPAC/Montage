@@ -49,16 +49,16 @@ extern char content[];
 
 int main(int argc, char **argv)
 {
-   char      infile  [1024];
-   char      outfile [1024];
-   char      appname [1024];
-   char      statfile[1024];
+   char      infile  [STRLEN];
+   char      outfile [STRLEN];
+   char      appname [STRLEN];
+   char      statfile[STRLEN];
 
    fitsfile *infptr, *outfptr;
 
    int       i, offscl, pixmode;
    double    cdelt[10];
-   int       hdu, allPixels, haveHDU, havePlane, shrinkWrap;
+   int       hdu, allPixels, haveHDU, havePlane, haveD3, haveD4, shrinkWrap;
    int       imin, imax, jmin, jmax;
    int       nowcs;
    int       wmin, wmax;
@@ -95,6 +95,8 @@ int main(int argc, char **argv)
    hdu        = 0;
    haveHDU    = 0;
    havePlane  = 0;
+   haveD3     = 0;
+   haveD4     = 0;
 
    fstatus = stdout;
 
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
       
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-P minplane maxplane][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-P minplane maxplane][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-D3 selection-list][-D4 selection-list][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-D3 selection-list][-D4 selection-list][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-D3 selection-list][-D4 selection-list][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
       exit(1);
    }
 
@@ -113,8 +115,8 @@ int main(int argc, char **argv)
    params.jbegin = 1;
    params.jend   = 1;
 
-   params.pbegin = -1;
-   params.pend   = -1;
+   params.kbegin = -1;
+   params.kend   = -1;
    
    for(i=0; i<argc; ++i)
    {
@@ -150,26 +152,42 @@ int main(int argc, char **argv)
       
       if(i<argc-2 && strncmp(argv[i], "-P", 2) == 0)
       {
-         params.pbegin = strtol(argv[i+1], &end, 10);
+         params.kbegin = strtol(argv[i+1], &end, 10);
 
-         if(end < argv[i+1] + strlen(argv[i+1]) || params.pbegin < 0)
+         if(end < argv[i+1] + strlen(argv[i+1]) || params.kbegin < 0)
          {
-            printf("[struct stat=\"ERROR\", msg=\"HDU value (%s) must be a non-negative integer\"]\n",
+            printf("[struct stat=\"ERROR\", msg=\"Starting plane value (%s) must be a non-negative integer\"]\n",
                argv[i+1]);
             exit(1);
          }
 
-         params.pend = strtol(argv[i+2], &end, 10);
+         params.kend = strtol(argv[i+2], &end, 10);
 
-         if(end < argv[i+2] + strlen(argv[i+2]) || params.pend < 0)
+         if(end < argv[i+2] + strlen(argv[i+2]) || params.kend < 0)
          {
-            printf("[struct stat=\"ERROR\", msg=\"HDU value (%s) must be a non-negative integer\"]\n",
+            printf("[struct stat=\"ERROR\", msg=\"Ending plane value (%s) must be a non-negative integer\"]\n",
                argv[i+1]);
             exit(1);
          }
 
          havePlane = 1;
          i+=2;
+      }
+      
+      if(i<argc-1 && strncmp(argv[i], "-D3", 3) == 0)
+      {
+         strcpy(params.dConstraint[0], argv[i+1]);
+
+         haveD3 = 1;
+         i+=1;
+      }
+      
+      if(i<argc-1 && strncmp(argv[i], "-D4", 3) == 0)
+      {
+         strcpy(params.dConstraint[1], argv[i+1]);
+
+         haveD4 = 1;
+         i+=1;
       }
       
       if(i<argc-1 && strncmp(argv[i], "-s", 2) == 0)
@@ -180,20 +198,121 @@ int main(int argc, char **argv)
       }
    }
       
+   if (havePlane && haveD3)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Cannot mix -P and -D3 constraint syntaxes.\"]\n");
+      exit(1);
+   }
+
+   params.nrange[0] = 0;
+
+   if(haveD3)
+   {
+      montage_parseSelectList(3, &params);
+
+      params.kbegin = params.range[0][0][0];
+      params.kend   = -1;
+
+      for(i=0; i<params.nrange[0]; ++i)
+      {
+         if(params.range[0][i][0] < params.kbegin)
+            params.kbegin = params.range[0][i][0];
+
+         if(params.range[0][i][0] != -1 && params.range[0][i][0] > params.kend)
+            params.kend = params.range[0][i][0];
+      }
+
+      params.naxes[2] = 0;
+
+      for(i=0; i<params.nrange[0]; ++i)
+      {
+         if(params.range[0][i][0] < params.kbegin)
+            params.kbegin = params.range[0][i][0];
+
+         if(params.range[0][i][0] > params.kend)
+            params.kend = params.range[0][i][0];
+
+         if(params.range[0][i][1] != -1 && params.range[0][i][1] > params.kend)
+            params.kend = params.range[0][i][1];
+
+         if(params.range[0][i][1] == -1)
+            ++params.naxes[2];
+         else
+            params.naxes[2] += params.range[0][i][1] - params.range[0][i][0] + 1;
+      }
+   }
+
+
+   params.nrange[1] = 0;
+
+   if(haveD4)
+   {
+      montage_parseSelectList(4, &params);
+
+      params.lbegin = params.range[1][0][0];
+      params.lend   = -1;
+
+      params.naxes[3] = 0;
+
+      for(i=0; i<params.nrange[1]; ++i)
+      {
+         if(params.range[1][i][0] < params.lbegin)
+            params.lbegin = params.range[1][i][0];
+
+         if(params.range[1][i][0] > params.lend)
+            params.lend = params.range[1][i][0];
+
+         if(params.range[1][i][1] != -1 && params.range[1][i][1] > params.lend)
+            params.lend = params.range[1][i][1];
+
+         if(params.range[1][i][1] == -1)
+            ++params.naxes[3];
+         else
+            params.naxes[3] += params.range[1][i][1] - params.range[1][i][0] + 1;
+      }
+   }
+
    if(debug)
    {
-      printf("DEBUG> Enter mSubimage: debug= %d\n", debug);
+      printf("DEBUG> mSubimage command parsing:\n\n");
       printf("DEBUG> nowcs      = %d\n", nowcs);
       printf("DEBUG> pixmode    = %d\n", pixmode);
       printf("DEBUG> shrinkWrap = %d\n", shrinkWrap);
       printf("DEBUG> allPixels  = %d\n", allPixels);
       printf("DEBUG> statfile   = %s\n", statfile);
-      printf("DEBUG> pbegin     = %d\n", params.pbegin);
-      printf("DEBUG> pend       = %d\n", params.pend);
+      printf("\nDEBUG> kbegin     = %d\n", params.kbegin);
+      printf("DEBUG> kend       = %d\n", params.kend);
+      printf("DEBUG> naxis[2]   = %d\n", params.naxes[2]);
+      printf("DEBUG> nrange3    = %d\n", params.nrange[0]);
+
+      if(params.nrange[0] > 0)
+      {
+         printf("\n");
+
+         for(i=0; i<params.nrange[0]; ++i)
+            printf("%4d: %6d %6d\n", i, params.range[0][i][0], params.range[0][i][1]);
+
+         printf("\n");
+      }
+
+      printf("\nDEBUG> lbegin     = %d\n", params.lbegin);
+      printf("DEBUG> lend       = %d\n", params.lend);
+      printf("DEBUG> naxis[3]   = %d\n", params.naxes[3]);
+      printf("DEBUG> nrange4    = %d\n", params.nrange[1]);
+
+      if(params.nrange[1] > 0)
+      {
+         printf("\n");
+
+         for(i=0; i<params.nrange[1]; ++i)
+            printf("%4d: %6d %6d\n", i, params.range[1][i][0], params.range[1][i][1]);
+
+         printf("\n");
+      }
+
       fflush(stdout);
    }
   
-
    if(debug)
    {
       ++argv;
@@ -244,15 +363,27 @@ int main(int argc, char **argv)
       argc -= 3;
    }
 
+   if(haveD3)
+   {
+      argv += 2;
+      argc -= 2;
+   }
+
+   if(haveD4)
+   {
+      argv += 2;
+      argc -= 2;
+   }
+
    if((shrinkWrap || allPixels) && argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-D3 selection-list][-D4 selection-list][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-D3 selection-list][-D4 selection-list][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-D3 selection-list][-D4 selection-list][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
       exit(1);
    }
 
    if (!shrinkWrap && !allPixels && (argc < 6 || (pixmode && argc < 6))) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-D3 selection-list][-D4 selection-list][-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-D3 selection-list][-D4 selection-list][-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-D3 selection-list][-D4 selection-list][-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
       exit(1);
    }
 
@@ -411,7 +542,7 @@ int main(int argc, char **argv)
    {
       if(debug) 
       {
-         printf("WCS handling\n");
+         printf("\nDEBUG> Checking WCS\n");
          fflush(stdout);
       }
   
@@ -772,7 +903,15 @@ int main(int argc, char **argv)
    if(fits_close_file(infptr, &status))
       montage_printFitsError(status);
 
-   fprintf(fstatus, "[struct stat=\"OK\", content=\"%s\"]\n", content);
+        if(params.nrange[0]  > 0 && params.nrange[1]  > 0)
+      fprintf(fstatus, "[struct stat=\"OK\", content=\"%s\", warning=\"Check CDELT, CRPIX values for axes 3 and 4.\"]\n", content);
+   else if(params.nrange[0]  > 0 && params.nrange[1] == 0)
+      fprintf(fstatus, "[struct stat=\"OK\", content=\"%s\", warning=\"Check CDELT, CRPIX values for axis 3.\"]\n", content);
+   else if(params.nrange[0] == 0 && params.nrange[1]  > 0)
+      fprintf(fstatus, "[struct stat=\"OK\", content=\"%s\", warning=\"Check CDELT, CRPIX values for axis 4.\"]\n", content);
+   else
+      fprintf(fstatus, "[struct stat=\"OK\", content=\"%s\"]\n", content);
+
    fflush(stdout);
    exit(0);
 }

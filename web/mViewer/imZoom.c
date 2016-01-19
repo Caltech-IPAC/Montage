@@ -318,7 +318,49 @@ int  imZoom (struct Mviewer *param)
 	    fflush (fdebug);
         }
     }
+    else if (strcasecmp (param->cmd, "replaceimplane") == 0) { 
 
+        if (param->cutoutWidth > 0)
+	    param->ns = param->cutoutWidth;
+	else
+	    param->ns = param->imageWidth;
+
+        if (param->cutoutHeight > 0)
+	    param->nl = param->cutoutHeight;
+	else
+	    param->nl = param->imageHeight;
+
+	
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "factor= [%lf] reffactor= [%lf]\n",
+	        factor, reffactor);
+            fflush (fdebug);
+        }
+
+        xmin = param->ss;
+	xmax = xmin + param->ns;
+	
+	ymin = param->sl;
+	ymax = ymin + param->nl;
+
+	if (xmin < 0.)
+	    xmin = 0.;
+
+	if (xmax > (double)param->imageWidth-1)
+	    xmax = (double)param->imageWidth-1;
+
+	if (ymin < 0.)
+	    ymin = 0.;
+
+	if (ymax > (double)param->imageHeight-1)
+	    ymax = (double)param->imageHeight-1;
+
+
+        param->xmin = xmin;
+        param->xmax = xmax;
+        param->ymin = ymin;
+        param->ymax = ymax;
+    } 
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
         fprintf (fdebug, "xmin= [%lf] xmax= [%lf]\n", xmin, xmax); 
@@ -412,7 +454,7 @@ int  imZoom (struct Mviewer *param)
         ((ns_subset < 5) || (nl_subset < 5))) {
    
         strcpy (param->errmsg, "New zoom area is less than 5x5 pixels "
-	    "-- too small for zoomIn operation."); 
+	    "-- too small for zoom in operation."); 
 	return (-1);
     }
 

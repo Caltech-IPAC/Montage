@@ -1009,7 +1009,75 @@ int makeImage (struct Mviewer *param)
 
 /*
     Run mViewer
+
+    If cmd = 'init', run mViewer on the original imageFile to get 
+    the datamin and datamax -- the shrunk image has the flux values altered.
 */
+    if ((strcasecmp (param->cmd, "init") == 0) ||
+        (strcasecmp (param->cmd, "replaceimplane") == 0)) {
+	
+        sprintf (jpgpath, "%s/%s_orig.jpg", param->directory, param->imageFile);
+
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "cmd= [%s] jpgpath= [%s]\n", param->cmd, jpgpath);
+	    fprintf (fdebug, "grayFile= [%s]\n", param->grayFile);
+	    fflush (fdebug);
+        }
+	
+	sprintf (cmd, 
+	  "mViewer -nowcs -ct 0 -grey %s/%s 0.2%% 99.8%% linear -out %s", 
+	    param->directory, param->grayFile, jpgpath);
+	
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "Run mViewer: cmd= [%s]\n", cmd);
+	    fflush (fdebug);
+        }
+  
+        istatus = svc_run (cmd);
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "returned svc_run: istatus= [%d]\n", istatus);
+	    fflush (fdebug);
+        }
+
+	strcpy (status, svc_value("stat"));
+
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "status= [%s]\n", status);
+	    fflush (fdebug);
+	}
+
+        if (strcasecmp (status, "error") == 0) {
+
+	    sprintf (param->errmsg, "Failed to run mViewer: %s.", 
+	        svc_value("msg"));
+        
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	        fprintf (fdebug, "errmsg= [%s]\n", param->errmsg);
+	        fflush (fdebug);
+	    }
+
+	    return (-1);
+        }
+	
+        param->datamin[0] = '\0';
+        if (svc_value("datamin") != (char *)NULL) {
+	    strcpy (param->datamin, svc_value("datamin"));
+        }
+        param->datamax[0] = '\0';
+        if (svc_value("datamax") != (char *)NULL) {
+	    strcpy (param->datamax, svc_value("datamax"));
+        }
+            
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "datamin= [%s] datamax= [%s]\n",
+		param->datamin, param->datamax);
+	        fflush (fdebug);
+	}
+        
+    }
+
+
     for (l=0; l<param->nim; l++) {
 	
         if (l == 0) { 
@@ -1266,7 +1334,8 @@ int makeImage (struct Mviewer *param)
 	            fprintf (fdebug, "xxx5\n");
 	            fflush (fdebug);
 	        }
-        
+
+/*
                 param->datamin[0] = '\0';
                 if (svc_value("datamin") != (char *)NULL) {
 	            strcpy (param->datamin, svc_value("datamin"));
@@ -1281,7 +1350,8 @@ int makeImage (struct Mviewer *param)
 		        param->datamin, param->datamax);
 	            fflush (fdebug);
 	        }
-        
+ */
+
     
                 param->minstr[0] = '\0';
                 if (svc_value("min") != (char *)NULL) {

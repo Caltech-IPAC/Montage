@@ -20,7 +20,7 @@ function mViewer(workspace, jsonFile, imgDivID)
 	console.log ("jsonFile= " + jsonFile);
         console.log ("imgDivID= " + imgDivID);
     }
-
+    
     me.cmd;
 
     me.workspace  = workspace;
@@ -99,7 +99,7 @@ function mViewer(workspace, jsonFile, imgDivID)
         if (me.debug) {
             console.log("DEBUG> mViewer.init()");
         }
-
+    
         me.initJSON   = {};
         me.updateJSON = {};
 
@@ -383,7 +383,7 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log("DEBUG> mViewer.submitUpdateRequest()");
             console.log ("DEBUG> me.cmd= " + me.cmd);
         }
-
+    
 /*
         me.grayOut(true, {'opacity':'50'});
         me.grayOutMessage(true);
@@ -471,7 +471,7 @@ function mViewer(workspace, jsonFile, imgDivID)
                 console.log ("jqXHR.responseJSON= " + jqXHR.responseJSON);
             }	
 	}
-
+        
         if (jqXHR == undefined) 
 	    return;
 
@@ -496,27 +496,26 @@ function mViewer(workspace, jsonFile, imgDivID)
             me.updateInProgress = false;
 	}
 
-        me.imgData = data;
 
 	if (me.debug) {
             console.log ("here1");
-            console.log ("typeof(me.imgData.error)= " 
-	        + typeof(me.imgData.error));
-            console.log ("typeof(me.imgData.status)= " 
-	        + typeof(me.imgData.status));
-            console.log ("me.imgData.status= " + me.imgData.status);
-            console.log ("me.imgData.error= " + me.imgData.error);
+            console.log ("typeof(data.error)= " 
+	        + typeof(data.error));
+            console.log ("typeof(data.status)= " 
+	        + typeof(data.status));
+            console.log ("data.status= " + data.status);
+            console.log ("data.error= " + data.error);
         }    
 	    
         
-	if (typeof(me.imgData.error) != "undefined")
+	if (typeof(data.error) != "undefined")
         {
             me.requestSubmitted = false;
 
             me.grayOutMessage(false);
             me.grayOut(false);
 
-            alert(me.imgData.error);
+            alert(data.error);
 
             me.updateInProgress = false;
 
@@ -531,10 +530,12 @@ function mViewer(workspace, jsonFile, imgDivID)
 
             return;
         }
+        
 
 /*
     Successful: update JSON
 */
+	me.imgData = data;
 	me.updateJSON = jqXHR.responseJSON;
 
 	if (me.updateJSON === jqXHR.responseJSON) {
