@@ -97,6 +97,8 @@ struct WorldCoor *wcs;
 
 double dtr;
 
+double mynan;
+
 int debug;
 
 
@@ -271,12 +273,10 @@ int main(int argc, char **argv)
    }
    value;
 
-   double nan;
-
    for(i=0; i<8; ++i)
       value.c[i] = 255;
 
-   nan = value.d;
+   mynan = value.d;
 
    dtr = atan(1.)/45.;
 
@@ -1686,9 +1686,9 @@ int main(int argc, char **argv)
       {
 	 for(i=0; i<nelements; ++i)
 	 {
-	    rfitsbuf[i] = nan;
-	    gfitsbuf[i] = nan;
-	    bfitsbuf[i] = nan;
+	    rfitsbuf[i] = mynan;
+	    gfitsbuf[i] = mynan;
+	    bfitsbuf[i] = mynan;
 	 }
 
 	 j = jstart + jj*jinc;
@@ -1700,7 +1700,7 @@ int main(int argc, char **argv)
 	 {
 	    fpixel[1] = j - redyoff + 1;
 
-	    if(fits_read_pix(redfptr, TDOUBLE, fpixel, rednaxis1, &nan,
+	    if(fits_read_pix(redfptr, TDOUBLE, fpixel, rednaxis1, &mynan,
 			     rfitsbuf, &nullcnt, &status))
 	       printFitsError(status);
 	 }
@@ -1712,7 +1712,7 @@ int main(int argc, char **argv)
 	 {
 	    fpixel[1] = j - greenyoff + 1;
 
-	    if(fits_read_pix(greenfptr, TDOUBLE, fpixel, greennaxis1, &nan,
+	    if(fits_read_pix(greenfptr, TDOUBLE, fpixel, greennaxis1, &mynan,
 			     gfitsbuf, &nullcnt, &status))
 	       printFitsError(status);
 	 }
@@ -1724,7 +1724,7 @@ int main(int argc, char **argv)
 	 {
 	    fpixel[1] = j - blueyoff + 1;
 
-	    if(fits_read_pix(bluefptr, TDOUBLE, fpixel, bluenaxis1, &nan,
+	    if(fits_read_pix(bluefptr, TDOUBLE, fpixel, bluenaxis1, &mynan,
 			     bfitsbuf, &nullcnt, &status))
 	       printFitsError(status);
 	 }
@@ -1740,7 +1740,7 @@ int main(int argc, char **argv)
 	    ipix = i + istart - redxoff;
 
 	    if(ipix < 0 || ipix >= rednaxis1)
-	       redval = nan;
+	       redval = mynan;
 	    else
 	       redval = rfitsbuf[ipix];
 
@@ -1818,7 +1818,7 @@ int main(int argc, char **argv)
 	    ipix = i + istart - greenxoff;
 
 	    if(ipix < 0 || ipix >= greennaxis1)
-	       greenval = nan;
+	       greenval = mynan;
 	    else
 	       greenval = gfitsbuf[ipix];
 
@@ -1895,7 +1895,7 @@ int main(int argc, char **argv)
 	    ipix = i + istart - bluexoff;
 
 	    if(ipix < 0 || ipix >= bluenaxis1)
-	       blueval = nan;
+	       blueval = mynan;
 	    else
 	       blueval = bfitsbuf[ipix];
 
@@ -2432,7 +2432,7 @@ int main(int argc, char **argv)
 
 	 fpixel[1] = j+1;
 
-         if(fits_read_pix(grayfptr, TDOUBLE, fpixel, nelements, &nan,
+         if(fits_read_pix(grayfptr, TDOUBLE, fpixel, nelements, &mynan,
                           fitsbuf, &nullcnt, &status))
             printFitsError(status);
 
@@ -3252,7 +3252,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &mynan,
 		       data, &nullcnt, &status))
 	 printFitsError(status);
       
@@ -3289,7 +3289,7 @@ void getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(j=0; j<imnaxis2; ++j) 
    {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
+      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &mynan,
 		       data, &nullcnt, &status))
 	 printFitsError(status);
 
