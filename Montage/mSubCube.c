@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.1      John Good        24Feb16  Fixed variable initializatio problem.
 1.0      John Good        15May15  Baseline code, based on mSubimage.c of this date.
 
 */
@@ -97,6 +98,16 @@ int main(int argc, char **argv)
    havePlane  = 0;
    haveD3     = 0;
    haveD4     = 0;
+   imin       = 0;
+   imax       = 0;
+   jmin       = 0;
+   jmax       = 0;
+
+   for(i=0; i<10; ++i)
+      cdelt[i] = 0.;
+
+   strcpy(params.dConstraint[1], "");
+   strcpy(params.dConstraint[2], "");
 
    fstatus = stdout;
 
@@ -118,24 +129,24 @@ int main(int argc, char **argv)
    params.kbegin = -1;
    params.kend   = -1;
    
-   for(i=0; i<argc; ++i)
+   for(i=1; i<argc; ++i)
    {
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
       
-      if(strcmp(argv[i], "-nowcs") == 0)
+      else if(strcmp(argv[i], "-nowcs") == 0)
          nowcs = 1;
       
-      if(strcmp(argv[i], "-a") == 0)
+      else if(strcmp(argv[i], "-a") == 0)
          allPixels = 1;
       
-      if(strcmp(argv[i], "-p") == 0)
+      else if(strcmp(argv[i], "-p") == 0)
          pixmode = 1;
       
-      if(strcmp(argv[i], "-c") == 0)
+      else if(strcmp(argv[i], "-c") == 0)
          shrinkWrap = 1;
 
-      if(i<argc-1 && strncmp(argv[i], "-h", 2) == 0)
+      else if(i<argc-1 && strncmp(argv[i], "-h", 2) == 0)
       {
          hdu = strtol(argv[i+1], &end, 10);
 
@@ -150,7 +161,7 @@ int main(int argc, char **argv)
          ++i;
       }
       
-      if(i<argc-2 && strncmp(argv[i], "-P", 2) == 0)
+      else if(i<argc-2 && strncmp(argv[i], "-P", 2) == 0)
       {
          params.kbegin = strtol(argv[i+1], &end, 10);
 
@@ -174,7 +185,7 @@ int main(int argc, char **argv)
          i+=2;
       }
       
-      if(i<argc-1 && strncmp(argv[i], "-D3", 3) == 0)
+      else if(i<argc-1 && strncmp(argv[i], "-D3", 3) == 0)
       {
          strcpy(params.dConstraint[0], argv[i+1]);
 
@@ -182,7 +193,7 @@ int main(int argc, char **argv)
          i+=1;
       }
       
-      if(i<argc-1 && strncmp(argv[i], "-D4", 3) == 0)
+      else if(i<argc-1 && strncmp(argv[i], "-D4", 3) == 0)
       {
          strcpy(params.dConstraint[1], argv[i+1]);
 
@@ -190,12 +201,21 @@ int main(int argc, char **argv)
          i+=1;
       }
       
-      if(i<argc-1 && strncmp(argv[i], "-s", 2) == 0)
+      else if(i<argc-1 && strncmp(argv[i], "-s", 2) == 0)
       {
          strcpy(statfile, argv[i+1]);
 
          ++i;
       }
+
+      else if(argv[i][0] == '-')
+      {
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid flag %s.\"]\n", argv[i]);
+         exit(1);
+      }
+
+      else
+         break;
    }
       
    if (havePlane && haveD3)
@@ -204,7 +224,11 @@ int main(int argc, char **argv)
       exit(1);
    }
 
+   params.naxes [2] = 0;
    params.nrange[0] = 0;
+
+   params.kbegin = 1;
+   params.kend   = 1;
 
    if(haveD3)
    {
@@ -221,8 +245,6 @@ int main(int argc, char **argv)
          if(params.range[0][i][0] != -1 && params.range[0][i][0] > params.kend)
             params.kend = params.range[0][i][0];
       }
-
-      params.naxes[2] = 0;
 
       for(i=0; i<params.nrange[0]; ++i)
       {
@@ -243,7 +265,11 @@ int main(int argc, char **argv)
    }
 
 
+   params.naxes [3] = 0;
    params.nrange[1] = 0;
+
+   params.lbegin = 1;
+   params.lend   = 1;
 
    if(haveD4)
    {
@@ -251,8 +277,6 @@ int main(int argc, char **argv)
 
       params.lbegin = params.range[1][0][0];
       params.lend   = -1;
-
-      params.naxes[3] = 0;
 
       for(i=0; i<params.nrange[1]; ++i)
       {
@@ -280,7 +304,7 @@ int main(int argc, char **argv)
       printf("DEBUG> shrinkWrap = %d\n", shrinkWrap);
       printf("DEBUG> allPixels  = %d\n", allPixels);
       printf("DEBUG> statfile   = %s\n", statfile);
-      printf("\nDEBUG> kbegin     = %d\n", params.kbegin);
+      printf("DEBUG> kbegin     = %d\n", params.kbegin);
       printf("DEBUG> kend       = %d\n", params.kend);
       printf("DEBUG> naxis[2]   = %d\n", params.naxes[2]);
       printf("DEBUG> nrange3    = %d\n", params.nrange[0]);

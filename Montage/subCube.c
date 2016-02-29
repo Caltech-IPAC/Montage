@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.2      John Good        24Feb16  Fixed variable initialization problem.
 1.1      John Good        08Sep15  fits_read_pix() incorrect null value
 1.0      John Good        15May15  Baseline code, based on subImage.c of that date.
 
@@ -32,20 +33,39 @@ extern FILE *fstatus;
 struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct imageParams *params)
 {
    struct WorldCoor *wcs;
+
+   int naxis2;
    int status = 0;
    int i;
 
+   status = 0;
    if(fits_get_image_wcs_keys(infptr, header, &status))
       montage_printFitsError(status);
 
+   status = 0;
    if(fits_read_key_lng(infptr, "NAXIS", &params->naxis, (char *)NULL, &status))
       montage_printFitsError(status);
    
+   status = 0;
    if(fits_read_keys_lng(infptr, "NAXIS", 1, params->naxis, params->naxesin, &params->nfound, &status))
       montage_printFitsError(status);
    
    params->naxes[0] = params->naxesin[0];
    params->naxes[1] = params->naxesin[1];
+
+   if(params->naxis < 3 && strlen(params->dConstraint[0]) > 0)
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"D3 constraints set but this is a 2D image.\"]\n");
+      fflush(fstatus);
+      exit(1);
+   }
+
+   if(params->naxis < 4 && strlen(params->dConstraint[1]) > 0)
+   {
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"D4 constraints set but this is a 3D datacube.\"]\n");
+      fflush(fstatus);
+      exit(1);
+   }
 
    if(params->naxis < 3)
       params->naxes[2] = 1;
@@ -83,20 +103,6 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
       exit(1);
    }
 
-   if(debug)
-   {
-      printf("subCube> naxis1 = %ld\n",  params->naxes[0], params->ibegin, params->iend);
-      printf("subCube> naxis2 = %ld\n",  params->naxes[1], params->jbegin, params->jend);
-
-      if(params->naxis > 2)
-      printf("subCube> naxis3 = %ld\n",  params->naxes[2], params->kbegin, params->kend);
-
-      if(params->naxis > 3)
-      printf("subCube> naxis4 = %ld\n",  params->naxes[3], params->lbegin, params->lend);
-
-      fflush(stdout);
-   }
-
 
    /****************************************/
    /* Initialize the WCS transform library */
@@ -123,11 +129,11 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
    params->crpix[0] = wcs->xrefpix;
    params->crpix[1] = wcs->yrefpix;
 
+   status = 0;
    fits_read_key(infptr, TDOUBLE, "CRPIX3", &(params->crpix[2]), (char *)NULL, &status);
-   status = 0;
 
-   fits_read_key(infptr, TDOUBLE, "CRPIX4", &(params->crpix[3]), (char *)NULL, &status);
    status = 0;
+   fits_read_key(infptr, TDOUBLE, "CRPIX4", &(params->crpix[3]), (char *)NULL, &status);
 
    if(params->isDSS)
    {
@@ -141,8 +147,10 @@ struct WorldCoor *montage_getFileInfo(fitsfile *infptr, char *header[], struct i
 int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imageParams *params)
 {
    double tmp, tmp3, tmp4;
+   int  naxis2;
    int status = 0;
    
+   status = 0;
    if(fits_copy_header(infptr, outfptr, &status))
       montage_printFitsError(status);
 
@@ -151,19 +159,24 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
    /* Update header info */
    /**********************/
 
+   status = 0;
    if(fits_update_key_lng(outfptr, "BITPIX", -64,
                                   (char *)NULL, &status))
       montage_printFitsError(status);
 
+   status = 0;
    if(fits_update_key_lng(outfptr, "NAXIS", params->naxis,
                                   (char *)NULL, &status))
       montage_printFitsError(status);
 
+   status = 0;
    if(fits_update_key_lng(outfptr, "NAXIS1", params->nelements,
                                   (char *)NULL, &status))
       montage_printFitsError(status);
 
-   if(fits_update_key_lng(outfptr, "NAXIS2", params->naxes[1],
+   naxis2 = params->jend - params->jbegin + 1;
+   status = 0;
+   if(fits_update_key_lng(outfptr, "NAXIS2", naxis2,
                                   (char *)NULL, &status))
       montage_printFitsError(status);
 
@@ -171,12 +184,14 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
    {
       tmp = params->cnpix[0] + params->ibegin - 1;
 
+      status = 0;
       if(fits_update_key_dbl(outfptr, "CNPIX1", tmp, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
 
       tmp = params->cnpix[1] + params->jbegin - 1;
 
+      status = 0;
       if(fits_update_key_dbl(outfptr, "CNPIX2", tmp, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
@@ -185,12 +200,14 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
    {
       tmp = params->crpix[0] - params->ibegin + 1;
 
+      status = 0;
       if(fits_update_key_dbl(outfptr, "CRPIX1", tmp, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
 
       tmp = params->crpix[1] - params->jbegin + 1;
 
+      status = 0;
       if(fits_update_key_dbl(outfptr, "CRPIX2", tmp, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
@@ -198,12 +215,14 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
 
    if(params->naxis > 2)
    {
+      status = 0;
       if(fits_update_key_lng(outfptr, "NAXIS3", params->naxes[2],
                                      (char *)NULL, &status))
          montage_printFitsError(status);
 
       tmp3 = params->crpix[2] - params->kbegin + 1;
 
+      status = 0;
       if(fits_update_key_dbl(outfptr, "CRPIX3", tmp3, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
@@ -211,12 +230,14 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
 
    if(params->naxis > 3)
    {
+      status = 0;
       if(fits_update_key_lng(outfptr, "NAXIS4", params->naxes[3],
                                      (char *)NULL, &status))
          montage_printFitsError(status);
 
       tmp4 = params->crpix[3] - params->lbegin + 1;
 
+      status = 0;
       if(fits_update_key_dbl(outfptr, "CRPIX4", tmp4, -14,
                                      (char *)NULL, &status))
          montage_printFitsError(status);
@@ -225,17 +246,17 @@ int montage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct imagePara
    if(debug)
    {
       printf("subCube> naxis1 -> %ld\n", params->nelements);
-      printf("subCube> naxis2 -> %d\n",  params->naxes[1]);
+      printf("subCube> naxis2 -> %d\n",  naxis2);
 
       if(params->naxis > 2)
       {
-         printf("subCube> naxis3 -> %d\n",  params->naxes[2]);
+         printf("subCube> naxis3 -> %ld\n",  params->naxes[2]);
          printf("subCube> crpix3 -> %-g\n",  tmp3);
       }
 
       if(params->naxis > 3)
       {
-         printf("subCube> naxis4 -> %d\n",  params->naxes[3]);
+         printf("subCube> naxis4 -> %ld\n",  params->naxes[3]);
          printf("subCube> crpix4 -> %-g\n",  tmp4);
       }
 
@@ -285,6 +306,12 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
    nan = value.d;
 
+   if(debug)
+   {
+      printf("copyData> lbegin, lend = %5d %5d\n", params->lbegin, params->lend);
+      printf("copyData> kbegin, kend = %5d %5d\n", params->kbegin, params->kend);
+      fflush(stdout);
+   }
 
    fpixel[1] = params->jbegin;
    fpixel[2] = params->kbegin;
@@ -383,8 +410,8 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
          if(debug)
          {
-            printf("copyData> Processing input 4/3  %5d %5d",    fpixel[3],  fpixel[2]);
-            printf(                     " to output %5d %5d\n", fpixelo[3], fpixelo[2]);
+            printf("copyData> Processing input 4/3  %5ld %5ld",    fpixel[3],  fpixel[2]);
+            printf(                     " to output %5ld %5ld\n", fpixelo[3], fpixelo[2]);
             fflush(stdout);
          }
 
@@ -399,11 +426,12 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
 
             if(debug)
             {
-               printf("copyData> Processing input %5d/%5d, row %5d",             fpixel[3],  fpixel[2],  fpixel[1]);
-               printf(                " to output %5d/%5d, row %5d: read ... ", fpixelo[3], fpixelo[2], fpixelo[1]);
+               printf("copyData> Processing input %5ld/%5ld, row %5ld",             fpixel[3],  fpixel[2],  fpixel[1]);
+               printf(                " to output %5ld/%5ld, row %5ld: read ... ", fpixelo[3], fpixelo[2], fpixelo[1]);
                fflush(stdout);
             }
 
+            status = 0;
             if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
                              buffer, &nullcnt, &status))
                montage_printFitsError(status);
@@ -426,6 +454,7 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
                fflush(stdout);
             }
 
+            status = 0;
             if (fits_write_pix(outfptr, TDOUBLE, fpixelo, params->nelements,
                                (void *)buffer, &status))
                montage_printFitsError(status);
@@ -482,9 +511,11 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
 
    nan = value.d;
 
+   status = 0;
    if(fits_read_key_lng(infptr, "NAXIS", &naxis, (char *)NULL, &status))
       montage_printFitsError(status);
    
+   status = 0;
    if(fits_read_keys_lng(infptr, "NAXIS", 1, naxis, naxes, &nfound, &status))
       montage_printFitsError(status);
 
@@ -512,6 +543,7 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
                fflush(stdout);
             }
 
+            status = 0;
             if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], &nan,
                              buffer, &nullcnt, &status))
                montage_printFitsError(status);
@@ -670,6 +702,8 @@ int montage_parseSelectList(int ind, struct imageParams *params)
    }
 
    params->nrange[index] = nrange;
+
+   return 0;
 }
 
 
