@@ -2,7 +2,8 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-1.1      John Good        24Feb16  Fixed variable initializatio problem.
+1.2      John Good        24Feb16  Fixed variable initialization problem.
+1.1      John Good        01Feb16  Augmented arguments to allow lists of planes in 3rd and 4th dimensions
 1.0      John Good        15May15  Baseline code, based on mSubimage.c of this date.
 
 */
