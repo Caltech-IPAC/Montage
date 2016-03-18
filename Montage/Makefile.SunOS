@@ -50,7 +50,7 @@ CC     =	gcc
 MPICC  =
 CFLAGS =	-g -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
 LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
-		-lboundaries -lpixbounds -ltwoplane -lsocket -lnsl -lm
+		   -lwww -lboundaries -lpixbounds -ltwoplane -lsocket -lnsl -lm
 
 SBINS  = mAdd mAddCube mAddExec mBackground mBgExec mBgModel mConvert mCoverageCheck mDiff mDiffExec \
          mDiffFitExec mFitExec mFitplane mFlattenExec mGetHdr mHdrCheck mHdrtbl mImgtbl mMakeHdr mMakeImg \

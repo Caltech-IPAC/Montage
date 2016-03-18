@@ -116,7 +116,7 @@ int main(int argc, char **argv)
    int       narea1, narea2;
    double    avearea1, avearea2;
 
-   double    pixel_value;
+   double    pixel_value, factor;
 
    double  **data;
    double  **area;
@@ -163,11 +163,13 @@ int main(int argc, char **argv)
    debug   = 0;
    noAreas = 0;
 
-   opterr = 0;
+   opterr =  0;
+
+   factor =  1.;
 
    fstatus = stdout;
 
-   while ((c = getopt(argc, argv, "nd:s:")) != EOF) 
+   while ((c = getopt(argc, argv, "nd:s:z:")) != EOF) 
    {
       switch (c) 
       {
@@ -186,6 +188,10 @@ int main(int argc, char **argv)
                   optarg);
                exit(1);
             }
+            break;
+
+         case 'z':
+            factor = atof(optarg);
             break;
 
          default:
@@ -682,7 +688,7 @@ int main(int argc, char **argv)
                      fflush(stdout);
                   }
 
-                  data[j+jmin-jstart][i+imin-istart] -= pixel_value;
+                  data[j+jmin-jstart][i+imin-istart] -= factor*pixel_value;
                   area[j+jmin-jstart][i+imin-istart] += abuffer[i];
 
                   ++narea2;

@@ -482,7 +482,7 @@ int RTreeReorganize(struct Node *N, int maxlev, struct Node *M, int start)
    indentStr[indent] = '\0';
  
  
-   assert(n->level >= 0);
+   // assert(n->level >= 0);
  
    if(refdebug)
    {

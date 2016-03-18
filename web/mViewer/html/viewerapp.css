@@ -132,6 +132,15 @@
        border-radius:30px;
     }
    
+   input.smallhelpbtn {
+       background-color: #ffffe0;
+       color:#880000;
+       font:bold 12px 'Times New Roman',Times,serif;
+       padding:2px 8px 2px 8px;
+       border-radius:30px;
+    }
+   
+   
    input.btn {
        background-color: #f0f0f0;
        color:#114477;

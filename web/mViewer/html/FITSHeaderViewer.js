@@ -87,17 +87,15 @@ function FITSHeaderViewer(fitsHeaderDivName, viewer)
       {
          if (xmlhttp.readyState==4 && xmlhttp.status==200)
          {
-            var xml = xmlhttp.responseXML;
+            var returnJSON = jQuery.parseJSON(xmlhttp.responseText);
 
-            if(xml && xml.getElementsByTagName("error").length > 0)
+            if(returnJSON && returnJSON.error)
             {
-               var error = xml.getElementsByTagName("error")[0].childNodes[0].nodeValue;
-
                jQuery(me.fitsHeaderDiv).html("<div>Remote server error[1].</div>");
             }
 
             else
-               jQuery(me.fitsHeaderDiv).find(".fitsHdr").html(xmlhttp.responseText);
+               jQuery(me.fitsHeaderDiv).find(".fitsHdr").load(returnJSON.url);
          }
       }
 

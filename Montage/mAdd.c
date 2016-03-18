@@ -214,6 +214,8 @@ int  debug;
 int  haveAreas = 0;
 int  status    = 0;
 
+int  isCAR = 0;
+
 static time_t currtime, start;
 
 
@@ -268,6 +270,7 @@ struct outfile
   fitsfile *fptr;
   long      naxes[2];
   double    crpix1, crpix2;
+  double    crval1, crval2;
 }
 output, output_area;
 
@@ -320,6 +323,7 @@ int main(int argc, char **argv)
    char      errstr       [MAXSTR];
 
    int       ifile, nfile;
+   char    **inctype1, **inctype2;
    double   *incrpix1, *incrpix2;
    double   *incrval1, *incrval2;
    double   *incdelt1, *incdelt2;
@@ -333,6 +337,8 @@ int main(int argc, char **argv)
    int       ifname;
    int       inaxis1;
    int       inaxis2;
+   int       ictype1;
+   int       ictype2;
    int       icrval1;
    int       icrval2;
    int       icrpix1;
@@ -340,9 +346,11 @@ int main(int argc, char **argv)
    int       icdelt1;
    int       icdelt2;
 
-   double nom_crval1, nom_crval2;
-   double nom_cdelt1, nom_cdelt2;
-   double dtr;
+   double    nom_crval1, nom_crval2;
+   double    nom_cdelt1, nom_cdelt2;
+   double    dtr;
+
+   double    valOffset;
 
 #ifdef MPI
    int MPI_size, MPI_rank, MPI_err;
@@ -603,6 +611,8 @@ int main(int argc, char **argv)
 
    icntr   = tcol("cntr");
    ifname  = tcol("fname");
+   ictype1 = tcol("ctype1");
+   ictype2 = tcol("ctype2");
    icdelt1 = tcol("cdelt1");
    icdelt2 = tcol("cdelt2");
    icrval1 = tcol("crval1");
@@ -633,10 +643,11 @@ int main(int argc, char **argv)
    /* Were all required columns present? */
    /**************************************/
 
-   if(icntr  < 0 || ifname < 0 || icdelt1 < 0 || icdelt2 < 0 || icrpix1 < 0 
-      || icrpix2 < 0 || inaxis1 < 0 || inaxis2 < 0 || icrval1 < 0 || icrval2 < 0)
+   if(icntr   < 0 || ifname  < 0 || icdelt1 < 0 || icdelt2 < 0 || icrpix1 < 0 
+   || icrpix2 < 0 || inaxis1 < 0 || inaxis2 < 0 || icrval1 < 0 || icrval2 < 0
+   || ictype1 < 0 || ictype2 < 0)
    {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Need columns: cntr,fname, crpix1, crpix2, cdelt1, cdelt2, naxis1, naxis2, crval1, crval2 in image list\"]\n");
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Need columns: cntr,fname, crpix1, crpix2, cdelt1, cdelt2, naxis1, naxis2, crval1, crval2 ctype1, ctype2 in image list\"]\n");
       exit(1);
    }
 
@@ -648,6 +659,8 @@ int main(int argc, char **argv)
    cntr     = (int *)    malloc(maxfile * sizeof(int)   );
    infile   = (char **)  malloc(maxfile * sizeof(char *));
    inarea   = (char **)  malloc(maxfile * sizeof(char *));
+   inctype1 = (char **)  malloc(maxfile * sizeof(char *));
+   inctype2 = (char **)  malloc(maxfile * sizeof(char *));
    incdelt1 = (double *) malloc(maxfile * sizeof(double));
    incdelt2 = (double *) malloc(maxfile * sizeof(double));
    incrval1 = (double *) malloc(maxfile * sizeof(double));
@@ -657,10 +670,14 @@ int main(int argc, char **argv)
    innaxis1 = (int *)    malloc(maxfile * sizeof(int)   );
    innaxis2 = (int *)    malloc(maxfile * sizeof(int)   );
 
+
    for(ifile=0; ifile<maxfile; ++ifile)
    {
       infile[ifile] = (char *)malloc(namelen*sizeof(char));
       inarea[ifile] = (char *)malloc(namelen*sizeof(char));
+
+      inctype1[ifile] = (char *)malloc(32*sizeof(char));
+      inctype2[ifile] = (char *)malloc(32*sizeof(char));
    }
 
    if(debug >= 1)
@@ -696,6 +713,9 @@ int main(int argc, char **argv)
       incrpix2[nfile] = atof(tval(icrpix2));
       innaxis1[nfile] = atoi(tval(inaxis1));
       innaxis2[nfile] = atoi(tval(inaxis2));
+
+      strcpy(inctype1[nfile], tval(ictype1));
+      strcpy(inctype2[nfile], tval(ictype2));
 
 
       /********************************/
@@ -797,6 +817,8 @@ int main(int argc, char **argv)
          cntr     = (int *)    realloc(cntr,     maxfile * sizeof(int)   );
          infile   = (char **)  realloc(infile,   maxfile * sizeof(char *));
          inarea   = (char **)  realloc(inarea,   maxfile * sizeof(char *));
+         inctype1 = (char **)  realloc(inctype1, maxfile * sizeof(char *));
+         inctype2 = (char **)  realloc(inctype2, maxfile * sizeof(char *));
          incrval1 = (double *) realloc(incrval1, maxfile * sizeof(double));
          incrval2 = (double *) realloc(incrval2, maxfile * sizeof(double));
          incrpix1 = (double *) realloc(incrpix1, maxfile * sizeof(double));
@@ -810,6 +832,9 @@ int main(int argc, char **argv)
          {
             infile[ifile] = (char *)malloc(namelen*sizeof(char));
             inarea[ifile] = (char *)malloc(namelen*sizeof(char));
+
+            inctype1[ifile] = (char *)malloc(32*sizeof(char));
+            inctype2[ifile] = (char *)malloc(32*sizeof(char));
 
             if(!inarea[ifile]) allocError("file info (realloc)");
          }
@@ -840,6 +865,46 @@ int main(int argc, char **argv)
          (double)(currtime - start));
       fflush(stdout);
    }
+
+
+   /*****************************************************/
+   /* Special handling for CAR projection, where we can */
+   /* shift CRVAL/CRPIX by full pixels with impunity    */
+   /*****************************************************/
+
+   if(strstr(inctype1[0], "-CAR") != 0)
+   {
+      isCAR = 1;
+
+      for(ifile=0; ifile<nfile; ++ifile)
+      {
+         valOffset = (output.crval1 - incrval1[ifile])/incdelt1[ifile];
+
+         if(fabs(floor(valOffset+0.5) - valOffset) > 0.1)
+         {
+            sprintf(errstr, "CRVAL1 CAR pixel offset (%-g) not integer for image %s", valOffset, infile[ifile]);
+            printError(errstr);
+         }
+
+         incrpix1[ifile] = incrpix1[ifile] + valOffset;
+
+
+         valOffset = (output.crval2 - incrval2[ifile])/incdelt2[ifile];
+
+         if(fabs(floor(valOffset+0.5) - valOffset) > 0.1)
+         {
+            sprintf(errstr, "CRVAL2 CAR pixel offset (%.2f) not integer for image %s", valOffset, infile[ifile]);
+            printError(errstr);
+         }
+
+         incrpix2[ifile] = incrpix2[ifile] + valOffset;
+
+
+         incrval1[ifile] = output.crval1;
+         incrval2[ifile] = output.crval2;
+      }
+   }
+
 
 
    /*************************************************/
@@ -1574,16 +1639,19 @@ int main(int argc, char **argv)
                printError(errstr);
             }
 
-            if(fabs(imgWCS->xref - hdrWCS->xref) > 1.e-8)
+            if(!isCAR)
             {
-               sprintf(errstr, "Image %s header CRVAL1 does not match template", infile[ifile]);
-               printError(errstr);
-            }
+               if(fabs(imgWCS->xref - hdrWCS->xref) > 1.e-8)
+               {
+                  sprintf(errstr, "Image %s header CRVAL1 does not match template", infile[ifile]);
+                  printError(errstr);
+               }
 
-            if(fabs(imgWCS->yref - hdrWCS->yref) > 1.e-8)
-            {
-               sprintf(errstr, "Image %s header CRVAL2 does not match template", infile[ifile]);
-               printError(errstr);
+               if(fabs(imgWCS->yref - hdrWCS->yref) > 1.e-8)
+               {
+                  sprintf(errstr, "Image %s header CRVAL2 does not match template", infile[ifile]);
+                  printError(errstr);
+               }
             }
 
             if(fabs(imgWCS->cd[0] - hdrWCS->cd[0]) > 1.e-8
@@ -2089,6 +2157,18 @@ void parseLine(char *line)
    {
       output.crpix2 = atof(value);
       output_area.crpix2 = atof(value);
+   }
+
+   if(strcmp(keyword, "CRVAL1") == 0)
+   {
+      output.crval1 = atof(value);
+      output_area.crval1 = atof(value);
+   }
+
+   if(strcmp(keyword, "CRVAL2") == 0)
+   {
+      output.crval2 = atof(value);
+      output_area.crval2 = atof(value);
    }
 }
 

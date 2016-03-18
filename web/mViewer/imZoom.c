@@ -188,8 +188,177 @@ int  imZoom (struct Mviewer *param)
 	param->ymax = ymax;
 
     }
-    else if ((strcasecmp (param->cmd, "zoomin") == 0) ||
-        (strcasecmp (param->cmd, "zoomout") == 0)) {
+    else if (strcasecmp (param->cmd, "zoomin") == 0) {
+        
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "cmd= [%s]\n", param->cmd); 
+            fprintf (fdebug, "ss= [%.1f] sl= [%.1f]\n", 
+	        param->ss, param->sl); 
+            fprintf (fdebug, "cutoutWidth= [%d] cutoutHeight= [%d]\n", 
+	        param->cutoutWidth, param->cutoutHeight); 
+            fprintf (fdebug, "imageWidth= [%d] imageHeight= [%d]\n", 
+	        param->imageWidth, param->imageHeight); 
+            fprintf (fdebug, "canvasWith= [%d] canvasHtigh= [%d]\n", 
+	        param->canvasWidth, param->canvasWidth); 
+            fflush (fdebug);
+        }
+
+        if (param->cutoutWidth > 0)
+	    param->ns = param->cutoutWidth;
+	else
+	    param->ns = param->imageWidth;
+
+        if (param->cutoutHeight > 0)
+	    param->nl = param->cutoutHeight;
+	else
+	    param->nl = param->imageHeight;
+
+	xmin = param->ss;
+	ymin = param->sl;
+        
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "ns= [%d] nl= [%d]\n", param->ns, param->nl);
+            fprintf (fdebug, "xmin= [%lf] ymin= [%lf]\n", xmin, ymin);
+            fflush (fdebug);
+        }
+
+	if (strcasecmp (param->cmd, "zoomin") == 0) {
+	    new_factor = factor * sqrt(2.);
+	}
+	else if (strcasecmp (param->cmd, "zoomout") == 0) {
+	    new_factor = factor / sqrt(2.);
+        }
+	
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "new factor: factor= [%lf] reffactor= [%lf]\n",
+	        new_factor, reffactor);
+            fflush (fdebug);
+        }
+
+        xdim = param->ns;
+	ydim = param->nl;
+
+        if (xdim > ydim) {
+	    ydim = xdim;
+	}
+	else if (ydim > xdim) {
+	    xdim = ydim;
+	}
+
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "xdim= [%d] ydim= [%d]\n", xdim, ydim);
+            fprintf (fdebug, "xdim*new_factor= [%d] ydim*new_factor= [%d]\n", 
+	        (int)(xdim*new_factor), (int)(ydim*new_factor));
+            fflush (fdebug);
+            fflush (fdebug);
+        }
+
+/*
+    If the 'dimension*new_factor' still fits the canvas, don't change the xmin, xmax
+*/
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "canvasWidth= [%d] xdim*new_factor= [%d]\n",
+		param->canvasWidth, (int)(xdim*new_factor));
+            fflush (fdebug);
+        }
+ 
+        if ((int)(param->ns*new_factor) > param->canvasWidth) {
+
+/*
+    dx for computing the center of cutout image
+*/
+	    dx = (double)param->ns/ 2.0;
+	    xc = xmin + dx;
+
+/*
+    adjust dy for cutout size
+*/
+	    dx = (double)xdim / 2.0;
+
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "current dx= [%lf] xc= [%lf]\n", dx, xc);
+                fflush (fdebug);
+            }
+            
+	    dx = dx*factor/new_factor;
+	    xmin = xc - dx;
+	    xmax = xc + dx;
+	    
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "new dx= [%lf]\n", dx);
+                fprintf (fdebug, "new xmin= [%lf] xmax= [%lf]\n", xmin, xmax);
+                fflush (fdebug);
+            }
+	
+	    if (xmin < 0.)
+	        xmin = 0.;
+
+	    if (xmax > (double)param->imageWidth-1)
+	        xmax = (double)param->imageWidth-1;
+	
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "adjusted by the imageWidth xmin= [%lf] xmax= [%lf]\n",
+		    xmin, xmax);
+                fflush (fdebug);
+            }
+        }
+	else {
+	    xmax = (double)param->ns-1;
+	}
+
+        if ((int)(param->nl*new_factor) > param->canvasHeight) {
+
+/*
+    dy for computing the center of cutout image
+*/
+	    dy = (double)param->nl/ 2.0;
+	    yc = ymin + dy;
+
+/*
+    adjust dy for cutout size
+*/
+	    dy = (double)ydim / 2.0;
+
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "current dy= [%lf] yc= [%lf]\n", dy, yc);
+                fflush (fdebug);
+            }
+	
+            dy = dy*factor/new_factor;
+	    ymin = yc - dy;
+	    ymax = yc + dy;
+
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "new dy= [%lf] yc= [%lf]\n", dy, yc);
+                fflush (fdebug);
+                fprintf (fdebug, "new ymin= [%lf] ymax= [%lf]\n", ymin, ymax);
+                fflush (fdebug);
+            }
+
+	    if (ymin < 0.)
+	        ymin = 0.;
+
+	    if (ymax > (double)param->imageHeight-1)
+	        ymax = (double)param->imageHeight-1;
+	    
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "adjusted by the imageHeight ymin= [%lf] ymax= [%lf]\n",
+		    ymin, ymax);
+                fflush (fdebug);
+            }
+        }
+	else {
+	    ymax = (double)param->nl-1;
+	}
+
+        param->xmin = xmin;
+        param->xmax = xmax;
+        param->ymin = ymin;
+        param->ymax = ymax;
+
+    }
+    else if (strcasecmp (param->cmd, "zoomout") == 0) {
         
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "cmd= [%s]\n", param->cmd); 
@@ -338,10 +507,10 @@ int  imZoom (struct Mviewer *param)
         }
 
         xmin = param->ss;
-	xmax = xmin + param->ns;
+	xmax = xmin + param->ns - 1;
 	
 	ymin = param->sl;
-	ymax = ymin + param->nl;
+	ymax = ymin + param->nl - 1;
 
 	if (xmin < 0.)
 	    xmin = 0.;
@@ -433,15 +602,48 @@ int  imZoom (struct Mviewer *param)
     }
    
     ns_subset = (int)(xmax - xmin);
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+        fprintf (fdebug, "\nns_subset= [%d]\n", ns_subset); 
+        fprintf (fdebug, "imageWidth= [%d]\n", param->imageWidth); 
+	fflush (fdebug);
+    }
+   
     diffx = (int)xmin + ns_subset - param->imageWidth;
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+        fprintf (fdebug, "diffx= [%d]= [%d]\n", diffx); 
+	fflush (fdebug);
+    }
+   
     if (diffx > 0) 
         ns_subset -= diffx;
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+        fprintf (fdebug, "adjusted ns_subset= [%d]\n", ns_subset); 
+	fflush (fdebug);
+    }
 
     nl_subset = (int)(ymax - ymin);
+    
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+        fprintf (fdebug, "\nnl_subset= [%d]\n", nl_subset); 
+        fprintf (fdebug, "imageHeight= [%d]\n", param->imageHeight); 
+	fflush (fdebug);
+    }
+   
     diffy = (int)ymin + nl_subset - param->imageHeight;
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+        fprintf (fdebug, "diffy= [%d]= [%d]\n", diffy); 
+	fflush (fdebug);
+    }
+   
     if (diffy > 0) 
         nl_subset -= diffy;
 
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+        fprintf (fdebug, "adjusted nl_subset= [%d]\n", nl_subset); 
+	fflush (fdebug);
+    }
 
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {

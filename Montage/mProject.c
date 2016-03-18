@@ -745,9 +745,7 @@ int main(int argc, char **argv)
    /* finding the range of output pixel locations  */
    /************************************************/
 
-   /* 
-    * Check output left and right 
-    */
+   // Check output left and right 
 
    for (j=0; j<output.naxes[1]+1; j++) {
      oxpix = 0.5;
@@ -757,9 +755,8 @@ int main(int argc, char **argv)
      UpdateBounds (oxpix, oypix, &oxpixMin, &oxpixMax, &oypixMin, &oypixMax);
    }
 
-   /* 
-    * Check output top and bottom 
-    */
+
+   // Check output top and bottom 
 
    for (i=0; i<output.naxes[0]+1; i++) {
      oxpix = (double)i+0.5;
@@ -768,6 +765,7 @@ int main(int argc, char **argv)
      oypix = (double)output.naxes[1]+0.5;
      UpdateBounds (oxpix, oypix, &oxpixMin, &oxpixMax, &oypixMin, &oypixMax);
    }
+   
 
    /*
     * ASSERT: Output bounding box now specified by
@@ -2476,7 +2474,7 @@ void UpdateBounds (double oxpix, double oypix,
   ixpix = ixpix - xcorrectionIn;
   iypix = iypix - ycorrectionIn;
 
-  offscl = 0;
+  // offscl = 0;
 
   if(ixpix < 0.
   || ixpix > input.wcs->nxpix+1.

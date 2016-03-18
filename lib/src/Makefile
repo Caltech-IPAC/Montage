@@ -6,6 +6,7 @@ l:
 	(cd svc; make; make install)
 	(cd boundaries; make; make install)
 	(cd pixbounds; make; make install)
+	(cd www; make; make install)
 	(cd wcstools-3.8.7/libwcs; make; cp libwcs.a ../../..; cp *.h ../../../include)
 	(cd two_plane_v1.1; make; make install)
 	(cd lodepng_20140823; make; make install)

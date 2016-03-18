@@ -102,15 +102,19 @@ int main(int argc, char *argv[], char *envp[])
    }
 
 
-/*
    if(debug)
       svc_debug(fdebug);
-*/
+
 
    if(keyword_exists("workspace"))
       strcpy(wspace, keyword_value("workspace"));
    else
-      printError("No workspace.");
+   {
+      if(keyword_exists("ws"))
+         strcpy(wspace, keyword_value("ws"));
+      else
+         printError("No workspace.");
+   }
 
    strcpy(fileName, "");
    if(keyword_exists("file"))

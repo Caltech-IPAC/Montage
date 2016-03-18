@@ -97,7 +97,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level][-r startrec][-t timeout] region.tbl\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d level][-r startrec][-t timeout] region.tbl\"]\n", argv[0]);
             exit(0);
             break;
       }
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
    if(iurl < 0)
    {
       printf("[struct stat=\"ERROR\", msg=\"Table %s needs column 'URL' or 'url' and can optionally have columns 'fname'/'file' and pixel ranges 'imin'..'jmax'\"]\n",
-	 tblfile);
+         tblfile);
       exit(1);
    }
 
@@ -156,35 +156,35 @@ int main(int argc, char **argv)
 
       ++nread;
       if(nread < nrestart)
-	 continue;
+         continue;
 
       if(stat < 0)
-	 break;
+         break;
 
       strcpy(url, tval(iurl));
 
       if(ifile >= 0)
-	 strcpy(file, tval(ifile));
+         strcpy(file, tval(ifile));
       else
       {
-	 if(debug > 1)
-	 {
-	    fprintf(fdebug, "DEBUG> url = [%s]\n", url);
-	    fflush(fdebug);
-	 }
+         if(debug > 1)
+         {
+            fprintf(fdebug, "DEBUG> url = [%s]\n", url);
+            fflush(fdebug);
+         }
 
-	 ptr = url+strlen(url)-1;
+         ptr = url+strlen(url)-1;
 
-	 while(1)
-	 {
-	    if(ptr == url || *ptr == '/')
-	    {
-	       strcpy(file, ptr+1);
-	       break;
-	    }
+         while(1)
+         {
+            if(ptr == url || *ptr == '/')
+            {
+               strcpy(file, ptr+1);
+               break;
+            }
 
-	    --ptr;
-	 }
+            --ptr;
+         }
       }
 
 
@@ -196,83 +196,83 @@ int main(int argc, char **argv)
       && ijmin >= 0
       && ijmax >= 0)
       {
-	 strcpy(filebase, file);
+         strcpy(filebase, file);
 
-	 for(i=0; i<strlen(filebase); ++i)
-	    if(filebase[i] == '.')
-	       filebase[i] = '\0';
+         for(i=0; i<strlen(filebase); ++i)
+            if(filebase[i] == '.')
+               filebase[i] = '\0';
 
-	 strcpy(urlbase, url);
+         strcpy(urlbase, url);
 
-	 for(i=0; i<strlen(urlbase); ++i)
-	    if(urlbase[i] == '&')
-	       urlbase[i] = '\0';
+         for(i=0; i<strlen(urlbase); ++i)
+            if(urlbase[i] == '&')
+               urlbase[i] = '\0';
 
-	 imin =    1;
-	 imax = NPIX;
-	 jmin =    1;
-	 jmax = NPIX;
+         imin =    1;
+         imax = NPIX;
+         jmin =    1;
+         jmax = NPIX;
 
-	 imin = atoi(tval(iimin));
-	 imax = atoi(tval(iimax));
-	 jmin = atoi(tval(ijmin));
-	 jmax = atoi(tval(ijmax));
+         imin = atoi(tval(iimin));
+         imax = atoi(tval(iimax));
+         jmin = atoi(tval(ijmin));
+         jmax = atoi(tval(ijmax));
 
-	 nx = NPIX / 500;
-	 ny = NPIX / 500;
+         nx = NPIX / 500;
+         ny = NPIX / 500;
 
-	 for(ix=3; ix<nx-3; ++ix)
-	 {
-	    for(jy=3; jy<nx-3; ++jy)
-	    {
-	       itmin = ix * 500 - 50;
-	       jtmin = jy * 500 - 50;
+         for(ix=3; ix<nx-3; ++ix)
+         {
+            for(jy=3; jy<nx-3; ++jy)
+            {
+               itmin = ix * 500 - 50;
+               jtmin = jy * 500 - 50;
 
-	       itmax = (ix+1) * 500 + 50;
-	       jtmax = (jy+1) * 500 + 50;
+               itmax = (ix+1) * 500 + 50;
+               jtmax = (jy+1) * 500 + 50;
 
-	       if(itmax < imin) continue;
-	       if(itmin > imax) continue;
-	       if(jtmax < jmin) continue;
-	       if(jtmin > jmax) continue;
+               if(itmax < imin) continue;
+               if(itmin > imax) continue;
+               if(jtmax < jmin) continue;
+               if(jtmin > jmax) continue;
 
-	       if(timeout > 0)
-	       {
-		  sprintf(cmd, "mArchiveGet -r -t %d %s&X1=%d&X2=%d&Y1=%d&Y2=%d %s_%d_%d.fits",
-		     timeout,
-		     urlbase,
-		     itmin, itmax - itmin + 1,
-		     jtmin, jtmax - jtmin + 1,
-		     filebase, ix, jy);
-	       }
-	       else
-	       {
-		  sprintf(cmd, "mArchiveGet -r %s&X1=%d&X2=%d&Y1=%d&Y2=%d %s_%d_%d.fits",
-		     urlbase,
-		     itmin, itmax - itmin + 1,
-		     jtmin, jtmax - jtmin + 1,
-		     filebase, ix, jy);
-	       }
+               if(timeout > 0)
+               {
+                  sprintf(cmd, "mArchiveGet -r -t %d %s&X1=%d&X2=%d&Y1=%d&Y2=%d %s_%d_%d.fits",
+                     timeout,
+                     urlbase,
+                     itmin, itmax - itmin + 1,
+                     jtmin, jtmax - jtmin + 1,
+                     filebase, ix, jy);
+               }
+               else
+               {
+                  sprintf(cmd, "mArchiveGet -r %s&X1=%d&X2=%d&Y1=%d&Y2=%d %s_%d_%d.fits",
+                     urlbase,
+                     itmin, itmax - itmin + 1,
+                     jtmin, jtmax - jtmin + 1,
+                     filebase, ix, jy);
+               }
 
-	       if(debug)
-	       {
-		  fprintf(fdebug, "DEBUG> [%s]\n", cmd);
-		  fflush(fdebug);
-	       }
+               if(debug)
+               {
+                  fprintf(fdebug, "DEBUG> [%s]\n", cmd);
+                  fflush(fdebug);
+               }
 
-	       svc_run(cmd);
+               svc_run(cmd);
 
-	       strcpy( status, svc_value( "stat" ));
+               strcpy( status, svc_value( "stat" ));
 
-	       ++count;
+               ++count;
 
-	       if(strcmp( status, "ERROR") == 0)
-	       {
-		  ++failed;
-		  continue;
-	       }
-	    }
-	 }
+               if(strcmp( status, "ERROR") == 0)
+               {
+                  ++failed;
+                  continue;
+               }
+            }
+         }
       }
 
 
@@ -281,17 +281,17 @@ int main(int argc, char **argv)
 
       else if(local2MASS)
       {
-	 sprintf(cmd, "ln -s /stage%s %s", url+73, file);
+         sprintf(cmd, "ln -s /stage%s %s", url+73, file);
 
-	 if(debug)
-	 {
-	    fprintf(fdebug, "DEBUG> [%s]\n", cmd);
-	    fflush(fdebug);
-	 }
+         if(debug)
+         {
+            fprintf(fdebug, "DEBUG> [%s]\n", cmd);
+            fflush(fdebug);
+         }
 
-	 system(cmd);
+         system(cmd);
 
-	 ++count;
+         ++count;
       }
 
 
@@ -299,40 +299,40 @@ int main(int argc, char **argv)
 
       else
       {
-	 if(timeout > 0)
-	 {
-	    sprintf(cmd, "mArchiveGet -t %d %s %s",
-	       timeout, url, file);
-	 }
-	 else
-	 {
-	    sprintf(cmd, "mArchiveGet %s %s",
-	       url, file);
-	 }
+         if(timeout > 0)
+         {
+            sprintf(cmd, "mArchiveGet -t %d %s %s",
+               timeout, url, file);
+         }
+         else
+         {
+            sprintf(cmd, "mArchiveGet %s %s",
+               url, file);
+         }
 
-	 if(debug)
-	 {
-	    fprintf(fdebug, "DEBUG> [%s]\n", cmd);
-	    fflush(fdebug);
-	 }
+         if(debug)
+         {
+            fprintf(fdebug, "DEBUG> [%s]\n", cmd);
+            fflush(fdebug);
+         }
 
-	 svc_run(cmd);
+         svc_run(cmd);
 
-	 strcpy( status, svc_value( "stat" ));
+         strcpy( status, svc_value( "stat" ));
 
-	 ++count;
+         ++count;
 
-	 if(strcmp( status, "ERROR") == 0)
-	 {
-	    ++failed;
-	    continue;
-	 }
+         if(strcmp( status, "ERROR") == 0)
+         {
+            ++failed;
+            continue;
+         }
 
-	 if(unzip && strlen(file) > 3 && strcmp(file+strlen(file)-3, ".gz") == 0)
-	 {
-	    sprintf(cmd, "gunzip %s", file);
-	    system(cmd);
-	 }
+         if(unzip && strlen(file) > 3 && strcmp(file+strlen(file)-3, ".gz") == 0)
+         {
+            sprintf(cmd, "gunzip %s", file);
+            system(cmd);
+         }
       }
    }
 

@@ -236,7 +236,7 @@ int tcp_connect(char *hostname, int port)
 
    sin.sin_family = AF_INET;
    sin.sin_port = htons(port);
-   bcopy(host->h_addr, &sin.sin_addr, host->h_length);
+   bcopy(host->h_addr_list[0], &sin.sin_addr, host->h_length);
 
    if(connect(sock_fd, (struct sockaddr *)&sin, sizeof(sin)) < 0)
    {

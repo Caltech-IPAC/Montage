@@ -739,6 +739,8 @@ int main(int argc, char **argv)
 
       else if(strcmp(argv[i], "-color") == 0)
       {
+         strcpy(colorColumn, "");
+
          strcpy(colorstr, argv[i+1]);
 
          ++i;
@@ -903,172 +905,179 @@ int main(int argc, char **argv)
             exit(1);
          }
 
+         symSize      = 0.;
          symRotAngle  = 0.;
          symType      = 0;
          symNMax      = 0;
 
 
-         ptr = argv[i+1] + strlen(argv[i+1]) - 1;
+         if(strcmp(argv[i+1], "none") == 0)
+            ++i;
 
-
-         symUnits = FRACTIONAL;
-
-         if(*ptr == 's')
-            symUnits = SECONDS;
-
-         else if(*ptr == 'm')
-            symUnits = MINUTES;
-
-         else if(*ptr == 'd')
-            symUnits = DEGREES;
-
-         else if(*ptr == 'p')
-            symUnits = PIXELS;
-
-         if(symUnits != FRACTIONAL)
-            *ptr = '\0';
-
-         symSize = strtod(argv[i+1], &end);
-
-         if(end < (argv[i+1] + (int)strlen(argv[i+1])))
+         else
          {
-            printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol size\"]\n");
-            fflush(stdout);
-            exit(1);
-         }
+            ptr = argv[i+1] + strlen(argv[i+1]) - 1;
 
-         ++i;
 
-         if(i+1 < argc && argv[i+1][0] != '-')
-         {
-            if(strncasecmp(argv[i+1], "triangle", 3) == 0)
+            symUnits = FRACTIONAL;
+
+            if(*ptr == 's')
+               symUnits = SECONDS;
+
+            else if(*ptr == 'm')
+               symUnits = MINUTES;
+
+            else if(*ptr == 'd')
+               symUnits = DEGREES;
+
+            else if(*ptr == 'p')
+               symUnits = PIXELS;
+
+            if(symUnits != FRACTIONAL)
+               *ptr = '\0';
+
+            symSize = strtod(argv[i+1], &end);
+
+            if(end < (argv[i+1] + (int)strlen(argv[i+1])))
             {
-               symNPnt     = 3;
-               symRotAngle = 120.;
-               ++i;
+               printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol size\"]\n");
+               fflush(stdout);
+               exit(1);
             }
 
-            else if(strncasecmp(argv[i+1], "box", 3) == 0)
-            {
-               symNPnt     = 4;
-               symRotAngle = 45.;
-               ++i;
-            }
+            ++i;
 
-            else if(strncasecmp(argv[i+1], "square", 3) == 0)
+            if(i+1 < argc && argv[i+1][0] != '-')
             {
-               symNPnt     = 4;
-               symRotAngle = 45.;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "diamond", 3) == 0)
-            {
-               symNPnt     = 4;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "pentagon", 3) == 0)
-            {
-               symNPnt     = 5;
-               symRotAngle = 72.;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "hexagon", 3) == 0)
-            {
-               symNPnt     = 6;
-               symRotAngle = 60.;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "septagon", 3) == 0)
-            {
-               symNPnt     = 7;
-               symRotAngle = 360./7.;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "octagon", 3) == 0)
-            {
-               symNPnt     = 8;
-               symRotAngle = 45.;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "el", 2) == 0)
-            {
-               symNPnt     = 4;
-               symRotAngle = 135.;
-               symNMax     = 2;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "circle", 3) == 0)
-            {
-               symNPnt     = 128;
-               symRotAngle = 0.;
-               ++i;
-            }
-
-            else if(strncasecmp(argv[i+1], "compass", 3) == 0)
-            {
-               symType      = 3;
-               symNPnt      = 4;
-               symRotAngle  = 0.;
-               ++i;
-            }
-
-            else
-            {
-               symType = strtol(argv[i+1], &end, 0);
-
-               if(end < (argv[i+1] + (int)strlen(argv[i+1])))
+               if(strncasecmp(argv[i+1], "triangle", 3) == 0)
                {
-                  if(strncasecmp(argv[i+1], "polygon", 1) == 0)
-                     symType = 0;
-
-                  else if(strncasecmp(argv[i+1], "starred", 2) == 0)
-                     symType = 1;
-
-                  else if(strncasecmp(argv[i+1], "skeletal", 2) == 0)
-                     symType = 2;
-
-                  else
-                  {
-                     printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol type\"]\n");
-                     fflush(stdout);
-                     exit(1);
-                  }
+                  symNPnt     = 3;
+                  symRotAngle = 120.;
+                  ++i;
                }
 
-               ++i;
-              
-               if(i+1 < argc && argv[i+1][0] != '-')
+               else if(strncasecmp(argv[i+1], "box", 3) == 0)
                {
-                  symNPnt = strtol(argv[i+1], &end, 0);
+                  symNPnt     = 4;
+                  symRotAngle = 45.;
+                  ++i;
+               }
 
-                  if(end < (argv[i+1] + (int)strlen(argv[i+1])) || symNPnt < 3)
+               else if(strncasecmp(argv[i+1], "square", 3) == 0)
+               {
+                  symNPnt     = 4;
+                  symRotAngle = 45.;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "diamond", 3) == 0)
+               {
+                  symNPnt     = 4;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "pentagon", 3) == 0)
+               {
+                  symNPnt     = 5;
+                  symRotAngle = 72.;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "hexagon", 3) == 0)
+               {
+                  symNPnt     = 6;
+                  symRotAngle = 60.;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "septagon", 3) == 0)
+               {
+                  symNPnt     = 7;
+                  symRotAngle = 360./7.;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "octagon", 3) == 0)
+               {
+                  symNPnt     = 8;
+                  symRotAngle = 45.;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "el", 2) == 0)
+               {
+                  symNPnt     = 4;
+                  symRotAngle = 135.;
+                  symNMax     = 2;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "circle", 3) == 0)
+               {
+                  symNPnt     = 128;
+                  symRotAngle = 0.;
+                  ++i;
+               }
+
+               else if(strncasecmp(argv[i+1], "compass", 3) == 0)
+               {
+                  symType      = 3;
+                  symNPnt      = 4;
+                  symRotAngle  = 0.;
+                  ++i;
+               }
+
+               else
+               {
+                  symType = strtol(argv[i+1], &end, 0);
+
+                  if(end < (argv[i+1] + (int)strlen(argv[i+1])))
                   {
-                     printf ("[struct stat=\"ERROR\", msg=\"Invalid vertex count for symbol (must be an integer >= 3)\"]\n");
-                     fflush(stdout);
-                     exit(1);
+                     if(strncasecmp(argv[i+1], "polygon", 1) == 0)
+                        symType = 0;
+
+                     else if(strncasecmp(argv[i+1], "starred", 2) == 0)
+                        symType = 1;
+
+                     else if(strncasecmp(argv[i+1], "skeletal", 2) == 0)
+                        symType = 2;
+
+                     else
+                     {
+                        printf ("[struct stat=\"ERROR\", msg=\"Invalid symbol type\"]\n");
+                        fflush(stdout);
+                        exit(1);
+                     }
                   }
 
                   ++i;
                  
                   if(i+1 < argc && argv[i+1][0] != '-')
                   {
-                     symRotAngle = strtod(argv[i+1], &end);
+                     symNPnt = strtol(argv[i+1], &end, 0);
 
-                     if(end < (argv[i+1] + (int)strlen(argv[i+1])))
+                     if(end < (argv[i+1] + (int)strlen(argv[i+1])) || symNPnt < 3)
                      {
-                        printf ("[struct stat=\"ERROR\", msg=\"Invalid rotation angle for symbol (must be number)\"]\n");
+                        printf ("[struct stat=\"ERROR\", msg=\"Invalid vertex count for symbol (must be an integer >= 3)\"]\n");
                         fflush(stdout);
                         exit(1);
                      }
 
                      ++i;
+                    
+                     if(i+1 < argc && argv[i+1][0] != '-')
+                     {
+                        symRotAngle = strtod(argv[i+1], &end);
+
+                        if(end < (argv[i+1] + (int)strlen(argv[i+1])))
+                        {
+                           printf ("[struct stat=\"ERROR\", msg=\"Invalid rotation angle for symbol (must be number)\"]\n");
+                           fflush(stdout);
+                           exit(1);
+                        }
+
+                        ++i;
+                     }
                   }
                }
             }
@@ -4500,7 +4509,8 @@ int main(int argc, char **argv)
 
 
    if(isRGB)
-      printf("[struct stat=\"OK\", bmin=%-g, bminpercent=%.2f, bminsigma=%2f, bmax=%-g, bmaxpercent=%.2f, bmaxsigma=%.2f, gmin=%-g, gminpercent=%.2f, gminsigma=%.2f, gmax=%-g, gmaxpercent=%.2f, gmaxsigma=%.2f, rmin=%-g, rminpercent=%.2f, rminsigma=%.2f, rmax=%-g, rmaxpercent=%.2f, rmaxsigma=%.2f, rdatamin=%-g, rdatamax=%-g, gdatamin=%-g, gdatamax=%-g, bdatamin=%-g, bdatamax=%-g, xflip=%d, yflip=%d, bunit=\"%s\"]\n",
+      printf("[struct stat=\"OK\", width=%d, height=%d, bmin=%-g, bminpercent=%.2f, bminsigma=%2f, bmax=%-g, bmaxpercent=%.2f, bmaxsigma=%.2f, gmin=%-g, gminpercent=%.2f, gminsigma=%.2f, gmax=%-g, gmaxpercent=%.2f, gmaxsigma=%.2f, rmin=%-g, rminpercent=%.2f, rminsigma=%.2f, rmax=%-g, rmaxpercent=%.2f, rmaxsigma=%.2f, rdatamin=%-g, rdatamax=%-g, gdatamin=%-g, gdatamax=%-g, bdatamin=%-g, bdatamax=%-g, xflip=%d, yflip=%d, bunit=\"%s\"]\n",
+         nx, ny,
          blueminval,  blueminpercent,  blueminsigma,
          bluemaxval,  bluemaxpercent,  bluemaxsigma,
          greenminval, greenminpercent, greenminsigma,
@@ -4513,7 +4523,8 @@ int main(int argc, char **argv)
          flipX,       flipY,
          bunit);
    else
-      printf("[struct stat=\"OK\", min=%-g, minpercent=%.2f, minsigma=%.2f, max=%-g, maxpercent=%.2f, maxsigma=%.2f, datamin=%-g, datamax=%-g, xflip=%d, yflip=%d, bunit=\"%s\", colortable=%d]\n",
+      printf("[struct stat=\"OK\", width=%d, height=%d, min=%-g, minpercent=%.2f, minsigma=%.2f, max=%-g, maxpercent=%.2f, maxsigma=%.2f, datamin=%-g, datamax=%-g, xflip=%d, yflip=%d, bunit=\"%s\", colortable=%d]\n",
+         nx, ny,
          grayminval,  grayminpercent, grayminsigma,
          graymaxval,  graymaxpercent, graymaxsigma,
          graydatamin, graydatamax,

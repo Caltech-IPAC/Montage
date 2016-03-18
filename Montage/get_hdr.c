@@ -42,6 +42,8 @@ Version  Developer        Date     Change
 extern int   debug;
 extern int   showbad;
 extern int   cntr;
+extern int   info, nfile, badfile, nhdu, nbadwcs, nwrite;
+
 extern FILE *tblf;
 
 typedef struct
@@ -74,6 +76,7 @@ int get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
    char      value[1024], comment[1024], *ptr;
    fitsfile *fptr;
    int       i, status, csys, nfailed, first_failed, clockwise;
+   int       nowcs, badhdr;
    double    lon, lat, equinox;
    double    ra2000, dec2000;
    double    ra, dec;
@@ -90,17 +93,21 @@ int get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
    first_failed = 0;
    status       = 0;
 
+   ++nfile;
+
    if(fits_open_file(&fptr, fname, READONLY, &status)) 
    {
       sprintf (msg, "Cannot open FITS file %s", fname);
 
-      if(showbad)
+      ++badfile;
+
+      if(info)
       {
-         printf("[struct stat=\"INFO\", msg=\"Cannot open file\", file=\"%s\"]\n",
-            fname);
+         printf("[struct stat=\"INFO\", msg=\"Cannot open file\", file=\"%s\"]\n", fname);
          
          fflush(stdout);
       }
+
       return (1);
    }
 
@@ -108,13 +115,20 @@ int get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
    hdr_rec->size = buf.st_size;
 
-   hdr_rec->hdu = 1;
+   hdr_rec->hdu = 0;
 
    while(1)
    {
+      ++hdr_rec->hdu;
+
+      nowcs  = 0;
+      badhdr = 0;
+
       status = 0;
       if(fits_movabs_hdu(fptr, hdr_rec->hdu, NULL, &status))
          break;
+
+      ++nhdu;
 
 
       /* Missing or invalid values for */
@@ -141,142 +155,159 @@ int get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          ++nfailed;
          ++badwcs;
 
-         if(showbad)
+         if(info)
          {
-            printf("[struct stat=\"INFO\", msg=\"Missing CTYPE1\", file=\"%s\", hdu=%d]\n",
-               fname, hdr_rec->hdu);
+            printf("[struct stat=\"INFO\", msg=\"Missing CTYPE1\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
             
             fflush(stdout);
          }
 
-         ++hdr_rec->hdu;
+         badhdr = 1;
 
-         continue;
+         ++nbadwcs;
+
+         if(!showbad)
+            continue;
       }
 
 
       /* CTYPE1 Value */
 
-      ptr = value;
-
-      if(*ptr == '\'' && value[strlen(value)-1] == '\'')
+      if(!badhdr)
       {
-         value[strlen(value)-1] = '\0';
-         ++ptr;
-      }
+         ptr = value;
 
-      if(strlen(ptr) < 8)
-         *ptr = '\0';
-
-      while(*ptr != '-' && *ptr != '\0') ++ptr;
-      while(*ptr == '-' && *ptr != '\0') ++ptr;
-
-      if(strlen(ptr) == 0)
-      {
-         if(debug)
+         if(*ptr == '\'' && value[strlen(value)-1] == '\'')
          {
-            printf("Invalid CTYPE1 in file %s\n", fname);
-            fflush(stdout);
+            value[strlen(value)-1] = '\0';
+            ++ptr;
          }
 
-         wcs = (struct WorldCoor *)NULL;
+         if(strlen(ptr) < 8)
+            *ptr = '\0';
 
-         if(hdr_rec->hdu == 1)
-            first_failed = 1;
+         while(*ptr != '-' && *ptr != '\0') ++ptr;
+         while(*ptr == '-' && *ptr != '\0') ++ptr;
 
-         ++nfailed;
-         ++badwcs;
-
-         if(showbad)
+         if(strlen(ptr) == 0)
          {
-            printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE1\", file=\"%s\", hdu=%d]\n",
-               fname, hdr_rec->hdu);
-            
-            fflush(stdout);
+            if(debug)
+            {
+               printf("Invalid CTYPE1 in file %s\n", fname);
+               fflush(stdout);
+            }
+
+            wcs = (struct WorldCoor *)NULL;
+
+            if(hdr_rec->hdu == 1)
+               first_failed = 1;
+
+            ++nfailed;
+            ++badwcs;
+
+            if(info)
+            {
+               printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE1\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+               
+               fflush(stdout);
+            }
+
+            badhdr = 1;
+
+            ++nbadwcs;
+
+            if(!showbad)
+               continue;
          }
-
-         ++hdr_rec->hdu;
-
-         continue;
       }
 
 
       /* CTYPE2 Existence */
 
-      status = 0;
-      if(fits_read_keyword(fptr, "CTYPE2", value, comment, &status))
+      if(!badhdr)
       {
-         if(debug)
+         status = 0;
+         if(fits_read_keyword(fptr, "CTYPE2", value, comment, &status))
          {
-            printf("Missing CTYPE2 in file %s\n", fname);
-            fflush(stdout);
+            if(debug)
+            {
+               printf("Missing CTYPE2 in file %s\n", fname);
+               fflush(stdout);
+            }
+
+            wcs = (struct WorldCoor *)NULL;
+
+            if(hdr_rec->hdu == 1)
+               first_failed = 1;
+
+            ++nfailed;
+            ++badwcs;
+
+            if(info)
+            {
+               printf("[struct stat=\"INFO\", msg=\"Missing CTYPE2\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+               
+               fflush(stdout);
+            }
+
+            badhdr = 1;
+
+            ++nbadwcs;
+
+            if(!showbad)
+               continue;
          }
-
-         wcs = (struct WorldCoor *)NULL;
-
-         if(hdr_rec->hdu == 1)
-            first_failed = 1;
-
-         ++nfailed;
-         ++badwcs;
-
-         if(showbad)
-         {
-            printf("[struct stat=\"INFO\", msg=\"Missing CTYPE2\", file=\"%s\", hdu=%d]\n",
-               fname, hdr_rec->hdu);
-            
-            fflush(stdout);
-         }
-
-         ++hdr_rec->hdu;
-
-         continue;
       }
 
 
       /* CTYPE2 Value */
 
-      ptr = value;
-
-      if(*ptr == '\'' && value[strlen(value)-1] == '\'')
+      if(!badhdr)
       {
-         value[strlen(value)-1] = '\0';
-         ++ptr;
-      }
+         ptr = value;
 
-      if(strlen(ptr) < 8)
-         *ptr = '\0';
-
-      while(*ptr != '-' && *ptr != '\0') ++ptr;
-      while(*ptr == '-' && *ptr != '\0') ++ptr;
-
-      if(strlen(ptr) == 0)
-      {
-         if(debug)
+         if(*ptr == '\'' && value[strlen(value)-1] == '\'')
          {
-            printf("Invalid CTYPE2 in file %s\n", fname);
-            fflush(stdout);
+            value[strlen(value)-1] = '\0';
+            ++ptr;
          }
 
-         wcs = (struct WorldCoor *)NULL;
+         if(strlen(ptr) < 8)
+            *ptr = '\0';
 
-         if(hdr_rec->hdu == 1)
-            first_failed = 1;
+         while(*ptr != '-' && *ptr != '\0') ++ptr;
+         while(*ptr == '-' && *ptr != '\0') ++ptr;
 
-         ++nfailed;
-         ++badwcs;
-
-         if(showbad)
+         if(strlen(ptr) == 0)
          {
-            printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE2\", file=\"%s\", hdu=%d]\n",
-               fname, hdr_rec->hdu);
-            
-            fflush(stdout);
+            if(debug)
+            {
+               printf("Invalid CTYPE2 in file %s\n", fname);
+               fflush(stdout);
+            }
+
+            wcs = (struct WorldCoor *)NULL;
+
+            if(hdr_rec->hdu == 1)
+               first_failed = 1;
+
+            ++nfailed;
+            ++badwcs;
+
+            if(info)
+            {
+               printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE2\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+               
+               fflush(stdout);
+            }
+
+            badhdr = 1;
+
+            ++nbadwcs;
+
+            if(!showbad)
+               continue;
          }
-
-         ++hdr_rec->hdu;
-
-         continue;
       }
 
 
@@ -312,205 +343,271 @@ int get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       if(hdr_rec->hdu == 2 && first_failed)
          --nfailed;
 
-      status = 0;
-      if(fits_get_image_wcs_keys(fptr, &header, &status)) 
+      nowcs = 1;
+
+      if(!badhdr)
       {
-         ++hdr_rec->hdu;
-         continue;
-      }
-
-      wcs = wcsinit(header);
-
-      if(wcs == (struct WorldCoor *)NULL) 
-      {
-         if(hdr_rec->hdu == 1)
-            first_failed = 1;
-
-         ++nfailed;
-         ++badwcs;
-
-         if(showbad)
+         status = 0;
+         if(fits_get_image_wcs_keys(fptr, &header, &status)) 
          {
-            printf("[struct stat=\"INFO\", msg=\"WCS lib init failure\", file=\"%s\", hdu=%d]\n",
-               fname, hdr_rec->hdu);
+            badhdr = 1;
+
+            ++nbadwcs;
             
-            fflush(stdout);
+            if(!showbad)
+               continue;
          }
+         else
+            nowcs = 0;
+      }
 
-         ++hdr_rec->hdu;
-         continue;
-      } 
-
-      if(checkWCS(wcs, 1) == 1)
+      if(!nowcs)
       {
-         if(debug)
+         wcs = wcsinit(header);
+
+         if(wcs == (struct WorldCoor *)NULL) 
          {
-            printf("Bad WCS for file %s\n", fname);
-            fflush(stdout);
-         }
+            if(hdr_rec->hdu == 1)
+               first_failed = 1;
 
-         wcs = (struct WorldCoor *)NULL;
+            ++nfailed;
+            ++badwcs;
+            ++nbadwcs;
 
-         if(hdr_rec->hdu == 1)
-            first_failed = 1;
+            if(!badhdr)
+            {
+               if(info)
+               {
+                  printf("[struct stat=\"INFO\", msg=\"WCS lib init failure\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+                  
+                  fflush(stdout);
+               }
 
-         ++nfailed;
-         ++badwcs;
+               badhdr = 1;
 
-         if(showbad)
+               ++nbadwcs;
+            }
+
+            if(!showbad)
+               continue;
+         } 
+
+         if(checkWCS(wcs, 1) == 1)
          {
-            printf("[struct stat=\"INFO\", msg=\"Bad WCS\", file=\"%s\", hdu=%d]\n",
-               fname, hdr_rec->hdu);
-            
-            fflush(stdout);
+            if(debug)
+            {
+               printf("Bad WCS for file %s\n", fname);
+               fflush(stdout);
+            }
+
+            wcs = (struct WorldCoor *)NULL;
+
+            if(hdr_rec->hdu == 1)
+               first_failed = 1;
+
+            ++nfailed;
+            ++badwcs;
+
+            if(info)
+            {
+               printf("[struct stat=\"INFO\", msg=\"Bad WCS\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+               
+               fflush(stdout);
+            }
+
+            badhdr = 1;
+
+            ++nbadwcs;
+
+            if(!showbad)
+               continue;
          }
-
-         ++hdr_rec->hdu;
-
-         continue;
       }
 
-      hdr_rec->ns = (int) wcs->nxpix;
-      hdr_rec->nl = (int) wcs->nypix;
-
-      strcpy(hdr_rec->ctype1, wcs->ctype[0]);
-      strcpy(hdr_rec->ctype2, wcs->ctype[1]);
-
-      hdr_rec->crpix1  = wcs->xrefpix;
-      hdr_rec->crpix2  = wcs->yrefpix;
-      hdr_rec->equinox = wcs->equinox;
-      hdr_rec->crval1  = wcs->xref;
-      hdr_rec->crval2  = wcs->yref;
-      hdr_rec->cdelt1  = wcs->xinc;
-      hdr_rec->cdelt2  = wcs->yinc;
-      hdr_rec->crota2  = wcs->rot;
-
-      if(hdr_rec->cdelt1 > 0.
-      && hdr_rec->cdelt2 > 0.
-      && (hdr_rec->crota2 < -90. || hdr_rec->crota2 > 90.))
+      if(badhdr)
       {
-         hdr_rec->cdelt1 = -hdr_rec->cdelt1;
-         hdr_rec->cdelt2 = -hdr_rec->cdelt2;
+         status=0;
+         if(fits_read_keyword(fptr, "NAXIS1", value, comment, &status))
+            hdr_rec->ns = 0;
+         else
+            hdr_rec->ns = atoi(value);
 
-         hdr_rec->crota2 += 180.;
+         if(fits_read_keyword(fptr, "NAXIS2", value, comment, &status))
+            hdr_rec->nl = 0;
+         else
+            hdr_rec->nl = atoi(value);
 
-         while(hdr_rec->crota2 >= 360.)
-            hdr_rec->crota2 -= 360.;
+         strcpy(hdr_rec->ctype1, "");
+         strcpy(hdr_rec->ctype2, "");
 
-         while(hdr_rec->crota2 <= -360.)
-            hdr_rec->crota2 += 360.;
+         hdr_rec->crpix1  = 0.;
+         hdr_rec->crpix2  = 0.;
+         hdr_rec->equinox = 0.;
+         hdr_rec->crval1  = 0.;
+         hdr_rec->crval2  = 0.;
+         hdr_rec->cdelt1  = 0.;
+         hdr_rec->cdelt2  = 0.;
+         hdr_rec->crota2  = 0.;
+
+         hdr_rec->ra1     = 0.;
+         hdr_rec->dec1    = 0.;
+         hdr_rec->ra2     = 0.;
+         hdr_rec->dec2    = 0.;
+         hdr_rec->ra3     = 0.;
+         hdr_rec->dec3    = 0.;
+         hdr_rec->ra4     = 0.;
+         hdr_rec->dec4    = 0.;
+
+         hdr_rec->ra2000  = 0.;
+         hdr_rec->dec2000 = 0.;
+
+         hdr_rec->radius  = 0.;
       }
 
-
-      /* Convert center of image to sky coordinates */
-
-      csys = EQUJ;
-
-      if(strncmp(hdr_rec->ctype1, "RA",   2) == 0)
-         csys = EQUJ;
-      if(strncmp(hdr_rec->ctype1, "GLON", 4) == 0)
-         csys = GAL;
-      if(strncmp(hdr_rec->ctype1, "ELON", 4) == 0)
-         csys = ECLJ;
-
-      equinox = hdr_rec->equinox;
-
-      pix2wcs (wcs, hdr_rec->ns/2., hdr_rec->nl/2., &lon, &lat);
-
-
-      /* Convert lon, lat to EQU J2000 */
-
-      convertCoordinates (csys, equinox, lon, lat,
-                          EQUJ, 2000., &ra2000, &dec2000, 0.);
-
-      hdr_rec->ra2000  = ra2000;
-      hdr_rec->dec2000 = dec2000;
-
-      clockwise = 0;
-
-      if((hdr_rec->cdelt1 < 0 && hdr_rec->cdelt2 < 0)
-      || (hdr_rec->cdelt1 > 0 && hdr_rec->cdelt2 > 0)) clockwise = 1;
-
-
-      if(clockwise)
-      {
-         pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
-
-         hdr_rec->ra1 = ra;
-         hdr_rec->dec1 = dec;
-
-
-         pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
-
-         hdr_rec->ra2 = ra;
-         hdr_rec->dec2 = dec;
-
-
-         pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
-
-         hdr_rec->ra3 = ra;
-         hdr_rec->dec3 = dec;
-
-
-         pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
-
-         hdr_rec->ra4 = ra;
-         hdr_rec->dec4 = dec;
-      }
       else
       {
-         pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+         hdr_rec->ns = (int) wcs->nxpix;
+         hdr_rec->nl = (int) wcs->nypix;
+
+         strcpy(hdr_rec->ctype1, wcs->ctype[0]);
+         strcpy(hdr_rec->ctype2, wcs->ctype[1]);
+
+         hdr_rec->crpix1  = wcs->xrefpix;
+         hdr_rec->crpix2  = wcs->yrefpix;
+         hdr_rec->equinox = wcs->equinox;
+         hdr_rec->crval1  = wcs->xref;
+         hdr_rec->crval2  = wcs->yref;
+         hdr_rec->cdelt1  = wcs->xinc;
+         hdr_rec->cdelt2  = wcs->yinc;
+         hdr_rec->crota2  = wcs->rot;
+
+         if(hdr_rec->cdelt1 > 0.
+         && hdr_rec->cdelt2 > 0.
+         && (hdr_rec->crota2 < -90. || hdr_rec->crota2 > 90.))
+         {
+            hdr_rec->cdelt1 = -hdr_rec->cdelt1;
+            hdr_rec->cdelt2 = -hdr_rec->cdelt2;
+
+            hdr_rec->crota2 += 180.;
+
+            while(hdr_rec->crota2 >= 360.)
+               hdr_rec->crota2 -= 360.;
+
+            while(hdr_rec->crota2 <= -360.)
+               hdr_rec->crota2 += 360.;
+         }
+
+
+         /* Convert center of image to sky coordinates */
+
+         csys = EQUJ;
+
+         if(strncmp(hdr_rec->ctype1, "RA",   2) == 0)
+            csys = EQUJ;
+         if(strncmp(hdr_rec->ctype1, "GLON", 4) == 0)
+            csys = GAL;
+         if(strncmp(hdr_rec->ctype1, "ELON", 4) == 0)
+            csys = ECLJ;
+
+         equinox = hdr_rec->equinox;
+
+         pix2wcs (wcs, hdr_rec->ns/2., hdr_rec->nl/2., &lon, &lat);
+
+
+         /* Convert lon, lat to EQU J2000 */
+
          convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
+                             EQUJ, 2000., &ra2000, &dec2000, 0.);
 
-         hdr_rec->ra1 = ra;
-         hdr_rec->dec1 = dec;
+         hdr_rec->ra2000  = ra2000;
+         hdr_rec->dec2000 = dec2000;
 
+         clockwise = 0;
 
-         pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
-
-         hdr_rec->ra4 = ra;
-         hdr_rec->dec4 = dec;
+         if((hdr_rec->cdelt1 < 0 && hdr_rec->cdelt2 < 0)
+         || (hdr_rec->cdelt1 > 0 && hdr_rec->cdelt2 > 0)) clockwise = 1;
 
 
-         pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
+         if(clockwise)
+         {
+            pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
 
-         hdr_rec->ra3 = ra;
-         hdr_rec->dec3 = dec;
+            hdr_rec->ra1 = ra;
+            hdr_rec->dec1 = dec;
 
 
-         pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0.);
+            pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
 
-         hdr_rec->ra2 = ra;
-         hdr_rec->dec2 = dec;
+            hdr_rec->ra2 = ra;
+            hdr_rec->dec2 = dec;
+
+
+            pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
+
+            hdr_rec->ra3 = ra;
+            hdr_rec->dec3 = dec;
+
+
+            pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
+
+            hdr_rec->ra4 = ra;
+            hdr_rec->dec4 = dec;
+         }
+         else
+         {
+            pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
+
+            hdr_rec->ra1 = ra;
+            hdr_rec->dec1 = dec;
+
+
+            pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
+
+            hdr_rec->ra4 = ra;
+            hdr_rec->dec4 = dec;
+
+
+            pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
+
+            hdr_rec->ra3 = ra;
+            hdr_rec->dec3 = dec;
+
+
+            pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+            convertCoordinates (csys, equinox, lon, lat,
+                                EQUJ, 2000., &ra, &dec, 0.);
+
+            hdr_rec->ra2 = ra;
+            hdr_rec->dec2 = dec;
+         }
+
+
+         x1 = cos(hdr_rec->ra2000*dtr) * cos(hdr_rec->dec2000*dtr);
+         y1 = sin(hdr_rec->ra2000*dtr) * cos(hdr_rec->dec2000*dtr);
+         z1 = sin(hdr_rec->dec2000*dtr);
+
+         x2 = cos(ra*dtr) * cos(dec*dtr);
+         y2 = sin(ra*dtr) * cos(dec*dtr);
+         z2 = sin(dec*dtr);
+
+         hdr_rec->radius = acos(x1*x2 + y1*y2 + z1*z2) / dtr;
+
+         free (header);    
       }
-
-
-      x1 = cos(hdr_rec->ra2000*dtr) * cos(hdr_rec->dec2000*dtr);
-      y1 = sin(hdr_rec->ra2000*dtr) * cos(hdr_rec->dec2000*dtr);
-      z1 = sin(hdr_rec->dec2000*dtr);
-
-      x2 = cos(ra*dtr) * cos(dec*dtr);
-      y2 = sin(ra*dtr) * cos(dec*dtr);
-      z2 = sin(dec*dtr);
-
-      hdr_rec->radius = acos(x1*x2 + y1*y2 + z1*z2) / dtr;
-
-      free (header);    
 
 
       /* Now try to get the values of the */
@@ -543,7 +640,10 @@ int get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
       print_rec (hdr_rec);
 
-      ++hdr_rec->hdu;
+      ++nwrite;
+
+      if(!nowcs)
+         free(wcs);
    }
 
    status = 0;

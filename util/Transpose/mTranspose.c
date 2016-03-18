@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 {
    int        i, j, k, l;
    int        it, jt, kt, lt;
-   int        bitpix, first;
+   int        bitpix, datatype, first;
    int        nullcnt, status, nfound, keynum;
    long       fpixel[4];
 
@@ -213,6 +213,19 @@ int main(int argc, char **argv)
 
    analyzeCTYPE(inFptr);
    
+   status = 0;
+   if(fits_get_img_type(inFptr, &bitpix, &status))
+      printFitsError(status);
+
+        if(bitpix ==   8) datatype = TBYTE;
+   else if(bitpix ==  16) datatype = TSHORT;
+   else if(bitpix ==  32) datatype = TLONG;
+   else if(bitpix ==  64) datatype = TLONGLONG;
+   else if(bitpix == -32) datatype = TFLOAT;
+   else if(bitpix == -64) datatype = TDOUBLE;
+
+   printf("XXX> %d %d\n", bitpix, datatype);
+
    status = 0;
    if(fits_read_keys_lng(inFptr, "NAXIS", 1, 4, nAxisIn, &nfound, &status))
       printFitsError(status);
@@ -560,8 +573,6 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   bitpix = -64;
-
    if (fits_create_img(outFptr, bitpix, naxis, nAxisOut, &status))
          printFitsError(status);
 
@@ -664,7 +675,7 @@ int main(int argc, char **argv)
 
             status = 0;
 
-            if (fits_write_pix(outFptr, TDOUBLE, fpixel, nAxisOut[0], 
+            if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0], 
                                (void *)outdata[l][k][j], &status))
                printFitsError(status);
 

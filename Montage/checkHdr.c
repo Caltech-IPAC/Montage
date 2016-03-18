@@ -2,7 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
+3.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in preparation
                                    for new development cycle.
 2.3      John Good        07Oct07  Add explicit hdrflag=2 check 
                                    (could be either FITS or HDR)

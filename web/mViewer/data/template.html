@@ -39,21 +39,10 @@
          background: #808080;
       }
 
-      #leftArea {
-         border:     0px solid red;
-         position:   absolute;
-         left:       0px;
-         top:        75px;
-         padding:    15px;
-         width:      200px;
-         background: #e0e0e0;
-         overflow:   auto;
-      }
-
       #interactionArea {
          border:     0px solid red;
          position:   absolute;
-         left:       200px;
+         left:       0px;
          top:        75px;
          background: #808080;
       }
@@ -82,8 +71,8 @@
 
 
       // The code here is for a simple GUI with a banner at the top
-      // of the window, a control (or whatever) bar on the left, and
-      // a main display area that will be managed by an mViewer instance.
+      // of the window and a main display area that will be managed 
+      // by an mViewer instance.
       
       // Here we take responsibility for the overall resizing of things
       // so the three areas adjust to resizing of the browser window
@@ -427,22 +416,17 @@
          var winWidth     = window.innerWidth;
          var winHeight    = window.innerHeight;
 
-         var leftWidth    = jQuery("#leftArea"  ).outerWidth();
          var bannerHeight = jQuery("#bannerArea").outerHeight();
          var buttonHeight = jQuery("#buttonBar" ).outerHeight();
 
-         var width  = winWidth  - leftWidth;
+         var width  = winWidth;
          var height = winHeight - bannerHeight;
 
          jQuery("#bannerArea").outerWidth(winWidth);
 
-         jQuery("#leftArea").outerHeight(height);
-
-         jQuery("#leftArea").css("top", bannerHeight);
-
          jQuery("#interactionArea").css("width",  width);
          jQuery("#interactionArea").css("height", height);
-         jQuery("#interactionArea").css("left",   leftWidth);
+         jQuery("#interactionArea").css("left",   0.);
          jQuery("#interactionArea").css("top",    bannerHeight);
          jQuery("#imgArea"        ).css("height", height - buttonHeight);
 
@@ -459,34 +443,6 @@
 
    <div id="bannerArea" style="height:90px; background-image:url(/applications/mViewer/icons/galplane_banner.jpg);">
    <h1 style="color:#ffffff;">&nbsp;&nbsp;&nbsp;Montage Viewer</h1>
-   </div>
-
-   <div id="leftArea">
-
-   This is a minimal application for illustration purposes.<p/>
-
-   Neither the banner above nor this space is part of mViewer.
-   All mViewer needs is the &lt;div&gt; on the right.  The rest of
-   the window, whether laid out like this or some other way, 
-   is under the control of your application.<p/>
-
-   For instance, this area might contain descriptive text and/or 
-   controls. These may be connected to mViewer in the sense that you can 
-   choose to notify mViewer of things that happen here and
-   ask it to update the plot but otherwise mViewer is not involved
-   in this part of the interface.<p/>
-
-   This also applies to resizing.  Actions you take may affect 
-   the mViewer &lt;div&gt; size or shape but if you want 
-   mViewer to react, you have to call its resize() function
-   explicitly.<p/>
-
-   The button bar at the bottom of the mViewer &lt;div&gt; is part
-   this application, not mViewer.  Details of what buttons appear
-   there are easily modified; the examples here are just some of the
-   more common image display functions like color table selection
-   and stretching.<p/>
-
    </div>
 
    <div id="interactionArea">

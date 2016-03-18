@@ -79,7 +79,7 @@ struct WorldCoor *wcs;
 int main(int argc, char **argv)
 {
    int       i, j, k, countRange, countNaN, testcnt, bcount, status, boundaries;
-   int       c, nMinMax, inRange, haveVal, writeOutput, offscl;
+   int       c, offset, nMinMax, inRange, haveVal, writeOutput, offscl;
    long      fpixel[4], nelements;
    double   *inbuffer;
    double    NaNvalue;
@@ -191,19 +191,18 @@ int main(int argc, char **argv)
 
    nMinMax = 0;
 
-   if(argc-optind > 3)
+   if(argc-optind-2 >= 2)   // Need at least two range arguments
    {
-      argc -= optind;
-      argv += optind;
-
       while(1)
       {
-         if(argc < 5+2*nMinMax)
+         offset = optind+2+2*nMinMax;
+
+         if(argc-offset < 2)
             break;
 
          ismin[nMinMax] = 0;
 
-         if(strcmp(argv[3+2*nMinMax], "min") == 0)
+         if(strcmp(argv[offset], "min") == 0)
          {
             ismin[nMinMax] = 1;
 
@@ -211,9 +210,9 @@ int main(int argc, char **argv)
          }
          else
          {
-            minblank[nMinMax] = strtod(argv[3+2*nMinMax], &end);
+            minblank[nMinMax] = strtod(argv[offset], &end);
 
-            if(end < argv[3] + strlen(argv[3+2*nMinMax]))
+            if(end < argv[offset] + strlen(argv[offset]))
             {
                printf ("[struct stat=\"ERROR\", msg=\"min blank value string is not a number\"]\n");
                exit(1);
@@ -223,7 +222,7 @@ int main(int argc, char **argv)
 
          ismax[nMinMax] = 0;
 
-         if(strcmp(argv[4+2*nMinMax], "max") == 0)
+         if(strcmp(argv[offset+1], "max") == 0)
          {
             ismax[nMinMax] = 1;
 
@@ -231,9 +230,9 @@ int main(int argc, char **argv)
          }
          else
          {
-            maxblank[nMinMax] = strtod(argv[4+2*nMinMax], &end);
+            maxblank[nMinMax] = strtod(argv[offset+1], &end);
 
-            if(end < argv[4] + strlen(argv[4+2*nMinMax]))
+            if(end < argv[offset+1] + strlen(argv[offset+1]))
             {
                printf ("[struct stat=\"ERROR\", msg=\"max blank value string is not a number\"]\n");
                exit(1);
@@ -251,6 +250,8 @@ int main(int argc, char **argv)
       printf("boundaryFlag     =  %d\n",  boundaries);
       printf("haveVal          =  %d\n",  haveVal);
       printf("nMinMax          =  %d\n",  nMinMax);
+
+      fflush(stdout);
 
       for(j=0; j<nMinMax; ++j)
       {

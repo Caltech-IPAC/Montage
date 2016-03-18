@@ -56,6 +56,7 @@ int   noGZIP;
 int   showCorners;
 int   cntr;
 int   failed;
+int   info, nfile, badfile, nhdu, nbadwcs, nwrite;
 int   hdrlen;
 int   haveCubes;
 FILE *tblf;
@@ -125,6 +126,13 @@ int main(int argc, char **argv)
     cntr   = 0;
     failed = 0;
 
+    info    = 0;
+    nfile   = 0;
+    badfile = 0;
+    nhdu    = 0;
+    nbadwcs = 0;
+    nwrite  = 0;
+
     strcpy (pathname, "");
     strcpy (tblname,  "");
 
@@ -147,10 +155,14 @@ int main(int argc, char **argv)
     fields = (FIELDS *)
                  malloc(maxfields * sizeof(FIELDS));
 
-    while ((c = getopt(argc, argv, "rcCadbs:f:t:z")) != -1) 
+    while ((c = getopt(argc, argv, "ircCadbs:f:t:z")) != -1) 
     {
        switch (c) 
        {
+          case 'i':
+             info = 1;
+             break;
+ 
           case 'r':
              recursiveMode = 1;
              break;
@@ -326,7 +338,7 @@ int main(int argc, char **argv)
 
     if (argc - optind < 2) 
     {
-        fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-rcCadb][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl\"]\n", argv[0]);
+        fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-rcCadbi][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl\"]\n", argv[0]);
         exit(1);
     }
 
@@ -410,7 +422,8 @@ int main(int argc, char **argv)
 
     update_table(tblname);
 
-    fprintf(fstatus, "[struct stat=\"OK\", count=%d, badfits=%d, badwcs=%d]\n", cntr, failed, badwcs);
+    fprintf(fstatus, "[struct stat=\"OK\", count=%d, nfile=%d, nhdu=%d, badfits=%d, badwcs=%d]\n", 
+       cntr, nfile, nhdu, badfile, badwcs);
     exit(0);
 }
 

@@ -1836,6 +1836,7 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
+      /*
       strcpy(countfile, basefile);
       strcat(countfile, ".counts");
 
@@ -1846,6 +1847,7 @@ int main(int argc, char **argv)
       lseek(fdcnt, cntsize-1, SEEK_SET);
 
       write(fdcnt, "\0", 1);
+      */
 
       newNodes = (struct Node *)newMap;
 

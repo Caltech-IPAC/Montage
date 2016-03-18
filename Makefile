@@ -1,16 +1,16 @@
 all:
 	mkdir -p bin
 	mkdir -p lib/include
-	(cd lib/src; make)
-	(cd Montage; ./Configure.sh; make; make install)
-	if test -d util; then (cd util; make); fi
-	if test -d grid; then (cd grid; make); fi
+	if test -d lib/src; then (cd lib/src; make); fi
+	if test -d Montage; then (cd Montage; ./Configure.sh; make; make install); fi
+	if test -d util;    then (cd util; make); fi
+	if test -d grid;    then (cd grid; make); fi
 
 clean:
 	mkdir -p bin
 	mkdir -p lib/include
 	rm -f bin/*
-	(cd lib/src; make clean)
-	(cd Montage; make clean)
-	if test -d util; then (cd util; make clean); fi
-	if test -d grid; then (cd grid; make clean); fi
+	if test -d lib/src; then (cd lib/src; make clean); fi
+	if test -d Montage; then (cd Montage; make clean); fi
+	if test -d util;    then (cd util;    make clean); fi
+	if test -d grid;    then (cd grid;    make clean); fi
