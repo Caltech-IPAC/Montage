@@ -4024,8 +4024,26 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
 int pointInPolygon(Vec *point, Vec *corners)
 {
-   int i, inext, interior;
-   Vec normal;
+   int    i, inext, interior, clockwise;
+   Vec    normal, normal1, normal2, direction;
+   double dot, ra, dec;
+
+
+   // Check the ordering of the corners
+
+   Cross(&corners[0], &corners[1], &normal1);
+   Cross(&corners[1], &corners[2], &normal2);
+   Cross(&normal1, &normal2, &direction);
+
+   Normalize(&direction);
+
+   clockwise = -1;
+   if(Dot(&direction, &corners[1]) > 0.)
+      clockwise = 1;
+
+
+   // Clockwise and counterclockwise use reverse 
+   // ordering for interior check
 
    interior = 1;
 
@@ -4035,7 +4053,22 @@ int pointInPolygon(Vec *point, Vec *corners)
 
       Cross(&corners[i], &corners[inext], &normal);
 
-      if(Dot(&normal, point) > 0.)
+      Normalize(&normal);
+
+      dot = clockwise * Dot(&normal, point);
+
+      if(rdebug > 2)
+      {
+         ra  = atan2(normal.y, normal.x)/dtr;
+         dec = asin (normal.z)/dtr;
+
+         printf("normal %d) %11.6f %11.6f %11.6f (%11.6f,%11.6f) -> %11.6f (%.6f)\n", 
+               i, normal.x, normal.y, normal.z, ra, dec, acos(dot)/dtr, dot);
+
+         fflush(stdout);
+      }
+
+      if(dot < 0.)
       {
          interior = 0;
          break;
@@ -4049,7 +4082,7 @@ int pointInPolygon(Vec *point, Vec *corners)
       for(i=0; i<4; ++i)
          printf("corner %d) %11.6f %11.6f %11.6f\n", i, corners[i].x, corners[i].y, corners[i].z);
 
-      printf("\nvector)   %11.6f %11.6f %11.6f --> %d\n\n", point->x, point->y, point->z, interior);
+      printf("\nvector)   %11.6f %11.6f %11.6f --> %d (%d)\n\n", point->x, point->y, point->z, interior, clockwise);
 
       fflush(stdout);
    }
