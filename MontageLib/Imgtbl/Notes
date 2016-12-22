@@ -1,0 +1,75 @@
+
+
+I've been working on restructuring Montage so the functionality 
+is available both as applications and a library.  I've done a
+couple of modules and think I have everything worked out but 
+though this would be a good time to review the design and get
+feedback.
+
+Basically, I'm splitting each program in two: a driver program
+that collect parameters and prints out the return message
+and a function that does all the processing.  There is also
+a standard include file for each module and a JSON file
+describing the calling arguments and return info.
+
+Take mImgtbl as an example.  Someone who wants to use the 
+library routine for mImgtbl will have to include "mImgtbl.h"
+(and a more generic "montage.h") and call the routine 
+"mImgtbl" with the arguments given in the JSON file:
+
+
+{
+   "module"="mImgtbl",
+
+   "function"="mImgtbl",
+
+   "desc" = "mImgtbl extracts the FITS header geometry information from a set of files and creates an ASCII image metadata table which is used by several of the other programs. It only collects data from headers that comply with the FITS standard, but reports a count of images that fail that check.",
+
+   "arguments"=
+   [
+      {"type"="string",  "name"="pathname",         desc"="Directory (or top of tree) for image file search (default to current directory)."},
+      {"type"="string",  "name"="tblname",          desc"="Output table file name (no default)."},
+      {"type"="boolean", "name"="debug",            desc"="Turn on debugging output (not for general use)."},
+      {"type"="boolean", "name"="recursiveMode",    desc"="Search for images recursively (default just top directory)."},
+      {"type"="boolean", "name"="processAreaFiles", desc"="Include "area" files in the list (not normally advisable)."},
+      {"type"="boolean", "name"="noGZIP",           desc"="mImgtbl normally includes analysis of .fits.gz files.  This turns that off."},
+      {"type"="boolean", "name"="showCorners",      desc"="Include ra1,dec1, ... dec4 image corner columns in output."},
+      {"type"="boolean", "name"="showbad",          desc"="Show running "INFO" messages for FITS files that cannot be opened by CFITSIO."},
+      {"type"="string",  "name"="imgListFile",      desc"="Rather than searching through directories, get the list of images from a table file."},
+      {"type"="string",  "name"="fieldListFile",    desc"="List of FITS keywords to include in output table (in addition to the standard WCS info."}
+   ],
+   
+   "return"=
+   [
+      {"type"="integer", "name"="count",            desc"="Number of images found with valid headers (may be more than one per file)."},
+      {"type"="integer", "name"="badfits",          desc"="Number of bad FITS files."},
+      {"type"="integer", "name"="badwcs",           desc"="Number of images rejected because of bad WCS information."}
+   ]
+}
+
+
+In Python you can set up defaults as appropriate but C needs
+all the arguments to be sent explicitly.  I've kept the arguments
+to simple types (integer, double, character pointer).  [Note:
+"booleans" are really 0/1 integers and strings are character
+pointers.] 
+
+The "mImgtbl" routine only returns 0 or 1 (success or
+failure).  I thought about how to deal with return values,
+which for success can be quite variable but reasonably small,
+and have tentatively decided to capture this in two strings:
+a "message" (usually for failure reporting) and a JSON 
+string for enumerated parameters (the "return" list above).
+These are available through global variables in the 
+"montage.h" include file as "montage_msgstr" and 
+"montage_json".
+
+The other option would be to have real C return structures 
+defined for each module in their individual include files
+and if there is enough demand for that pattern, it would
+be easy to add without disrupting things.  I may decide to
+add it on principle.
+
+So let me know if you see anything missing or can think of
+any improvements.  It's fiddly work but not complicated, 
+so I want to make sure to get the design right up front.

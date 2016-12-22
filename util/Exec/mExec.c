@@ -136,7 +136,7 @@ int nextCorr();
 /*  -h headertext    none         FITS header as a text string           */
 /*                                 (either -f or -h must exist)          */
 /*  -n tilecount     no tiling    Make an NxM set of tiles instead of    */
-/*  -m tilecount                   one big mosaic (and no JPEGs)         */
+/*  -m tilecount                   one big mosaic (and no PNGs)          */
 /*  -s factor        1 (none)     "Shrink" the input image pixels prior  */
 /*                                 to reprojection.  Saves time if the   */
 /*                                 output is much lower resolution than  */
@@ -161,7 +161,7 @@ int nextCorr();
 /*  -L labeltext     none         Label text used in HTML                */
 /*  -O loctext       none         Location string text                   */
 /*  -M contact       none         "Contact" string text                  */
-/*  -x               0 (false)    Add a location marker to the JPEG      */
+/*  -x               0 (false)    Add a location marker to the PNG       */
 /*                                                                       */
 /*                                                                       */
 /*  So minimal calls would look like:                                    */
@@ -203,7 +203,7 @@ int main(int argc, char **argv, char **envp)
    int    naxis1, naxis2, naxismax, nxtile, nytile;
    int    intan, outtan, iscale, ncell, local2MASS;
    int    keepAll, deleteAll, noSubset, infoMsg, levelOnly;
-   int    ftmp, userRaw, showMarker;
+   int    ftmp, userRaw, showMarker, quickMode;
 
    double val, factor, shrink;
 
@@ -360,6 +360,7 @@ int main(int argc, char **argv, char **envp)
    ntile      = 0;
    mtile      = 0;
    local2MASS = 0;
+   quickMode  = 0;
 
    shrink     = 1.0;
 
@@ -368,7 +369,7 @@ int main(int argc, char **argv, char **envp)
    debug  = 0;
    opterr = 0;
 
-   while ((ch = getopt(argc, argv, "ilkcaxSh:f:o:d:D:e:r:s:n:m:L:O:M:")) != EOF)
+   while ((ch = getopt(argc, argv, "ilkcaxqSh:f:o:d:D:e:r:s:n:m:L:O:M:")) != EOF)
    {
       switch (ch)
       {
@@ -390,6 +391,10 @@ int main(int argc, char **argv, char **envp)
 
          case 'c':
             deleteAll = 1;
+            break;
+
+         case 'q':
+            quickMode = 1;
             break;
 
          case 'x':
@@ -477,7 +482,7 @@ int main(int argc, char **argv, char **envp)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-r rawdir][-n ntilex][-m ntiley][-l(evel only)][-k(eep all)][-c(lean)][-s shrinkFactor][-o output.fits][-d(ebug) level][-f region.hdr | -h header] survey band [workspace-dir]\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-q(uick-mode)][-r rawdir][-n ntilex][-m ntiley][-l(evel only)][-k(eep all)][-c(lean)][-s shrinkFactor][-o output.fits][-d(ebug) level][-f region.hdr | -h header] survey band [workspace-dir]\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -515,7 +520,7 @@ int main(int argc, char **argv, char **envp)
 
    if (!userRaw && argc - optind < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-r rawdir][-n ntile][-m ntiley][-l(evel only)][-k(eep all)][-c(lean)][-s shrinkFactor][-o output.fits][-d(ebug) level][-f region.hdr | -h header] survey band [workspace-dir]\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-q(uick-mode)][-r rawdir][-n ntile][-m ntiley][-l(evel only)][-k(eep all)][-c(lean)][-s shrinkFactor][-o output.fits][-d(ebug) level][-f region.hdr | -h header] survey band [workspace-dir]\"]\n", argv[0]);
       exit(1);
    }
 
@@ -1443,9 +1448,9 @@ int main(int argc, char **argv, char **envp)
    }
 
 
-   /*************************************************/ 
-   /* Read the records and call mProject/mProjectPP */
-   /*************************************************/ 
+   /************************************************************/ 
+   /* Read the records and call mProject/mProjectPP/mProjectQL */
+   /************************************************************/ 
 
    index     = 0;
    failed    = 0;
@@ -1524,7 +1529,8 @@ int main(int argc, char **argv, char **envp)
          printerr(msg);
       }
 
-      if(strcmp(wcsin->ptype, "TAN") != 0
+      if(!quickMode
+      && strcmp(wcsin->ptype, "TAN") != 0
       && strcmp(wcsin->ptype, "SIN") != 0
       && strcmp(wcsin->ptype, "ZEA") != 0
       && strcmp(wcsin->ptype, "STG") != 0
@@ -1620,10 +1626,14 @@ int main(int argc, char **argv, char **envp)
       }
 
 
-      /* Now run mProject or mProjectPP (depending */
-      /* on what we have to work with)             */
+      /* Now run mProject, mProjectPP or mProjectQL */
+      /* (depending on what we have to work with)   */
 
-      if(     intan == COMPUTED  && outtan == COMPUTED )
+      if(quickMode)
+         sprintf(cmd, "mProjectQL -x %s -X %s/%s projected/%s big_region.hdr",
+            scale_str, datadir, infile, outfile);
+
+      else if(intan == COMPUTED  && outtan == COMPUTED )
          sprintf(cmd, "mProjectPP -b 1 -i altin.hdr -o altout.hdr -x %s -X %s/%s projected/%s big_region.hdr",
             scale_str, datadir, infile, outfile);
 
@@ -1685,7 +1695,7 @@ int main(int argc, char **argv, char **envp)
       }
       else
       {
-         strcpy(goodFile, infile);
+         strcpy(goodFile, outfile);
 
          if(strlen(goodFile) > 3 && strcmp(goodFile+strlen(goodFile)-3, ".gz") == 0)
             *(goodFile+strlen(goodFile)-3) = '\0';
@@ -1711,9 +1721,14 @@ int main(int argc, char **argv, char **envp)
 
    if(debug >= 1)
    {
-      if(intan == FAILED && outtan == FAILED)
+      if(quickMode)
+         fprintf(fdebug, "TIME: mProjectQL       %6d (%d successful, %d failed, %d no overlap)\n",
+            (int)(currtime - lasttime), baseCount, failed, nooverlap);
+
+      else if(intan == FAILED && outtan == FAILED)
          fprintf(fdebug, "TIME: mProject         %6d (%d successful, %d failed, %d no overlap)\n",
             (int)(currtime - lasttime), baseCount, failed, nooverlap);
+
       else
          fprintf(fdebug, "TIME: mProjectPP       %6d (%d successful, %d failed, %d no overlap)\n", 
             (int)(currtime - lasttime), baseCount, failed, nooverlap);
@@ -1888,7 +1903,10 @@ int main(int argc, char **argv, char **envp)
          strcpy(fname2,   tval(ifname2));
          strcpy(diffname, tval(idiffname));
 
-         sprintf(cmd, "mDiff projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
+         if(quickMode)
+            sprintf(cmd, "mDiff -n projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
+         else
+            sprintf(cmd, "mDiff projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
 
          if(debug >= 4)
          {
@@ -2235,8 +2253,12 @@ int main(int argc, char **argv, char **envp)
 
          if(cntr == idcorr)
          {
-            sprintf(cmd, "mBackground projected/%s corrected/%s %s %s %s", 
-               corrfile, corrfile, astr, bstr, cstr);
+            if(quickMode)
+               sprintf(cmd, "mBackground -n projected/%s corrected/%s %s %s %s", 
+                  corrfile, corrfile, astr, bstr, cstr);
+            else
+               sprintf(cmd, "mBackground projected/%s corrected/%s %s %s %s", 
+                  corrfile, corrfile, astr, bstr, cstr);
 
             if(debug >= 4)
             {
@@ -2287,8 +2309,12 @@ int main(int argc, char **argv, char **envp)
             strcpy(bstr,"0.0");
             strcpy(cstr,"0.0");
 
-            sprintf(cmd, "mBackground projected/%s corrected/%s %s %s %s", 
-               corrfile, corrfile, astr, bstr, cstr);
+            if(quickMode)
+               sprintf(cmd, "mBackground -n projected/%s corrected/%s %s %s %s", 
+                  corrfile, corrfile, astr, bstr, cstr);
+            else
+               sprintf(cmd, "mBackground projected/%s corrected/%s %s %s %s", 
+                  corrfile, corrfile, astr, bstr, cstr);
 
             if(debug >= 4)
             {
@@ -2403,7 +2429,10 @@ int main(int argc, char **argv, char **envp)
 
       if(ntile*mtile == 1)
       {
-         sprintf(cmd, "mAdd -p corrected cimages.tbl region.hdr mosaic.fits");
+         if(quickMode)
+            sprintf(cmd, "mAdd -n -p corrected cimages.tbl region.hdr mosaic.fits");
+         else
+            sprintf(cmd, "mAdd -p corrected cimages.tbl region.hdr mosaic.fits");
 
          if(debug >= 4)
          {
@@ -2472,8 +2501,12 @@ int main(int argc, char **argv, char **envp)
 
                if(nmatches > 0)
                {
-                  sprintf(cmd, "mAdd -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
-                     i, j, i, j, i, j);
+                  if(quickMode)
+                     sprintf(cmd, "mAdd -n -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
+                        i, j, i, j, i, j);
+                  else
+                     sprintf(cmd, "mAdd -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
+                        i, j, i, j, i, j);
 
                   if(debug >= 4)
                   {
@@ -2524,7 +2557,10 @@ int main(int argc, char **argv, char **envp)
 
          lasttime = currtime;
          
-         sprintf(cmd, "mAdd -p tiles timages.tbl region.hdr mosaic.fits");
+         if(quickMode)
+            sprintf(cmd, "mAdd -n -p tiles timages.tbl region.hdr mosaic.fits");
+         else
+            sprintf(cmd, "mAdd -p tiles timages.tbl region.hdr mosaic.fits");
 
          if(debug >= 4)
          {
@@ -2791,9 +2827,9 @@ int main(int argc, char **argv, char **envp)
    lasttime = currtime;
 
 
-   /******************************/
-   /* Create JPEG of final image */
-   /******************************/
+   /*****************************/
+   /* Create PNG of final image */
+   /*****************************/
 
    if(infoMsg)
    {
@@ -2806,10 +2842,10 @@ int main(int argc, char **argv, char **envp)
    if(naxismax < 1500)
    {
       if(showMarker)
-         sprintf(cmd, "mJPEG -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic.fits min max gaussianlog -out mosaic.jpg",
+         sprintf(cmd, "mViewer -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic.fits min max gaussianlog -out mosaic.png",
             rac, decc);
       else
-         sprintf(cmd, "mJPEG -ct 1 -gray mosaic.fits min max gaussianlog -out mosaic.jpg");
+         sprintf(cmd, "mViewer -ct 1 -gray mosaic.fits min max gaussianlog -out mosaic.png");
 
 
       if(debug >= 4)
@@ -2833,7 +2869,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-         fprintf(fdebug, "TIME: mJPEG            %6d\n", (int)(currtime - lasttime));
+         fprintf(fdebug, "TIME: mViewer          %6d\n", (int)(currtime - lasttime));
          fflush(fdebug);
       }
 
@@ -2873,10 +2909,10 @@ int main(int argc, char **argv, char **envp)
       lasttime = currtime;
 
       if(showMarker)
-         sprintf(cmd, "mJPEG -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic_small.fits min max gaussianlog -out mosaic.jpg",
+         sprintf(cmd, "mViewer -ct 1 -mark %.6f %.6f eq J2000 7 red -gray mosaic_small.fits min max gaussianlog -out mosaic.png",
             rac, decc);
       else
-         sprintf(cmd, "mJPEG -ct 1 -gray mosaic_small.fits min max gaussianlog -out mosaic.jpg");
+         sprintf(cmd, "mViewer -ct 1 -gray mosaic_small.fits min max gaussianlog -out mosaic.png");
 
       if(debug >= 4)
       {
@@ -2899,7 +2935,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-         fprintf(fdebug, "TIME: mJPEG            %6d\n", (int)(currtime - lasttime));
+         fprintf(fdebug, "TIME: mViewer          %6d\n", (int)(currtime - lasttime));
          fflush(fdebug);
       }
 
@@ -2961,7 +2997,7 @@ int main(int argc, char **argv, char **envp)
    fprintf(fhtml, "    <td colspan=\"%d\" bgcolor=\"#669999\">\n", ncell);
 
    fprintf(fhtml, "      <center>\n");
-   fprintf(fhtml, "        <img src=\"mosaic.jpg\" width=600 alt=\"Region mosaic image\"><br>\n");
+   fprintf(fhtml, "        <img src=\"mosaic.png\" width=600 alt=\"Region mosaic image\"><br>\n");
    fprintf(fhtml, "      </center>\n");
    fprintf(fhtml, "    </td>\n");
    fprintf(fhtml, "   </tr>\n");
@@ -2982,7 +3018,7 @@ int main(int argc, char **argv, char **envp)
    {
       fprintf(fhtml, "     <td bgcolor=\"#669999\">\n");
       fprintf(fhtml, "      <center>\n");
-      fprintf(fhtml, "      <a href=\"mosaic_small.fits\"><font size=-1>%-gx&nbsp;shrunken&nbsp;version&nbsp;of&nbsp;FITS&nbsp;image<br>(used&nbsp;to&nbsp;make&nbsp;above&nbsp;JPEG)</font></a>\n", factor);
+      fprintf(fhtml, "      <a href=\"mosaic_small.fits\"><font size=-1>%-gx&nbsp;shrunken&nbsp;version&nbsp;of&nbsp;FITS&nbsp;image<br>(used&nbsp;to&nbsp;make&nbsp;above&nbsp;PNG)</font></a>\n", factor);
       fprintf(fhtml, "      </center>\n");
       fprintf(fhtml, "     </td>\n");
    }

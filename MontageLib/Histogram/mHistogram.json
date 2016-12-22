@@ -1,0 +1,31 @@
+{
+   "module":"mHistogram",
+
+   "function":"mHistogram",
+
+   "desc" : "mHistogram generates a histogram from an image (to be used by mViewer mostly).",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"imgFile",       "desc":"Input FITS file."},
+      {"type":"string",                    "name":"histFile",      "desc":"Output histogram file."},
+      {"type":"string",                    "name":"minString",     "desc":"Data range minimum as a string (to allow '%' and 's' suffix."},
+      {"type":"string",                    "name":"maxString",     "desc":"Data range maximum as a string (to allow '%' and 's' suffix."},
+      {"type":"string",                    "name":"stretchType",   "desc":"Stretch type (linear, power(log**N), sinh, gaussian or gaussian-log)"},
+      {"type":"int",     "default":1,      "name":"grayLogPower",  "desc":"If the stretch type is log to a power, the power value."},
+      {"type":"string",  "default":"",     "name":"betaString",    "desc":"If the stretch type is asinh, the transition data value."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"double",                    "name":"minval",        "desc":"Data value associated with histogram minimum."},
+      {"type":"double",                    "name":"minpercent",    "desc":"Percentile value of histogram minimum."},
+      {"type":"double",                    "name":"minsigma",      "desc":"'Sigma' level of histogram minimum."},
+      {"type":"double",                    "name":"maxval",        "desc":"Data value associated with histogram maximum."},
+      {"type":"double",                    "name":"maxpercent",    "desc":"Percentile value of histogram maximum."},
+      {"type":"double",                    "name":"maxsigma",      "desc":"'Sigma' level of histogram maximum."},
+      {"type":"double",                    "name":"datamin",       "desc":"Minimum data value in file."},
+      {"type":"double",                    "name":"datamax",       "desc":"Maximum data value in file."}
+   ]
+}

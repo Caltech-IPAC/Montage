@@ -107,8 +107,8 @@ int main(int argc, char **argv)
    for(i=0; i<10; ++i)
       cdelt[i] = 0.;
 
+   strcpy(params.dConstraint[0], "");
    strcpy(params.dConstraint[1], "");
-   strcpy(params.dConstraint[2], "");
 
    fstatus = stdout;
 
@@ -307,7 +307,7 @@ int main(int argc, char **argv)
       printf("DEBUG> statfile   = %s\n", statfile);
       printf("DEBUG> kbegin     = %d\n", params.kbegin);
       printf("DEBUG> kend       = %d\n", params.kend);
-      printf("DEBUG> naxis[2]   = %d\n", params.naxes[2]);
+      printf("DEBUG> naxis[2]   = %d\n", (int)params.naxes[2]);
       printf("DEBUG> nrange3    = %d\n", params.nrange[0]);
 
       if(params.nrange[0] > 0)
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
 
       printf("\nDEBUG> lbegin     = %d\n", params.lbegin);
       printf("DEBUG> lend       = %d\n", params.lend);
-      printf("DEBUG> naxis[3]   = %d\n", params.naxes[3]);
+      printf("DEBUG> naxis[3]   = %d\n", (int)params.naxes[3]);
       printf("DEBUG> nrange4    = %d\n", params.nrange[1]);
 
       if(params.nrange[1] > 0)

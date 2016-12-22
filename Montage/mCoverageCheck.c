@@ -149,7 +149,9 @@ int main(int argc, char **argv)
 
    double lon, lat;
    double loni, lati;
+   double dot;
    double xmin, xmax, ymin, ymax;
+   double ra, dec;
    double center_ra, center_dec, box_xsize, box_ysize, xsize, ysize;
    double new_center_ra, new_center_dec;
    double box_rotation, box_radius, circle_radius, dist;
@@ -914,6 +916,7 @@ int main(int argc, char **argv)
                  center.x, center.y, center.z);
       }
 
+      double dot;
       circle_radius = 0.;
    }
 
@@ -1422,7 +1425,20 @@ int main(int argc, char **argv)
 
             Normalize(&image_normal[j]);
 
-            if(Dot(&image_normal[j], &center) < 0)
+            dot = Dot(&image_normal[j], &center);
+
+            if(debug)
+            {
+               ra  = atan2(image_normal[j].y, image_normal[j].x)/dtr;
+               dec = asin (image_normal[j].z)/dtr;
+   
+               printf("normal %d) %11.6f %11.6f %11.6f (%11.6f,%11.6f) -> %11.6f (%.6f)\n",
+                     j, image_normal[j].x, image_normal[j].y, image_normal[j].z, ra, dec, acos(dot)/dtr, dot);
+   
+               fflush(stdout);
+            }
+
+            if(dot < 0)
             {
                interior = 0;
                break;

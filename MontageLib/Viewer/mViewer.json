@@ -1,0 +1,60 @@
+{
+   "module":"mViewer",
+
+   "function":"mViewer",
+
+   "desc" : "mAdd enerates a JPEG image file with overlays from a FITS file (or a set of three FITS files in color).",
+
+   "arguments":
+   [
+      {"type":"int",     "default":"1",    "name":"mode",          "desc":"Type of the command string: 0 for argument list and 1 for JSON."},
+      {"type":"string",                    "name":"cmdstr",        "desc":"The command string (arguments or JSON)."},
+      {"type":"string",                    "name":"outFile",       "desc":"Output PNG/JPEG."},
+      {"type":"string",  "default":"png",  "name":"outFmt",        "desc":"'png' or 'jpeg'."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging flag."} 
+
+   ],
+   
+   "return":
+   [
+      {"type":"string",                    "name":"type",              "desc":"'grayscale' or 'color'."},
+      {"type":"int",                       "name":"nx",                "desc":"Output image width."},
+      {"type":"int",                       "name":"ny",                "desc":"Output image height."},
+      {"type":"double",                    "name":"grayminval",        "desc":"Gray file: Minimum stretch data value."},
+      {"type":"double",                    "name":"grayminpercent",    "desc":"Gray file: Histogram percentile level for min stretch value."},
+      {"type":"double",                    "name":"grayminsigma",      "desc":"Gray file: 'Sigma' level for min stretch value."},
+      {"type":"double",                    "name":"graymaxval",        "desc":"Gray file: Maximum stretch data value."},
+      {"type":"double",                    "name":"graymaxpercent",    "desc":"Gray file: Histogram percentile level for max stretch value."},
+      {"type":"double",                    "name":"graymaxsigma",      "desc":"Gray file: 'Sigma' level for max stretch value."},
+      {"type":"double",                    "name":"blueminval",        "desc":"Blue file: Minimum stretch data value."},
+      {"type":"double",                    "name":"blueminpercent",    "desc":"Blue file: Histogram percentile level for min stretch value."},
+      {"type":"double",                    "name":"blueminsigma",      "desc":"Blue file: 'Sigma' level for min stretch value."},
+      {"type":"double",                    "name":"bluemaxval",        "desc":"Blue file: Maximum stretch data value."},
+      {"type":"double",                    "name":"bluemaxpercent",    "desc":"Blue file: Histogram percentile level for max stretch value."},
+      {"type":"double",                    "name":"bluemaxsigma",      "desc":"Blue file: 'Sigma' level for max stretch value."},
+      {"type":"double",                    "name":"greenminval",       "desc":"Green file: Minimum stretch data value."},
+      {"type":"double",                    "name":"greenminpercent",   "desc":"Green file: Histogram percentile level for min stretch value."},
+      {"type":"double",                    "name":"greenminsigma",     "desc":"Green file: 'Sigma' level for min stretch value."},
+      {"type":"double",                    "name":"greenmaxval",       "desc":"Green file: Maximum stretch data value."},
+      {"type":"double",                    "name":"greenmaxpercent",   "desc":"Green file: Histogram percentile level for max stretch value."},
+      {"type":"double",                    "name":"greenmaxsigma",     "desc":"Green file: 'Sigma' level for max stretch value."},
+      {"type":"double",                    "name":"redminval",         "desc":"Red file: Minimum stretch data value."},
+      {"type":"double",                    "name":"redminpercent",     "desc":"Red file: Histogram percentile level for min stretch value."},
+      {"type":"double",                    "name":"redminsigma",       "desc":"Red file: 'Sigma' level for min stretch value."},
+      {"type":"double",                    "name":"redmaxval",         "desc":"Red file: Maximum stretch data value."},
+      {"type":"double",                    "name":"redmaxpercent",     "desc":"Red file: Histogram percentile level for max stretch value."},
+      {"type":"double",                    "name":"redmaxsigma",       "desc":"Red file: 'Sigma' level for max stretch value."},
+      {"type":"double",                    "name":"graydatamin",       "desc":"Gray file: Minimum data value in file."},
+      {"type":"double",                    "name":"graydatamax",       "desc":"Gray file: Maximum data value in file."},
+      {"type":"double",                    "name":"bdatamin",          "desc":"Blue file: Minimum data value in file."},
+      {"type":"double",                    "name":"bdatamax",          "desc":"Blue file: Maximum data value in file."},
+      {"type":"double",                    "name":"gdatamin",          "desc":"Green file: Minimum data value in file."},
+      {"type":"double",                    "name":"gdatamax",          "desc":"Green file: Maximum data value in file."},
+      {"type":"double",                    "name":"rdatamin",          "desc":"Red file: Minimum data value in file."},
+      {"type":"double",                    "name":"rdatamax",          "desc":"Red file: Maximum data value in file."},
+      {"type":"int",                       "name":"flipX",             "desc":"1 if X axis was flipped (to better represent the sky)."},
+      {"type":"int",                       "name":"flipY",             "desc":"1 if Y axis was flipped."},
+      {"type":"int",                       "name":"colortable",        "desc":"Grayscale color table used."},
+      {"type":"string",                    "name":"bunit",             "desc":"Data units from FITS header (assumed the same for color images)."}
+   ]
+}

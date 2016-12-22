@@ -1,0 +1,20 @@
+{
+   "module":"mOverlaps",
+
+   "function":"mOverlaps",
+
+   "desc" : "mOverlaps takes a list of images (with WCS/corner information) and generates a list of image overlaps.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"tblfile",       "desc":"Image metadata file."},
+      {"type":"string",                    "name":"difftbl",       "desc":"Output table of overlap areas."},
+      {"type":"boolean", "default":false,  "name":"quickmode",     "desc":"Use faster but fairly accurate overlap check rather than full geometry calculation."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+   
+   "return":
+   [
+      {"type":"int",                       "name":"count",         "desc":"Number of overlaps."}
+   ]
+}

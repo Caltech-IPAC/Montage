@@ -87,6 +87,7 @@ int main(int argc, char **argv)
    double    *buffer;
 
    int       status = 0;
+   int       force  = 0;
 
    char      template_file[MAXSTR];
    char      line         [MAXSTR];
@@ -125,12 +126,16 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
-   while ((c = getopt(argc, argv, "d:s:h:")) != EOF) 
+   while ((c = getopt(argc, argv, "d:fs:h:")) != EOF) 
    {
       switch (c) 
       {
          case 'd':
             debug = debugCheck(optarg);
+            break;
+
+         case 'f':
+            force = 1;
             break;
 
          case 's':
@@ -241,21 +246,26 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   if(tnaxis  != naxis 
-   || tnaxis1 != input.naxes[0]
-   || tnaxis2 != input.naxes[1]
-   || tnaxis3 != input.naxes[2]
-   || tnaxis4 != input.naxes[3])
+   if(!force)
    {
-      fclose(ftemp);
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"NAXIS/NAXES values cannot be modified using this program.\"]\n");
-      exit(1);
+      if(tnaxis  != naxis 
+      || tnaxis1 != input.naxes[0]
+      || tnaxis2 != input.naxes[1]
+      || tnaxis3 != input.naxes[2]
+      || tnaxis4 != input.naxes[3])
+      {
+         fclose(ftemp);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"NAXIS/NAXES values cannot be modified using this program.\"]\n");
+         exit(1);
+      }
    }
 
-   output.naxes[0] = input.naxes[0];
-   output.naxes[1] = input.naxes[1];
-   output.naxes[2] = input.naxes[2];
-   output.naxes[3] = input.naxes[3];
+   naxis = tnaxis;
+
+   output.naxes[0] = tnaxis1;
+   output.naxes[1] = tnaxis2;
+   output.naxes[2] = tnaxis3;
+   output.naxes[3] = tnaxis4;
 
    if(debug >= 1)
    {
@@ -336,7 +346,7 @@ int main(int argc, char **argv)
                                      (char *)NULL, &status))
 
    if(naxis > 3)
-      if(fits_update_key_lng(output.fptr, "NAXIS4", output.naxes[4],
+      if(fits_update_key_lng(output.fptr, "NAXIS4", output.naxes[3],
                                      (char *)NULL, &status))
       printFitsError(status);
 
@@ -369,19 +379,19 @@ int main(int argc, char **argv)
 
    fpixel[0] = 1;
 
-   nelements = input.naxes[0];
+   nelements = output.naxes[0];
 
    fpixel[3] = 1;
    
-   for (j3=0; j3<input.naxes[3]; ++j3)
+   for (j3=0; j3<output.naxes[3]; ++j3)
    {
       fpixel[2] = 1;
 
-      for (j2=0; j2<input.naxes[2]; ++j2)
+      for (j2=0; j2<output.naxes[2]; ++j2)
       {
          fpixel[1] = 1;
 
-         for (j=0; j<input.naxes[1]; ++j)
+         for (j=0; j<output.naxes[1]; ++j)
          {
             if(debug >= 2)
             {

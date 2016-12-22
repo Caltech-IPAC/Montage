@@ -306,10 +306,10 @@ int main(int argc, char **argv)
 
    if(debug >= 1)
    {
-      printf("imin            -> %d\n",   imin);
-      printf("imax            -> %d\n",   imax);
-      printf("jmin            -> %d\n",   jmin);
-      printf("jmax            -> %d\n",   jmax);
+      printf("imin            -> %-g\n",   imin);
+      printf("imax            -> %-g\n",   imax);
+      printf("jmin            -> %-g\n",   jmin);
+      printf("jmax            -> %-g\n",   jmax);
       fflush(stdout);
    }
 

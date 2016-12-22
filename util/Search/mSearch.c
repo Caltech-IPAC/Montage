@@ -33,17 +33,18 @@ Version  Developer        Date     Change
 #include <index.h>
 #include <mfmalloc.h>
 
-
-// The deduced syntax of the indexed data
-
-#define NULLMODE       0
-#define WCSMODE        1
-#define CORNERMODE     2
-#define POINTMODE      3
+#define MAXRECT    32768
+#define MAXSET        32
+#define MAXSTR      1024
+#define BIGSTR     32768
 
 
-// The type of the indexed data 
-// or search region
+
+// The type of the indexed data
+// or search region. We don't
+// support saved CONE data (each
+// table record being a different
+// radius cone) but we could.
 
 #define NONE          -1
 #define POINT          0
@@ -51,11 +52,21 @@ Version  Developer        Date     Change
 #define BOX            2
 
 
-#define MAXRECT    32768
-#define MAXSET        32
-#define MAXSTR      1024
-#define BIGSTR     32768
+// The deduced record type of 
+// the indexed data file
+// Just used when processing the
+// indexed data into saved boxes
+// or user-input comparison table
+// when searching.
 
+#define NULLMODE       0
+#define WCSMODE        1
+#define CORNERMODE     2
+#define POINTMODE      3
+
+
+// Display (debug) strings go along
+// with the index/search datatype
 
 char regionTypeStr[4][32] = {"POINT", "CONE", "BOX"};
 
@@ -307,6 +318,8 @@ int main(int argc, char **argv)
    char   codename [MAXSTR];
    char   countfile[MAXSTR];
    char   path     [MAXSTR];
+   char   singleId [MAXSTR];
+   char   fmt      [MAXSTR];
 
    int    ibig;
    char   bigstr   [BIGSTR];
@@ -327,7 +340,7 @@ int main(int argc, char **argv)
    struct Rect inrect;
 
    long   i, j, id, nrow, childID;
-   long   nhits, nrec, nkey;
+   long   nhits, nrec, nkey, ilen;
    long   dumpcount, dumprect, offset;
 
    int    ncol, tblmode;
@@ -775,6 +788,19 @@ int main(int argc, char **argv)
       {
          strcpy(set[0].file, infile);
          strcpy(set[0].name, "single_catalog");
+
+         ptr = infile + strlen(infile);
+
+         while(ptr > infile && *ptr != '/')
+            --ptr;
+
+         if(*ptr == '/')
+            ++ptr;
+
+         strcpy(singleId, ptr);
+
+         if(strlen(singleId) > 4 && strcmp(singleId+strlen(singleId)-4, ".tbl") == 0)
+            singleId[strlen(singleId)-4] = '\0';
       }
 
 
@@ -1016,6 +1042,19 @@ int main(int argc, char **argv)
 
          strcpy(set[0].file, infile);
          strcpy(set[0].name, "single_catalog");
+
+         ptr = infile + strlen(infile);
+
+         while(ptr > infile && *ptr != '/')
+            --ptr;
+
+         if(*ptr == '/')
+            ++ptr;
+
+         strcpy(singleId, ptr);
+
+         if(strlen(singleId) > 4 && strcmp(singleId+strlen(singleId)-4, ".tbl") == 0)
+            singleId[strlen(singleId)-4] = '\0';
       }
     
 
@@ -2303,6 +2342,30 @@ int main(int argc, char **argv)
             ira4     = tcol( "ra4");
             idec4    = tcol( "dec4");
 
+            if(ira1 < 0)
+               ira1 = tcol("ra1_user");
+
+            if(ira2 < 0)
+               ira2 = tcol("ra2_user");
+
+            if(ira3 < 0)
+               ira3 = tcol("ra3_user");
+
+            if(ira4 < 0)
+               ira4 = tcol("ra4_user");
+
+            if(idec1 < 0)
+               idec1 = tcol("dec1_user");
+
+            if(idec2 < 0)
+               idec2 = tcol("dec2_user");
+
+            if(idec3 < 0)
+               idec3 = tcol("dec3_user");
+
+            if(idec4 < 0)
+               idec4 = tcol("dec4_user");
+
             if((ira  < 0 || idec  < 0)
             && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
              || ira3 < 0 || idec3 < 0  ||  ira4 < 0 || idec4 < 0))
@@ -2532,9 +2595,9 @@ int main(int argc, char **argv)
                {
                   printf("\nSearch Rectangle (TABLE):\n\n");
 
-                  printf("x: %16.8f %16.8f\n", search_rect.boundary[0], search_rect.boundary[4]);
-                  printf("y: %16.8f %16.8f\n", search_rect.boundary[1], search_rect.boundary[5]);
-                  printf("z: %16.8f %16.8f\n", search_rect.boundary[2], search_rect.boundary[6]);
+                  printf("x: %16.8f %16.8f\n", search_rect.boundary[0], search_rect.boundary[3]);
+                  printf("y: %16.8f %16.8f\n", search_rect.boundary[1], search_rect.boundary[4]);
+                  printf("z: %16.8f %16.8f\n", search_rect.boundary[2], search_rect.boundary[5]);
 
                   printf("\n");
                   fflush(stdout);
@@ -2609,13 +2672,22 @@ int main(int argc, char **argv)
 
          if(singleMode)
          {
+            ilen = strlen(singleId);
+
+            if(ilen < 10)
+               ilen = 10;
+
+            sprintf(fmt, "|%%%lds|%%10s|\n", ilen);
+            
             fprintf(fsum, "\\fixlen = T\n");
-            fprintf(fsum, "|dataset|%10s|\n", "count");
+            fprintf(fsum, fmt, "identifier", "count");
             fflush(fsum);
+
+            sprintf(fmt, " %%%lds %%10ld \n", ilen);
 
             if(setcount[0].srcmatch > 0)
             {
-               fprintf(fsum, " catalog %10ld \n", setcount[0].srcmatch);
+               fprintf(fsum, fmt, singleId, setcount[0].srcmatch);
                fflush(fsum);
             }
          }
@@ -2728,9 +2800,18 @@ int main(int argc, char **argv)
 
          if(singleMode)
          {
+            ilen = strlen(singleId);
+
+            if(ilen < 10)
+               ilen = 10;
+
+            sprintf(fmt, "|%%%lds|%%10s|\n", ilen);
+            
             fprintf(fsum, "\\fixlen = T\n");
-            fprintf(fsum, "|dataset|%10s|\n", "count");
+            fprintf(fsum, fmt, "identifier", "count");
             fflush(fsum);
+
+            sprintf(fmt, " %%%lds %%10ld \n", ilen);
          }
          else
          {
@@ -2775,7 +2856,7 @@ int main(int argc, char **argv)
 
                if(singleMode)
                {
-                  fprintf(fsum, " catalog %10ld \n", setcount[i].match);
+                  fprintf(fsum, fmt, singleId, setcount[i].match);
                   fflush(fsum);
                }
                else
@@ -2889,7 +2970,7 @@ int main(int argc, char **argv)
 
          ncol = topen(tblfile);
 
-         nkey = tkeycount();
+         nkey = thdrcount();
 
          for(i=0; i<nkey; ++i)
             fprintf(fsum, "%s\n", thdrline(i));
@@ -3739,8 +3820,8 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
    if(rdebug > 1)
    {
-      printf("overlapCallback(): Source %ld MAY be covered by image %ld (record %ld in set %d) data_type=%s, search_type=%s\n",
-         srcid, id, nrec, setid, regionTypeStr[data_type], regionTypeStr[search_type]);
+      printf("overlapCallback(): Source %ld MAY be covered by image %ld (record %ld in set %d) data_type=%s(%d), search_type=%s(%d)\n",
+         srcid, id, nrec, setid, regionTypeStr[data_type], data_type, regionTypeStr[search_type], search_type);
       fflush(stdout);
    }
 
@@ -3938,8 +4019,8 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
       if(rdebug > 2)
       {
-         printf("overlapCallback(): isMatch> refOffset=%lld refRec=[%s]\n", 
-            refOffset, refRec);
+         printf("overlapCallback(): isMatch> refOffset=%lld tbl_hdr_rec=[%s](%d) refRec=[%s]\n", 
+            refOffset, tbl_hdr_string, strlen(tbl_hdr_string), refRec);
          fflush(stdout);
       }
 
@@ -3948,7 +4029,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
       /* tables will have 1- instead of 0-offset.  Most users don't like lists that  */
       /* start with source 0.                                                        */
 
-      if(data_type == POINTMODE)
+      if(data_type == POINT)
       {
          refRec[strlen(refRec)-1] = '\0';
 
@@ -3963,11 +4044,25 @@ SearchHitCallback overlapCallback(long index, void* arg)
 
          fprintf(fsum, " %12ld%s %13.8f %s\n",
             srcid+1, out_string, dist, refRec+1);
+
+         if(srccount < 5 && rdebug > 2)
+         {
+            printf("overlapCallback: output rec w/dist = [%12ld%s %13.8f %s]\n",
+               srcid+1, out_string, dist, refRec+1);
+            fflush(stdout);
+         }
       }
       else
       {
          fprintf(fsum, " %12ld%s %s",
             srcid+1, tbl_rec_string, refRec+1);
+
+         if(srccount < 5 && rdebug > 2)
+         {
+            printf("overlapCallback: output rec = [%12ld%s %13.8f %s]\n",
+               srcid+1, out_string, dist, refRec+1);
+            fflush(stdout);
+         }
       }
 
       fflush(fsum);

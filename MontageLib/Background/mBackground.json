@@ -1,0 +1,23 @@
+{
+   "module":"mBackground",
+
+   "function":"mBackground",
+
+   "desc" : "mBackground subtracts a planar background from a a FITS image.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"input_file",    "desc":"Input FITS file."},
+      {"type":"string",                    "name":"output_file",   "desc":"Output background-removed FITS file."},
+      {"type":"double",                    "name":"A",             "desc":"A coefficient in (A*x + B*y + C) background level equation."},
+      {"type":"double",                    "name":"B",             "desc":"B coefficient in (A*x + B*y + C) background level equation."},
+      {"type":"double",                    "name":"C",             "desc":"C level in (A*x + B*y + C) background level equation."},
+      {"type":"boolean", "default":false,  "name":"noAreas",       "desc":"Don't process associated area images."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
+   ]
+}

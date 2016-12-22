@@ -1,0 +1,22 @@
+{
+   "module":"mTranspose",
+
+   "function":"mTranspose",
+
+   "desc" : "mTranspose switches around the axes for a 3D or 4D image.  This is mainly so we can get a cube rearranged so the spatial axes are the first two.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"inputFile",        "desc":"Input FITS file."},
+      {"type":"string",                    "name":"outputFile",       "desc":"Output transposed FITS file."},
+      {"type":"int",                       "name":"norder",           "desc":"The number of axes (3 or 4)."},
+      {"type":"int*",                      "name":"order",            "desc":"The output ordering of axes desired."},
+      {"type":"int",     "default":0,      "name":"debug",            "desc":"Debugging level (not for general use)."}
+   ],
+   
+   "return":
+   [
+      {"type":"double",                    "name":"mindata",          "desc":"Minimum data value in cube."},
+      {"type":"double",                    "name":"maxdata",          "desc":"Maximum data value in cube."}
+   ]
+}

@@ -1794,7 +1794,7 @@ int main(int argc, char **argv)
    /* handled automatically.                                */
    /*********************************************************/
 
-   if (fits_create_img(output.fptr, bitpix, 3, output.naxes, &status))
+   if (fits_create_img(output.fptr, bitpix, output.naxis, output.naxes, &status))
       printFitsError(status);          
 
    if(debug >= 1)
@@ -1866,10 +1866,6 @@ int main(int argc, char **argv)
                                   (char *)NULL, &status))
       printFitsError(status);           
 
-   if(fits_update_key_lng(output.fptr, "NAXIS3", output.naxes[2],
-                                  (char *)NULL, &status))
-      printFitsError(status);           
-
    if(fits_update_key_dbl(output.fptr, "CRPIX1", crpix1-imin, -14,
                                   (char *)NULL, &status))
       printFitsError(status);           
@@ -1915,6 +1911,7 @@ int main(int argc, char **argv)
    fpixel[0] = 1;
    fpixel[1] = 1;
    fpixel[2] = 1;
+   fpixel[3] = 1;
 
    nelements = imax - imin + 1;
 
@@ -1956,6 +1953,9 @@ int main(int argc, char **argv)
 
    fpixel[0] = 1;
    fpixel[1] = 1;
+   fpixel[2] = 1;
+   fpixel[3] = 1;
+
    nelements = imax - imin + 1;
 
    for(j=jmin; j<=jmax; ++j)

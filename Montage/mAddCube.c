@@ -1770,7 +1770,7 @@ int main(int argc, char **argv)
 
             if(debug >= 3)
             {
-               printf("Writing %ld pixels at (%6d, %6d, %6d) of (%6d, %6d %6d)\n",
+               printf("Writing %ld pixels at (%6d, %6d, %6d) of (%6ld, %6ld %6ld)\n",
                   nelements, j4, j3, lineout, output.naxes[3], output.naxes[2], output.naxes[1]);
                fflush(stdout);
             }

@@ -11,5 +11,5 @@ Version  Developer        Date     Change
 
 #include <math.h>
 
-#define mNaN(x) isnan(x) || !isfinite(x)
+#define mNaN(x) (isnan(x) || !isfinite(x))
 

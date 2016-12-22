@@ -1,0 +1,30 @@
+{
+   "module":"mProjectQL",
+
+   "function":"mProjectQL",
+
+   "desc" : "mProjectQL reprojects a single image to the scale defined in a FITS header template file. The program produces a pair of images: the reprojected image and (optionally) an 'area' image consisting of the fraction input pixel sky area that went into each output pixel. This 'quick-look' version (see mProject and mProjectPP for other algorithms) interpolates the input pixels to find an approximate value to us for the output.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"input_file",    "desc":"FITS file to reproject."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
+      {"type":"string",                    "name":"output_file",   "desc":"Reprojected FITS file."},
+      {"type":"string",                    "name":"template_file", "desc":"FITS header file used to define the desired output."},
+      {"type":"int",     "default":0,      "name":"interp",        "desc":"Flux interpolation mode: 0 (nearest neighbor), 1 (Lanczos)."},
+      {"type":"string",  "default":"",     "name":"weight_file",   "desc":"Optional pixel weight FITS file (must match input)."},
+      {"type":"double",  "default":1.0,    "name":"fixedWeight",   "desc":"A weight value used for all pixels."},
+      {"type":"double",  "default":0.0,    "name":"threshold",     "desc":"Pixels with weights below this level treated as weight 0."},
+      {"type":"string",  "default":"",     "name":"borderstr",     "desc":"Single border width number or pixel polygon pair list for masking."},
+      {"type":"double",  "default":1.0,    "name":"fluxScale",     "desc":"Scale factor applied to all pixels."},
+      {"type":"boolean", "default":false,  "name":"expand",        "desc":"Expand output image area to include all of the input pixels."},
+      {"type":"boolean", "default":false,  "name":"fullRegion",    "desc":"Do not 'shrink-wrap' output area to non-blank pixels."},
+      {"type":"boolean", "default":true,   "name":"noAreas",       "desc":"Don't generate area image."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+   
+   "return":
+   [
+      {"type":"double",                    "name":"time",         "desc":"Total processing time (sec)."}
+   ]
+}

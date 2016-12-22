@@ -1,0 +1,43 @@
+{
+   "module":"mMakeHdr",
+
+   "function":"mMakeHdr",
+
+   "desc" : "mMakeHdr subtracts one image from another (both already in the same projection).",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"tblfile",       "desc":"Input image metadata table."},
+      {"type":"string",                    "name":"template",      "desc":"Output image header template."},
+      {"type":"string",  "default":"EQUJ", "name":"csys",          "desc":"Coordinate system (e.g. 'EquJ', 'Galactic').  Fairly forgiving."},
+      {"type":"double",  "default":1.0,    "name":"equinox",       "desc":"Coordinate system equinox (e.g. 2000.0)."},
+      {"type":"double",  "default":1.0,    "name":"pixelScale",    "desc":"Pixel scale in degrees."},
+      {"type":"int",     "default":0,      "name":"northAligned",  "desc":"Defaults to minimum bounding box around input images.  This forces template to be north-aligned."},
+      {"type":"double",  "default":0.0,    "name":"pad",           "desc":"Optional extra padding around output template."},
+      {"type":"boolean", "default":false,  "name":"isPercentage",  "desc":"Pad is in pixels by default.  This changes that to a percentage of the image size."},
+      {"type":"int",     "default":0,      "name":"maxPixel",      "desc":"Setting the pixel scale can result in really big images.  If not zero, this sets the maximum number of pixels allowed in NAXIS1, NAXIS2."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"string",                    "name":"msg",           "desc":"Cautionary message (only there if needed)."},
+      {"type":"int",                       "name":"count",         "desc":"Number of images in metadata table."},
+      {"type":"int",                       "name":"ncube",         "desc":"Number of images that have 3/4 dimensions."},
+      {"type":"int",                       "name":"naxis1",        "desc":"X axis pixel count in output template."},
+      {"type":"int",                       "name":"naxis2",        "desc":"Y axis pixel count in output template."},
+      {"type":"double",                    "name":"clon",          "desc":"Center longitude for template."},
+      {"type":"double",                    "name":"clat",          "desc":"Center latitude for template."},
+      {"type":"double",                    "name":"lonsize",       "desc":"Template dimensions in X."},
+      {"type":"double",                    "name":"latsize",       "desc":"Template dimensions in Y."},
+      {"type":"double",                    "name":"posang",        "desc":"Rotation angle of template."},
+      {"type":"double",                    "name":"lon1",          "desc":"Image corners (lon of first corner)."},
+      {"type":"double",                    "name":"lat1",          "desc":"Image corners (lat of first corner)."},
+      {"type":"double",                    "name":"lon2",          "desc":"Image corners (lon of second corner)."},
+      {"type":"double",                    "name":"lat2",          "desc":"Image corners (lat of second corner)."},
+      {"type":"double",                    "name":"lon3",          "desc":"Image corners (lon of third corner)."},
+      {"type":"double",                    "name":"lat3",          "desc":"Image corners (lat of third corner)."},
+      {"type":"double",                    "name":"lon4",          "desc":"Image corners (lon of fourth corner)."},
+      {"type":"double",                    "name":"lat4",          "desc":"Image corners (lat of fourth corner)."}
+   ]
+}

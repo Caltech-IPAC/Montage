@@ -4,11 +4,11 @@ Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
 1.7      John Good        24Feb06  The CD matrix constraints were too strict
 1.6      John Good        02Dec03  Change naxes to naxis to match
-				   change ins WCS library.
+                                   change ins WCS library.
 1.5      John Good        25Aug03  Implement status file output
 1.4      John Good        15Apr03  Allow for LON,LAT transpose
 1.3      John Good        19Mar03  Renamed file / function from wcsCheck
-				   to checkWCS for consistency
+                                   to checkWCS for consistency
 1.2      John Good        19Mar03  Modified bad WCS error message  
 1.1      John Good        18Mar03  Corrected error with action flag
 1.0      John Good        13Mar03  Baseline code
@@ -44,12 +44,12 @@ int checkWCS(struct WorldCoor *wcs, int action)
    {
       if(action == ERROR_OFF)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"No WCS information (or not FITS header)\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"No WCS information (or not FITS header)\"]\n");
+         exit(1);
       }
       else
       {
-	 return(1);
+         return(1);
       }
    }
 
@@ -64,26 +64,26 @@ int checkWCS(struct WorldCoor *wcs, int action)
       printf("naxis      = %d\n", wcs->naxis);
 
       for(i=0; i<wcs->naxis; ++i)
-	printf("crval[%d]   = %-g\n", i, wcs->crval[i]);
+        printf("crval[%d]   = %-g\n", i, wcs->crval[i]);
 
       printf("xref       = %-g\n", wcs->xref);
       printf("yref       = %-g\n", wcs->yref);
 
       for(i=0; i<wcs->naxis; ++i)
-	printf("crpix[%d]   = %-g\n", i, wcs->crpix[i]);
+        printf("crpix[%d]   = %-g\n", i, wcs->crpix[i]);
 
       printf("xrefpix    = %-g\n", wcs->xrefpix);
       printf("yrefpix    = %-g\n", wcs->yrefpix);
 
       if(wcs->rotmat)
       {
-	 for(i=0; i<4; ++i)
-	   printf("cd[%d]      = %-g\n", i, wcs->cd[i]);
+         for(i=0; i<4; ++i)
+           printf("cd[%d]      = %-g\n", i, wcs->cd[i]);
       }
       else
       {
-	 for(i=0; i<wcs->naxis; ++i)
-	   printf("cdelt[%d]   = %-g\n", i, wcs->cdelt[i]);
+         for(i=0; i<wcs->naxis; ++i)
+           printf("cdelt[%d]   = %-g\n", i, wcs->cdelt[i]);
       }
 
       printf("xinc       = %-g\n", wcs->xinc);
@@ -94,10 +94,10 @@ int checkWCS(struct WorldCoor *wcs, int action)
       printf("epoch      = %-g\n", wcs->epoch);
 
       for(i=0; i<16; ++i)
-	printf("pc[%2d]     = %-g\n", i, wcs->pc[i]);
+        printf("pc[%2d]     = %-g\n", i, wcs->pc[i]);
 
       for(i=0; i<10; ++i)
-	printf("projp[%2d]  = %-g\n", i, wcs->projp[i]);
+        printf("projp[%2d]  = %-g\n", i, wcs->projp[i]);
 
       printf("longpole   = %-g\n", wcs->longpole);
       printf("latpole    = %-g\n", wcs->latpole);
@@ -110,13 +110,13 @@ int checkWCS(struct WorldCoor *wcs, int action)
    {
       if(action == ERROR_OFF)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Must have at least two dimensions\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Must have at least two dimensions\"]\n");
+         exit(1);
       }
       else
-	 {
-	    return(1);
-	 }
+         {
+            return(1);
+         }
    }
 
 
@@ -126,13 +126,13 @@ int checkWCS(struct WorldCoor *wcs, int action)
    {
       if(action == ERROR_OFF)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid projection\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid projection\"]\n");
+         exit(1);
       }
       else
-	 {
-	    return(1);
-	 }
+         {
+            return(1);
+         }
    }
 
 
@@ -142,26 +142,26 @@ int checkWCS(struct WorldCoor *wcs, int action)
    {
       if(action == ERROR_OFF)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid NAXIS1\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid NAXIS1\"]\n");
+         exit(1);
       }
       else
-	 {
-	    return(1);
-	 }
+         {
+            return(1);
+         }
    }
 
    if(wcs->nypix <= 0)
    {
       if(action == ERROR_OFF)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid NAXIS2\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid NAXIS2\"]\n");
+         exit(1);
       }
       else
-	 {
-	    return(1);
-	 }
+         {
+            return(1);
+         }
    }
 
 
@@ -171,103 +171,103 @@ int checkWCS(struct WorldCoor *wcs, int action)
    {
       if(strcmp(wcs->c2type, "DEC") != 0)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else if(strcmp(wcs->c1type, "DEC") == 0)
    {
       if(strcmp(wcs->c2type, "RA") != 0)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else if(strcmp(wcs->c1type, "GLON") == 0)
    {
       if(strcmp(wcs->c2type, "GLAT") != 0)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else if(strcmp(wcs->c1type, "GLAT") == 0)
    {
       if(strcmp(wcs->c2type, "GLON") != 0)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else if(strcmp(wcs->c1type, "ELON") == 0)
    {
       if(strcmp(wcs->c2type, "ELAT") != 0)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else if(strcmp(wcs->c1type, "ELAT") == 0)
    {
       if(strcmp(wcs->c2type, "ELON") != 0)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"CTYPE1 and CTYPE2 don't match\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else
    {
       if(action == ERROR_OFF)
       {
-	 fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CTYPE1\"]\n");
-	 exit(1);
+         fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CTYPE1\"]\n");
+         exit(1);
       }
       else
-	 {
-	    return(1);
-	 }
+         {
+            return(1);
+         }
    }
 
 
@@ -278,43 +278,43 @@ int checkWCS(struct WorldCoor *wcs, int action)
       if((wcs->cd[0] == 0. && wcs->cd[1] == 0.)
       || (wcs->cd[2] == 0. && wcs->cd[3] == 0.))
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CD matrix\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CD matrix\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
    else
    {
       if(wcs->xinc == 0.)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CDELT1\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CDELT1\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
 
       if(wcs->yinc == 0.)
       {
-	 if(action == ERROR_OFF)
-	 {
-	    fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CDELT2\"]\n");
-	    exit(1);
-	 }
-	 else
-	 {
-	    return(1);
-	 }
+         if(action == ERROR_OFF)
+         {
+            fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid CDELT2\"]\n");
+            exit(1);
+         }
+         else
+         {
+            return(1);
+         }
       }
    }
 

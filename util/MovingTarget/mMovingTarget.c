@@ -349,6 +349,8 @@ int main(int argc, char **argv)
    char   codename [MAXSTR];
    char   countfile[MAXSTR];
    char   path     [MAXSTR];
+   char   singleId [MAXSTR];
+   char   fmt      [MAXSTR];
 
    int    ibig;
    char   bigstr   [BIGSTR];
@@ -369,12 +371,12 @@ int main(int argc, char **argv)
    struct Rect inrect;
 
    long   i, j, id, nrow, childID;
-   long   nhits, nrec, nkey;
+   long   nhits, nrec, nkey, ilen;
    long   dumpcount, dumprect, offset;
 
    int    ncol, tblmode;
    int    blankRec, stat, csys;
-   int    iset, info, ch, dup;
+   int    iset, info, locationOnly, ch, dup;
    int    memMapRead, useMemMap, iname, ifile;
 
    char  *ptr, *key, *val, *end;
@@ -488,16 +490,17 @@ int main(int argc, char **argv)
    /* Process command-line arguments */
    /**********************************/
 
-   info       = 0;
-   opterr     = 0;
-   memMapRead = 0;
-   useMemMap  = 0;
+   info         = 0;
+   locationOnly = 0;
+   opterr       = 0;
+   memMapRead   = 0;
+   useMemMap    = 0;
 
    strcpy(path, "");
 
    strcpy(basefile, "");
 
-   while ((ch = getopt(argc, argv, "cd:D:mi:o:p:r:")) != EOF)
+   while ((ch = getopt(argc, argv, "cd:D:Lmi:o:p:r:")) != EOF)
    {
       switch (ch)
       {
@@ -519,6 +522,10 @@ int main(int argc, char **argv)
             memMapRead = 1;
             useMemMap  = 1;
             strcpy(basefile, optarg);
+            break;
+
+         case 'L':
+            locationOnly = 1;
             break;
 
          case 'm':
@@ -783,6 +790,19 @@ int main(int argc, char **argv)
 
          strcpy(set[0].file, infile);
          strcpy(set[0].name, "single_catalog");
+
+         ptr = infile + strlen(infile);
+
+         while(ptr > infile && *ptr != '/') 
+            --ptr;
+
+         if(*ptr == '/') 
+            ++ptr;
+
+         strcpy(singleId, ptr);
+
+         if(strlen(singleId) > 4 && strcmp(singleId+strlen(singleId)-4, ".tbl") == 0)
+            singleId[strlen(singleId)-4] = '\0';
 
          ncol = topen(infile);
 
@@ -1112,6 +1132,19 @@ int main(int argc, char **argv)
 
          strcpy(set[0].file, infile);
          strcpy(set[0].name, "single_catalog");
+
+         ptr = infile + strlen(infile);
+
+         while(ptr > infile && *ptr != '/')
+            --ptr;
+
+         if(*ptr == '/')
+            ++ptr;
+
+         strcpy(singleId, ptr);
+
+         if(strlen(singleId) > 4 && strcmp(singleId+strlen(singleId)-4, ".tbl") == 0)
+            singleId[strlen(singleId)-4] = '\0';
       }
     
 
@@ -1438,6 +1471,9 @@ int main(int argc, char **argv)
          else
          if(ira      >= 0
          && idec     >= 0)
+            tblmode = POINTMODE;
+
+         if(locationOnly)
             tblmode = POINTMODE;
 
          if(tblmode == NULLMODE)
@@ -2524,6 +2560,30 @@ int main(int argc, char **argv)
             ira4     = tcol( "ra4");
             idec4    = tcol( "dec4");
 
+            if(ira1 < 0)
+               ira1  = tcol("ra1_user");
+
+            if(ira2 < 0)
+               ira2  = tcol("ra2_user");
+
+            if(ira3 < 0)
+               ira3  = tcol("ra3_user");
+
+            if(ira4 < 0)
+               ira4  = tcol("ra4_user");
+
+            if(idec1 < 0)
+               idec1  = tcol("dec1_user");
+
+            if(idec2 < 0)
+               idec2  = tcol("dec2_user");
+
+            if(idec3 < 0)
+               idec3  = tcol("dec3_user");
+
+            if(idec4 < 0)
+               idec4  = tcol("dec4_user");
+
             if((ira  < 0 || idec  < 0)
             && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
              || ira3 < 0 || idec3 < 0  ||  ira4 < 0 || idec4 < 0))
@@ -2897,13 +2957,22 @@ int main(int argc, char **argv)
 
          if(singleMode)
          {
+            ilen = strlen(singleId);
+
+            if(ilen < 10)
+               ilen = 10;
+
+            sprintf(fmt, "|%%%lds|%%10s|\n", ilen);
+
             fprintf(fsum, "\\fixlen = T\n");
-            fprintf(fsum, "|dataset|%10s|\n", "count");
+            fprintf(fsum, fmt, "identifier", "count");
             fflush(fsum);
+
+            sprintf(fmt, " %%%ds %%10ld \n", ilen);
 
             if(setcount[0].srcmatch > 0)
             {
-               fprintf(fsum, " catalog %10ld \n", setcount[0].srcmatch);
+               fprintf(fsum, fmt, singleId, setcount[0].srcmatch);
                fflush(fsum);
             }
          }
@@ -3016,9 +3085,18 @@ int main(int argc, char **argv)
 
          if(singleMode)
          {
+            ilen = strlen(singleId);
+
+            if(ilen < 10)
+               ilen = 10;
+
+            sprintf(fmt, "|%%%lds|%%10s|\n", ilen);
+
             fprintf(fsum, "\\fixlen = T\n");
-            fprintf(fsum, "|dataset|%10s|\n", "count");
+            fprintf(fsum, fmt, "identifier", "count");
             fflush(fsum);
+
+            sprintf(fmt, " %%%lds %%10ld \n", ilen);
          }
          else
          {
@@ -3063,7 +3141,7 @@ int main(int argc, char **argv)
 
                if(singleMode)
                {
-                  fprintf(fsum, " catalog %10ld \n", setcount[i].match);
+                  fprintf(fsum, fmt, singleId, setcount[i].match);
                   fflush(fsum);
                }
                else
@@ -3177,7 +3255,7 @@ int main(int argc, char **argv)
 
          ncol = topen(tblfile);
 
-         nkey = tkeycount();
+         nkey = thdrcount();
 
          for(i=0; i<nkey; ++i)
             fprintf(fsum, "%s\n", thdrline(i));
@@ -3374,6 +3452,30 @@ int main(int argc, char **argv)
             idec3    = tcol( "dec3");
             ira4     = tcol( "ra4");
             idec4    = tcol( "dec4");
+
+            if(ira1 < 0)
+               ira1  = tcol("ra1_user");
+
+            if(ira2 < 0)
+               ira2  = tcol("ra2_user");
+
+            if(ira3 < 0)
+               ira3  = tcol("ra3_user");
+
+            if(ira4 < 0)
+               ira4  = tcol("ra4_user");
+
+            if(idec1 < 0)
+               idec1  = tcol("dec1_user");
+
+            if(idec2 < 0)
+               idec2  = tcol("dec2_user");
+
+            if(idec3 < 0)
+               idec3  = tcol("dec3_user");
+
+            if(idec4 < 0)
+               idec4  = tcol("dec4_user");
 
             if((ira  < 0 || idec  < 0)
             && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0

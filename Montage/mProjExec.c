@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 {
    int    c, stat, ncols, count, hdu, failed, nooverlap, exact;
    int    wholeImages, ifname, ihdu, iweight, iscale, restart, inp2p, outp2p;
-   int    naxes, tryAltOut, tryAltIn, wcsMatch;
+   int    quickMode, naxes, tryAltOut, tryAltIn, wcsMatch;
 
    int    energyMode = 0;
 
@@ -178,9 +178,10 @@ int main(int argc, char **argv)
    /* Process the command-line parameters */
    /***************************************/
 
-   debug   = 0;
-   exact   = 0;
-   restart = 0;
+   debug     = 0;
+   exact     = 0;
+   restart   = 0;
+   quickMode = 0;
 
    wholeImages = 0;
 
@@ -193,7 +194,7 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
-   while ((c = getopt(argc, argv, "p:deb:s:r:W:x:Xf")) != EOF) 
+   while ((c = getopt(argc, argv, "p:dqeb:s:r:W:x:Xf")) != EOF) 
    {
       switch (c) 
       {
@@ -210,6 +211,11 @@ int main(int argc, char **argv)
 
          case 'd':
             debug = 1;
+            break;
+
+         case 'q':
+            quickMode = 1;
+            exact     = 1;
             break;
 
          case 'e':
@@ -277,7 +283,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-p rawdir] [-d] [-e(xact)] [-X(whole image)] [-b border] [-r restartrec] [-s statusfile] [-W weightColumn] [-x scaleColumn] images.tbl template.hdr projdir stats.tbl\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-q(uick-mode)][-p rawdir] [-d] [-e(xact)] [-X(whole image)] [-b border] [-r restartrec] [-s statusfile] [-W weightColumn] [-x scaleColumn] images.tbl template.hdr projdir stats.tbl\"]\n", argv[0]);
 #ifdef MPI
             exit_flag = 1;
 #else
@@ -294,7 +300,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4) 
    {
-      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-p rawdir] [-d] [-e(xact)] [-X(whole image)] [-b border] [-r restartrec] [-s statusfile] [-W weightColumn] [-x scaleColumn] images.tbl template.hdr projdir stats.tbl\"]\n", argv[0]);
+      fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Usage: %s [-q(uick-mode)][-p rawdir] [-d] [-e(xact)] [-X(whole image)] [-b border] [-r restartrec] [-s statusfile] [-W weightColumn] [-x scaleColumn] images.tbl template.hdr projdir stats.tbl\"]\n", argv[0]);
 #ifdef MPI
       exit_flag = 1;
 #else
@@ -867,7 +873,11 @@ int main(int argc, char **argv)
       }
       else if(strlen(border) == 0)
       {
-         if(!wcsMatch)
+         if(quickMode)
+            sprintf(cmd, "mProjectQL %s %s %s %s %s %s",
+               weightStr, scaleStr, hdustr, infile, outfile, template);
+
+         else if(!wcsMatch)
             sprintf(cmd, "mProject %s %s %s %s %s %s",
                weightStr, scaleStr, hdustr, infile, outfile, template);
 
@@ -893,7 +903,11 @@ int main(int argc, char **argv)
       }
       else
       {
-         if(!wcsMatch)
+         if(quickMode)
+            sprintf(cmd, "mProjectQL %s %s %s -b \"%s\" %s %s %s",
+               weightStr, scaleStr, hdustr, border, infile, outfile, template);
+
+         else if(!wcsMatch)
             sprintf(cmd, "mProject %s %s %s -b \"%s\" %s %s %s",
                weightStr, scaleStr, hdustr, border, infile, outfile, template);
 

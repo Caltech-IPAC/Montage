@@ -1,0 +1,25 @@
+{
+   "module":"mBestImage",
+
+   "function":"mBestImage",
+
+   "desc" : "Given a list of images and a position, determine which image covers the location 'best' (i.e. the one where the position is farthest from the nearest edge).",
+
+   "arguments":
+   [
+      {"type":"string",              "name":"tblfile",          "desc":"Input image metadata file."},
+      {"type":"double",              "name":"ra",               "desc":"RA (J2000) of point of interest."},
+      {"type":"double",              "name":"dec",              "desc":"Dec (J2000) of point of interest."},
+      {"type":"int",    "default":0, "name":"debug",            "desc":"Debugging flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"string",              "name":"file",             "desc":"'Best' file name."},
+      {"type":"int",                 "name":"hdu",              "desc":"HDU in file."},
+      {"type":"string",              "name":"url",              "desc":"URL to file (if available)."},
+      {"type":"double",              "name":"edgedist",         "desc":"Distance from point to nearest edge."}
+   ]
+}
+
+

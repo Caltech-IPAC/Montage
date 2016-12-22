@@ -1,0 +1,31 @@
+{
+   "module":"mProjectPP",
+
+   "function":"mProjectPP",
+
+   "desc" : "mProjectPP reprojects a single image to the scale defined in a FITS header template file. The program produces a pair of images: the reprojected image and an 'area' image consisting of the fraction input pixel sky area that went into each output pixel. The algorithm proceeds by mapping pixel corners (as adjusted by drizzle, if set) from the input pixel space to the output pixel space, calculating overlap area with each output pixel, and accumulating an appropriate fraction of the input flux into the output image pixels. In addition, the appropriate fraction of the input pixel area is accumulated into the area image pixels. Projection of points from input pixel space to output pixel space uses a special library that only works between two tangent plane projects (e.g. TAN, SIN, etc.) but given the popularity of these projections, mProjectPP can often be employed instead of the slower mProject.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"input_file",    "desc":"FITS file to reproject."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
+      {"type":"string",                    "name":"output_file",   "desc":"Reprojected FITS file."},
+      {"type":"string",                    "name":"template_file", "desc":"FITS header file used to define the desired output."},
+      {"type":"string",  "default":"",     "name":"weight_file",   "desc":"Optional pixel weight FITS file (must match input)."},
+      {"type":"double",  "default":1.0,    "name":"fixedWeight",   "desc":"A weight value used for all pixels."},
+      {"type":"double",  "default":0.0,    "name":"threshold",     "desc":"Pixels with weights below this level treated as weight 0."},
+      {"type":"string",  "default":"",     "name":"borderstr",     "desc":"Single border width number or pixel polygon pair list for masking."},
+      {"type":"string",  "default":"",     "name":"altin",         "desc":"Alternate psuedo-TAN header for input."},
+      {"type":"string",  "default":"",     "name":"altout",        "desc":"Alternate psuedo-TAN header for output."},
+      {"type":"double",  "default":1.0,    "name":"drizzle",       "desc":"Optional pixel area 'drizzle' factor."},
+      {"type":"double",  "default":1.0,    "name":"fluxScale",     "desc":"Scale factor applied to all pixels."},
+      {"type":"boolean", "default":false,  "name":"expand",        "desc":"Expand output image area to include all of the input pixels."},
+      {"type":"boolean", "default":false,  "name":"fullRegion",    "desc":"Do not 'shrink-wrap' output area to non-blank pixels."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+   
+   "return":
+   [
+      {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
+   ]
+}

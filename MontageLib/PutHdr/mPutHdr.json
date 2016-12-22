@@ -1,0 +1,18 @@
+{
+   "module":"mGetHdr",
+
+   "function":"mGetHdr",
+
+   "desc" : "mGetHdr strips the header out of a FITS file into an easily-edited ASCII file.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"input_file",    "desc":"Input FITS file."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
+      {"type":"string",                    "name":"template_file", "desc":"New header to replace that from the input in the output."},
+      {"type":"boolean", "default":false,  "name":"htmlMode",      "desc":"Write the output as an HTML file."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+   
+   "return":null
+}

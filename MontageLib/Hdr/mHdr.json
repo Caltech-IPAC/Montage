@@ -1,0 +1,26 @@
+{
+   "module":"mHdr",
+
+   "function":"mHdr",
+
+   "desc" : "mHdr creates a header template file from location, size, resolution and rotation inputs. In order to support object name lookup for the location string argument, this service must have a network connection available.",
+
+   "arguments":
+   [
+      {"type":"string",                         "name":"locstr",        "desc":"A (quoted if necessary) string containing a coordinate or the name of an object on the sky."},
+      {"type":"double",                         "name":"width",         "desc":"Image width in degrees."},
+      {"type":"double",                         "name":"height",        "desc":"Image height in degrees."},
+      {"type":"string",  "default":"EquJ",      "name":"csys",          "desc":"Coordinate system string (e.g. 'EquJ', 'Galactic', etc. Fairly forgiving."},
+      {"type":"double",  "default":2000.0,      "name":"equinox",       "desc":"Coordinate system equinox (e.g. 2000.0)."},
+      {"type":"double",  "default":1.0,         "name":"resolution",    "desc":"Image pixel resolution (in arcsec)."},
+      {"type":"double",  "default":0.0,         "name":"rotation",      "desc":"Image rotation on the sky."},
+      {"type":"string",  "default":"",          "name":"band2MASS",     "desc":"Optional argument when mosaicking 2MASS, adds proper MAGZP value."},
+      {"type":"string",                         "name":"outfile",       "desc":"Output FITS header file."},
+      {"type":"int",     "default":0,           "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"double",                         "name":"count",         "desc":"Number of lines in output file."}
+   ]
+}

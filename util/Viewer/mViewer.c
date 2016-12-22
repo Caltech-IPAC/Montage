@@ -605,6 +605,11 @@ int main(int argc, char **argv)
 
    mynan = value.d;
 
+   if(debug)
+   {
+      printf("DEBUG ON\n");
+      fflush(stdout);
+   }
 
    dtr = atan(1.)/45.;
 
@@ -2834,7 +2839,7 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("Image (PNG/JPEG) space allocated: %ld\n", membytes);
+         printf("Image (PNG/JPEG) space allocated: %u\n", membytes);
          fflush(stdout);
       }
 
@@ -4144,7 +4149,7 @@ int main(int argc, char **argv)
 
                if(debug)
                {
-                  printf("Label [%s] at (%d,%d)\n", labelstr, xpix, ypix);
+                  printf("Label [%s] at (%f,%f)\n", labelstr, xpix, ypix);
                   fflush(stdout);
                }
             }
@@ -4783,6 +4788,8 @@ int colorLookup(char *colorin, double *ovlyred, double *ovlygreen, double *ovlyb
    *ovlyred   = *ovlyred   / 255;
    *ovlygreen = *ovlygreen / 255;
    *ovlyblue  = *ovlyblue  / 255;
+
+   return 0;
 }
 
 
@@ -6344,7 +6351,7 @@ void coord_label(char *face_path, int fontsize,
 
    if(debug)
    {
-      printf("DEBUG> coord_label(\"%s\", %d, %-g, %-g, \"%s\", %d, %-g, %d, %-g, %-g, %-g, %-g)\n",
+      printf("DEBUG> coord_label(\"%s\", %d, %-g, %-g, \"%s\", %d, %-g, %d, %-g, %-g, %-g, %-g)",
               face_path, fontsize, 
               lonlab, latlab, label,
               csysimg, epochimg, csysgrid, epochgrid,
@@ -6377,6 +6384,12 @@ void coord_label(char *face_path, int fontsize,
 
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xprev, &yprev, &offscl);
+
+   if(debug)
+   {
+      printf(" -> pixel coord (%-g, %-g) [offscale: %d]\n", xprev, yprev, offscl);
+      fflush(stdout);
+   }
 
    if(offscl || mNaN(xprev) || mNaN(yprev))
       return;

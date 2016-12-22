@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 
    fstatus = stdout;
 
-   while ((c = getopt(argc, argv, "z:d:i:o:s:h:w:W:t:x:Xf")) != EOF) 
+   while ((c = getopt(argc, argv, "ez:d:i:o:s:h:w:W:t:x:Xf")) != EOF) 
    {
       switch (c) 
       {

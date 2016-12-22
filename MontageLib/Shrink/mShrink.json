@@ -1,0 +1,22 @@
+{
+   "module":"mShrink",
+
+   "function":"mShrink",
+
+   "desc" : "mShrink is a utility program for making smaller versions of a FITS file by averaging NxN blocks of pixels spatially.  N can be fractional.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"infile",        "desc":"Input FITS file."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
+      {"type":"string",                    "name":"output_file",   "desc":"Subimage output FITS file."},
+      {"type":"double",                    "name":"shrinkFactor",  "desc":"Scale factor for spatial shrinking.  Can be any positive real number."},
+      {"type":"boolean", "default":false,  "name":"fixedSize",     "desc":"Alternate mode: shrink so the output fits in this many pixels."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
+   ]
+}

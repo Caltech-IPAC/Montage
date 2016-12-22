@@ -1,0 +1,30 @@
+{
+   "module":"mImgtbl",
+
+   "function":"mImgtbl",
+
+   "desc" : "mImgtbl extracts the FITS header geometry information from a set of files and creates an ASCII image metadata table which is used by several of the other programs. It only collects data from headers that comply with the FITS standard, but reports a count of images that fail that check.",
+
+   "arguments":
+   [
+      {"type":"string",  "default":"./",   "name":"pathname",         "desc":"Directory (or top of tree) for image file search (default to current directory)."},
+      {"type":"string",                    "name":"tblname",          "desc":"Output table file name."},
+      {"type":"boolean", "default":false,  "name":"recursiveMode",    "desc":"Search for images recursively (default just top directory)."},
+      {"type":"boolean", "default":false,  "name":"processAreaFiles", "desc":"Include 'area' files in the list (not normally useful)."},
+      {"type":"boolean", "default":true,   "name":"haveCubes",        "desc":"False if we know we don't have datacubes (fewer table columns)."},
+      {"type":"boolean", "default":false,  "name":"noGZIP",           "desc":"mImgtbl normally includes analysis of .fits.gz files.  This turns that off."},
+      {"type":"boolean", "default":true,   "name":"showCorners",      "desc":"Include ra1,dec1, ... dec4 image corner columns in output."},
+      {"type":"boolean", "default":false,  "name":"showinfo",         "desc":"Show running 'INFO' messages for FITS HDUs with bad WCS headers."},
+      {"type":"boolean", "default":false,  "name":"showbad",          "desc":"Include bad HDUs in output table."},
+      {"type":"string",  "default":false,  "name":"imgListFile",      "desc":"Rather than searching through directories, get the list of images from a table file."},
+      {"type":"string",  "default":"",     "name":"fieldListFile",    "desc":"File with list of FITS keywords to include in output table (in addition to the standard WCS info)."},
+      {"type":"int",     "default":0,      "name":"debug",            "desc":"Debugging outout level."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                       "name":"count",            "desc":"Number of images found with valid headers (may be more than one per file)."},
+      {"type":"int",                       "name":"badfits",          "desc":"Number of bad FITS files."},
+      {"type":"int",                       "name":"badwcs",           "desc":"Number of images rejected because of bad WCS information."}
+   ]
+}

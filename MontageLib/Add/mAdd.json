@@ -1,0 +1,24 @@
+{
+   "module":"mAdd",
+
+   "function":"mAdd",
+
+   "desc" : "mAdd coadds as set of images that have been reprojected to the same pixel framework into a final mosaic.",
+
+   "arguments":
+   [
+      {"type":"string",  "default":"./",   "name":"path",          "desc":"Directory containing files to be coadded."},
+      {"type":"string",                    "name":"tblfile",       "desc":"Table file list of reprojected files to coadded."},
+      {"type":"string",                    "name":"template_file", "desc":"FITS header file used to define the desired output."},
+      {"type":"string",                    "name":"outfile",       "desc":"Final mosaic FITS file."},
+      {"type":"boolean", "default":false,  "name":"shrink",        "desc":"Shrink-wrap to remove blank border areas."},
+      {"type":"boolean", "default":false,  "name":"haveAreas",     "desc":"Area files exist for weighting the coadd."},
+      {"type":"int",     "default":0,      "name":"coadd",         "desc":"Image stacking: 0(MEAN), 1(MEDIAN), 2(COUNT)."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+   
+   "return":
+   [
+      {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
+   ]
+}
