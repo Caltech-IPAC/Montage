@@ -1,12 +1,12 @@
 Montage
 =======
 
-Montage: The Astronomer's Toolkit for Building Image Mosaics and
-Analyzing Image Metadata 
+Montage: The Astronomer's Toolkit for Building Image Mosaics and 
+Analyzing Image Metadata
 
 Montage (http://montage.ipac.caltech.edu) is an Open Source toolkit,
-distributed with a BSD 3-clause license, for assembling Flexible
-Image Transport System (FITS) images into mosaics, according to
+distributed with a BSD 3-clause license, for assembling Flexible 
+Image Transport System (FITS) images into mosaics, according to 
 the user's custom specifications of coordinates, WCS projection,
 spatial sampling and rotation. The toolkit contains utilities for
 reprojecting and background matching images, assembling them into
@@ -24,17 +24,18 @@ others. Montage is used as an exemplar application by the computer
 science community in developing next-generation cyberinfrastructure,
 especially workflow framework on distributed platforms.
 
-Version 4.0 provides dedicated modules that support building and
-managing mosaics of data cubes; creation of custom PNG and JPEG
-images (with AVM tags) with command-line user control over the image
-attributes (stretch, coordinate overlays, coordinate grids, …),
-and a beta version of a Python wrapper to support creation  of PNG and
-JPEG images. A future release will include, e.g., support for HEALPix.
+Version 5.0 offers a new fast reprojection module mProjectQL,
+intended primarily for creating images for visualization rather than
+for science analysis. It offers a speed-up of approximately x20 over
+mProject; support for HEALPix; modules for creating image files for
+consumption by the World Wide Telescope. Version 5 also allows the
+most commonly used modules to be built and used as a statically or
+dynamically linked library.. 
 
 Montage was funded from 2002 to 2005 by the National Aeronautics and
 Space Administration's Earth Science Technology Office, Computation
 Technologies Project, under Cooperative Agreement Number NCC5-626
 between NASA and the California Institute of Technology. The Montage
 distribution includes an adaptation of the MOPEX algorithm developed
-at the Spitzer Science Center.  Montage is now funded by the National
-Science Foundation under Award Number NSF ACI-1440620.'
+at the Spitzer Science Center. Montage is now funded by the National
+Science Foundation under Award Number NSF ACI-1440620.

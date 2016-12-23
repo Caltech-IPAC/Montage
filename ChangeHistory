@@ -1,6 +1,65 @@
 
 Montage Release Change History
 
+5.0   21Dec2016    Version 5.0 offers a new fast reprojection module, mProjectQL,
+                   that is suitable for creating images for visualization; support
+                   for FITS files containing data written in the HEALPix sky-
+                   tesselation scheme; and support for creating images that can be
+                   consumed by the World Wide Telescope (WWT). This release also 
+                   allows the core modules to be built and used as a statically or 
+                   dynamically linked library.The Montage library is built at the 
+                   same time as the toolbox modules with the make command; no 
+                   special build procedure is needed. A list of the library functions 
+                   and the library API is here.
+
+
+                     mProjectQL uses the Lanczos image interpolation scheme to provide 
+                     higher performance in reprojection at the expense of conservation 
+                     of flux; we recommend mProjectQL primarily for creating images 
+                     for quick-look visualization rather than for science analysis. It 
+                     offers a speed-up of approximately x20 over mProject.
+
+
+                     Support for HEALPix: Montage treats HEALPix as if it were a spherical
+                     projection that can processed with the existing reprojection routines
+                     in Montage. It is managed through a local version of the WCStools library
+                     users who prefer to use the SAO library should note that will lose 
+                     HEALPix and TOAST support). The distribution includes a copy of the 
+                     HPXcvt module to convert HEALPix data from FITS table form to FITS 
+                     image form; this module is part of the WCSLib distribution at 
+                     http://www.atnf.csiro.au/people/mcalabre/WCS/wcslib. (Copyright (C) 
+                     1995-2016, Mark Calabretta).
+
+
+                      Support for the WWT: As with HEALPix, Montage treats TOAST, the 
+                      sky-tessellation scheme used by the WWT, as if they were a spherical 
+                      projection that can processed with the existing reprojection routines 
+                      in Montage. It is managed through the same local version of the WCStools 
+                      library used to manage HEALPix data. The WWT consumes PNG or JPEG files
+                      organized and named to conform to the TOAST sky-tessellation scheme. 
+                      Montage includes custom routines to organize TOAST files for display 
+                      in the WWT. These modules are:
+
+
+                       mHdrWWT: Create a TOAST tile header file given a tile ID (in Z-order 
+                       digits such as"2320") and an output file name.
+
+
+                       mHdrWWTExec: Recursively creates all the headers for an all-sky set 
+                       using mHdrWWT.
+
+
+                       mProjWWTExec: Runs mProjectQL to reproject an all-sky input image 
+                       into a set of FITS tile images using the headers created by mHdrWWT 
+                       and mHdrWWTExec . It writes all these into a directory, given an an 
+                       argument.
+
+
+                       mPNGWWTExe: Runs mViewer for each FITS file, using a pregenerated 
+                       histogram and a color table given as arguments. The histogram is generated 
+                       by mHistogram and can be based on one of the WWT image set or from the 
+                       original image(s)from which the WWT images were derived.
+
 
 4.0   30Sep2015    New modules to support working with data cubes :
 
