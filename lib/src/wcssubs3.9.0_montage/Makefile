@@ -3,9 +3,10 @@ OBJS =  wcsinit.o wcs.o wcscon.o fitsfile.o imhfile.o \
 	tnxpos.o zpxpos.o dsspos.o poly.o \
         wcslib.o lin.o cel.o proj.o sph.o wcstrig.o dateutil.o distort.o
 
+
 libwcs.a:	$(OBJS)
-	ar rv $@ $?
-	ranlib $@
+		$(or $(ARCHIVE),ar) rv $@ $?
+		$(or $(RANLIB),ranlib) $@
 
 cel.o:		wcslib.h
 distort.o:	wcs.h fitshead.h wcslib.h
