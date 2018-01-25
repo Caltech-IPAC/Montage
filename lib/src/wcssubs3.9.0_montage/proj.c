@@ -316,7 +316,7 @@ void   vPixCenter(Vec *a, Vec *b, Vec *c, Vec *d, Vec *v);
 int    vCross    (Vec *a, Vec *b, Vec *c);
 double vDot      (Vec *a, Vec *b);
 double vNormalize(Vec *a);
-double vPrint    (Vec *v, char *lbl);
+void   vPrint    (Vec *v, char *lbl);
 
 void   splitIndex(unsigned long index, int level, int *x, int *y);
 
@@ -3409,7 +3409,7 @@ double *phi, *theta;
       *theta = 0.0;
    } else if (fabs(w-90.0) < tol) {
       *phi = 0.0;
-      *theta = copysgni (90.0,y);
+      *theta = copysgn (90.0,y);
    } else {
       /* Iterative solution using weighted division of the interval. */
       if (y > 0.0) {
@@ -5085,7 +5085,7 @@ double *x, *y;
       direction[3] = vDot(&normal[3], &ref);
 
       if(debug > 1)
-         printf("DIRECTIONS> %.4f %.4f %.4d %.4f\n", direction[0], direction[1], direction[2], direction[3]);
+         printf("DIRECTIONS> %.4f %.4f %.4f %.4f\n", direction[0], direction[1], direction[2], direction[3]);
 
 
       // Use this to define the next level down
@@ -5851,7 +5851,7 @@ double vNormalize(Vec *v)
 /*                                                 */
 /***************************************************/
 
-double vPrint(Vec *v, char *label)
+void vPrint(Vec *v, char *label)
 {
    vCalcRADec(v);
 
