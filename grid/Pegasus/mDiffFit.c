@@ -2,6 +2,9 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.3      Mats Rynge       28Nov17  Ignore some expected failure
+                                   conditions from mDiff, such as
+                                   images not overlapping
 1.2      Mei-Hui Su       16Mar05  Add the check for MONTAGE_HOME to
                                    access mFitplane and mDiff with 'path'
 1.1      Mei-Hui Su       11Oct04  Changed one OK return to a WARNING
@@ -192,7 +195,16 @@ int main(int argc, char **argv)
       fprintf(fstatus, "[struct stat=\"%s\", msg=\"%s\"]\n", status, msg);
       fflush(stdout);
 
-      exit(1);
+      /* some errors from mDiff are ignored, such as images not overlapping */
+      if (strcmp(msg, "Images don't overlap") == 0 
+          || strcmp(msg, "All pixels are blank.") == 0) {
+          /* ensure the output file exists, even if it is 0 bytes */
+          fopen(output_file, "w+");
+          exit(0);
+      }
+      else {
+          exit(1);
+      }
    }
 
    if(strcmp( status, "WARNING") == 0)
