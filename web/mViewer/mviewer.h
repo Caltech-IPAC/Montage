@@ -165,6 +165,9 @@ struct Mviewer
     char    workDir[1024];
     char    directory[1024];
     char    baseURL[1024];
+    
+    char    cubedatadir[1024];
+    char    imdatadir[1024];
 
 /*
     Input parameters
@@ -180,7 +183,7 @@ struct Mviewer
     int     nowcs;
    
     char    helphtml[1024];
-    char    imname[20];
+    char    imname[1024];
     char    imageType[20];
     char    imageFile[1024];
     
@@ -199,13 +202,11 @@ struct Mviewer
     int     centerplane;
     int     startplane;
     int     endplane;
-   
+  
     char    ctype3[40];
-   
     double  crval3;
     double  cdelt3;
 
-    char    imcubepathOrig[1024];
     char    imcubefile[1024];
     char    imcubepath[1024];
     
@@ -219,12 +220,7 @@ struct Mviewer
 /*
     imcubemode: ave or median 
 */
-    char    imcubemode[20];
-
-/*
-    imcursormode: imzoom  or waveplot
-*/
-    char    imcursormode[20];
+    char    planeavemode[20];
 
 
 /*
@@ -234,6 +230,8 @@ struct Mviewer
     int     imageHeight;
     int     cutoutWidth;
     int     cutoutHeight;
+    int     cutoutWidth_in;
+    int     cutoutHeight_in;
     
     char     canvasWidthStr[40];
     char     canvasHeightStr[40];
@@ -246,6 +244,8 @@ struct Mviewer
     int     refHeight;
 
     char    grayFile[1024];
+    char    grayPath[1024];
+
     char    colorTable[40];
     char    stretchMode[40];
     char    stretchMin[40];
@@ -263,16 +263,19 @@ struct Mviewer
 
 
     char    redFile[1024];
+    char    redPath[1024];
     char    redMode[40];
     char    redMin[40];
     char    redMax[40];
 
     char    greenFile[1024];
+    char    greenPath[1024];
     char    greenMode[40];
     char    greenMin[40];
     char    greenMax[40];
 
     char    blueFile[1024];
+    char    bluePath[1024];
     char    blueMode[40];
     char    blueMin[40];
     char    blueMax[40];
@@ -297,8 +300,11 @@ struct Mviewer
         char    type[40];
         char    coordSys[40]; 
         char    color[40]; 
-        char    dataFile[1024]; 
-        char    visible[40]; 
+        
+        char    datadir[1024];
+	char    dataFile[1024]; 
+        char    dataPath[1024]; 
+	char    visible[40]; 
 
 /*
     srctbl parameters

@@ -25,6 +25,7 @@ int main(int argc, char **argv)
    char outFile [STRLEN];
    char jsonFile[STRLEN];
    char jsonStr [MAXSTR];
+   char fontFile[MAXSTR];
 
    FILE *fin;
 
@@ -39,8 +40,9 @@ int main(int argc, char **argv)
    /* the command line as a command string.             */
    /*****************************************************/
 
-   strcpy(outFmt, "png");
-   strcpy(outFile, "");
+   strcpy(outFmt,   "png");
+   strcpy(outFile,  "");
+   strcpy(fontFile, "");
 
    debug = 0;
 
@@ -54,7 +56,7 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No PNG output file argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
@@ -69,7 +71,7 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No JPEG output file argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No input JSON data argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
@@ -98,12 +100,26 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No input JSON file argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
 
          strcpy(jsonFile, argv[i+1]);
+
+         ++i;
+      }
+
+      if(strcmp(argv[i], "-fontfile") == 0)
+      {
+         if(i > argc-2)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No alternate font file argument.\"]\n");
+            fflush(stdout);
+            exit(0);
+         }
+
+         strcpy(fontFile, argv[i+1]);
 
          ++i;
       }
@@ -116,7 +132,7 @@ int main(int argc, char **argv)
 
    if(strlen(jsonStr) > 0)
    {
-      returnStruct = mViewer(JSONMODE, jsonStr, outFile, outFmt, debug);
+      returnStruct = mViewer(jsonStr, outFile, JSONMODE, outFmt, fontFile, debug);
 
       if(returnStruct->status == 1)
       {
@@ -125,7 +141,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         printf("[struct stat=\"OK\", %s]\n", returnStruct->msg);
+         printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
          exit(0);
       }
    }
@@ -160,7 +176,7 @@ int main(int argc, char **argv)
          strcat(jsonStr, " ");
       }
 
-      returnStruct = mViewer(JSONMODE, jsonStr, outFile, outFmt, debug);
+      returnStruct = mViewer(jsonStr, outFile, JSONMODE, outFmt, fontFile, debug);
 
       if(returnStruct->status == 1)
       {
@@ -169,7 +185,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         printf("[struct stat=\"OK\", %s]\n", returnStruct->msg);
+         printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
          exit(0);
       }
    }
@@ -183,9 +199,9 @@ int main(int argc, char **argv)
 
    strcpy(cmdstr, "");
 
-   for(i=0; i<argc; ++i)
+   for(i=1; i<argc; ++i)
    {
-      if(i > 0)
+      if(i > 1)
          strcat(cmdstr, " ");
 
       strcat(cmdstr, "\"");
@@ -198,7 +214,7 @@ int main(int argc, char **argv)
    /* Call the mViewer processing routine */
    /***************************************/
 
-   returnStruct = mViewer(CMDMODE, cmdstr, outFile, outFmt, debug);
+   returnStruct = mViewer(cmdstr, outFile, CMDMODE, outFmt, fontFile, debug);
 
    if(returnStruct->status == 1)
    {
@@ -207,7 +223,7 @@ int main(int argc, char **argv)
    }
    else
    {
-      printf("[struct stat=\"OK\", %s]\n", returnStruct->msg);
+      printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
       exit(0);
    }
 }

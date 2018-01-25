@@ -39,7 +39,7 @@ int main(int argc, char **argv)
    debug  = 0;
    opterr = 0;
 
-   strcpy(csys, "");
+   strcpy(csys, "eq");
 
    equinox    = 2000.;
    rotation   = 0.;
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 
    if(argc - optind < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-s system] [-e equinox] [-h height(deg)] [-p pixsize(arcsec)] [-r rotation] [-t 2mass-band] object|location width(deg) outfile (object/location must be a single argument string)\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-c system] [-e equinox] [-h height(deg)] [-p pixsize(arcsec)] [-r rotation] [-t 2mass-band] object|location width(deg) outfile (object/location must be a single argument string)\"]\n", argv[0]);
       exit(0);
    }
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
    if(height == 0.)
       height = width;
 
-   returnStruct = mHdr(locstr, width, height, csys, equinox, resolution, rotation, band2MASS, outfile, debug);
+   returnStruct = mHdr(locstr, width, height, outfile, csys, equinox, resolution, rotation, band2MASS, debug);
 
    if(returnStruct->status == 1)
    {
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mHdr\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

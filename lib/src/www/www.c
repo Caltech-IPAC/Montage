@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <sys/uio.h>
 #include <fcntl.h>
 #include <signal.h>
 
@@ -1292,45 +1291,6 @@ int keyword_info_unsafe(int index, char **keyname, char **keyval, char **fname)
 }
 
 
-/***********************/
-/* KEYWORD_SAFE_SYSTEM */
-/***********************/
-
-int keyword_safe_system(char const *str)
-{
-   int i, code;
-   struct sigaction oldact;
-   struct sigaction act = {.sa_handler = SIG_DFL};
-
-   if(str == (char *)NULL)
-      return 1;
-
-   for(i=0; i<strlen(str); ++i)
-      if(str[i] == ';')
-         return 1;
-   
-   /* Set default SIGCHLD handler - required for
-    * system()/waitpid() to function correctly.
-    */
-   sigaction(SIGCHLD, &act, &oldact);
-
-   code = system(str);
-
-   /* restore previous SIGCHLD handler */
-   sigaction(SIGCHLD, &oldact, NULL);
-
-#ifdef _XOPEN_SOURCE
-   if(WIFEXITED(code))
-   {
-      int realcode = WEXITSTATUS(code);
-      return realcode;
-   }
-#endif
-
-   return code;
-}
-
-
 /********************/
 /* Utility Routines */
 /********************/
@@ -1808,7 +1768,7 @@ int initHTTP(FILE *fout, char const *cookiestr)
 
   int setcookie = 0;
   char timeout[256];
-  struct tm gmt;
+  struct tm *gmt;
   static time_t clock;
   char day[7][10] = {"Sunday",    "Monday",  "Tuesday",
                      "Wednesday", "Thursday", "Friday",  "Saturday"};
@@ -1828,11 +1788,11 @@ int initHTTP(FILE *fout, char const *cookiestr)
     /* Set a default expiration */
     time(&clock);
     clock += (time_t) ((int)(14 * 24 * 60 * 60));
-    gmtime_r(&clock, &gmt);
-    gmt.tm_year += 1900;
+    gmt = gmtime(&clock);
+    gmt->tm_year += 1900;
     sprintf(timeout, "%s,%02d-%s-%04d %02d:%02d:%02d GMT",
-      day[gmt.tm_wday], gmt.tm_mday, month[gmt.tm_mon], gmt.tm_year,
-      gmt.tm_hour, gmt.tm_min, gmt.tm_sec);
+      day[gmt->tm_wday], gmt->tm_mday, month[gmt->tm_mon], gmt->tm_year,
+      gmt->tm_hour, gmt->tm_min, gmt->tm_sec);
   }
   
   if (keydebug)

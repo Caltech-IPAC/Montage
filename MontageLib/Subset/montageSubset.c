@@ -100,7 +100,7 @@ static int nimages;
 static double xcorrection;
 static double ycorrection;
 
-static int debug;
+static int mSubset_debug;
 
 
 static char montage_msgstr[1024];
@@ -187,7 +187,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
    returnStruct = (struct mSubsetReturn *)malloc(sizeof(struct mSubsetReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -199,7 +199,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
    /* Process the command-line parameters */
    /***************************************/
 
-   debug  = debugin;
+   mSubset_debug = debugin;
 
    checkHdr = montage_checkHdr(template, 1, 0);
 
@@ -229,7 +229,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
       return returnStruct;
    }
 
-   if(debug >= 2)
+   if(mSubset_debug >= 2)
    {
       printf("\noutput.naxes[0]  =  %ld\n", output.naxes[0]);
       printf("output.naxes[1]  =  %ld\n",   output.naxes[1]);
@@ -342,7 +342,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
    {
       stat = tread();
 
-      if(debug >= 1)
+      if(mSubset_debug >= 1)
       {
          printf("\nCHECKING rec %d\n", nimages);
          fflush(stdout);
@@ -374,7 +374,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
             mSubset_fixxy(&oxpix, &oypix, &offscl);
 
-            if(debug >= 4)
+            if(mSubset_debug >= 4)
             {
                printf("I%d: (ra, dec) = (%-g,%-g)\n", i, image_corner_ra[i], image_corner_dec[i]);
                printf("(lon,lat)     = (%-g,%-g)\n", lon, lat);
@@ -475,7 +475,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
                mSubset_Cross(&image_corner[j], &image_corner[jnext], &image_normal[j]);
 
-               if(debug >= 4)
+               if(mSubset_debug >= 4)
                {
                   printf("Comparing image corner %d with region side %d: %-g\n", i, j,
                      mSubset_Dot(&image_normal[j], &region_corner[i]));
@@ -558,13 +558,13 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
          sprintf(temp, "EQUINOX = %d",     input.equinox); mSubset_stradd(header, temp);
          sprintf(temp, "END"                            ); mSubset_stradd(header, temp);
          
-         if(debug >= 1)
+         if(mSubset_debug >= 1)
          {
             printf("Image %d:\n", nimages);
             fflush(stdout);
          }
 
-         if(debug >= 3)
+         if(mSubset_debug >= 3)
          {
             printf("%s\n", header);
             fflush(stdout);
@@ -663,7 +663,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
             mSubset_fixxy(&oxpix, &oypix, &offscl);
 
-            if(debug >= 4)
+            if(mSubset_debug >= 4)
             {
                i = 0;
 
@@ -695,7 +695,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
             mSubset_fixxy(&oxpix, &oypix, &offscl);
 
-            if(debug >= 4)
+            if(mSubset_debug >= 4)
             {
                i = input.naxis1;
 
@@ -737,7 +737,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
                mSubset_fixxy(&oxpix, &oypix, &offscl);
 
-               if(debug >= 3)
+               if(mSubset_debug >= 3)
                {
                   j = 0;
 
@@ -768,7 +768,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
                mSubset_fixxy(&oxpix, &oypix, &offscl);
 
-               if(debug >= 3)
+               if(mSubset_debug >= 3)
                {
                   j = input.naxis2;
 
@@ -892,7 +892,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
 
                mSubset_Cross(&image_corner[j], &image_corner[jnext], &image_normal[j]);
 
-               if(debug >= 4)
+               if(mSubset_debug >= 4)
                {
                   printf("Comparing image corner %d with region side %d: %-g\n", i, j,
                      mSubset_Dot(&image_normal[j], &region_corner[i]));
@@ -1005,7 +1005,7 @@ int mSubset_readTemplate(char *filename)
       if(line[strlen(line)-1] == '\r')
          line[strlen(line)-1]  = '\0';
 
-      if(debug >= 3)
+      if(mSubset_debug >= 3)
       {
          printf("Template line: [%s]\n", line);
          fflush(stdout);
@@ -1016,12 +1016,14 @@ int mSubset_readTemplate(char *filename)
       mSubset_parseLine(line);
    }
 
+   fclose(fp);
+
 
    /****************************************/
    /* Initialize the WCS transform library */
    /****************************************/
 
-   if(debug >= 3)
+   if(mSubset_debug >= 3)
    {
       printf("Output Header to wcsinit():\n%s\n", header);
       fflush(stdout);
@@ -1145,7 +1147,7 @@ int mSubset_parseLine(char *line)
    
    *end = '\0';
 
-   if(debug >= 2)
+   if(mSubset_debug >= 2)
    {
       printf("keyword [%s] = value [%s]\n", keyword, value);
       fflush(stdout);

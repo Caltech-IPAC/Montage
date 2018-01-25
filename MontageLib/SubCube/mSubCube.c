@@ -352,7 +352,7 @@ int main(int argc, char **argv)
    }
 
 
-   returnStruct = mSubCube(mode, infile, hdu, outfile, ra, dec, xsize, ysize, nowcs, d3constraint, d4constraint, debug);
+   returnStruct = mSubCube(mode, infile, outfile, ra, dec, xsize, ysize, hdu, nowcs, d3constraint, d4constraint, debug);
 
    if(returnStruct->status == 1)
    {
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mSubCube\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

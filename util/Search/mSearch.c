@@ -2108,6 +2108,13 @@ int main(int argc, char **argv)
 
       else if(strncasecmp(cmd, "debug", 2) == 0)
       {
+         if(cmdc < 2)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Command usage: debug <level>\"]\n");
+            fflush(stdout);
+            continue;
+         }
+         
          rdebug = atoi(cmdv[1]);
 
          printf("[struct stat=\"OK\", command=\"debug\"]\n");
@@ -3010,6 +3017,7 @@ int main(int argc, char **argv)
             setName, summary, setcount[subsetSetid].match);
          fflush(stdout);
          fclose(fsum);
+         tclose();
       }
 
 

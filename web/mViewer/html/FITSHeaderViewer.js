@@ -14,7 +14,8 @@ function FITSHeaderViewer(fitsHeaderDivName, viewer)
 
    me.workspace;
    me.fitsFile;
-
+   
+   me.debug = 0;
 
    me.init = function()
    {
@@ -87,15 +88,17 @@ function FITSHeaderViewer(fitsHeaderDivName, viewer)
       {
          if (xmlhttp.readyState==4 && xmlhttp.status==200)
          {
-            var returnJSON = jQuery.parseJSON(xmlhttp.responseText);
+            var xml = xmlhttp.responseXML;
 
-            if(returnJSON && returnJSON.error)
+            if(xml && xml.getElementsByTagName("error").length > 0)
             {
+               var error = xml.getElementsByTagName("error")[0].childNodes[0].nodeValue;
+
                jQuery(me.fitsHeaderDiv).html("<div>Remote server error[1].</div>");
             }
 
             else
-               jQuery(me.fitsHeaderDiv).find(".fitsHdr").load(returnJSON.url);
+               jQuery(me.fitsHeaderDiv).find(".fitsHdr").html(xmlhttp.responseText);
          }
       }
 

@@ -4886,7 +4886,7 @@ double *x, *y;
 
    maxlevel = 27;
 
-   maxindex = 0b1 << maxlevel;
+   maxindex = 1 << maxlevel;
 
 
    // Get location of interest from command line
@@ -4908,7 +4908,7 @@ double *x, *y;
 
    level = (int)prj->p[1];
 
-   npix = 0b1 << (level+8);
+   npix = 1 << (level+8);
 
 
    // The first level has to be done by hand
@@ -4918,7 +4918,7 @@ double *x, *y;
       if(debug > 1)
          printf("TOAFWD> Quadrant 11\n\n");
 
-      index = 0b11;
+      index = 3;  //0b11
 
       corner[0].lon =   0.;
       corner[0].lat =  90.;
@@ -4940,7 +4940,7 @@ double *x, *y;
       if(debug > 1)
          printf("TOAFWD> Quadrant 10\n\n");
 
-      index = 0b10;
+      index = 2;  //0b10
 
       corner[0].lon = 180.;
       corner[0].lat =   0.;
@@ -4962,7 +4962,7 @@ double *x, *y;
       if(debug >1)
          printf("TOAFWD> Quadrant 00\n\n");
 
-      index = 0b00;
+      index = 0;  //0b00
 
       corner[0].lon =   0.;
       corner[0].lat = -90.;
@@ -4984,7 +4984,7 @@ double *x, *y;
       if(debug > 1)
          printf("TOAFWD> Quadrant 01\n\n");
 
-      index = 0b01;
+      index = 11;  //0b01
 
       corner[0].lon = 270.;
       corner[0].lat =   0.;
@@ -5095,7 +5095,7 @@ double *x, *y;
          if(debug > 1)
             printf("TOAFWD> Level %2d, Subquadrant 00\n", level);
 
-         index = (index << 2) + 0b00;
+         index = (index << 2) + 0;  //0b00
 
               if(prime    == 0) prime = 0;
          else if(opposite == 0) prime = 0;
@@ -5112,7 +5112,7 @@ double *x, *y;
          if(debug > 1)
             printf("TOAFWD> Level %2d, Subquadrant 01\n", level);
 
-         index = (index << 2) + 0b01;
+         index = (index << 2) + 1;  //0b01
 
               if(prime    == 1) prime = 1;
          else if(opposite == 1) prime = 1;
@@ -5129,7 +5129,7 @@ double *x, *y;
          if(debug > 1)
             printf("TOAFWD> Level %2d, Subquadrant 10\n", level);
 
-         index = (index << 2) + 0b10;
+         index = (index << 2) + 2;  //0b10
 
               if(prime    == 3) prime = 3;
          else if(opposite == 3) prime = 3;
@@ -5146,7 +5146,7 @@ double *x, *y;
          if(debug > 1)
             printf("TOAFWD> Level %2d: Subquadrant 11\n", level);
 
-         index = (index << 2) + 0b11;
+         index = (index << 2) + 3;  //0b11
 
               if(prime    == 2) prime = 2;
          else if(opposite == 2) prime = 2;
@@ -5231,7 +5231,7 @@ double *phi, *theta;
 
    maxlevel = 27;
 
-   maxindex = 0b1 << maxlevel;
+   maxindex = 1 << maxlevel;
 
 
    // Get the level of the map
@@ -5239,7 +5239,7 @@ double *phi, *theta;
 
    level = (int)prj->p[1];
 
-   npix = 0b1 << (level + 8);
+   npix = 1 << (level + 8);
 
    if(x <      0) return 2;
    if(x > npix+1) return 2;
@@ -5258,8 +5258,8 @@ double *phi, *theta;
 
    currindex = maxlevel;
 
-   xsplit = xindex >> (currindex-1) & 0b1;
-   ysplit = yindex >> (currindex-1) & 0b1;
+   xsplit = xindex >> (currindex-1) & 1;
+   ysplit = yindex >> (currindex-1) & 1;
 
 
    // The first level has to be done by hand
@@ -5398,8 +5398,8 @@ double *phi, *theta;
 
       currindex -= 1;
 
-      xsplit = xindex >> (currindex-1) & 0b1;
-      ysplit = yindex >> (currindex-1) & 0b1;
+      xsplit = xindex >> (currindex-1) & 1;
+      ysplit = yindex >> (currindex-1) & 1;
 
 
       // Use this to define the next level down
@@ -5884,8 +5884,8 @@ void   splitIndex(unsigned long index, int level, int *x, int *y)
 
    for(i=0; i<level; ++i)
    {
-      *x = *x + (((val >> (2*i))   & 0b1) << i);
-      *y = *y + (((val >> (2*i+1)) & 0b1) << i);
+      *x = *x + (((val >> (2*i))   & 1) << i);
+      *y = *y + (((val >> (2*i+1)) & 1) << i);
    }
 
    return;

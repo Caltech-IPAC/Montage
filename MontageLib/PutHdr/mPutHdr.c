@@ -111,7 +111,7 @@ int main(int argc, char **argv)
    strcpy(template_file, argv[optind + 2]);
 
 
-   returnStruct = mPutHdr(input_file, hdu, output_file, template_file, debug);
+   returnStruct = mPutHdr(input_file, output_file, template_file, hdu, debug);
 
    if(returnStruct->status == 1)
    {
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\"]\n");
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mPutHdr\"]\n");
        exit(0);
    }
 }

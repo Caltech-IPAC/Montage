@@ -59,7 +59,7 @@ static double  Normalize(Vec *a);
 static char montage_msgstr[1024];
 static char montage_json  [1024];
 
-static int debug;
+static int mMakeImg_debug;
 
 
 /*-****************************************************************************************/
@@ -95,7 +95,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                                  int nimage, char **image_file, char *arrayfile, int replace, int debugin)
 {
    int       i, j, jnext, k, l, m, count, ncol;
-   int       dl, dm, inext, debug;
+   int       dl, dm, inext;
    int       loncol, latcol, fluxcol;
    long      fpixel[4], nelements;
    double    oxpix, oypix;
@@ -185,7 +185,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    returnStruct = (struct mMakeImgReturn *)malloc(sizeof(struct mMakeImgReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -197,7 +197,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
    /* Process the command-line parameters */
    /***************************************/
 
-   debug = debugin;
+   mMakeImg_debug = debugin;
 
    dtr = atan(1.)/45.;
 
@@ -209,9 +209,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
       if(farray == (FILE *)NULL)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Image array file [%s] not found.\"]\n",
-            arrayfile);
-         exit(1);
+         sprintf(returnStruct->msg, "Image array file [%s] not found.\n", arrayfile);
+         return returnStruct;
       }
    }
 
@@ -220,9 +219,13 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
    /* image size, coordinate system and projection  */ 
    /*************************************************/ 
 
-   mMakeImg_readTemplate(template_file);
+   if(mMakeImg_readTemplate(template_file) > 0)
+   {
+      strcpy(returnStruct->msg, montage_msgstr);
+      return returnStruct;
+   }
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("output.naxes[0] =  %ld\n", output.naxes[0]);
       printf("output.naxes[1] =  %ld\n", output.naxes[1]);
@@ -248,7 +251,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    data[0] = (double *)malloc(output.naxes[0] * output.naxes[1] * sizeof(double));
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("%ld bytes allocated for image pixels\n", 
          output.naxes[0] * output.naxes[1] * sizeof(double));
@@ -263,7 +266,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
    for(i=1; i<output.naxes[1]; i++)
       data[i] = data[i-1] + output.naxes[0];
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("pixel line pointers populated\n"); 
       fflush(stdout);
@@ -350,7 +353,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
       fclose(farray);
 
-      if(debug >= 1)
+      if(mMakeImg_debug >= 1)
       {
          printf("Array loaded into data\n"); 
          fflush(stdout);
@@ -383,7 +386,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("FITS image created (not yet populated)\n"); 
       fflush(stdout);
@@ -408,9 +411,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
       if(ncol <= 0)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Can't open table table %s\"]\n",
-            cat_file[ifile]);
-         exit(1);
+         sprintf(returnStruct->msg, "Can't open table file %s.", cat_file[ifile]);
+         return returnStruct;
       }
 
       tblSys = EQUJ;
@@ -434,9 +436,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
             if(loncol <  0 || latcol <  0)
             {
-               printf("[struct stat=\"ERROR\", msg=\"Can't find lon, lat columns\"]\n");
-
-               exit(1);
+               strcpy(returnStruct->msg, "Can't find lon, lat columns.");
+               return returnStruct;
             }
          }
       }
@@ -479,7 +480,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
          mMakeImg_fixxy(&oxpix, &oypix, &offscl);
 
-         if(debug >= 2)
+         if(mMakeImg_debug >= 2)
          {
             printf(" value = %11.3e at coord = (%12.8f,%12.8f) -> (%12.8f,%12.8f)",
                   pixel_value, ilon, ilat, olon, olat);
@@ -496,7 +497,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                      oxpix, oypix);
             }
 
-            if(debug == 2)
+            if(mMakeImg_debug == 2)
                printf("\r");
             else
                printf("\n");
@@ -511,7 +512,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
             if(l < 0 || m < 0 || l >= output.naxes[0] || m >= output.naxes[1])
             {
-               if(debug >= 2)
+               if(mMakeImg_debug >= 2)
                {
                   printf("Bad Values: l=%d, m=%d\n", l, m);
                   fflush(stdout);
@@ -520,37 +521,47 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
             else
             {
-               for(dl=-3*width[ifile]; dl<=3*width[ifile]; ++dl)
+               if(width[ifile] == 0)
                {
-                  if(l+dl < 0 || l+dl>= output.naxes[0])
-                     continue;
-
-                  dx = oxpix - (l+dl);
-
-                  for(dm=-3*width[ifile]; dm<=3*width[ifile]; ++dm)
+                  if(replace)
+                     data[m][l] = pixel_value;
+                  else
+                     data[m][l] += pixel_value;
+               }
+               else
+               {
+                  for(dl=-3*width[ifile]; dl<=3*width[ifile]; ++dl)
                   {
-                     if(m+dm < 0 || m+dm>= output.naxes[1])
+                     if(l+dl < 0 || l+dl>= output.naxes[0])
                         continue;
 
-                     dy = oypix - (m+dm);
+                     dx = oxpix - (l+dl);
 
-                     dist2 = dx*dx + dy*dy;
-
-                     if(region)
-                        weight = 1;
-                     else
-                        weight = exp(-dist2/width2);
-                     
-                     if(debug >= 5)
+                     for(dm=-3*width[ifile]; dm<=3*width[ifile]; ++dm)
                      {
-                        printf("Pixel update: data[%d][%d] with value %-g*%-g\n", m+dm, l+dl, weight, pixel_value);
-                        fflush(stdout);
+                        if(m+dm < 0 || m+dm>= output.naxes[1])
+                           continue;
+
+                        dy = oypix - (m+dm);
+
+                        dist2 = dx*dx + dy*dy;
+
+                        if(region)
+                           weight = 1;
+                        else
+                           weight = exp(-dist2/width2);
+
+                        if(mMakeImg_debug >= 5)
+                        {
+                           printf("Pixel update: data[%d][%d] with value %-g*%-g\n", m+dm, l+dl, weight, pixel_value);
+                           fflush(stdout);
+                        }
+
+                        if(replace)
+                           data[m+dm][l+dl] = weight * pixel_value;
+                        else
+                           data[m+dm][l+dl] += weight * pixel_value;
                      }
-                     
-                     if(replace)
-                        data[m+dm][l+dl] = weight * pixel_value;
-                     else
-                        data[m+dm][l+dl] += weight * pixel_value;
                   }
                }
             }
@@ -572,7 +583,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       /* Open the image table file and find the data column */ 
       /******************************************************/ 
 
-      if(debug > 2)
+      if(mMakeImg_debug > 2)
       {
          printf("Image file[%d] =\"%s\"\n", ifile, image_file[ifile]);
          fflush(stdout);
@@ -582,9 +593,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
       if(ncol <= 0)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Can't open table table %s\"]\n",
-            cat_file[ifile]);
-         exit(1);
+         sprintf(returnStruct->msg, "Can't open table table %s.", cat_file[ifile]);
+         return returnStruct;
       }
 
       ira [0] = tcol("ra");
@@ -608,10 +618,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       || ira[3] <  0 || idec[3] <  0
       || ira[4] <  0 || idec[4] <  0)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Can't find image center or four corners\"]\n");
-         fflush(stdout);
-
-         exit(1);
+         strcpy(returnStruct->msg, "Can't find image center or four corners.");
+         return returnStruct;
       }
 
 
@@ -623,7 +631,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       {
          ++count;
 
-         if(debug >= 3)
+         if(mMakeImg_debug >= 3)
          {
             printf("\nImage %d:\n", count);
             fflush(stdout);
@@ -678,7 +686,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
             if(theta0 < tolerance)
             {
-               if(debug >= 3)
+               if(mMakeImg_debug >= 3)
                {
                   printf("   Side %d: (%10.6f,%10.6f) -> (%10.6f,%10.6f) [theta0 = %10.6f, pixscale = %12.9f SHORT SIDE]\n", 
                      i, ra[i], dec[i], ra[inext], dec[inext], theta0, pixscale);
@@ -690,7 +698,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                continue;
             }
 
-            if(debug >= 3)
+            if(mMakeImg_debug >= 3)
             {
                printf("   Side %d: (%10.6f,%10.6f) -> (%10.6f,%10.6f) [theta0 = %10.6f, pixscale = %12.9f]\n", 
                   i, ra[i], dec[i], ra[inext], dec[inext], theta0, pixscale);
@@ -718,7 +726,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
                mMakeImg_fixxy(&oxpix, &oypix, &offscl);
 
-               if(debug >= 4)
+               if(mMakeImg_debug >= 4)
                {
                   printf("theta = %.6f -> A = %.6f -> a = %.6f -> (%.6f,%.6f,%.6f) -> (%12.8f,%12.8f)",
                      theta, A, a, xarc, yarc, zarc, olon, olat);
@@ -755,7 +763,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
             }
          }
 
-         if(debug >= 3)
+         if(mMakeImg_debug >= 3)
          {
             printf("\n   Range:  i = %.2f -> %.2f   j= %.2f -> %.2f\n", 
                imin, imax, jmin, jmax);
@@ -866,7 +874,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmax = output.naxes[0];
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   North pole in image:  jmax -> %.2f\n", jmax); 
                      fflush(stdout);
@@ -876,7 +884,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmin = output.naxes[0];
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   North pole in image:  jmin -> %.2f\n", jmin); 
                      fflush(stdout);
@@ -889,7 +897,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmin = oypix;
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   North pole in image:  jmin -> %.2f\n", jmin); 
                      fflush(stdout);
@@ -899,7 +907,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmax = oypix;
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   North pole in image:  jmax -> %.2f\n", jmax); 
                      fflush(stdout);
@@ -907,7 +915,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                }
                else
                {
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   North pole in image:  no range change\n"); 
                      fflush(stdout);
@@ -956,7 +964,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmax = 0.;
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   South pole in image:  jmax -> %.2f\n", jmax); 
                      fflush(stdout);
@@ -966,7 +974,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmin = 0.;
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   South pole in image:  jmin -> %.2f\n", jmin); 
                      fflush(stdout);
@@ -979,7 +987,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmin = oypix;
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   South pole in image:  jmin -> %.2f\n", jmin); 
                      fflush(stdout);
@@ -989,7 +997,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                {
                   jmax = oypix;
 
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   South pole in image:  jmax -> %.2f\n", jmax); 
                      fflush(stdout);
@@ -997,7 +1005,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                }
                else
                {
-                  if(debug >= 3)
+                  if(mMakeImg_debug >= 3)
                   {
                      printf("\n   South pole in image:  no range change\n"); 
                      fflush(stdout);
@@ -1058,7 +1066,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                   }
                }
 
-               if(debug >= 4)
+               if(mMakeImg_debug >= 4)
                {
                   printf("%6d %6d -> %11.6f %11.6f -> %11.6f %11.6f (%d)\n",
                      i, j, xpos, ypos, olon, olat, interior);
@@ -1091,7 +1099,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                i = (int)(ipix);
                j = (int)(jpix);
 
-               if(debug >= 4)
+               if(mMakeImg_debug >= 4)
                {
                   printf("Single pixel turn-on: %6d %6d\n", i, j);
                   fflush(stdout);
@@ -1133,7 +1141,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       ++fpixel[1];
    }
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("Data written to FITS data image\n");
       fflush(stdout);
@@ -1151,7 +1159,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("Template keywords written to FITS image\n"); 
       fflush(stdout);
@@ -1169,15 +1177,11 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mMakeImg_debug >= 1)
    {
       printf("FITS image finalized\n"); 
       fflush(stdout);
    }
-
-   printf("[struct stat=\"OK\"]\n");
-   exit(0);
-
 
    strcpy(montage_msgstr, "");
    strcpy(montage_json,   "{}");
@@ -1252,9 +1256,8 @@ int mMakeImg_readTemplate(char *filename)
 
    if(fp == (FILE *)NULL)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Template file [%s] not found.\"]\n",
-         filename);
-      exit(1);
+      sprintf(montage_msgstr, "Template file [%s] not found.", filename);
+      return 1;
    }
 
    while(1)
@@ -1265,7 +1268,7 @@ int mMakeImg_readTemplate(char *filename)
       if(line[strlen(line)-1] == '\n')
          line[strlen(line)-1]  = '\0';
 
-      if(debug >= 2)
+      if(mMakeImg_debug >= 2)
       {
          printf("Template line: [%s]\n", line);
          fflush(stdout);
@@ -1281,7 +1284,9 @@ int mMakeImg_readTemplate(char *filename)
       mMakeImg_parseLine(line);
    }
 
-   if(debug >= 2)
+   fclose(fp);
+
+   if(mMakeImg_debug >= 2)
    {
       printf("\nheader ----------------------------------------\n");
       printf("%s\n", header[0]);
@@ -1297,8 +1302,8 @@ int mMakeImg_readTemplate(char *filename)
 
    if(output.wcs == (struct WorldCoor *)NULL)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Output wcsinit() failed. Exiting.\"]\n");
-      exit(1);
+      strcpy(montage_msgstr, "Output wcsinit() failed.");
+      return 1;
    }
 
    pixscale = fabs(output.wcs->xinc);
@@ -1320,7 +1325,7 @@ int mMakeImg_readTemplate(char *filename)
    xcorrection = x-ix;
    ycorrection = y-iy;
 
-   if(debug)
+   if(mMakeImg_debug)
    {
       printf("DEBUG> xcorrection = %.2f\n", xcorrection);
       printf("DEBUG> ycorrection = %.2f\n\n", ycorrection);
@@ -1424,7 +1429,7 @@ int mMakeImg_parseLine(char *line)
    
    *end = '\0';
 
-   if(debug >= 2)
+   if(mMakeImg_debug >= 2)
    {
       printf("keyword [%s] = value [%s]\n", keyword, value);
       fflush(stdout);

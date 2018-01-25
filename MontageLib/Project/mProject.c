@@ -178,8 +178,8 @@ int main(int argc, char **argv)
    strcpy(template_file, argv[optind + 2]);
 
 
-   returnStruct = mProject(input_file, hdu, output_file, template_file, 
-                           weight_file, fixedWeight, threshold, borderstr, 
+   returnStruct = mProject(input_file, output_file, template_file, 
+                           hdu, weight_file, fixedWeight, threshold, borderstr, 
                            drizzle, fluxScale, energyMode, expand, fullRegion, debug);
 
   if(returnStruct->status == 1)
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mProject\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

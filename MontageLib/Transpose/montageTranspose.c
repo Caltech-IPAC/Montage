@@ -136,7 +136,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 
    returnStruct = (struct mTransposeReturn *)malloc(sizeof(struct mTransposeReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

@@ -86,7 +86,7 @@ static struct WorldCoor *wcs;
 static double xcorrection;
 static double ycorrection;
 
-static int debug;
+static int mSubimage_debug;
 static int isflat;
 
 static char content[128];
@@ -114,7 +114,6 @@ static char montage_msgstr[1024];
 /*                         had all the blank border pixels removed.      */
 /*                                                                       */
 /*   char  *infile         Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *outfile        Subimage output FITS file                     */
 /*                                                                       */
 /*   double ra             RA of cutout center (or start X pixel in      */
@@ -127,6 +126,7 @@ static char montage_msgstr[1024];
 /*   double ysize          Y size in degrees (SKY mode) or pixels        */
 /*                         (PIX mode)                                    */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    nowcs          Indicates that the image has no WCS info      */
 /*                         (only makes sense in PIX mode)                */
 /*                                                                       */
@@ -134,8 +134,8 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile, double ra, double dec, 
-                                  double xsize, double ysize, int nowcs, int debugin)
+struct mSubimageReturn *mSubimage(int mode, char *infile, char *outfile, double ra, double dec, 
+                                  double xsize, double ysize, int hdu, int nowcs, int debugin)
 {
    fitsfile *infptr, *outfptr;
 
@@ -168,7 +168,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    dtr = atan(1.)/45.;
 
-   debug = debugin;
+   mSubimage_debug = debugin;
 
    pixMode    = 0;
    shrinkWrap = 0;
@@ -183,7 +183,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    returnStruct = (struct mSubimageReturn *)malloc(sizeof(struct mSubimageReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -233,7 +233,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          return returnStruct;
       }
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("imin  = %d\n", imin);
          printf("imax  = %d\n", imax);
@@ -246,7 +246,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    if (!nowcs) 
    {
-      if(debug) 
+      if(mSubimage_debug) 
       {
          printf("WCS handling\n");
          fflush(stdout);
@@ -277,7 +277,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          cdelt[1] = wcs->cd[3]/cos(rotang*dtr);
       }
 
-      if(debug)
+      if(mSubimage_debug)
       {
          for(i=0; i<params.naxis; ++i)
          {
@@ -349,7 +349,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          epoch = 2000.;
       }
       
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("input coordinate system = %d\n", EQUJ);
          printf("input epoch             = %-g\n", 2000.);
@@ -384,7 +384,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    else if(pixMode)
    {
-      if(debug) {
+      if(mSubimage_debug) {
          printf("xsize= [%lf]\n", xsize);
          printf("ysize= [%lf]\n", ysize);
 
@@ -410,7 +410,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("\npixMode = TRUE\n");
          printf("'ra'    = %-g\n", ra);
@@ -448,7 +448,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       }
       ********************************************************************************************/
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("   ra   = %-g\n", ra);
          printf("   dec  = %-g\n", dec);
@@ -496,7 +496,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("\npixMode = FALSE\n");
          printf("cdelt1  = %-g\n", cdelt[0]);
@@ -523,7 +523,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       
    params.nelements = params.iend - params.ibegin + 1;
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("ibegin    = %d\n",  params.ibegin);
       printf("iend      = %d\n",  params.iend);
@@ -553,7 +553,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
    /* from the input to the output */
    /********************************/
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("Calling copyHeaderInfo()\n");
       fflush(stdout);
@@ -567,7 +567,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
    /************************/
 
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("Calling copyData()\n");
       fflush(stdout);
@@ -584,7 +584,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
    /* Close the files */
    /*******************/
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("Calling fits_close_file()\n");
       fflush(stdout);
@@ -660,7 +660,7 @@ struct WorldCoor *mSubimage_getFileInfo(fitsfile *infptr, char *header[], struct
       return (struct WorldCoor *)NULL;
    }
    
-   if(debug)
+   if(mSubimage_debug)
    {
       for(i=0; i<params->naxis; ++i)
          printf("naxis%d = %ld\n",  i+1, params->naxes[i]);
@@ -789,7 +789,7 @@ int mSubimage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubima
       }
    }
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("naxis1 -> %ld\n", params->nelements);
       printf("naxis2 -> %d\n",  naxis2);
@@ -857,7 +857,7 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
 
    for (j=params->jbegin; j<=params->jend; ++j)
    {
-      if(debug >= 2)
+      if(mSubimage_debug >= 2)
       {
          printf("Processing input image row %5d\n", j);
          fflush(stdout);
@@ -963,7 +963,7 @@ int mSubimage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *
 
    for (j=1; j<=naxes[1]; ++j)
    {
-      if(debug >= 2)
+      if(mSubimage_debug >= 2)
       {
          printf("Processing image row %5d\n", j);
          fflush(stdout);

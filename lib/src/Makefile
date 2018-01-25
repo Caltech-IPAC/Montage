@@ -1,4 +1,5 @@
 all:
+	(cd bzip2-1.0.6; make; cp libbz2.a ../..; cp bzlib.h ../../include)
 	(cd cfitsio-3.25; ./configure; make; cp libcfitsio.a ../..; cp *.h ../../include)
 	(cd cmd; make; make install)
 	(cd coord; make; make install)
@@ -11,13 +12,14 @@ all:
 	(cd wcssubs3.9.0_montage; make; cp libwcs.a ../..; cp *.h ../../include)
 	(cd two_plane_v1.1; make; make install)
 	(cd lodepng_20140823; make; make install)
-	(cd jpeg-8b; ./configure; make; cp .libs/libjpeg.a ../..; cp jpeglib.h jconfig.h jmorecfg.h ../../include)
+	(cd jpeg-8b; ./configure --with-pic; make; cp .libs/libjpeg.a ../..; cp jpeglib.h jconfig.h jmorecfg.h ../../include)
 	(cd freetype-2.5.4; ./configure --prefix=`pwd`/../../freetype --without-png; make; make install)
 	(cd ..; ranlib *.a)
-	chmod 644 ../include/*
+	chmod 644 ../include/*.h
 
 clean:
 	rm -rf ../include/* ../freetype ../*.a
+	(cd bzip2-1.0.6; make clean)
 	(cd cfitsio-3.25; make clean; rm -rf config.log config.cache config.status lib)
 	(cd cmd; make clean)
 	(cd coord; make clean)

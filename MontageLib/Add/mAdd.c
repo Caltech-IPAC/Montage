@@ -64,6 +64,7 @@ int main(int argc, char **argv)
                  if (strcmp(argument, "mean"  ) == 0) coadd = MEAN;
             else if (strcmp(argument, "median") == 0) coadd = MEDIAN;
             else if (strcmp(argument, "count" ) == 0) coadd = COUNT;
+            else if (strcmp(argument, "sum"   ) == 0) coadd = SUM;
             else
             {
                printf("[struct stat=\"ERROR\", msg=\"Invalid argument for -a flag\"]\n");
@@ -174,7 +175,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mAdd\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

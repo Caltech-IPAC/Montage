@@ -1,0 +1,30 @@
+{
+   "module":"mTANHdr",
+
+   "function":"mTANHdr",
+
+   "desc" : "mTANHdr attempts to create a distorted-TAN header that matches the original image header (to speed reprojection in mProjectPP).",
+
+   "arguments":
+   [
+      {"type":"string",                   "name":"template",     "desc":"Original image file FITS header."},
+      {"type":"string",                   "name":"tanTemplate",  "desc":"Output matching distorted-TAN header."},
+      {"type":"int",     "default":5,     "name":"order",        "desc":"Polynomial order for distortions."},
+      {"type":"int",     "default":50,    "name":"maxiter",      "desc":"Maximum number of iterations for fitting."},
+      {"type":"double",  "default":0.01,  "name":"tolerance",    "desc":"Tolerance (fractional pixel maximum error) for fit."},
+      {"type":"boolean", "default":false, "name":"useOffscl",    "desc":"Include pixels that are just off the image in fitting."},
+      {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                      "name":"status",       "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",          "desc":"Return message (for errors)."},
+      {"type":"double",                   "name":"fwdxerr",      "desc":"Maximum pixel error for forward transform in X axis."},
+      {"type":"double",                   "name":"fwdyerr",      "desc":"Maximum pixel error for forward transform in Y axis."},
+      {"type":"int",                      "name":"fwditer",      "desc":"Number of iterations ins in forward fitting."},
+      {"type":"double",                   "name":"revxerr",      "desc":"Maximum pixel error for reverse transform in X axis."},
+      {"type":"double",                   "name":"revyerr",      "desc":"Maximum pixel error for reverse transform in Y axis."},
+      {"type":"int",                      "name":"reviter",      "desc":"Number of iterations ins in reverse fitting."}
+   ]
+}

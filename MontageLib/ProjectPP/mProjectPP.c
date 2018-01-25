@@ -186,7 +186,7 @@ int main(int argc, char **argv)
    strcpy(template_file, argv[optind + 2]);
 
 
-   returnStruct = mProjectPP(input_file, hdu, output_file, template_file,
+   returnStruct = mProjectPP(input_file, output_file, template_file, hdu,
                              weight_file, fixedWeight, threshold, borderstr,
                              altin, altout, drizzle, fluxScale,
                              expand, fullRegion, debug);
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mProjectPP\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

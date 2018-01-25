@@ -8,13 +8,17 @@
    "arguments":
    [
       {"type":"string",                    "name":"input_file",    "desc":"iReprojected image metadata list."},
-      {"type":"string",                    "name":"input_file",    "desc":"Set of image overlap difference fits."},
-      {"type":"string",                    "name":"input_file",    "desc":"Output table of corrections for images in input list."},
+      {"type":"string",                    "name":"fit_file",      "desc":"Set of image overlap difference fits."},
+      {"type":"string",                    "name":"corr_file",     "desc":"Output table of corrections for images in input list."},
       {"type":"boolean", "default":false,  "name":"noslope",       "desc":"Only fit levels, not slopes."},
       {"type":"boolean", "default":false,  "name":"usall",         "desc":"Use all the input differences (by default we exclude very small overlap areas)."},
       {"type":"int",     "default":10000,  "name":"niteration",    "desc":"Number of iterations to run."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
    ],
    
-   "return":null
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."}
+   ]
 }

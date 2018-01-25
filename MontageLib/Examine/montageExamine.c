@@ -151,7 +151,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
 
    returnStruct = (struct mExamineReturn *)malloc(sizeof(struct mExamineReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -187,16 +187,21 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
 
    /* Process basic command-line arguments */
 
+   if(debug)
+   {
+      printf("DEBUG> areaMode = %d \n", areaMode);
+      printf("DEBUG> infile   = %s \n", infile);
+      printf("DEBUG> ra       = %-g\n", ra);
+      printf("DEBUG> dec      = %-g\n", dec);
+      printf("DEBUG> radius   = %-g\n", dec);
+      fflush(stdout);
+   }
+
    rpix = 0.;
 
    if(areaMode == APPHOT)
       ap = (struct apPhoto *)malloc(maxflux * sizeof(struct apPhoto));
 
-   if(debug)
-   {
-      printf("DEBUG> infile = %s\n", infile);
-      fflush(stdout);
-   }
 
    /* Open the FITS file and initialize the WCS transform */
 
@@ -210,6 +215,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
 
    if(hdu > 0)
    {
+      status = 0;
       if(fits_movabs_hdu(fptr, hdu+1, NULL, &status))
       {
          if(ap) free(ap);
@@ -251,6 +257,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(returnStruct->msg, "WCS initialization failed.");
       return returnStruct;
    }
+
 
 
    /* A bunch of the parameters we want are in the WCS structure */
@@ -1076,42 +1083,42 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(tmpstr, " \"totalflux\":%.7e",  ap[nflux/2].sum);     strcat(montage_json, tmpstr);
 
 
-      sprintf(tmpstr, "proj:\"%s\",",    proj);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " csys:\"%s\",",    csys_str);            strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " equinox:%.1f,",   equinox);             strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis:%ld,",      naxis);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis1:%d,",      (int)naxis1);         strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis2:%d,",      (int)naxis2);         strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, "proj=\"%s\",",    proj);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " csys=\"%s\",",    csys_str);            strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " equinox=%.1f,",   equinox);             strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " naxis=%ld,",      naxis);               strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " naxis1=%d,",      (int)naxis1);         strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " naxis2=%d,",      (int)naxis2);         strcat(montage_msgstr, tmpstr);
 
       if(naxis > 2)
-         sprintf(tmpstr, " naxis3:%ld,",   naxes[2]);           strcat(montage_msgstr, tmpstr);
+         sprintf(tmpstr, " naxis3=%ld,",   naxes[2]);           strcat(montage_msgstr, tmpstr);
 
       if(naxis > 3)
-         sprintf(tmpstr, " naxis4:%ld,",   naxes[3]);           strcat(montage_msgstr, tmpstr);
+         sprintf(tmpstr, " naxis4=%ld,",   naxes[3]);           strcat(montage_msgstr, tmpstr);
 
-      sprintf(tmpstr, " crval1:%.7f,",    crval1);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crval2:%.7f,",    crval2);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix1:%-g,",     crpix1);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix2:%-g,",     crpix2);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt1:%.7f,",    fabs(cdelt1));        strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt2:%.7f,",    fabs(cdelt2));        strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crota2:%.4f,",    crota2);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " lonc:%.7f,",      lonc);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " latc:%.7f,",      latc);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ximgsize:%.6f,",  fabs(naxis1*cdelt1)); strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " yimgsize:%.6f,",  fabs(naxis1*cdelt2)); strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rotequ:%.4f,",    rot);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rac:%.7f,",       rac);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " decc:%.7f,",      decc);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra1:%.7f,",       ra1);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec1:%.7f,",      dec1);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra2:%.7f,",       ra2);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec2:%.7f,",      dec2);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra3:%.7f,",       ra3);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec3:%.7f,",      dec3);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra4:%.7f,",       ra4);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec4:%.7f,",      dec4);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " totalflux:%.7e",  ap[nflux/2].sum);     strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crval1=%.7f,",    crval1);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crval2=%.7f,",    crval2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crpix1=%-g,",     crpix1);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crpix2=%-g,",     crpix2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " cdelt1=%.7f,",    fabs(cdelt1));        strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " cdelt2=%.7f,",    fabs(cdelt2));        strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crota2=%.4f,",    crota2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " lonc=%.7f,",      lonc);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " latc=%.7f,",      latc);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ximgsize=%.6f,",  fabs(naxis1*cdelt1)); strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " yimgsize=%.6f,",  fabs(naxis1*cdelt2)); strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " rotequ=%.4f,",    rot);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " rac=%.7f,",       rac);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " decc=%.7f,",      decc);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra1=%.7f,",       ra1);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec1=%.7f,",      dec1);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra2=%.7f,",       ra2);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec2=%.7f,",      dec2);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra3=%.7f,",       ra3);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec3=%.7f,",      dec3);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra4=%.7f,",       ra4);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec4=%.7f,",      dec4);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " totalflux=%.7e",  ap[nflux/2].sum);     strcat(montage_msgstr, tmpstr);
    }
 
    strcat(montage_json, "}");

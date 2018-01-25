@@ -1,0 +1,3 @@
+
+export LD_LIBRARY_PATH=/build/Montage/lib:/build/Montage/lib/freetype/lib:$LD_LIBRARY_PATH
+export PATH=.:/opt/python/cp36-cp36m/bin:$PATH

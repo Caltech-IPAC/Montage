@@ -1,7 +1,9 @@
-OBJS =  wcsinit.o wcs.o wcscon.o fitsfile.o imhfile.o \
-	hget.o hput.o iget.o imio.o worldpos.o platepos.o \
-	tnxpos.o zpxpos.o dsspos.o poly.o \
-        wcslib.o lin.o cel.o proj.o sph.o wcstrig.o dateutil.o distort.o
+CC = gcc -fPIC
+
+OBJS =	wcsinit.o wcs.o wcscon.o fitsfile.o imhfile.o \
+			hget.o hput.o iget.o imio.o worldpos.o platepos.o \
+			tnxpos.o zpxpos.o dsspos.o poly.o fileutil.o \
+			wcslib.o lin.o cel.o proj.o sph.o wcstrig.o dateutil.o distort.o
 
 libwcs.a:	$(OBJS)
 	ar rv $@ $?

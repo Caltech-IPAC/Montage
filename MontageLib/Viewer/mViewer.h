@@ -1,8 +1,9 @@
 #ifndef MVIEWER_H
 #define MVIEWER_H
 
-#define CMDMODE  0
+#define JSONFILE 0
 #define JSONMODE 1
+#define CMDMODE  2
 
 int    mViewer_parseSymbol        (char *symbolstr, int *symNPnt, int *symNMax, int *symType, double *symRotAngle);
 int    mViewer_colorLookup        (char *colorin, double *ovlyred, double *ovlygreen, double *ovlyblue);

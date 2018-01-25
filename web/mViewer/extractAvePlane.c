@@ -82,6 +82,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
 
     
     int    debugfile = 1;
+    int    debugfile1 = 0;
 
 
 /*
@@ -477,7 +478,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
         for (j=0; j<hdr.nl; j++) {
 
 	    if (j == 0) {
-	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	        if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
 	        
 	            fprintf (fp_debug, "l= [%d] fpixel[2]= [%ld]\n", 
 		        l, fpixel[2]);
@@ -491,7 +492,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
 	    }
             
 	    if (j == 10) {
-	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	        if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
                     for (i=0; i<hdr.ns; i++) {
 	                fprintf (fp_debug, "j= [%d] i= [%d] fitsbuf= [%lf]\n",
 	                    j, i, fitsbuf[i]);
@@ -506,7 +507,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
     Copy data to imbuff for plane averaging
 */
             jj = hdr.ns*j;
-	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
 	        fprintf (fp_debug, "jj= [%d]\n", jj);
                 fflush (fp_debug);
 	    }
@@ -516,7 +517,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
             }         
  
             if (j == 10) {
-	        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	        if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
 	        
                     for (i=0; i<hdr.ns; i++) {
 	                fprintf (fp_debug, "j= [%d] i= [%d] imbuff= [%lf]\n",
@@ -545,7 +546,7 @@ int extractAvePlane (char *cubepath, char *impath, int iplane, int nplaneave,
         }
             
 	if (j == 10) {
-	    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+	    if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
 	        
                 for (i=0; i<hdr.ns; i++) {
 	            fprintf (fp_debug, "j= [%d] i= [%d] fitsbuf= [%lf]\n", 

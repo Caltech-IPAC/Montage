@@ -96,7 +96,7 @@ int main(int argc, char **argv)
    }
    else
    {
-      fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+      fprintf(montage_status, "[struct stat=\"OK\", module=\"mBestImage\", %s]\n", returnStruct->msg);
       exit(0);
    }
 }

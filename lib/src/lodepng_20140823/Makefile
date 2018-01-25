@@ -1,5 +1,5 @@
 CC      =   gcc
-CFLAGS  =   -c -ansi -Wall -g -I. -I../../include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS  =   -c -ansi -Wall -fPIC -g -I. -I../../include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
 liblodepng.a:	lodepng.o 
 				ar rv liblodepng.a lodepng.o 

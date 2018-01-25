@@ -236,7 +236,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    returnStruct = (struct mCoverageCheckReturn *)malloc(sizeof(struct mCoverageCheckReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

@@ -7,16 +7,19 @@
 
    "arguments":
    [
-      {"type":"int",     "default":"1",    "name":"mode",          "desc":"Type of the command string: 0 for argument list and 1 for JSON."},
       {"type":"string",                    "name":"cmdstr",        "desc":"The command string (arguments or JSON)."},
       {"type":"string",                    "name":"outFile",       "desc":"Output PNG/JPEG."},
+      {"type":"int",     "default":0,      "name":"mode",          "desc":"Type of the command string: Type of the command string: 0 for JSON file, 1 for JSON, 2 for 'command' string."},
       {"type":"string",  "default":"png",  "name":"outFmt",        "desc":"'png' or 'jpeg'."},
+      {"type":"string",  "default":"",     "name":"fontFile",      "desc":"Font file for labeling (overrides default)"},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging flag."} 
 
    ],
    
    "return":
    [
+      {"type":"int",                       "name":"status",            "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",               "desc":"Return message (for errors)."},
       {"type":"string",                    "name":"type",              "desc":"'grayscale' or 'color'."},
       {"type":"int",                       "name":"nx",                "desc":"Output image width."},
       {"type":"int",                       "name":"ny",                "desc":"Output image height."},

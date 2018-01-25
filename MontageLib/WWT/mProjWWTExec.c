@@ -25,8 +25,7 @@ void createSubTiles(char *tileStr, int level);
 
 int main(int argc, char **argv)
 {
-   int    level, index, x, y, fileStat;
-   double crpix1, crpix2;
+   int    level, fileStat;
 
    char   tileStr [256];
    char   cmd    [1024];
@@ -167,7 +166,7 @@ int main(int argc, char **argv)
 
    // All done
 
-   printf("[struct stat=\"OK\", level=%d, nimage=%d]\n", level, nimage);
+   printf("[struct stat=\"OK\", module=\"mProjWWTExec\", level=%d, nimage=%d]\n", level, nimage);
    fflush(stdout);
    exit(0);
 }
