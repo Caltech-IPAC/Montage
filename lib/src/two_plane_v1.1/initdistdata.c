@@ -33,9 +33,9 @@ void closefitsfile()
   if (I_fits_return_status != 0)
   {
      fprintf(stderr, "Error closing file\n");
-     return;
+     return -1;
   }
-  return;    
+  return 0;
 }
 
 int initdata_byheader(char *fitsheader, DistCoeff *coeff) 
