@@ -25,7 +25,6 @@ static int ConverttoDD(char *fmt, char *clon, char *clat, double *lon,
 static int ConvertfromDD(char *fmt, char *clongprec, char *clatprec, 
 			 char *clon, char *clat, double *lon, double *lat);
 static char *downcase(char *s);
-char *strdup(const char *s1);
 int ParseUnits(char *cunit, int *chflag, CoordUnit *unit);
 int ParsePrec(CoordUnit units, char *cprec, int longflag);
 
