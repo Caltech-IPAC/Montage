@@ -77,7 +77,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   for(i=0; i<argc; ++i)
+   for(i=1; i<argc; ++i)
    {
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 
       else if(argv[i][0] == '-')
       {
-         printf("[struct stat=\"ERROR\", msg=\"Invalid flag %s.\"]\n", argv[i]);
+         printf("[struct stat=\"ERROR\", msg=\"Invalid flag '%s'.\"]\n", argv[i]);
          exit(1);
       }
 
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 
    if(argv[1][0] == '-')
    {  
-      printf("[struct stat=\"ERROR\", msg=\"Invalid flag \"%s\".\"]\n", argv[1]);
+      printf("[struct stat=\"ERROR\", msg=\"Invalid flag '%s'.\"]\n", argv[1]);
       exit(1);
    } 
 

@@ -88,6 +88,10 @@ static double ycorrection;
 
 static int mSubimage_debug;
 static int isflat;
+static int bitpix;
+
+int haveBlank;
+static long blank;
 
 static char content[128];
 
@@ -223,6 +227,28 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, char *outfile, double 
          sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
          return returnStruct;
       }
+   }
+
+   fits_get_img_type(infptr, &bitpix, &status);
+   
+   haveBlank = 1;
+   if(fits_read_key_lng(infptr, "BLANK", &blank, (char *)NULL, &status))
+   {
+      haveBlank = 0;
+      status    = 0;
+   }
+
+   if(mSubimage_debug)
+   {
+      printf("DEBUG> bitpix = %d\n", bitpix);
+      printf("DEBUG> blank  = %ld (%d)\n", blank, haveBlank);
+      fflush(stdout);
+   }
+
+   if(bitpix != -64 && shrinkWrap)
+   {
+      strcpy(returnStruct->msg, "Shrinkwrap mode only works for double precision floating point data.");
+      return returnStruct;
    }
 
    if(shrinkWrap)
@@ -719,13 +745,6 @@ int mSubimage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubima
    /* Update header info */
    /**********************/
 
-   if(fits_update_key_lng(outfptr, "BITPIX", -64,
-                                  (char *)NULL, &status))
-   {
-      mSubimage_printFitsError(status);
-      return 1;
-   }
-
    if(fits_update_key_lng(outfptr, "NAXIS", 2,
                                   (char *)NULL, &status))
    {
@@ -814,10 +833,16 @@ int mSubimage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubima
 
 int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimageParams *params)
 {
-   long    fpixel[4], fpixelo[4];
-   int     i, j, nullcnt;
-   int     status = 0;
-   double *buffer, refval;
+   long       fpixel[4], fpixelo[4];
+   int        i, j, nullcnt;
+   int        status = 0;
+
+   double             *buffer_double,   refval_double;
+   float              *buffer_float,    refval_float;
+   unsigned long long *buffer_longlong, refval_longlong;
+   unsigned long      *buffer_long,     refval_long;
+   unsigned short     *buffer_short,    refval_short;
+   unsigned char      *buffer_byte,     refval_byte;
 
 
    /*************************************************/
@@ -826,17 +851,20 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
 
    union
    {
-      double d;
+      double d8;
+      float  d4[2];
       char   c[8];
    }
    value;
 
-   double nan;
+   double dnan;
+   float  fnan;
 
    for(i=0; i<8; ++i)
       value.c[i] = 255;
 
-   nan = value.d;
+   dnan = value.d8;
+   fnan = value.d4[0];
 
 
    fpixel[0] = params->ibegin;
@@ -844,7 +872,12 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
    fpixel[2] = 1;
    fpixel[3] = 1;
 
-   buffer  = (double *)malloc(params->nelements * sizeof(double));
+        if(bitpix == -64) buffer_double   = (double             *)malloc(params->nelements * sizeof(double));
+   else if(bitpix == -32) buffer_float    = (float              *)malloc(params->nelements * sizeof(float));
+   else if(bitpix ==  64) buffer_longlong = (unsigned long long *)malloc(params->nelements * sizeof(long long));
+   else if(bitpix ==  32) buffer_long     = (unsigned long      *)malloc(params->nelements * sizeof(long));
+   else if(bitpix ==  16) buffer_short    = (unsigned short     *)malloc(params->nelements * sizeof(short));
+   else if(bitpix ==   8) buffer_byte     = (unsigned char      *)malloc(params->nelements * sizeof(char));
 
    fpixelo[0] = 1;
    fpixelo[1] = 1;
@@ -853,7 +886,12 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
 
    isflat = 1;
 
-   refval = nan;
+   refval_double   = dnan;
+   refval_float    = fnan;
+   refval_longlong = blank;
+   refval_long     = blank;
+   refval_short    = blank;
+   refval_byte     = blank;
 
    for (j=params->jbegin; j<=params->jend; ++j)
    {
@@ -863,27 +901,109 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
          fflush(stdout);
       }
 
-      if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
-                       buffer, &nullcnt, &status))
+      if(bitpix > 0)
+         fits_set_bscale(infptr, 1., 0., &status);
+
+      if(bitpix      == -64) 
+         fits_read_pix(infptr, TDOUBLE,   fpixel, params->nelements, &dnan, buffer_double,   &nullcnt, &status);
+      else if(bitpix == -32) 
+         fits_read_pix(infptr, TFLOAT,    fpixel, params->nelements, &dnan, buffer_float,    &nullcnt, &status);
+      else if(bitpix ==  64) 
+         fits_read_pix(infptr, TLONGLONG, fpixel, params->nelements,  NULL, buffer_longlong, &nullcnt, &status);
+      else if(bitpix ==  32) 
+         fits_read_pix(infptr, TLONG,     fpixel, params->nelements,  NULL, buffer_long,     &nullcnt, &status);
+      else if(bitpix ==  16) 
+         fits_read_pix(infptr, TSHORT,    fpixel, params->nelements,  NULL, buffer_short,    &nullcnt, &status);
+      else if(bitpix ==   8) 
+         fits_read_pix(infptr, TBYTE,     fpixel, params->nelements,  NULL, buffer_byte,     &nullcnt, &status);
+
+      if(status)
       {
          mSubimage_printFitsError(status);
          return 1;
       }
 
-      for(i=0; i<params->nelements; ++i)
-      {
-         if(!mNaN(buffer[i]))
-         {
-            if(mNaN(refval))
-               refval = buffer[i];
+      if(bitpix == -64) 
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(!mNaN(buffer_double[i]))
+            {    
+               if(mNaN(refval_double))
+                  refval_double = buffer_double[i];
 
-            if(buffer[i] != refval)
-               isflat = 0;
-         }
-      }
+               if(buffer_double[i] != refval_double)
+                  isflat = 0; 
+            }    
+         }    
+      }    
 
-      if (fits_write_pix(outfptr, TDOUBLE, fpixelo, params->nelements,
-                         (void *)buffer, &status))
+      else if(bitpix == -32) 
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(!mNaN(buffer_float[i]))
+            {    
+               if(mNaN(refval_float))
+                  refval_float = buffer_float[i];
+
+               if(buffer_float[i] != refval_float)
+                  isflat = 0; 
+            }    
+         }    
+      }    
+
+      else if(bitpix == 64)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_longlong[i] != refval_longlong)
+               isflat = 0; 
+         }    
+      }    
+
+      else if(bitpix == 32)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_long[i] != refval_long)
+               isflat = 0; 
+         }    
+      }    
+
+      else if(bitpix == 16)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_short[i] != refval_short)
+               isflat = 0; 
+         }    
+      }    
+
+      else if(bitpix == 8)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_byte[i] != refval_byte)
+               isflat = 0; 
+         }    
+      }    
+
+
+      if(bitpix      == -64) 
+         fits_write_pix(outfptr, TDOUBLE,   fpixelo, params->nelements, (void *)buffer_double,   &status);
+      else if(bitpix == -32) 
+         fits_write_pix(outfptr, TFLOAT,    fpixelo, params->nelements, (void *)buffer_float,    &status);
+      else if(bitpix ==  64) 
+         fits_write_pix(outfptr, TLONGLONG, fpixelo, params->nelements, (void *)buffer_longlong, &status);
+      else if(bitpix ==  32) 
+         fits_write_pix(outfptr, TLONG,     fpixelo, params->nelements, (void *)buffer_long,     &status);
+      else if(bitpix ==  16) 
+         fits_write_pix(outfptr, TSHORT,    fpixelo, params->nelements, (void *)buffer_short,    &status);
+      else if(bitpix ==   8) 
+         fits_write_pix(outfptr, TBYTE,     fpixelo, params->nelements, (void *)buffer_byte,     &status);
+
+      if(status)
       {
          mSubimage_printFitsError(status);
          return 1;
@@ -894,11 +1014,16 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
    }
 
 
-   free(buffer);
+        if(bitpix == -64) free(buffer_double);
+   else if(bitpix == -32) free(buffer_float);
+   else if(bitpix ==  64) free(buffer_longlong);
+   else if(bitpix ==  32) free(buffer_long);
+   else if(bitpix ==  16) free(buffer_short);
+   else if(bitpix ==   8) free(buffer_byte);
 
    if(isflat)
    {
-      if(mNaN(refval))
+      if(mNaN(refval_double))
          strcpy(content, "blank");
       else
          strcpy(content, "flat");

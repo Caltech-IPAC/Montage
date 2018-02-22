@@ -467,7 +467,7 @@ struct mProjectPPReturn
 
 struct mProjectPPReturn *mProjectPP(char *input_file, char *output_file, char *template_file, int hdu,
                                     char *weight_file, double fixedWeight, double threshold, char *borderstr,
-                                    char *altin, char *altout, double drizzle, double fluxScale,
+                                    char *altin, char *altout, double drizzle, double fluxScale, int energyMode,
                                     int expand, int fullRegion, int debug);
 
 //-------------------

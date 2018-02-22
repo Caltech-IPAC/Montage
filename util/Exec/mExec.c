@@ -1169,7 +1169,8 @@ int main(int argc, char **argv, char **envp)
 
          lasttime = currtime;
 
-         scale = scale * 1.42;
+         // scale = scale * 1.42;
+         scale = scale * 2.00;
        
          if(noSubset)
             sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote.tbl", 

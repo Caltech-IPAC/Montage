@@ -19,6 +19,7 @@
       {"type":"string",  "default":"",     "name":"altout",        "desc":"Alternate psuedo-TAN header for output."},
       {"type":"double",  "default":1.0,    "name":"drizzle",       "desc":"Optional pixel area 'drizzle' factor."},
       {"type":"double",  "default":1.0,    "name":"fluxScale",     "desc":"Scale factor applied to all pixels."},
+      {"type":"boolean", "default":false,  "name":"energyMode",    "desc":"Pixel values are total energy rather than energy density."},
       {"type":"boolean", "default":false,  "name":"expand",        "desc":"Expand output image area to include all of the input pixels."},
       {"type":"boolean", "default":false,  "name":"fullRegion",    "desc":"Do not 'shrink-wrap' output area to non-blank pixels."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 

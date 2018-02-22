@@ -1,5 +1,6 @@
 /* Module: mProject.c
 
+
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
 3.1      John Good        01Aug15  Add overall weight (e.g. integration time) handling
@@ -291,7 +292,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double    *weights;
    double    datamin, datamax;
    double    areamin, areamax;
-   double    areaRatio;
+   double    pixelArea;
 
    double    xcw[]  = {0.5, 1.5, 1.5, 0.5};
    double    ycw[]  = {0.5, 0.5, 1.5, 1.5};
@@ -1593,13 +1594,11 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                   if(weight_value > 0)
                   {
                      if(!haveIn && !haveOut)
-                        overlapArea = mProject_computeOverlap(ilon, ilat, olon, olat, energyMode, refArea, &areaRatio);
+                        overlapArea = mProject_computeOverlap(ilon, ilat, olon, olat, energyMode, refArea, &pixelArea);
 
                      if((haveIn  && j == yrefin  && i == xrefin )
                      || (haveOut && m == yrefout && l == xrefout))
                      {  
-                        overlapArea = mProject_computeOverlap(ilon, ilat, olon, olat, energyMode, refArea, &areaRatio);
-
                         printf("\n   => overlap area: %12.5e\n\n", overlapArea);
                         fflush(stdout);
                      }
@@ -1608,10 +1607,20 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
                   /* Update the output data and area arrays */
 
-                  if (mNaN(data[m-jstart][l-istart]))
-                     data[m-jstart][l-istart] = pixel_value * overlapArea * areaRatio * weight_value;
-                  else
-                     data[m-jstart][l-istart] += pixel_value * overlapArea * areaRatio * weight_value;
+                  if(energyMode)
+                  {
+                     if (mNaN(data[m-jstart][l-istart]))
+                        data[m-jstart][l-istart] = pixel_value * overlapArea/pixelArea * weight_value;
+                     else
+                        data[m-jstart][l-istart] += pixel_value * overlapArea/pixelArea * weight_value;
+                  }
+                 else
+                  {
+                     if (mNaN(data[m-jstart][l-istart]))
+                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+                     else
+                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                  }
 
                   area[m-jstart][l-istart] += overlapArea * weight_value;
 
@@ -1679,8 +1688,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          if(area[j][i] > 0.)
          {
-            data[j][i] 
-               = data[j][i] / area[j][i];
+            if(!energyMode)
+               data[j][i] = data[j][i] / area[j][i];
 
             if(!haveMinMax)
             {
@@ -2879,31 +2888,13 @@ int mProject_BorderRange(int jrow, int maxpix,
 
 double mProject_computeOverlap(double *ilon, double *ilat,
                                double *olon, double *olat, 
-                               int energyMode, double refArea, double *areaRatio)
+                               int energyMode, double refArea, double *pixelArea)
 {
    int    i;
-   double thisPixelArea;
 
    pi  = atan(1.0) * 4.;
    dtr = pi / 180.;
 
-
-   *areaRatio = 1.;
-
-   if(energyMode)
-   {
-      nv = 0;
-
-      for(i=0; i<4; ++i)
-      mProject_SaveVertex(&P[i]);
-
-      thisPixelArea = mProject_Girard();
-
-      *areaRatio = thisPixelArea / refArea;
-   }
-
-
-   nv = 0;
 
    if(mProject_debug >= 4)
    {
@@ -2935,6 +2926,26 @@ double mProject_computeOverlap(double *ilon, double *ilat,
       Q[i].y = sin(olon[i]*dtr) * cos(olat[i]*dtr);
       Q[i].z = sin(olat[i]*dtr);
    }
+
+
+   *pixelArea = 1.;
+
+   if(energyMode)
+   {
+      for(i=0; i<4; ++i)
+      {
+         V[i].x = P[i].x;
+         V[i].y = P[i].y;
+         V[i].z = P[i].z;
+      }
+
+      nv = 4;
+
+      *pixelArea = mProject_Girard();
+   }
+
+
+   nv = 0;
 
    mProject_ComputeIntersection(P, Q);
 
@@ -3519,6 +3530,7 @@ void mProject_SaveVertex(Vec *v)
       printf("accepted (%d)\n", nv);
       fflush(stdout);
    }
+   mProject_debug = 0;
 }
 
 

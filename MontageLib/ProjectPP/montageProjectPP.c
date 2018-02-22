@@ -118,7 +118,8 @@ input, weight, output, output_area;
 
 static double crpix1, crpix2;
 
-static double pixelArea;
+static double  inPixelArea;
+static double outPixelArea;
 
 
 /* Structure contains the geometric  */
@@ -199,6 +200,8 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*   double drizzle        Optional pixel area "drizzle" factor          */
 /*   double fluxScale      Scale factor applied to all pixels            */
+/*   int    energyMode     Pixel values are total energy rather than     */
+/*                         energy density                                */
 /*   int    expand         Expand output image area to include all of    */
 /*                         the input pixels                              */
 /*   int    fullRegion     Do not "shrink-wrap" output area to non-blank */
@@ -209,7 +212,7 @@ static char montage_msgstr[1024];
 
 struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *template_file, int hduin,
                                     char *weight_file, double fixedWeight, double threshold, char *borderstr, 
-                                    char *altin, char *altout, double drizzle, double fluxScale, 
+                                    char *altin, char *altout, double drizzle, double fluxScale, int energyMode,
                                     int expand, int fullRegion, int debugin)
 {
    int       i, j, l, m;
@@ -1273,15 +1276,26 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
                      overlapArea = mProjectPP_computeOverlapPP(ixpix, iypix, 
                                                                minX,  maxX,
                                                                minY,  maxY,
-                                                               pixelArea);
+                                                               outPixelArea);
                   }
 
 
                   /* Update the output data and area arrays */
-                  if (mNaN(data[m-jstart][l-istart]))
-                     data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+
+                  if(energyMode)
+                  {
+                     if (mNaN(data[m-jstart][l-istart]))
+                        data[m-jstart][l-istart] = pixel_value * overlapArea/inPixelArea * weight_value;
+                     else
+                        data[m-jstart][l-istart] += pixel_value * overlapArea/inPixelArea * weight_value;
+                  }
                   else
-                     data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                  {
+                     if (mNaN(data[m-jstart][l-istart]))
+                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+                     else
+                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                  }
 
                   area[m-jstart][l-istart] += overlapArea * weight_value;
 
@@ -1338,8 +1352,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       {
          if(area[j][i] > 0.)
          {
-            data[j][i] 
-               = data[j][i] / area[j][i];
+            if(!energyMode)
+               data[j][i] = data[j][i] / area[j][i];
 
             if(!haveMinMax)
             {
@@ -1914,7 +1928,8 @@ int mProjectPP_readTemplate(char *filename, int headerType)
 
       output_area.wcs = output.wcs;
 
-      pixelArea = fabs(output.wcs->xinc * output.wcs->yinc) * dtr * dtr;
+       inPixelArea = fabs( input.wcs->xinc *  input.wcs->yinc) * dtr * dtr;
+      outPixelArea = fabs(output.wcs->xinc * output.wcs->yinc) * dtr * dtr;
 
 
       /*************************************/
