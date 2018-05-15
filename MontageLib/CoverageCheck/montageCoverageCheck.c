@@ -503,11 +503,13 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    else if(imode == HEADER)
    {
-      montage_checkHdr(hdrfile, 1, 0);
+      montage_parseHdr(hdrfile, 1, 0);
 
       header = montage_getHdr();
 
       wcsbox = wcsinit(header);
+
+      free(header);
 
       if(wcsbox->syswcs == WCS_J2000)
       {

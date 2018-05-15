@@ -57,6 +57,9 @@ lib:
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			ArchiveList/montageArchiveList.o \
+			ArchiveGet/montageArchiveGet.o \
+			ArchiveExec/montageArchiveExec.o \
 			Background/montageBackground.o \
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
@@ -97,6 +100,9 @@ lib:
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			ArchiveList/montageArchiveList.o \
+			ArchiveGet/montageArchiveGet.o \
+			ArchiveExec/montageArchiveExec.o \
 			Background/montageBackground.o \
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
@@ -139,6 +145,9 @@ pythonlibs:
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			ArchiveList/montageArchiveList.o \
+			ArchiveGet/montageArchiveGet.o \
+			ArchiveExec/montageArchiveExec.o \
 			Background/montageBackground.o \
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
@@ -389,6 +398,9 @@ doc:
 			gcc -o mLibDoc mLibDoc.c
 			mLibDoc Add
 			mLibDoc AddCube
+			mLibDoc ArchiveList
+			mLibDoc ArchiveGet
+			mLibDoc ArchiveExec
 			mLibDoc Background
 			mLibDoc BestImage
 			mLibDoc BgModel
@@ -427,6 +439,9 @@ clean:
 		-(cd util;          make clean)
 		-(cd Add;           make clean)
 		-(cd AddCube;       make clean)
+		-(cd ArchiveList;   make clean)
+		-(cd ArchiveGet;    make clean)
+		-(cd ArchiveExec;   make clean)
 		-(cd Background;    make clean)
 		-(cd BestImage;     make clean)
 		-(cd BgModel;       make clean)

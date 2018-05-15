@@ -109,14 +109,6 @@ static char montage_msgstr[1024];
 /*  the XY size in degrees of the area (X and Y) in the direction of     */
 /*  the image axes, not Equatorial coordinates.                          */
 /*                                                                       */
-/*   int    mode           Processing mode. The two main modes are       */
-/*                         0 (SKY) and 1 (PIX), corresponding to cutouts */
-/*                         are in sky coordinate or pixel space. The two */
-/*                         other modes are 3 (HDU) and 4 (SHRINK), where */
-/*                         the region parameters are ignored and you get */
-/*                         back either a single HDU or an image that has */
-/*                         had all the blank border pixels removed.      */
-/*                                                                       */
 /*   char  *infile         Input FITS file                               */
 /*   char  *outfile        Subimage output FITS file                     */
 /*                                                                       */
@@ -130,6 +122,14 @@ static char montage_msgstr[1024];
 /*   double ysize          Y size in degrees (SKY mode) or pixels        */
 /*                         (PIX mode)                                    */
 /*                                                                       */
+/*   int    mode           Processing mode. The two main modes are       */
+/*                         0 (SKY) and 1 (PIX), corresponding to cutouts */
+/*                         are in sky coordinate or pixel space. The two */
+/*                         other modes are 3 (HDU) and 4 (SHRINK), where */
+/*                         the region parameters are ignored and you get */
+/*                         back either a single HDU or an image that has */
+/*                         had all the blank border pixels removed.      */
+/*                                                                       */
 /*   int    hdu            Optional HDU offset for input file            */
 /*   int    nowcs          Indicates that the image has no WCS info      */
 /*                         (only makes sense in PIX mode)                */
@@ -138,8 +138,8 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mSubimageReturn *mSubimage(int mode, char *infile, char *outfile, double ra, double dec, 
-                                  double xsize, double ysize, int hdu, int nowcs, int debugin)
+struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double dec, 
+                                  double xsize, double ysize, int mode, int hdu, int nowcs, int debugin)
 {
    fitsfile *infptr, *outfptr;
 

@@ -1,10 +1,16 @@
-all:		test1 test2 test3 tbl2xml test_mtblio nian nian2 multi_test
+all:		test1 test2 test3 tbl2xml test_mtblio nian nian2 memtest
 
 test_mtblio:		test_mtblio.o ../libmtbl.a
 		gcc -g -o test_mtblio test_mtblio.o -L.. -lmtbl
 
 test_mtblio.o:	test_mtblio.c
 		gcc -g -I.. -c test_mtblio.c
+
+memtest:		memtest.o ../libmtbl.a
+		gcc -g -o memtest memtest.o -L.. -lmtbl
+
+memtest.o:	memtest.c
+		gcc -g -I.. -c memtest.c
 
 nian:		nian.o ../libmtbl.a
 		gcc -g -o nian nian.o -L.. -lmtbl
@@ -35,12 +41,6 @@ test3:		test3.o ../libmtbl.a
 
 test3.o:	test3.c
 		gcc -g -I.. -c test3.c
-
-multi_test:	multi_test.o ../libmtbl.a
-		gcc -g -o multi_test multi_test.o -L.. -lmtbl
-
-multi_test.o:	multi_test.c
-		gcc -g -I.. -c multi_test.c
 
 tbl2xml:	tbl2xml.o ../libmtbl.a
 		gcc -g -o tbl2xml tbl2xml.o -L.. -lmtbl

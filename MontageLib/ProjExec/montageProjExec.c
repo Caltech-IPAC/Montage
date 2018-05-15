@@ -106,7 +106,7 @@ static char montage_msgstr[1024];
 /*                         image, even outside template region           */
 /*                                                                       */
 /*   int    energyMode     Pixel values are total energy rather than     */
-/*                         energy density. Forces use of mProject.       */
+/*                         energy density.                               */
 /*                                                                       */
 /*   char  *borderStr      Optional string that contains either a border */
 /*                         width or comma-separated "x1,y1,x2,y2, ..."   */
@@ -634,10 +634,6 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
       /* Now run mProject, mProjectPP, mProjectQL or mProjectCube */
       /* (depending on what we have to work with)                 */
 
-      if(energyMode)  
-         exact = 1;
-
-
       weight = 1.;
 
       if(iweight >= 0)
@@ -726,7 +722,7 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
       else if(inp2p == COMPUTED  && outp2p == COMPUTED )
       {
          projectPP = mProjectPP(infile, outfile, template, hdu, weightFile, weight, threshold,
-                                borderStr, altin, altout, drizzle, fluxScale, expand, fullRegion, 0);
+                                borderStr, altin, altout, drizzle, fluxScale, energyMode, expand, fullRegion, 0);
 
          status = projectPP->status;
          time   = projectPP->time;
@@ -746,7 +742,7 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
       {
          strcpy(altout, "");
          projectPP = mProjectPP(infile, outfile, template, hdu, weightFile, weight, threshold,
-                                borderStr, altin, altout, drizzle, fluxScale, expand, fullRegion, 0);
+                                borderStr, altin, altout, drizzle, fluxScale, energyMode, expand, fullRegion, 0);
 
          status = projectPP->status;
          time   = projectPP->time;
@@ -766,7 +762,7 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
       {
          strcpy(altin, "");
          projectPP = mProjectPP(infile, outfile, template, hdu, weightFile, weight, threshold, 
-                                borderStr, altin, altout, drizzle, fluxScale, expand, fullRegion, 0);
+                                borderStr, altin, altout, drizzle, fluxScale, energyMode, expand, fullRegion, 0);
 
          status = projectPP->status;
          time   = projectPP->time;
@@ -787,7 +783,7 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
          strcpy(altin, "");
          strcpy(altout, "");
          projectPP = mProjectPP(infile, outfile, template, hdu, weightFile, weight, threshold,
-                                borderStr, altin, altout, drizzle, fluxScale, expand, fullRegion, 0);
+                                borderStr, altin, altout, drizzle, fluxScale, energyMode, expand, fullRegion, 0);
 
          status = projectPP->status;
          time   = projectPP->time;

@@ -65,7 +65,6 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    char   constraint[MAXLEN];
    char   server    [MAXLEN];
    char   source    [MAXLEN];
-   char   type      [MAXLEN];
 
    FILE  *fout;
 
@@ -122,7 +121,7 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    size = sqrt(width*width + height*height);
 
    sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
-      surveystr, bandstr, locstr, size, type);
+      surveystr, bandstr, locstr, size);
 
    free(surveystr);
    free(bandstr);
@@ -439,4 +438,6 @@ int mArchiveList_parseUrl(char *urlStr, char *hostStr, int *port)
          return 1;
       }
    }
+
+   return 0;
 }

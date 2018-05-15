@@ -20,6 +20,10 @@
    [
       {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
       {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
-      {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
+      {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."},
+      {"type":"double",                    "name":"min_pixel",     "desc":"Smallest pixel value in either input."},
+      {"type":"double",                    "name":"max_pixel",     "desc":"Largest pixel value in either input."},
+      {"type":"double",                    "name":"min_diff",      "desc":"Smallest difference pixel (absolute)."},
+      {"type":"double",                    "name":"max_diff",      "desc":"Largest difference pixel (absolute)."}
    ]
 }

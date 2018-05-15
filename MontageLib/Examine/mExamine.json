@@ -7,8 +7,8 @@
 
    "arguments":
    [
-      {"type":"int",                       "name":"areaMode",      "desc":"Examine the image in general (0:NONE) a specific region with radius (1:AREA) or  perform aperture photometry out to a fixed radius (2:APPHOT)."},
       {"type":"string",                    "name":"infile",        "desc":"FITS file to examine."},
+      {"type":"int",     "default":0,      "name":"areaMode",      "desc":"Examine the image in general (0:NONE) a specific region with radius (1:AREA) or  perform aperture photometry out to a fixed radius (2:APPHOT)."},
       {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"int",     "default":1,      "name":"plane3",        "desc":"If datacube, the plane index for dimension 3."},
       {"type":"int",     "default":1,      "name":"plane4",        "desc":"If datacube, the plane index for dimension 4."},

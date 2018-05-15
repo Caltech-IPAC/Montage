@@ -70,24 +70,12 @@ char msg [MAXLEN];
 static struct TBL_INFO *imgs;
 static struct TBL_INFO *corrs;
 
-static int  iidcorr;
 static int  ifile;
-
-static int  idcorr;
-static char corrfile[MAXLEN];
-
-static int  icntr;
-static int  ia;
-static int  ib;
-static int  ic;
 
 static int  cntr;
 static char astr[MAXLEN];
 static char bstr[MAXLEN];
 static char cstr[MAXLEN];
-
-int nextImg();
-int nextCorr();
 
 
 /*************************************************************************/
@@ -230,11 +218,25 @@ int main(int argc, char **argv, char **envp)
    int    ifname2;
    int    idiffname;
 
+   int    iid;
+   int    icntr;
+   int    id;
+   int    ia;
+   int    ib;
+   int    ic;
+
+   int    cntr, maxcntr;
+   double *a;
+   double *b;
+   double *c;
+   int    *have;
+
    int    nmatches;
 
    int    cntr1;
    int    cntr2;
 
+   char   file       [MAXLEN];
    char   fname1     [MAXLEN];
    char   fname2     [MAXLEN];
    char   diffname   [MAXLEN];
@@ -258,9 +260,9 @@ int main(int argc, char **argv, char **envp)
    char   contactText[MAXLEN];
    char   color      [MAXLEN];
 
-   double a;
-   double b;
-   double c;
+   double aval;
+   double bval;
+   double cval;
    double crpix1;
    double crpix2;
    int    xmin;
@@ -300,8 +302,6 @@ int main(int argc, char **argv, char **envp)
    char   locstr      [MAXLEN];
    char   radstr      [MAXLEN];
 
-   char   imgsort     [MAXLEN];
-   char   corrsort    [MAXLEN];
    char   template    [MAXLEN];
    char   tmpfile     [MAXLEN];
    char   workspace[3][MAXLEN];
@@ -2184,9 +2184,9 @@ int main(int argc, char **argv, char **envp)
                ++failed;
             else
             {
-               a         = atof(svc_value("a"));
-               b         = atof(svc_value("b"));
-               c         = atof(svc_value("c"));
+               aval      = atof(svc_value("a"));
+               bval      = atof(svc_value("b"));
+               cval      = atof(svc_value("c"));
                crpix1    = atof(svc_value("crpix1"));
                crpix2    = atof(svc_value("crpix2"));
                xmin      = atoi(svc_value("xmin"));
@@ -2204,7 +2204,7 @@ int main(int argc, char **argv, char **envp)
                boxangle  = atof(svc_value("boxang"));
 
                fprintf(fout, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13.0f %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f \n",
-                  cntr1, cntr2, a, b, c, crpix1, crpix2, xmin, xmax, ymin, ymax, 
+                  cntr1, cntr2, aval, bval, cval, crpix1, crpix2, xmin, xmax, ymin, ymax, 
                   xcenter, ycenter, npixel, rms, boxx, boxy, boxwidth, boxheight, boxangle);
                fflush(fout);
             }
@@ -2320,153 +2320,86 @@ int main(int argc, char **argv, char **envp)
             fflush(finfo);
          }
 
-         /**************************************************************/
-         /* Make sorted copies of the image list and corrections table */
-         /**************************************************************/
 
-         sprintf(template, "corrected/IMGTBLXXXXXX");
+         /**************************************/
+         /* Allocate space for the corrections */
+         /**************************************/
+      
+         maxcntr = nimages;
 
-         ftmp = mkstemp(template);
-
-         strcpy(imgsort, template);
-
-         sprintf(cmd, "mTblSort pimages.tbl cntr %s", imgsort);
-
-         if(debug >= 4)
-         {
-            fprintf(fdebug, "[%s]\n", cmd);
-            fflush(fdebug);
+         a = (double *)malloc(maxcntr * sizeof(double));
+         b = (double *)malloc(maxcntr * sizeof(double));
+         c = (double *)malloc(maxcntr * sizeof(double));
+      
+         have = (int *)malloc(maxcntr * sizeof(int));
+      
+         for(i=0; i<maxcntr; ++i)
+         {  
+            a[i]    = 0.;
+            b[i]    = 0.;
+            c[i]    = 0.;
+            have[i] = 0;
          }
-       
-         svc_run(cmd);
-
-         close(ftmp);
-
-         strcpy(status, svc_value("stat"));
-       
-         if(strcmp( status, "ABORT") == 0
-         || strcmp( status, "ERROR") == 0)
+      
+      
+         /******************************************/
+         /* Open the corrections table file        */
+         /******************************************/
+      
+         ncols = topen("corrections.tbl");
+      
+         iid = tcol( "id");
+         ia  = tcol( "a");
+         ib  = tcol( "b");
+         ic  = tcol( "c");
+      
+         if(debug)
          {
-            strcpy( msg, svc_value( "msg" ));
-         
-            printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+            printf("\nCorrections table\n");
+            printf("iid = %d\n", iid);
+            printf("ia  = %d\n", ia);
+            printf("ib  = %d\n", ib);
+            printf("ic  = %d\n", ic);
+            printf("\n");
             fflush(stdout);
-         
+         }
+      
+         if(iid < 0
+         || ia  < 0
+         || ib  < 0
+         || ic  < 0)
+         {
+            printerr("Need columns: id,a,b,c in corrections file");
             exit(1);
          }
-
-
-         sprintf(template, "corrected/CORTBLXXXXXX");
-
-         ftmp = mkstemp(template);
-
-         strcpy(corrsort, template);
-
-         sprintf(cmd, "mTblSort corrections.tbl id %s", corrsort);
-
-         if(debug >= 4)
+      
+      
+         /********************************/
+         /* And read in the corrections. */
+         /********************************/
+      
+         while(1)
          {
-            fprintf(fdebug, "[%s]\n", cmd);
-            fflush(fdebug);
+            if(tread() < 0)
+               break;
+      
+            id = atoi(tval(iid));
+      
+            a[id] = atof(tval(ia));
+            b[id] = atof(tval(ib));
+            c[id] = atof(tval(ic));
+      
+            have[id] = 1;
          }
-       
-         svc_run(cmd);
-       
-         close(ftmp);
-
-         strcpy(status, svc_value("stat"));
-       
-         if(strcmp( status, "ABORT") == 0
-         || strcmp( status, "ERROR") == 0)
-         {
-            strcpy( msg, svc_value( "msg" ));
-         
-            printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-            fflush(stdout);
-         
-            exit(1);
-         }
-
-
-         /********************************/ 
-         /* Open the image metadata file */
-         /********************************/ 
-
-         ncols = topen(imgsort);
-
-         if(ncols <= 0)
-         {
-              printf ("[struct stat=\"ERROR\", msg=\"Invalid image metadata file: %s\"]\n",
-               imgsort);
-              exit(1);
-         }
-
-         imgs = tsave();
-
-         icntr = tcol( "cntr");
-         ifile = tcol( "fname");
-
-         if(debug >= 4)
-         {
-            fprintf(fdebug, "\nImage metdata table\n");
-            fprintf(fdebug, "icntr  = %d\n", icntr);
-            fprintf(fdebug, "ifile  = %d\n", ifile);
-            fflush(fdebug);
-         }
-
-         if(icntr < 0
-         || ifile < 0)
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"Need columns: cntr and fname in image list\"]\n");
-            exit(1);
-         }
-
-
-         /***********************************/ 
-         /* Open the corrections table file */
-         /***********************************/ 
-
-         ncols = topen(corrsort);
-
-         if(ncols <= 0)
-         {
-              printf ("[struct stat=\"ERROR\", msg=\"Invalid corrections  file: %s\"]\n",
-               corrsort);
-              exit(1);
-         }
-
-         corrs = tsave();
-
-         iidcorr = tcol( "id");
-         ia      = tcol( "a");
-         ib      = tcol( "b");
-         ic      = tcol( "c");
-
-         if(debug >= 4)
-         {
-            fprintf(fdebug, "\nCorrections table\n");
-            fprintf(fdebug, "iidcorr = %d\n", iidcorr);
-            fprintf(fdebug, "ia      = %d\n", ia);
-            fprintf(fdebug, "ib      = %d\n", ib);
-            fprintf(fdebug, "ic      = %d\n", ic);
-            fprintf(fdebug, "\n");
-            fflush(fdebug);
-         }
-
-         if(iidcorr < 0
-         || ia      < 0
-         || ib      < 0
-         || ic      < 0)
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"Need columns: id,a,b,c in corrections file\"]\n");
-            exit(1);
-         }
+      
+         tclose();
 
 
          /***************************************************/ 
-         /* Read through the two sorted tables, keeping     */
-         /* them matched up.                                */
+         /* Read through the image list.                    */
          /*                                                 */
+         /* If there is no correction for an image file,    */
+         /* increment 'nocorrection' and copy it unchanged. */
          /* Then run mBackground to create the corrected    */
          /* image.  If there is an image in the list for    */
          /* which we don't actually have a projected file   */
@@ -2474,168 +2407,80 @@ int main(int argc, char **argv, char **envp)
          /* 'raw' set), increment the 'failed' count.       */
          /***************************************************/ 
 
+         ncols = topen("pimages.tbl");
+
          count        = 0;
          nocorrection = 0;
          failed       = 0;
 
-         if(nextImg())
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"No images in list\"]\n");
-            fflush(stdout);
-            exit(1);
-         }
-
-         if(nextCorr())
-         {
-            printf ("[struct stat=\"ERROR\", msg=\"No corrections in list\"]\n");
-            fflush(stdout);
-            exit(1);
-         }
-
          while(1)
          {
+            if(tread() < 0)
+               break;
+
+            cntr = atoi(tval(icntr));
+
+            strcpy(file, tval(ifname));
+
+            if(quickMode)
+            {
+               sprintf(cmd, "mBackground -n projected/%s corrected/%s %-g %-g %-g", 
+                     file, file, a[cntr], b[cntr], c[cntr]);
+            }
+            else
+               sprintf(cmd, "mBackground projected/%s corrected/%s %-g %-g %-g", 
+                     file, file, a[cntr], b[cntr], c[cntr]);
+
+            if(have[cntr] == 0)
+               ++nocorrection;
+
             if(debug >= 4)
             {
-               fprintf(fdebug, "cntr = %d (%s),  idcorr = %d (%s %s %s)\n",
-                  cntr, corrfile, idcorr, astr, bstr, cstr);
+               fprintf(fdebug, "[%s] (have corrections: %d)\n", cmd, have[cntr]);
                fflush(fdebug);
             }
 
-            if(cntr == idcorr)
+            if(finfo)
             {
-               if(quickMode)
-                  sprintf(cmd, "mBackground -n projected/%s corrected/%s %13s %13s %13s", 
-                     corrfile, corrfile, astr, bstr, cstr);
-               else
-                  sprintf(cmd, "mBackground projected/%s corrected/%s %13s %13s %13s", 
-                     corrfile, corrfile, astr, bstr, cstr);
-
-               if(debug >= 4)
-               {
-                fprintf(fdebug, "[%s]\n", cmd);
-                fflush(fdebug);
-               }
-
-               if(finfo)
-               {
-                  fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
-                  fflush(finfo);
-               }
-
-               svc_run(cmd);
-
-               if(strcmp( status, "ABORT") == 0)
-               {
-                  strcpy( msg, svc_value( "msg" ));
-               
-                  printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-                  fflush(stdout);
-               
-                  exit(1);
-               }
-
-               strcpy( status, svc_value( "stat" ));
-
-               ++count;
-               if(strcmp( status, "ERROR") == 0)
-                  ++failed;
-
-               if(!keepAll)
-               {
-                  sprintf(cmd, "projected/%s", corrfile);
-                  unlink(cmd);
-
-                  strcpy(areafile, cmd);
-                  areafile[strlen(areafile) - 5] = '\0';
-                  strcat(areafile, "_area.fits");
-
-                  unlink(areafile);
-               }
-
-               if(nextImg())
-                  break;
-
-               if(nextCorr())
-                  break;
+               fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
+               fflush(finfo);
             }
 
-            else if(cntr < idcorr)
+            svc_run(cmd);
+
+            if(strcmp( status, "ABORT") == 0)
             {
-               strcpy(astr,"0.0");
-               strcpy(bstr,"0.0");
-               strcpy(cstr,"0.0");
+               strcpy( msg, svc_value( "msg" ));
 
-               if(quickMode)
-                  sprintf(cmd, "mBackground -n projected/%s corrected/%s %13s %13s %13s", 
-                     corrfile, corrfile, astr, bstr, cstr);
-               else
-                     sprintf(cmd, "mBackground projected/%s corrected/%s %13s %13s %13s", 
-                     corrfile, corrfile, astr, bstr, cstr);
+               printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+               fflush(stdout);
 
-               if(debug >= 4)
-               {
-                fprintf(fdebug, "[%s] MISSING> No correction found\n", cmd);
-                fflush(fdebug);
-               }
-
-               if(finfo)
-               {
-                  fprintf(finfo, "<span style='color: blue;'>%s</span><br/>\n", cmd);
-                  fflush(finfo);
-               }
-
-               svc_run(cmd);
-
-               if(strcmp( status, "ABORT") == 0)
-               {
-                  strcpy( msg, svc_value( "msg" ));
-               
-                  printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-                  fflush(stdout);
-               
-                  exit(1);
-               }
-
-               strcpy( status, svc_value( "stat" ));
-
-               ++count;
-               if(strcmp( status, "ERROR") == 0)
-                  ++failed;
-               else
-                  ++nocorrection;
-
-               if(!keepAll)
-               {
-                  sprintf(cmd, "projected/%s", corrfile);
-                  unlink(cmd);
-
-                  strcpy(areafile, cmd);
-                  areafile[strlen(areafile) - 5] = '\0';
-                  strcat(areafile, "_area.fits");
-
-                  unlink(areafile);
-               }
-
-               if(nextImg())
-                  break;
+               exit(1);
             }
 
-            else if(cntr > idcorr)
-            {
-               if(debug >= 4)
-               {
-                fprintf(fdebug, "MISSING> No image found\n");
-                fflush(fdebug);
-               }
+            strcpy( status, svc_value( "stat" ));
 
-               if(nextCorr())
-                  break;
+            ++count;
+            if(strcmp( status, "ERROR") == 0)
+               ++failed;
+
+            if(!keepAll)
+            {
+               sprintf(cmd, "projected/%s", file);
+               unlink(cmd);
+
+               strcpy(areafile, cmd);
+               areafile[strlen(areafile) - 5] = '\0';
+               strcat(areafile, "_area.fits");
+
+               unlink(areafile);
             }
+
          }
 
          if(!keepAll)
          {
-            sprintf(cmd, "projected/%s", corrfile);
+            sprintf(cmd, "projected/%s", file);
             unlink(cmd);
 
             strcpy(areafile, cmd);
@@ -3005,8 +2850,6 @@ int main(int argc, char **argv, char **envp)
             unlink("diffs.tbl");
             unlink("fits.tbl");
             unlink("corrections.tbl");
-            unlink(imgsort);
-            unlink(corrsort);
 
             count += 11;
 
@@ -3063,8 +2906,6 @@ int main(int argc, char **argv, char **envp)
             unlink("big_region.hdr");
             unlink("remote_big.tbl");
             unlink("pimages.tbl");
-            unlink(imgsort);
-            unlink(corrsort);
 
             count += 7;
 
@@ -3520,46 +3361,6 @@ int FITSerror(char *fname, int status)
       fname);
 
    printerr(msg);
-
-   return 0;
-}
-
-
-int nextImg()
-{
-   int istat;
-
-   trestore(imgs);
-
-   istat = tread();
-
-   if(istat < 0)
-      return 1;
-
-   cntr = atoi(tval(icntr));
-
-   strcpy(corrfile, tval(ifile));
-
-   return 0;
-}
-
-
-int nextCorr()
-{
-   int istat;
-
-   trestore(corrs);
-
-   istat = tread();
-
-   if(istat < 0)
-      return 1;
-
-   idcorr = atoi(tval(iidcorr));
-
-   strcpy(astr, tval(ia));
-   strcpy(bstr, tval(ib));
-   strcpy(cstr, tval(ic));
 
    return 0;
 }

@@ -429,7 +429,7 @@ int json_free(JSON *json)
 
 char *json_val(char const *structstr, char const *key, char *val)
 {
-   int  i, inlen, len;
+   int  i, inlen, len, found;
    char *subkey, *tail, *subval;
 
    JSON *sv;
@@ -475,6 +475,8 @@ char *json_val(char const *structstr, char const *key, char *val)
 
    len = strlen(tail);
 
+   found = 0;
+   
    if((sv = json_struct(structstr)) != (JSON *)NULL)
    {
       for(i=0; i<sv->count; ++i)
@@ -484,30 +486,30 @@ char *json_val(char const *structstr, char const *key, char *val)
             if(!len)
             {
                strcpy(val, sv->val[i]);
-               json_free(sv);
-               return(val);
+               found = 1;
+               break;
             }
 
             else if(json_val(sv->val[i], tail, subval))
             {
                strcpy(val, subval);
-               json_free(sv);
-               return(val);
+               found = 1;
+               break;
             }
 
             else
-            {
-               json_free(sv);
-               return((char *) NULL);
-            }
-
-
-            break;
+               break;
          }
       }
-
-      return((char *) NULL);
    }
+
+   json_free(sv);
+   free(subkey);
+   free(tail);
+   free(subval);
+
+   if(found)
+      return val;
    else
       return((char *) NULL);
 }

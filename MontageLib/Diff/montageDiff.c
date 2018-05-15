@@ -1,4 +1,4 @@
-  /* Module: mDiff.c
+/* Module: mDiff.c
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
@@ -126,6 +126,10 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    double    avearea1, avearea2;
 
    double    pixel_value;
+   double    min_pixel;
+   double    max_pixel;
+   double    min_diff;
+   double    max_diff;
 
    double  **data;
    double  **area;
@@ -529,6 +533,11 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    narea1   = 0.;
    narea2   = 0.;
 
+   min_pixel = nan;
+   max_pixel = nan;
+   min_diff  = nan;
+   max_diff  = nan;
+
    for(ifile=0; ifile<2; ++ifile)
    {
       /************************/
@@ -656,6 +665,15 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
          for (i=0; i<input.naxes[0]; ++i)
          {
             pixel_value = buffer[i] * abuffer[i];
+
+            if(mNaN(min_pixel)) min_pixel = pixel_value;
+            if(mNaN(max_pixel)) max_pixel = pixel_value;
+
+            if(abuffer[i] > 0. && pixel_value < min_pixel)
+               min_pixel = pixel_value;
+
+            if(abuffer[i] > 0. && pixel_value > max_pixel)
+               max_pixel = pixel_value;
 
             if(mDiff_debug >= 4)
             {
@@ -881,6 +899,9 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
                areamin = area[j][i];
                areamax = area[j][i];
 
+               min_diff = data[j][i];
+               max_diff = data[j][i];
+
                haveMinMax = 1;
             }
 
@@ -888,6 +909,9 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
             if(data[j][i] > datamax) datamax = data[j][i];
             if(area[j][i] < areamin) areamin = area[j][i];
             if(area[j][i] > areamax) areamax = area[j][i];
+
+            if(fabs(data[j][i]) < min_diff) min_diff = fabs(data[j][i]);
+            if(fabs(data[j][i]) > max_diff) max_diff = fabs(data[j][i]);
 
             if(j < jmin) jmin = j;
             if(j > jmax) jmax = j;
@@ -1420,15 +1444,22 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    free(data);
    free(area);
 
-   sprintf(montage_msgstr, "time=%.1f",       (double)(currtime - start));
-   sprintf(montage_json,   "{\"time\":%.1f}", (double)(currtime - start));
+   sprintf(montage_msgstr, "time=%.1f, min_pixel=%-g, max_pixel=%-g, min_diff=%-g, max_diff=%-g", 
+      (double)(currtime - start), min_pixel, max_pixel, min_diff, max_diff);
+
+   sprintf(montage_json, "{\"time\":%.1f, \"min_pixel\":\"%-g\", \"max_pixel\":\"%-g\", \"min_diff\":\"%-g\", \"max_diff\":\"%-g\"}", 
+      (double)(currtime - start), min_pixel, max_pixel, min_diff, max_diff);
 
    returnStruct->status = 0;
 
    strcpy(returnStruct->msg,  montage_msgstr);
    strcpy(returnStruct->json, montage_json);
 
-   returnStruct->time = (double)(currtime - start);
+   returnStruct->time      = (double)(currtime - start);
+   returnStruct->min_pixel = min_pixel;
+   returnStruct->max_pixel = max_pixel;
+   returnStruct->min_diff  = min_diff;
+   returnStruct->max_diff  = max_diff;
 
    return returnStruct;
 }

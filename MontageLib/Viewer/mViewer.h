@@ -5,6 +5,7 @@
 #define JSONMODE 1
 #define CMDMODE  2
 
+void   mViewer_memCleanup         ();
 int    mViewer_parseSymbol        (char *symbolstr, int *symNPnt, int *symNMax, int *symType, double *symRotAngle);
 int    mViewer_colorLookup        (char *colorin, double *ovlyred, double *ovlygreen, double *ovlyblue);
 int    mViewer_hexVal             (char c);

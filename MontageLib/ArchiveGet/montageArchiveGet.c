@@ -12,6 +12,7 @@ Version  Developer        Date     Change
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <bzlib.h>
 
 #include <montage.h>
@@ -44,7 +45,7 @@ Version  Developer        Date     Change
    
 struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, int debug)
 {
-   int    i, ch, status, nnew, imgsize, retcode;
+   int    i, ch, status, nnew, imgsize, retcode, child, waitstatus;
 
    char  *begin, *end, *endptr;
 
@@ -113,13 +114,13 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
    // its stderr output back to the parent (this process).
 
    pipe(fdpipe);
-
+   
 
    // Fork/exec wget making sure that it's stderr gets redirected
    // (via dup2()) to our pipe. For simplicity we open the output
    // end of the pipe in the parent as a stream.
 
-   if(fork() == 0)      // Child (wget)
+   if((child = fork()) == 0)      // Child (wget)
    {
       close(fdpipe[0]);
 
@@ -167,7 +168,10 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
       fflush(stdout);
    }
 
+   fclose(fromexec);
    close(fdpipe[0]);
+
+   waitpid(child, &waitstatus, WNOHANG | WUNTRACED | WCONTINUED);
 
    begin = strstr(retval, " ERROR ");
 
@@ -262,8 +266,8 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
 
          returnStruct->status = 0;
 
-         sprintf(returnStruct->msg,    "count=%d",       imgsize);
-         sprintf(returnStruct->json, "{\"count\":%.1f}", imgsize);
+         sprintf(returnStruct->msg,    "count=%d",     imgsize);
+         sprintf(returnStruct->json, "{\"count\":%d}", imgsize);
      
          returnStruct->count  = imgsize;
 
@@ -397,8 +401,8 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
 
          returnStruct->status = 0;
 
-         sprintf(returnStruct->msg,    "count=%d",       imgsize);
-         sprintf(returnStruct->json, "{\"count\":%.1f}", imgsize);
+         sprintf(returnStruct->msg,    "count=%d",     imgsize);
+         sprintf(returnStruct->json, "{\"count\":%d}", imgsize);
      
          returnStruct->count  = imgsize;
 

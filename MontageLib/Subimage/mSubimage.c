@@ -260,7 +260,7 @@ int main(int argc, char **argv)
       }
    }
    
-   returnStruct = mSubimage(mode, infile, outfile, ra, dec, xsize, ysize, hdu, nowcs, debug);
+   returnStruct = mSubimage(infile, outfile, ra, dec, xsize, ysize, mode, hdu, nowcs, debug);
 
    if(returnStruct->status == 1)
    {

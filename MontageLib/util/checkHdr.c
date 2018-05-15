@@ -118,6 +118,26 @@ void montage_checkHdrExact(int stringent)
 
 char *montage_checkHdr(char *infile, int hdrflag, int hdu)
 {
+   char *response;
+
+   response = montage_parseHdr(infile, hdrflag, hdu);
+
+   free(mHeader);
+
+   return response;
+}
+
+
+/*************************************************/
+/*                                               */
+/*  parseHdr                                     */
+/*                                               */
+/*  Routine that does the real work for checkHdr */
+/*                                               */
+/*************************************************/
+
+char *montage_parseHdr(char *infile, int hdrflag, int hdu)
+{
    int       i, len, ncard, morekeys;
 
    int       status = 0;
@@ -145,11 +165,8 @@ char *montage_checkHdr(char *infile, int hdrflag, int hdu)
 
    static int maxhdr;
 
-   if(!mHeader)
-   {
-      mHeader = malloc(MAXHDR);
-      maxhdr = MAXHDR;
-   }
+   mHeader = malloc(MAXHDR);
+   maxhdr = MAXHDR;
 
    havePLTRAH  = 0;
 
@@ -511,6 +528,8 @@ char *montage_checkHdr(char *infile, int hdrflag, int hdu)
    hdrCheck_wcs = wcsinit(mHeader);
 
    checkWCS = montage_checkWCS(hdrCheck_wcs);
+
+   wcsfree(hdrCheck_wcs);
 
    if(checkWCS)
       return checkWCS;

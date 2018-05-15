@@ -11,7 +11,7 @@ all:
 clean:
 	mkdir -p bin
 	mkdir -p lib/include
-	rm -f bin/*
+	rm -rf bin/*
 	if test -d lib/src;    then (cd lib/src;    make clean); fi
 	if test -d Montage;    then (cd Montage;    make clean); fi
 	if test -d util;       then (cd util;       make clean); fi

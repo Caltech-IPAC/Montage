@@ -17,7 +17,7 @@
 
 int main(int argc, char **argv)
 {
-   int i, debug;
+   int i, debug, len;
 
    char cmdstr  [MAXSTR];
    char line    [STRLEN];
@@ -26,6 +26,8 @@ int main(int argc, char **argv)
    char jsonFile[STRLEN];
    char jsonStr [MAXSTR];
    char fontFile[MAXSTR];
+
+   char *rstat;
 
    FILE *fin;
 
@@ -43,6 +45,8 @@ int main(int argc, char **argv)
    strcpy(outFmt,   "png");
    strcpy(outFile,  "");
    strcpy(fontFile, "");
+   strcpy(jsonStr,  "");
+   strcpy(line,     "");
 
    debug = 0;
 
@@ -165,12 +169,26 @@ int main(int argc, char **argv)
 
       while(1)
       {
-         if(fgets(line, STRLEN, fin) == (char *)NULL)
+         rstat = fgets(line, STRLEN, fin);
+
+         if(rstat == (char *)NULL)
             break;
 
-         while(line[strlen(line)-1] == '\n'
-            || line[strlen(line)-1] == '\r')
-               line[strlen(line)-1]  = '\0';
+         len = strlen(line) - 1;
+
+         while(1)
+         {
+            if(line[len] == '\n' || line[len] == '\r')
+            {
+               line[len]  = '\0';
+               --len;
+
+               if(len < 0)
+                  break;
+            }
+            else
+               break;
+         }
 
          strcat(jsonStr, line);
          strcat(jsonStr, " ");
@@ -181,11 +199,13 @@ int main(int argc, char **argv)
       if(returnStruct->status == 1)
       {
          printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
+         fflush(stdout);
          exit(1);
       }
       else
       {
          printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
+         fflush(stdout);
          exit(0);
       }
    }

@@ -175,6 +175,10 @@ struct mDiffReturn
    char   msg [1024];    // Return message (for error return)
    char   json[4096];    // Return parameters as JSON string
    double time;          // Run time (sec)   
+   double min_pixel;     // Minimum pixel value in either input (absolute)
+   double max_pixel;     // Maximum pixel value in either input (absolute)
+   double min_diff;      // Minimum pixel value in difference
+   double max_diff;      // Maximum pixel value in difference
 };
 
 struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *output_file, 
@@ -244,7 +248,7 @@ struct mExamineReturn
    double totalflux;     // Aperture phtometry total flux.
 };
 
-struct mExamineReturn *mExamine(int areaMode, char *infile, int hdu, int plane3, int plane4,
+struct mExamineReturn *mExamine(char *infile, int areaMode, int hdu, int plane3, int plane4,
                                 double ra, double dec, double radius, int locinpix, int radinpix, int debug);
 
 //-------------------
@@ -562,8 +566,8 @@ struct mSubimageReturn
    char   content[1024]; // String giving an idea of output content (e.g., 'blank', 'flat', or 'normal'.   
 };
 
-struct mSubimageReturn *mSubimage(int mode, char *infile, char *outfile, double xref, double yref, 
-                                  double xsize, double ysize, int hdu, int nowcs, int debug);
+struct mSubimageReturn *mSubimage(char *infile, char *outfile, double xref, double yref, 
+                                  double xsize, double ysize, int mode, int hdu, int nowcs, int debug);
 
 //-------------------
 
@@ -663,6 +667,7 @@ struct mViewerReturn *mViewer(char *cmdstr, char *outFile, int mode, char *outFm
 
 int   montage_checkFile   (char *filename);
 char *montage_checkHdr    (char *infile, int hdrflag, int hdu);
+char *montage_parseHdr    (char *infile, int hdrflag, int hdu);
 char *montage_getHdr      (void);
 char *montage_checkWCS    (struct WorldCoor *wcs);
 int   montage_debugCheck  (char *debugStr);

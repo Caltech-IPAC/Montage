@@ -3,7 +3,7 @@
 
    "function":"mViewer",
 
-   "desc" : "mAdd enerates a JPEG image file with overlays from a FITS file (or a set of three FITS files in color).",
+   "desc" : "mViewer generates a JPEG image file with overlays from a FITS file (or a set of three FITS files in color).",
 
    "arguments":
    [
