@@ -129,9 +129,13 @@ int main(int argc, char **argv)
 
    params.kbegin = -1;
    params.kend   = -1;
+
+   printf("PJT: debugging\n");
    
    for(i=1; i<argc; ++i)
    {
+      printf("PJT: [%s]\n",argv[i]);
+      
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
       
@@ -477,13 +481,13 @@ int main(int argc, char **argv)
    
    if(!shrinkWrap)
    {
-      if(xsize <= 0.)
+      if(xsize < 0.)
       {
          fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid 'x' size\"]\n");
          exit(1);
       }
 
-      if(ysize <= 0.)
+      if(ysize < 0.)
       {
          fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Invalid 'y' size\"]\n");
          exit(1);
@@ -839,17 +843,18 @@ int main(int argc, char **argv)
       }
    }
 
-   if(params.ibegin >= params.iend
-   || params.jbegin >= params.jend)
+   if(params.ibegin > params.iend
+   || params.jbegin > params.jend)
    {
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"No pixels match area.\"]\n");
       fflush(stdout);
       exit(1);
    }
 
-   if(params.iend - params.ibegin < 2
-   && params.jend - params.jbegin < 2)
+   if(params.iend - params.ibegin < 0
+   && params.jend - params.jbegin < 0)
    {
+      fprintf(fstatus, "PJT %d %d %d %d\n",params.ibegin,params.iend,params.jbegin,params.jend);
       fprintf(fstatus, "[struct stat=\"ERROR\", msg=\"Output area has no spatial extent.\"]\n");
       fflush(stdout);
       exit(1);
