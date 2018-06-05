@@ -7,8 +7,8 @@ struct Hdr_rec
    char      fname[1024];
    int       hdu;
    off_t     size;
-   char      ctype1[10];
-   char      ctype2[10];
+   char      ctype1[16];
+   char      ctype2[16];
    int       ns;
    int       nl;
    float     crpix1;

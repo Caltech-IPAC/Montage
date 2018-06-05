@@ -119,12 +119,12 @@ struct WorldCoor {
   int		linmode;	/* 0=system only, 1=units, 2=system+units */
   int		detector;	/* Instrument detector number */
   char		instrument[32];	/* Instrument name */
-  char		ctype[9][9];	/* Values of CTYPEn keywords */
-  char		c1type[9];	/*  1st coordinate type code:
+  char		ctype[9][16];	/* Values of CTYPEn keywords */
+  char		c1type[16];	/*  1st coordinate type code:
 					RA--, GLON, ELON */
-  char		c2type[9];	/*  2nd coordinate type code:
+  char		c2type[16];	/*  2nd coordinate type code:
 					DEC-, GLAT, ELAT */
-  char		ptype[9];	/*  projection type code:
+  char		ptype[16];	/*  projection type code:
 				    SIN, TAN, ARC, NCP, GLS, MER, AIT, etc */
   char		units[9][32];	/* Units if LINEAR */
   char		radecsys[32];	/* Reference frame: FK4, FK4-NO-E, FK5, GAPPT*/

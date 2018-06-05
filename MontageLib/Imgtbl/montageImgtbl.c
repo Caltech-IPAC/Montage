@@ -83,7 +83,6 @@ Version  Developer        Date     Change
 #include <coord.h>
 #include <wcs.h>
 #include <coord.h>
-#include <wcs.h>
 #include <mtbl.h>
 #include <montage.h>
 #include <mImgtbl.h>
@@ -983,7 +982,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
       if(mImgtbl_debug)
       {
-         printf("DEBUG> CTYPE1 check: [%s] badhdr -> %d\n", value, badhdr);
+         printf("DEBUG> CTYPE2 check: [%s] badhdr -> %d\n", value, badhdr);
          fflush(stdout);
       }
 

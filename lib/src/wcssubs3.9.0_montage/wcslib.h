@@ -336,10 +336,10 @@ struct wcsprm {
 
 #if __STDC__ || defined(__cplusplus)
    int wcsset(const int,
-              const char[][9],
+              const char[][16],
               struct wcsprm *);
 
-   int wcsfwd(const char[][9],
+   int wcsfwd(const char[][16],
               struct wcsprm *,
               const double[],
               const double[],
@@ -351,7 +351,7 @@ struct wcsprm {
               struct linprm *,
               double[]);
 
-   int wcsrev(const char[][9],
+   int wcsrev(const char[][16],
               struct wcsprm *,
               const double[], 
               struct linprm *,
@@ -363,7 +363,7 @@ struct wcsprm {
               struct celprm *, 
               double[]);
 
-   int wcsmix(const char[][9],
+   int wcsmix(const char[][16],
               struct wcsprm *,
               const int,
               const int,
