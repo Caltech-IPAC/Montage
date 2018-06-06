@@ -25,7 +25,7 @@ Version  Developer        Date     Change
 #define NBIN 200000
 
 
-static int     debug;
+static int     mHistogram_debug;
 static int     hdu;
 static int     grayPlaneCount;
 
@@ -76,7 +76,7 @@ static char montage_msgstr[1024];
 /***********************************************************************************************/
 
 struct mHistogramReturn *mHistogram(char *grayfile, char *histfile, 
-                                    char *grayminstr, char *graymaxstr, char *graytype, int graylogpower, char *graybetastr, int indebug)
+                                    char *grayminstr, char *graymaxstr, char *graytype, int graylogpower, char *graybetastr, int debugin)
 {
    int       i, grayType;
 
@@ -108,7 +108,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
 
    returnStruct = (struct mHistogramReturn *)malloc(sizeof(struct mHistogramReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -120,7 +120,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    /* Process the command-line parameters */
    /***************************************/
 
-   debug = indebug;
+   mHistogram_debug = debugin;
 
      if(strcmp(graytype, "linear") == 0) graylogpower = 0;
        
@@ -202,7 +202,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
       return returnStruct;
    }
 
-   if(debug)
+   if(mHistogram_debug)
    {
       printf("naxis1   = %d\n", naxis1);
       printf("naxis2   = %d\n", naxis2);
@@ -217,7 +217,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    /* we had naxis1, naxis2 which is why this */
    /* is here                                 */
 
-   if(debug)
+   if(mHistogram_debug)
       printf("\n GRAY RANGE:\n");
 
    status = mHistogram_getRange(grayfptr,     grayminstr,  graymaxstr, 
@@ -240,7 +240,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    grayminsigma = (grayminval - median) / sigma;
    graymaxsigma = (graymaxval - median) / sigma;
 
-   if(debug)
+   if(mHistogram_debug)
    {
       printf("DEBUG> grayminval = %-g (%-g%%/%-gs)\n", grayminval, grayminpercent, grayminsigma);
       printf("DEBUG> graymaxval = %-g (%-g%%/%-gs)\n", graymaxval, graymaxpercent, graymaxsigma);
@@ -409,113 +409,150 @@ void mHistogram_printFitsError(int status)
 /*                                 */
 /***********************************/
 
-void mHistogram_parseRange(char const *str, char const *kind, double *val, double *extra, int *type) 
+int mHistogram_parseRange(char const *str, char const *kind, double *val, double *extra, int *type) 
 {
    char const *ptr;
-   char *end;
+
+   char  *end;
    double sign = 1.0;
 
    ptr = str;
+
    while (isspace(*ptr)) ++ptr;
-   if (*ptr == '-' || *ptr == '+') {
+
+   if (*ptr == '-' || *ptr == '+') 
+   {
       sign = (*ptr == '-') ? -1.0 : 1.0;
       ++ptr;
    }
+
    while (isspace(*ptr)) ++ptr;
+
    errno = 0;
+
    *val = strtod(ptr, &end) * sign;
-   if (errno != 0) {
-      printf("[struct stat=\"ERROR\", msg=\"leading numeric term in %s '%s' "
-             "cannot be converted to a finite floating point number\"]\n",
-             kind, str);
-      fflush(stdout);
-      exit(1);
+
+   if (errno != 0) 
+   {
+      sprintf(montage_msgstr, "leading numeric term in %s '%s' "
+            "cannot be converted to a finite floating point number",
+            kind, str);
+      return 1;
    }
-   if (ptr == end) {
+
+   if (ptr == end) 
+   {
       /* range string didn't start with a number, check for keywords */
-      if (strncmp(ptr, "min", 3) == 0) {
+
+      if (strncmp(ptr, "min", 3) == 0) 
+      {
          *val = 0.0;
-      } else if (strncmp(ptr, "max", 3) == 0) {
+      } else if (strncmp(ptr, "max", 3) == 0) 
+      {
          *val = 100.0;
-      } else if (strncmp(ptr, "med", 3) == 0) {
+      } else if (strncmp(ptr, "med", 3) == 0) 
+      {
          *val = 50.0;
-      } else {
-         printf("[struct stat=\"ERROR\", msg=\"'%s' is not a valid %s\"]\n",
-                str, kind);
-         fflush(stdout);
-         exit(1);
+      } else 
+      {
+         sprintf(montage_msgstr, "'%s' is not a valid %s",
+               str, kind);
+         return 1;
       }
       *type = PERCENTILE;
       ptr += 3;
-   } else {
+   }
+   else 
+   {
       /* range string began with a number, look for a type spec */
+
       ptr = end;
+
       while (isspace(*ptr)) ++ptr;
-      switch (*ptr) {
+
+      switch (*ptr) 
+      {
          case '%':
-            if (*val < 0.0) {
-               printf("[struct stat=\"ERROR\", msg=\"'%s': negative "
-                      "percentile %s\"]\n", str, kind);
-               fflush(stdout);
-               exit(1);
+            if (*val < 0.0) 
+            {
+               sprintf(montage_msgstr, "'%s': negative "
+                     "percentile %s", str, kind);
+               return 1;
             }
-            if (*val > 100.0) {
-               printf("[struct stat=\"ERROR\", msg=\"'%s': percentile %s "
-                      "larger than 100\"]\n", str, kind);
-               fflush(stdout);
-               exit(1);
+
+            if (*val > 100.0) 
+            {
+               sprintf(montage_msgstr, "'%s': percentile %s "
+                     "larger than 100", str, kind);
+               return 1;
             }
+
             *type = PERCENTILE;
             ++ptr;
             break;
+
          case 's':
          case 'S':
             *type = SIGMA;
             ++ptr;
             break;
+
          case '+':
          case '-':
          case '\0':
             *type = VALUE;
             break;
          default:
-            printf("[struct stat=\"ERROR\", msg=\"'%s' is not a valid %s\"]\n",
-                   str, kind);
-            fflush(stdout);
-            exit(1);
+            sprintf(montage_msgstr, "'%s' is not a valid %s",
+                  str, kind);
+            return 1;
       }
    }
 
+
    /* look for a trailing numeric term */
+
    *extra = 0.0;
+
    while (isspace(*ptr)) ++ptr;
-   if (*ptr == '-' || *ptr == '+') {
+
+   if (*ptr == '-' || *ptr == '+') 
+   {
       sign = (*ptr == '-') ? -1.0 : 1.0;
+
       ++ptr;
+
       while (isspace(*ptr)) ++ptr;
+
       *extra = strtod(ptr, &end) * sign;
-      if (errno != 0) {
-         printf("[struct stat=\"ERROR\", msg=\"extra numeric term in %s '%s' "
-                "cannot be converted to a finite floating point number\"]\n",
-                kind, str);
-         fflush(stdout);
-         exit(1);
+
+      if (errno != 0) 
+      {
+         sprintf(montage_msgstr, "extra numeric term in %s '%s' "
+               "cannot be converted to a finite floating point number",
+               kind, str);
+         return 1;
       }
-      if (ptr == end) {
-         printf("[struct stat=\"ERROR\", msg=\"%s '%s' contains trailing "
-                "junk\"]\n", kind, str);
-         fflush(stdout);
-         exit(1);
+
+      if (ptr == end) 
+      {
+         sprintf(montage_msgstr, "%s '%s' contains trailing "
+               "junk", kind, str);
+         return 1;
       }
+
       ptr = end;
    }
+
    while (isspace(*ptr)) ++ptr;
-   if (*ptr != '\0') {
-      printf("[struct stat=\"ERROR\", msg=\"%s '%s' contains trailing "
-             "junk\"]\n", kind, str);
-      fflush(stdout);
-      exit(1);
+
+   if (*ptr != '\0') 
+   {
+      sprintf(montage_msgstr, "%s '%s' contains trailing junk", kind, str);
+      return 1;
    }
+
+   return 0;
 }
 
 
@@ -567,14 +604,14 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    /* MIN/MAX: Determine what type of  */
    /* range string we are dealing with */
 
-   mHistogram_parseRange(minstr, "display min", &minval, &minextra, &mintype);
-   mHistogram_parseRange(maxstr, "display max", &maxval, &maxextra, &maxtype);
+   if(mHistogram_parseRange(minstr, "display min", &minval, &minextra, &mintype)) return 1;
+   if(mHistogram_parseRange(maxstr, "display max", &maxval, &maxextra, &maxtype)) return 1;
 
    betaval   = 0.;
    betaextra = 0.;
 
    if (type == ASINH)
-      mHistogram_parseRange(betastr, "beta value", &betaval, &betaextra, &betatype);
+      if(mHistogram_parseRange(betastr, "beta value", &betaval, &betaextra, &betatype)) return 1;
 
 
    /* If we don't have to generate the image */
@@ -641,7 +678,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    diff = rmax - rmin;
 
-   if(debug)
+   if(mHistogram_debug)
    {
       printf("DEBUG> mHistogram_getRange(): rmin = %-g, rmax = %-g (diff = %-g)\n",
          rmin, rmax, diff);
@@ -740,7 +777,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if(*rangemin == *rangemax)
       *rangemax = *rangemin + 1.;
    
-   if(debug)
+   if(mHistogram_debug)
    {
       if(type == ASINH)
          printf("DEBUG> mHistogram_getRange(): range = %-g to %-g (beta = %-g)\n", 
@@ -873,7 +910,7 @@ double mHistogram_percentileLevel(double percentile)
 
    value = rmin + (i-1+fraction) * delta;
 
-   if(debug)
+   if(mHistogram_debug)
    {
       printf("DEBUG> mHistogram_percentileLevel(%-g):\n", percentile);
       printf("DEBUG> percent    = %-g -> count = %d -> bin %d\n",
@@ -917,7 +954,7 @@ double mHistogram_valuePercentile(double value)
 
    percentile = 100. *(minpercent * (1. - fraction) + maxpercent * fraction);
 
-   if(debug)
+   if(mHistogram_debug)
    {
       printf("DEBUG> mHistogram_valuePercentile(%-g):\n", value);
       printf("DEBUG> rmin       = %-g\n", rmin);

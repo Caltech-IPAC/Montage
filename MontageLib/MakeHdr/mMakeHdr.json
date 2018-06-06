@@ -21,7 +21,8 @@
 
    "return":
    [
-      {"type":"string",                    "name":"msg",           "desc":"Cautionary message (only there if needed)."},
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"count",         "desc":"Number of images in metadata table."},
       {"type":"int",                       "name":"ncube",         "desc":"Number of images that have 3/4 dimensions."},
       {"type":"int",                       "name":"naxis1",        "desc":"X axis pixel count in output template."},

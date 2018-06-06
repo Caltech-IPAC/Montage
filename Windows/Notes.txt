@@ -1,0 +1,448 @@
+INTRODUCTION
+------------
+
+With the right environment, and a few open-source support libraries, it is 
+reasonably straightforward to cross-compile the Montage modules to run 
+natively on 64-bit Windows.  It is not straightforward enough to allow us
+to construct a build script but since the Windows version is distributed
+as executables, it is unlikely that too many people will reproduced the 
+build.
+
+This document describes the process of downloading all the necessary files,
+the tweaks that are needed in a couple of places, and the what actually 
+gets built (a few modules that rely heavily on LINUX network communication
+do not; we have constructed web service alternatives there).
+
+All of this has been made infinitely easier by avoiding the rather complex
+installation and configuration of the MinGW suite (which compiles LINUX code
+into Windows executable objects).  Instead, we have installed Docker (which
+is trivial on the Mac OS X machine we used) and then a pre-built image that
+already has all the MinGW-based cross-compiler infrastructure.  If anyone 
+goes to the effort of setting MinGW for this purpose, we would like to know
+about it.
+
+There are only a couple of support libraries that we need that do not come in
+this image (and aren't part of the Montage distribution) and these we have
+downloaded into the "lib" subdirectory.  Note that since we are cross-compiling
+we have to be careful to cross-compile these for Windows as well and not for
+the host platform (neither the OS X of the Mac we are building on nor the
+Alpine LINUX that is the basis of the Docker image).
+
+There are some changes that need to be made to the Makefiles in Montage, some
+of which may get incorporated into distribution but which only really make 
+sense for this effort, which is unlikely to be re-done by very many others
+people, if any.
+
+There is also one bulk change to the code that must be made, which will be
+described later.
+
+
+
+SOURCES
+-------
+
+Here are all the sources of stuff we need.  Besides Montage itself, there
+is the Docker image we use, and a couple of libraries (zlib for compression
+and libpng for PNG generation, both used by a font library we depend on
+and both generally available already on LINUX machines but not in the
+Docker image):
+
+
+   http://montage.ipac.caltech.edu/download/Montage_v6.0.tar.gz (or a more recent version)
+
+   https://hub.docker.com/r/dockcross/windows-x64/ ("docker pull dockcross/windows-x64")
+
+   https://zlib.net/zlib-1.2.11.tar.gz
+
+   http://prdownloads.sourceforge.net/libpng/libpng-1.6.29.tar.gz
+
+
+We'll go through dealing with each of these separately.  It's a little out of
+order, but retrieve the Montage tarball now (we'll explain why later) and gunzip, 
+untar it as well.  This will create a single Montage directory tree.  This can 
+be done either in the Docker container or back in the native OS.  
+
+
+
+DOCKER
+------
+
+You have to install the Docker package first (from https://www.docker.com/). 
+On a Mac this installs as a package, so there is no real work.  Then run the
+"docker pull" request from above and your docker install will be update
+with that image.  
+
+That's all you really need to do here.  When we get to building stuff you
+will need to run a container and you can just fire up a shell in such a
+container now jus to prove it is working.  we've wrapped it in a little
+shell script (so we can mount the local directory as /build in the in
+container):
+
+   #!/bin/bash
+
+   DOCKCROSS_IMAGE=thewtex/cross-compiler-windows-x64
+
+   docker run -i -t \
+      -v $PWD:/build \
+      $DOCKCROSS_IMAGE bash
+
+
+This script ("startDocker.sh") and others used later plus some other stuff 
+we will need can be found in the same directory as these instructions.
+But if you run this, get out again before the next few steps.  Note that
+once you are inside the container, the top level directory for this build
+will be "/build".
+
+
+
+NON-MONTAGE LIBRARIES
+---------------------
+
+We provide a "lib" subdirectory for the two additional library packages that
+need to be installed, plus a little extra one described below.  Go to that
+subdirectory and retrieve the two libraries above (zlib and libpng), then 
+gunzip and untar both of them.  
+
+All of the building we are going to do makes use of environment variable
+set in the container for cross-compiling:
+
+
+   AS=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-as
+   AR=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-ar
+   CPP=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-cpp
+   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/src/mxe/usr/bin
+   LD=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-ld
+   CXX=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-g++
+   CC=/usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-gcc
+
+
+So Makefiles that explicitly call out, for instance, "gcc" (and Montage has
+some of those) will cause problems.
+
+The configure scripts for both of these libraries get a little confused by 
+this platform and insist on including "-lc" in the link command.  But there
+is no libc.a anywhere (as with a lot of systems it is handled differently).
+One option is to tweak the configure script or the resultant Makefile but
+this is dangerous and would need to be redone any time we update the library
+version.
+
+Instead, we created and installed a "fake" libc.a and installed it in 
+/usr/local/lib.  This means including this path in the build via LDFLAGS
+but since this can be handled via the build instructions (this document)
+we deemed it preferable.
+
+Here is the code for that library (fakec.c):
+
+
+   void fakec()
+   {
+         return;
+   }
+
+
+and here is it's Makefile:
+
+
+   libmtbl.a:  fakec.c
+               $(CC) -I. -c fakec.c
+               ar rv libc.a fakec.o
+
+   install:
+               cp libc.a /build/local/lib
+
+   clean:      
+               rm -f libc.a *.o *.a core
+
+
+We put these in directory lib/fakec.
+
+Note that this is not going to cause a problem downstream.  Since we are
+building for Windows, there is no "real" libc.a anywhere for this to conflict 
+with.
+
+---
+
+Return to the installation home directory (one up from "lib").
+
+Now start up the container ("startDocker.sh") then run the configure script
+("./configureDocker.sh", explained later).  You can read Docker tutorials if 
+you need more information.  The "-v" flag makes the current directory visible
+inside the Docker container.  This give you access to the code from in there
+and also means that anything you create in this tree persists (again, Docker
+stuff has a tendency to go away when you exit a container unless you make 
+such arrangements.
+
+Inside the container, go to /build/lib/fakec and run
+
+
+   make
+   make install
+
+
+Next go to /build/lib/zlib-1.2.11 and run
+
+  
+   ./configure --prefix=/build/local
+   make LDFLAGS=-L/build/local/lib
+   make install
+
+
+and finally in /build/lib/libpng-1.6.29
+
+
+   ./configure --prefix=/build/local --build x86_64-w64-mingw32 --host x86_64-unknown-linux-gnu \
+               CFLAGS=-I/build/local/include LDFLAGS=-L/build/local/lib
+   make CPPFLAGS=-I/build/local/include CFLAGS=-I/build/local/include
+   make install
+
+
+
+MONTAGE
+-------
+
+The Montage package was downloaded and unpacked above before we entered the
+Docker container.  We could have do it here inside the container and that 
+should work too but we did it earlier just in case there were issues with
+forwarding the network connection into the container.
+
+We try to avoid going back and forth between the host OS and the Docker 
+container since as we said every time you exit and come back into the 
+container you have to reinstall the three libraries above and this is 
+tedious and easy to forget.  This could be scripted and if you prefer to 
+analyze this process and do things in a slightly different order, go ahead
+(but be careful).
+
+There are several changes that are needed here in various places.  First the
+support libraries.   There the main change is converting the Makefiles so
+they don't use "/usr/bin/gcc".  This can be done by modifying all the files 
+but since changes to the container don't persist, it is easier, when in the
+Docker container, to just point /usr/bin/gcc to the MinGW compiler:
+
+   
+   #!/bin/sh
+
+   mv /usr/bin/gcc /usr/bin/gcc-linux
+   ln -s /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-gcc /usr/bin/gcc
+
+
+Since such changes to the Docker container also do not persist, once you exit
+they are gone and the file system is loaded afresh when you start up
+another instance.  We could construct and distribute our own Montage-specific
+variant of all this but prefer to keep things generic so people can upgrade
+any of the pieces as they see fit.
+
+So the above needs to be done every time you start the Docker container;
+we've captured it in a script as well (the "configureDocker.sh" script
+we ran above).
+
+---
+
+There are some changes to the Montage code that are also required.  The main 
+ones involve the World Coordinate System (WCS) library.  There are a couple
+of function there that conflict (at least in Windows) with the "wide character
+support" functions "wcsinit()" and "wcsset()".  Since these latter are buried
+deep in standard system include files, along with basic functions like 
+"strlen()", we can't really avoid them so the only alternative is to modify 
+the names of the functions in the astronomical WCS library.
+
+This problem occurs in a lot of places and we've dealt with it using SED
+commands.  Unfortunately, the version of sed inside the docker container is
+a little less functional that the one on Mac OS X.  What we did is use the
+following from a separate window in OS X; you can try tweaking them if you
+prefer.
+
+In lib/src/wcssubs3.9.0_montage we use the script ("sedScripts/wcslib.sh"):
+
+
+   #!/bin/sh
+
+   sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' wcs.h
+   sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' wcslib.h
+   sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' wcs.c
+   sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' wcslib.c
+   sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' wcsinit.c
+
+
+and in lib/src/two_plane_v1.1 we need "sedScripts/twoplane.sh"):
+
+
+   #!/bin/sh
+
+   sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' twoplane.c
+
+
+Note:  We run these scripts outside the Docker container but only because there
+are slight differences in the sed command syntax between OS X and Alpine LINUX.
+Since these commands are modifying files that are in the host file space
+(rather than locations like /usr/bin as above that disappear with the container
+instance) even if done inside the Docker instance they will persist.  The same
+is true of the object files and final executables we will generate.
+
+There will be more of these in the Montage code proper but for now we can
+build the libraries.  But not all of them.  
+
+The svc library has a fundemental problem: it uses the UNIX standard 
+fork()/exec() mechanism to fire up and communicate with child processes.  
+This does not work at all in Windows, which handles processes entirely 
+differently.  So we must turn off the svc library as well.
+
+Finally, the some of the library configure scripts need to be told that this is
+a cross-compile situation via the "--host" parameter and the jpeg make command
+needs to be told about LDFLAG (to get libc.a again).
+
+So the lib/svc Makefile ends up being Makefile.lib. This is in the
+"/build/Makefiles" directory.  Copy it to "/build/Montage/lib/src":
+
+
+   all:
+         (cd cfitsio-3.25; ./configure --host=armv4l-unknown-linux-gnu; make; cp libcfitsio.a ../..; cp *.h ../../include)
+         (cd cmd; make; make install)
+         (cd coord; make; make install)
+         (cd mtbl; make; make install)
+         (cd json; make; make install)
+         (cd boundaries; make; make install)
+         (cd pixbounds; make; make install)
+         (cd www; make; make install)
+         (cd wcssubs3.9.0_montage; make; cp libwcs.a ../..; cp *.h ../../include)
+         (cd two_plane_v1.1; make; make install)
+         (cd lodepng_20140823; make; make install)
+         (cd jpeg-8b; ./configure --host=armv4l-unknown-linux-gnu; make LDFLAGS=-L/build/local/lib; cp .libs/libjpeg.a ../..; cp jpeglib.h jconfig.h jmorecfg.h ../../include)
+         (cd freetype-2.5.4; ./configure --host=armv4l-unknown-linux-gnu --prefix=`pwd`/../../freetype --without-png; make; make install)
+
+         XXXXXX> make LDFLAGS="-L/build/local/lib -lz"
+
+
+         (cd ..; ranlib *.a)
+         chmod 644 ../include/*
+
+   clean:
+         rm -rf ../include/* ../freetype ../*.a
+         (cd cfitsio-3.25; make clean; rm -rf config.log config.cache config.status lib)
+         (cd cmd; make clean)
+         (cd coord; make clean)
+         (cd mtbl; make clean)
+         (cd json; make clean)
+         (cd boundaries; make clean)
+         (cd pixbounds; make clean)
+         (cd wcssubs3.9.0_montage; make clean)
+         (cd two_plane_v1.1; make clean)
+         (cd lodepng_20140823; make clean)
+         (cd jpeg-8b; make clean)
+         (cd freetype-2.5.4; make clean; rm -rf objs/libfreetype.la  objs/.libs)
+
+
+Then, in that directory, run 
+
+   make -f Makefile.lib
+
+
+There is a reason we are building freetype last.  The last step in the freetype build is to run 
+a program called apinames that it has built.  Unfortunately, the version build when cross-compiling
+is for Windows and will not run here (unless you use something like the wine package).  This has
+been recognized by the freetype builders but no automatic fix is in place.  Instead, they give
+these instructions (from inside the freetype-2.5.4 directory):
+
+
+   What you have to do at this point is:
+
+   % cd src/tools
+   % gcc apinames.c -o apinames  [For us, replace "gcc" with "/usr/bin/gcc-linux"]
+   % cp apinames ../../objs
+   % cd ../..
+   % make
+
+   make should resume where it left off, trying to run apinames, 
+   only this time it will succeed. 
+
+
+Now Montage proper.  We are only compiling the MontageLib directory, which contains the newer 
+version of the modules, including all the ones we plan to port to Windows.  First, we have to
+perform the same renaming of WCS functions we did in the libraries.  Again, this should best be
+done in a separate host OS window using the ".../sedScripts/MontageLib.sh" script:
+
+
+	#!/bin/sh
+
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Add/montageAdd.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' AddCube/montageAddCube.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Background/montageBackground.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' BestImage/montageBestImage.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' CoverageCheck/montageCoverageCheck.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Examine/montageExamine.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' FixNaN/montageFixNaN.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Imgtbl/montageImgtbl.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' MakeHdr/montageMakeHdr.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' MakeImg/montageMakeImg.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Overlaps/montageOverlaps.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' ProjExec/montageProjExec.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Project/montageProject.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' ProjectCube/montageProjectCube.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' ProjectPP/montageProjectPP.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' ProjectQL/montageProjectQL.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' SubCube/montageSubCube.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Subimage/montageSubimage.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Subset/montageSubset.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' TANHdr/montageTANHdr.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' util/checkHdr.c
+	sed -i .bak -e 's/wcsinit/wcsInit/' -e 's/wcsset/wcsSet/' -e 's/wcsrev/wcsRev/' Viewer/montageViewer.c
+
+
+The MontageLib directory needs a custom Makefile, first because only a subset of the modules
+will be built and second because we need to rename the executables for use on Windows
+(e.g. "mAdd" -> "mAdd.exe").  Copy "/build/Makefiles/Makefile.MontageLib" to 
+"/build/Montage/MontageLib".
+
+The mViewer utility also needs a custom Makefile of its own but we've taken care of that
+in the Makefile.MontageLib.  The reason is that it requires a the two additional libraries
+we built above (zlib and libpng).
+
+In "/build/Montage/MontageLib", run "make -f Makefile.MontageLib".  This will populate the
+directory "/build/exe" with 35 Montage .exe files.  
+
+
+
+BUILDING AN INSTALL PACKAGE FOR WINDOWS
+---------------------------------------
+
+One way or another, we want to copy all the Windows executables (the Montage .exe files) to 
+the users machine and get them in the user path for execution.  There are several ways to 
+do this but our goal is to make this as "normal" for the typical Windows user as possible.
+
+The way that they are probably the most familiar with is to download and run a "setup" .exe
+file.  This file bundles the actual set of executables into a single file which installs 
+them in a standard location, usually a directory under "C:\Program Files (x86)\".  Using 
+this has the added advantage that it allows us to include ancillary files (e.g. fonts for
+mViewer) and hard-code where they can be found.
+
+There are several packages that can build such setup executables, the most common being the 
+free installer Inno Setup.  Since we are doing all our work on LINUX/OSX machines and Inno
+Setup is a Windows program, we have opted for running it under Wine, a tool for POSIX 
+environments capable of running Windows applications.
+
+Since we develop exclusively on Linux and Macs, we run Inno Setup using the Wine package.
+In a Mac home directory, we have a Inno Setup build directory containing mostly just the
+setup script file for Inno Setup (montage.iss) and the Output/montageinstall.exe file.
+
+Wine keeps its Windows "C:" directory in "~/.wine/drive_c" and this is where Inno Setup
+(and any other Windows installs) get put. So to run the Inno Setup GUI:
+
+
+   wine "/Users/jcg/.wine/drive_c/Program Files (x86)/Inno Setup 5/Compil32.exe"
+
+
+The first time this is run, you have use the wizard to specify all the .exe files (and in 
+our case a font file we want to carry along) and the output (montageinstall.exe) file,
+plus save the generated script (montage.iss).  After that, you can just select the script
+again at startup.
+
+The final result is the file file, "montageinstall.exe" that, when run on a Windows machine, 
+ installs the Montage Windows executables in 
+
+   C:\Program Files (x86)\Montage
+
+These programs can be run from the Windows command prompt (or other shell-like utility)
+but first the Windows PATH environment variable needs to be updated to include the
+above path.
+
+
+

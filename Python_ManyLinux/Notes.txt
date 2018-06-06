@@ -1,0 +1,83 @@
+INTRODUCTION
+------------
+
+On order to build a Python wheel for MontagePy that can run on all the 
+flavors of LINUX, we need to use the "manylinux" formalism described in
+PEP 513 (https://www.python.org/dev/peps/pep-0513/#docker-image).
+
+Since this involves building on a CentOS 5 platform, it is usually now
+done using a Docker image of CentOS 5.
+
+
+SOURCES
+-------
+
+Here are all the sources of stuff we need.  Besides Montage itself, there
+is the Docker image we use:
+
+
+   http://montage.ipac.caltech.edu/download/Montage_v6.0.tar.gz (or a more recent version)
+
+   https://hub.docker.com/r/dockcross/manylinux-x64/ ("docker pull dockcross/manylinux-x64")
+
+
+We'll go through dealing with both of these separately.
+
+
+
+DOCKER
+------
+
+You have to install the Docker package first (from https://www.docker.com/). 
+On a Mac this installs as a package, so there is no real work.  Then run the
+"docker pull" request from above and your docker install will be update
+with that image.  
+
+   #!/bin/bash
+
+   DOCKCROSS_IMAGE=quay.io/pypa/manylinux1_x86_64
+
+   docker run -i -t \
+      -v $PWD:/build \
+      $DOCKCROSS_IMAGE bash
+
+
+This script ("startDocker.sh") plus some other stuff we will need can be found 
+in the same directory as these instructions.  You can read Docker tutorials if
+you need more information.  The "-v" flag makes the current directory visible
+inside the Docker container.  This give you access to the code from inside docker
+and also means that anything you create in this tree persists (again, Docker
+stuff has a tendency to go away when you exit a container unless you make such 
+arrangements).
+
+So start up the container ("startDocker.sh").  There are severeal versions
+of Python installed since you may want to build multiple wheels.  For 
+simplicity, we are just going to cover 3.6 here, so if you go to the /build
+directory and "source bashrc" you will get the right path.  
+
+Next we run the configure script ("./configureDocker.sh") which updates 
+Python with Cython and jinja2 (since this is a docker container, we have
+to do this each time). 
+
+
+MONTAGE
+-------
+
+Back in the main directory, get the Montage package above and gunzip, untar
+it and run "make".  This will create a single Montage directory tree.  This 
+can be done either in the Docker container or back in the native OS.  
+
+We tend to go back and forth between the host OS and the Docker container.
+It would probably be possible to do all the host commands up front but they 
+would then be without context.  If you prefer to analyze this process and 
+do things in a slightly different order, go ahead (but be careful).
+
+Running 'make' builds everything except the python package as this is still
+somewhat system dependent.
+
+
+Python
+------
+The only thing left is to actually build the python binary package.  This is
+done in the Montage python/MontagePy directory.  There is more information 
+on Python packaging there.

@@ -53,8 +53,8 @@ char *montage_checkWCS(struct WorldCoor *wcs)
       printf("ptype      = [%s]\n", wcs->ptype);
       printf("nxpix      = %-g\n", wcs->nxpix);
       printf("nypix      = %-g\n", wcs->nypix);
-      printf("c1type     = [%s]\n", wcs->c1type);
-      printf("c2type     = [%s]\n", wcs->c2type);
+      printf("ctype[0]   = [%s]\n", wcs->ctype[0]);
+      printf("ctype[1]   = [%s]\n", wcs->ctype[1]);
       printf("naxis      = %d\n", wcs->naxis);
 
       for(i=0; i<wcs->naxis; ++i)
@@ -133,49 +133,49 @@ char *montage_checkWCS(struct WorldCoor *wcs)
 
    /* Check the coordinate system (from CTYPE1 and CTYPE2) */
 
-   if(strcmp(wcs->c1type, "RA") == 0)
+   if(strncmp(wcs->ctype[0], "RA", 2) == 0)
    {
-      if(strcmp(wcs->c2type, "DEC") != 0)
+      if(strncmp(wcs->ctype[1], "DEC", 3) != 0)
       {
          sprintf(montage_msgstr, "CTYPE1 and CTYPE2 don't match");
          return montage_msgstr;
       }
    }
-   else if(strcmp(wcs->c1type, "DEC") == 0)
+   else if(strncmp(wcs->ctype[0], "DEC", 3) == 0)
    {
-      if(strcmp(wcs->c2type, "RA") != 0)
+      if(strncmp(wcs->ctype[1], "RA", 2) != 0)
       {
          sprintf(montage_msgstr, "CTYPE1 and CTYPE2 don't match");
          return montage_msgstr;
       }
    }
-   else if(strcmp(wcs->c1type, "GLON") == 0)
+   else if(strncmp(wcs->ctype[0], "GLON", 4) == 0)
    {
-      if(strcmp(wcs->c2type, "GLAT") != 0)
+      if(strncmp(wcs->ctype[1], "GLAT", 4) != 0)
       {
          sprintf(montage_msgstr, "CTYPE1 and CTYPE2 don't match");
          return montage_msgstr;
       }
    }
-   else if(strcmp(wcs->c1type, "GLAT") == 0)
+   else if(strncmp(wcs->ctype[0], "GLAT", 4) == 0)
    {
-      if(strcmp(wcs->c2type, "GLON") != 0)
+      if(strncmp(wcs->ctype[1], "GLON", 4) != 0)
       {
          sprintf(montage_msgstr, "CTYPE1 and CTYPE2 don't match");
          return montage_msgstr;
       }
    }
-   else if(strcmp(wcs->c1type, "ELON") == 0)
+   else if(strncmp(wcs->ctype[0], "ELON", 4) == 0)
    {
-      if(strcmp(wcs->c2type, "ELAT") != 0)
+      if(strncmp(wcs->ctype[1], "ELAT", 4) != 0)
       {
          sprintf(montage_msgstr, "CTYPE1 and CTYPE2 don't match");
          return montage_msgstr;
       }
    }
-   else if(strcmp(wcs->c1type, "ELAT") == 0)
+   else if(strncmp(wcs->ctype[0], "ELAT", 4) == 0)
    {
-      if(strcmp(wcs->c2type, "ELON") != 0)
+      if(strncmp(wcs->ctype[1], "ELON", 4) != 0)
       {
          sprintf(montage_msgstr, "CTYPE1 and CTYPE2 don't match");
          return montage_msgstr;

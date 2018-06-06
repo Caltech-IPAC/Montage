@@ -14,10 +14,10 @@
 #define ISIS_MTBL_LIB
 
 #define MTBL_MAXLINE 100000
-#define MTBL_MAXSTR    1024
-#define MTBL_MAXCOL    1024
-#define MTBL_KEYLEN     256
-#define MTBL_MAXKEY    1024
+#define MTBL_MAXSTR    4096
+#define MTBL_MAXCOL    4096
+#define MTBL_KEYLEN    4096
+#define MTBL_MAXHDR     128
 
 #define MTBL_OK      0
 #define MTBL_NOFILE -2

@@ -1,12 +1,12 @@
 /* Module: mBestImage.c
 
-Version  Developer        Date     Change
--------  ---------------  -------  -----------------------
-1.2      John Good        05Oct07  Add check for lower case "url"
-1.1      John Good        04Oct07  Corrected handling of WCS (no corner) data
-1.0      John Good        14Feb05  Baseline code
+   Version  Developer        Date     Change
+   -------  ---------------  -------  -----------------------
+   1.2      John Good        05Oct07  Add check for lower case "url"
+   1.1      John Good        04Oct07  Corrected handling of WCS (no corner) data
+   1.0      John Good        14Feb05  Baseline code
 
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,7 +135,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
 
    returnStruct = (struct mBestImageReturn *)malloc(sizeof(struct mBestImageReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -209,9 +209,9 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    corners = 0;
 
    if(ira1 >= 0 && idec1 >= 0
-   && ira2 >= 0 && idec2 >= 0
-   && ira3 >= 0 && idec3 >= 0
-   && ira4 >= 0 && idec4 >= 0)
+         && ira2 >= 0 && idec2 >= 0
+         && ira3 >= 0 && idec3 >= 0
+         && ira4 >= 0 && idec4 >= 0)
    {
       corners = 1;
 
@@ -237,7 +237,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    }
 
    if(ictype1 < 0 || ictype2 < 0 || inl < 0 || ins < 0 
-   || icrval1 < 0 || icrval2 < 0 || icrpix1 < 0 || icrpix2 < 0)
+         || icrval1 < 0 || icrval2 < 0 || icrpix1 < 0 || icrpix2 < 0)
    {
       if(!corners)
       {
@@ -247,8 +247,8 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    }
 
    if(!corners
-   && !(   (  icdelt1 >= 0 && icdelt2 >= 0 && icrota2 >= 0)
-        || (   icd1_1 >= 0 && icd1_2  >= 0 && icd1_1  >= 0 && icd1_2 >= 0)))
+         && !(   (  icdelt1 >= 0 && icdelt2 >= 0 && icrota2 >= 0)
+            || (   icd1_1 >= 0 && icd1_2  >= 0 && icd1_1  >= 0 && icd1_2 >= 0)))
    {
       sprintf(returnStruct->msg, "Need columns: fname ctype1 ctype2 nl ns crval1 crval2 crpix1 crpix2 cdelt1 cdelt2 and crota2 or cd matrix / ra dec ra1 ... dec4");
       return returnStruct;
@@ -379,8 +379,8 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          for(i=0; i<4; ++i)
          {
             dist = acos(corner[i].x*center.x 
-                      + corner[i].y*center.y 
-                      + corner[i].z*center.z) / dtr;
+                  + corner[i].y*center.y 
+                  + corner[i].z*center.z) / dtr;
 
             if(dist > maxRadius) 
                maxRadius = dist;
@@ -402,29 +402,29 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          sprintf(temp, "CRPIX2  = %11.6f", crpix2 ); mBestImage_stradd(header, temp);
 
          if(icdelt1 >= 0)
-            {sprintf(temp, "CDELT1  = %11.6f", cdelt1 ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CDELT1  = %11.6f", cdelt1 ); mBestImage_stradd(header, temp);}
 
          if(icdelt2 >= 0)
-            {sprintf(temp, "CDELT2  = %11.6f", cdelt2 ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CDELT2  = %11.6f", cdelt2 ); mBestImage_stradd(header, temp);}
 
          if(icrota2 >= 0)
-            {sprintf(temp, "CROTA2  = %11.6f", crota2 ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CROTA2  = %11.6f", crota2 ); mBestImage_stradd(header, temp);}
 
          if(icd1_1  >= 0)
-            {sprintf(temp, "CD1_1   = %11.6f", cd1_1  ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CD1_1   = %11.6f", cd1_1  ); mBestImage_stradd(header, temp);}
 
          if(icd1_2  >= 0)
-            {sprintf(temp, "CD1_2   = %11.6f", cd1_2  ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CD1_2   = %11.6f", cd1_2  ); mBestImage_stradd(header, temp);}
 
          if(icd2_1  >= 0)
-            {sprintf(temp, "CD2_1   = %11.6f", cd2_1  ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CD2_1   = %11.6f", cd2_1  ); mBestImage_stradd(header, temp);}
 
          if(icd2_2  >= 0)
-            {sprintf(temp, "CD2_2   = %11.6f", cd2_2  ); mBestImage_stradd(header, temp);}
+         {sprintf(temp, "CD2_2   = %11.6f", cd2_2  ); mBestImage_stradd(header, temp);}
 
          sprintf(temp, "EQUINOX = %d",     equinox); mBestImage_stradd(header, temp);
          sprintf(temp, "END"                      ); mBestImage_stradd(header, temp);
-         
+
          if(debug)
          {
             printf("header:\n%s\n\n", header);
@@ -441,7 +441,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
             return returnStruct;
          }
 
-                                
+
          if(wcs == (struct WorldCoor *)NULL)
          {
             sprintf(returnStruct->msg, "Bad WCS for image %d", nimages);
@@ -452,7 +452,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          /* We need to get the corners in "clockwise" order */
 
          if((wcs->xinc < 0 && wcs->yinc < 0)
-         || (wcs->xinc > 0 && wcs->yinc > 0))
+               || (wcs->xinc > 0 && wcs->yinc > 0))
          {
             index[0] = 0;
             index[1] = 1;
@@ -471,8 +471,8 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          /* Coordinates of center */
 
          pix2wcs(wcs, naxis1/2., naxis2/2., 
-            &xcenter, &ycenter);
-         
+               &xcenter, &ycenter);
+
          x0 = cos(ycenter*dtr) * cos(xcenter*dtr);
          y0 = cos(ycenter*dtr) * sin(xcenter*dtr);
          z0 = sin(ycenter*dtr);
@@ -481,7 +481,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          center.y = y0;
          center.z = z0;
 
-         
+
          /* Lower left */
 
          pix2wcs(wcs, 0.5, 0.5, &xpos, &ypos);
@@ -517,10 +517,10 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          if(dist > maxRadius) 
             maxRadius = dist;
 
-         
+
          /* Upper right */
          pix2wcs(wcs, naxis1+0.5, 
-                 naxis2+0.5, &xpos, &ypos);
+               naxis2+0.5, &xpos, &ypos);
 
          x = cos(ypos*dtr) * cos(xpos*dtr);
          y = cos(ypos*dtr) * sin(xpos*dtr);
@@ -535,7 +535,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          if(dist > maxRadius) 
             maxRadius = dist;
 
-         
+
          /* Upper left */
 
          pix2wcs(wcs, 0.5, naxis2+0.5, &xpos, &ypos);
@@ -579,19 +579,19 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
       if(debug)
       {
          printf("\nChecking image %d (%s) center: [%-g,%-g](%-g,%-g,%-g) against point: [%-g,%-g](%-g,%-g,%-g)\n",
-            nimages,
-            fname,
-            xcenter, ycenter,
-            center.x,
-            center.y,
-            center.z,
-            ra, dec,
-            point.x,
-            point.y,
-            point.z);
+               nimages,
+               fname,
+               xcenter, ycenter,
+               center.x,
+               center.y,
+               center.z,
+               ra, dec,
+               point.x,
+               point.y,
+               point.z);
 
          printf("  dist = %-g < %-g ?\n", 
-            dist, maxRadius);
+               dist, maxRadius);
 
          fflush(stdout);
       }
@@ -610,13 +610,13 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          if(debug)
          {
             printf("\nChecking image side %d: (%-g,%-g,%-g) against point: (%-g,%-g,%-g)\n",
-               i,
-               normal[i].x,
-               normal[i].y,
-               normal[i].z,
-               point.x,
-               point.y,
-               point.z);
+                  i,
+                  normal[i].x,
+                  normal[i].y,
+                  normal[i].z,
+                  point.x,
+                  point.y,
+                  point.z);
 
             fflush(stdout);
          }
@@ -673,7 +673,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
 
             if(iurl >= 0)
                printf("New best url:  %s\n", bestURL);
-               
+
             printf("\nNew best HDU: %d\n", bestHDU);
             printf("\n");
             fflush(stdout);
@@ -722,7 +722,7 @@ int mBestImage_stradd(char *header, char *card)
    if(clen < 80)
       for(i=clen; i<80; ++i)
          header[hlen+i] = ' ';
-   
+
    header[hlen+80] = '\0';
 
    return(strlen(header));
@@ -745,10 +745,10 @@ int mBestImage_Cross(Vec *v1, Vec *v2, Vec *v3)
    v3->z =  v1->x*v2->y - v2->x*v1->y;
 
    if(v3->x == 0.
-   && v3->y == 0.
-   && v3->z == 0.)
+         && v3->y == 0.
+         && v3->z == 0.)
       return 0;
-  
+
    return 1;
 }
 
@@ -766,8 +766,8 @@ double mBestImage_Dot(Vec *a, Vec *b)
    double sum = 0.0;
 
    sum = a->x * b->x
-       + a->y * b->y
-       + a->z * b->z;
+      + a->y * b->y
+      + a->z * b->z;
 
    return sum;
 }

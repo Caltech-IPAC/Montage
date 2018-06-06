@@ -31,7 +31,7 @@ int subsetImage (char *impath, int ns, int nl, int xflip, int yflip, int nowcs,
     
     double ss, sl;
 
-    int   debugfile = 1;
+    int   debugfile = 0;
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "\nFrom subsetImage: impath= [%s]\n", impath);

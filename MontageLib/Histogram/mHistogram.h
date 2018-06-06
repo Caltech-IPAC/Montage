@@ -17,7 +17,7 @@ double mHistogram_snpinv            (double p);
 double mHistogram_erfinv            (double p);
 void   mHistogram_printFitsError    (int);
 
-void    mHistogram_parseRange       (char const *str, char const *kind,
+int     mHistogram_parseRange       (char const *str, char const *kind,
                                      double *val, double *extra, int *type);
 
 int     mHistogram_getRange         (fitsfile *fptr, char *minstr, char *maxstr,

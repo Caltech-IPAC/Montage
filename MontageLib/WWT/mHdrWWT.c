@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
    // All done
 
-   printf("[struct stat=\"OK\", level=%d, xtile=%d, ytile=%d]\n", 
+   printf("[struct stat=\"OK\", module=\"mHdrWWT\", level=%d, xtile=%d, ytile=%d]\n", 
       level, x, y);
 
    fflush(stdout);
@@ -186,8 +186,8 @@ void splitIndex(unsigned long index, int level, int *x, int *y)
 
    for(i=0; i<level; ++i)
    {
-      *x = *x + (((val >> (2*i))   & 0b1) << i);
-      *y = *y + (((val >> (2*i+1)) & 0b1) << i);
+      *x = *x + (((val >> (2*i))   & 1) << i);
+      *y = *y + (((val >> (2*i+1)) & 1) << i);
    }
 
    return;

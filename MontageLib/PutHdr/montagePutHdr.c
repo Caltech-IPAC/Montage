@@ -67,18 +67,18 @@ static char montage_msgstr[1024];
 /*  80 characters long (i.e. an easily editable file).                   */
 /*                                                                       */
 /*   char  *input_file     Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*                                                                       */
 /*   char  *output_file    Output FITS file                              */
 /*                                                                       */
 /*   char  *template_file  New header to replace that from the input     */
 /*                         in the output                                 */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
-struct mPutHdrReturn *mPutHdr(char *input_file, int hduin, char *output_file, char *template_file, int debug)
+struct mPutHdrReturn *mPutHdr(char *input_file, char *output_file, char *template_file, int hduin, int debug)
 {
    int       i, j, j2, j3, nullcnt;
    long      fpixel[4], nelements;
@@ -118,7 +118,7 @@ struct mPutHdrReturn *mPutHdr(char *input_file, int hduin, char *output_file, ch
 
    returnStruct = (struct mPutHdrReturn *)malloc(sizeof(struct mPutHdrReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

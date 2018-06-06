@@ -52,7 +52,7 @@ char output_area_file [MAXSTR];
 static struct WorldCoor *imgWCS;
 static struct WorldCoor *hdrWCS;
 
-static int  debug;
+static int  mAddCube_debug;
 static int  status    = 0;
 static int  haveAxis4 = 0;
 
@@ -272,7 +272,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
 
    returnStruct = (struct mAddCubeReturn *)malloc(sizeof(struct mAddCubeReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -289,7 +289,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
    time(&currtime);
    start = currtime;
 
-   debug = debugin;
+   mAddCube_debug = debugin;
 
 
    /***********************************************/
@@ -326,7 +326,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
    strcat(output_file,  ".fits");
    strcat(output_area_file, "_area.fits");
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       printf("image list       = [%s]\n", tblfile);
       printf("output_file      = [%s]\n", output_file);
@@ -458,7 +458,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       inctype2[ifile] = (char *)malloc(32*sizeof(char));
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for file metadata table info [time: %.0f]\n", 
@@ -645,7 +645,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
 
    tclose();
 
-   if(debug >= 3)
+   if(mAddCube_debug >= 3)
    {
       printf("\n%d input files:\n\n", nfile);
       fflush(stdout);
@@ -661,7 +661,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       fflush(stdout);
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("File metadata read [time: %.0f]\n", 
@@ -734,7 +734,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       }
    }
    
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for file info structures [time: %.0f]\n", 
@@ -760,7 +760,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
      output.crpix2 = jmax; /* bottom side of inputs */
    }
 
-   if (debug >= 1)
+   if (mAddCube_debug >= 1)
    {
      printf("output.naxes[0] = %ld\n", output.naxes[0]);
      printf("output.naxes[1] = %ld\n", output.naxes[1]);
@@ -779,7 +779,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
    if( output.naxes[0] > inbuflen)
       inbuflen = output.naxes[0];
 
-   if (debug >= 1)
+   if (mAddCube_debug >= 1)
    {
      printf("Input buffer length = %d\n", inbuflen);
      fflush(stdout);
@@ -801,7 +801,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for input buffers [time: %.0f]\n", 
@@ -814,7 +814,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
    /* Build array of fileinfo structures on input files */
    /*****************************************************/
 
-   if(debug >= 2)
+   if(mAddCube_debug >= 2)
    {
       printf("\nFILE RANGES\n");
       printf(" i   start   end   offset j3start   j3end  \n");
@@ -899,7 +899,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       else
          input[ifile].offset = -floor(incrpix1[ifile] - output.crpix1 + 0.5);
 
-      if (debug >= 2)
+      if (mAddCube_debug >= 2)
       {
          printf("%4d %6d %6d %6d %8d %8d\n", 
             ifile, input[ifile].start, input[ifile].end, input[ifile].offset,
@@ -978,7 +978,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
        }
     }
 
-    if(debug >= 2)
+    if(mAddCube_debug >= 2)
     {
        printf("\nSTART LINES:\n");
        printf(" i   start   file \n");
@@ -997,7 +997,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
        fflush(stdout);
     }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("File start/end information organized [time: %.0f]\n", 
@@ -1073,7 +1073,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
    }
 
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for input data buffer [time: %.0f]\n", 
@@ -1102,7 +1102,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
      
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for output data buffers [time: %.0f]\n", 
@@ -1159,7 +1159,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       printf("FITS data image created (not yet populated)\n"); 
       fflush(stdout);
@@ -1173,13 +1173,13 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       printf("FITS area image created (not yet populated)\n"); 
       fflush(stdout);
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Output FITS files created [time: %.0f]\n", 
@@ -1200,7 +1200,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       printf("Template keywords written to FITS data image\n"); 
       fflush(stdout);
@@ -1214,7 +1214,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       printf("Template keywords written to FITS area image\n"); 
       fflush(stdout);
@@ -1365,7 +1365,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("Output FITS headers updated [time: %.0f]\n", 
@@ -1395,13 +1395,13 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
 
    for (lineout=1; lineout<=output.naxes[1]; ++lineout)
    {
-      if (debug >= 2)
+      if (mAddCube_debug >= 2)
       {
         printf("\nOUTPUT LINE %d\n",lineout);
         fflush(stdout);
       }
 
-      if (debug == 1)
+      if (mAddCube_debug == 1)
       {
          printf("\r Processing line: %d", lineout);
          fflush(stdout);
@@ -1483,7 +1483,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       /* Check the files that overlap this line */
       /******************************************/
      
-      if (debug >= 2) 
+      if (mAddCube_debug >= 2) 
       {
          printf("\nContributing files (%d):\n\n", imgcount);
          printf(" i   isopen   open/max      infile[i]       \n");
@@ -1495,7 +1495,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       {
          ifile = mAddCube_listIndex(j);
 
-         if(debug >= 2)
+         if(mAddCube_debug >= 2)
          {
             printf("%4d %4d %6d/%6d %s  ",
                ifile, input[ifile].isopen, open_files, MAXFITS, infile[ifile]);
@@ -1528,7 +1528,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                return returnStruct;
             }
 
-            if(debug >= 2)
+            if(mAddCube_debug >= 2)
             {
                printf("Open:  %4d\n", ifile); 
                fflush(stdout);
@@ -1574,7 +1574,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                return returnStruct;
             }
 
-            if(debug >= 3)
+            if(mAddCube_debug >= 3)
             {
                printf("Input header to wcsinit() [imgWCS]:\n%s\n", inputHeader);
                fflush(stdout);
@@ -1642,7 +1642,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
          } 
          else
          {
-            if(debug >= 2)
+            if(mAddCube_debug >= 2)
             {
                printf("Already open\n"); 
                fflush(stdout);
@@ -1674,7 +1674,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
 
                nelements = innaxis1[ifile];
 
-               if (debug >= 4)
+               if (mAddCube_debug >= 4)
                {
                   printf("Reading %ld pixels from file %d at (%6ld, %6ld, %6ld)\n", 
                      nelements, ifile, fpixel[3], fpixel[2], fpixel[1]);
@@ -1749,7 +1749,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                      {
                         pixdepth += PIXDEPTH;
 
-                        if(debug >= 1)
+                        if(mAddCube_debug >= 1)
                         {
                            printf("\nReallocating input data buffers; new depth = %d\n",
                               pixdepth);
@@ -1785,7 +1785,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                            }
                         }
 
-                        if(debug >= 1)
+                        if(mAddCube_debug >= 1)
                         {
                            printf("Memory reallocation complete\n");
                            fflush(stdout);
@@ -1800,7 +1800,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                }
                else
                {
-                  if (debug >= 3)
+                  if (mAddCube_debug >= 3)
                   {
                      printf("Nothing read: outside image bounds\n");
                      fflush(stdout);
@@ -1822,7 +1822,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                {
                   showwarning = 1;
 
-                  if(debug >= 1)
+                  if(mAddCube_debug >= 1)
                   {
                      printf("\nWARNING: Opening and closing files to avoid too many open FITS\n\n");
                      fflush(stdout);
@@ -1838,7 +1838,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
                      return returnStruct;
                   }
 
-                  if(debug >= 2)
+                  if(mAddCube_debug >= 2)
                   {
                      printf("Close: %4d\n", ifile); 
                      fflush(stdout);
@@ -1926,7 +1926,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
             fpixel[3] = j4;
             nelements = output.naxes[0];
 
-            if(debug >= 3)
+            if(mAddCube_debug >= 3)
             {
                printf("Writing %ld pixels at (%6d, %6d, %6d) of (%6ld, %6ld %6ld)\n",
                   nelements, j4, j3, lineout, output.naxes[3], output.naxes[2], output.naxes[1]);
@@ -1955,7 +1955,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       }
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       time(&currtime);
       printf("\nOutput FITS files completed [time: %.0f]\n", 
@@ -1982,7 +1982,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAddCube_debug >= 1)
    {
       printf("FITS images finalized\n"); 
       fflush(stdout);
@@ -2049,7 +2049,7 @@ int mAddCube_readTemplate(char *filename)
       if(line[strlen(line)-1] == '\r')
          line[strlen(line)-1]  = '\0';
 
-      if(debug >= 3)
+      if(mAddCube_debug >= 3)
       {
          printf("Template line: [%s]\n", line);
          fflush(stdout);
@@ -2124,7 +2124,7 @@ void mAddCube_parseLine(char *line)
    
    *end = '\0';
 
-   if(debug >= 2)
+   if(mAddCube_debug >= 2)
    {
       printf("keyword [%s] = value [%s]\n", keyword, value);
       fflush(stdout);

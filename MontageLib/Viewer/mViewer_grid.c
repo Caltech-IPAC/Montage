@@ -131,8 +131,6 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
    int    nlon, nlat;
    int    nlab_lon, nlab_lat;
 
-   int   *lonlab_index;
-
    double dtr;
 
    int meridian; 
@@ -630,11 +628,6 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
          nlon, nlab_lon, ispace_lon);
       fflush(stdout);
    }
-
-   lonlab_index = malloc(nlon * sizeof(int));
-     
-   for (i=0; i<nlon; i++) 
-      lonlab_index[i] = -1;
 
    ilon_label = (nlat+1)/2;
 

@@ -86,8 +86,12 @@ static struct WorldCoor *wcs;
 static double xcorrection;
 static double ycorrection;
 
-static int debug;
+static int mSubimage_debug;
 static int isflat;
+static int bitpix;
+
+int haveBlank;
+static long blank;
 
 static char content[128];
 
@@ -105,16 +109,7 @@ static char montage_msgstr[1024];
 /*  the XY size in degrees of the area (X and Y) in the direction of     */
 /*  the image axes, not Equatorial coordinates.                          */
 /*                                                                       */
-/*   int    mode           Processing mode. The two main modes are       */
-/*                         0 (SKY) and 1 (PIX), corresponding to cutouts */
-/*                         are in sky coordinate or pixel space. The two */
-/*                         other modes are 3 (HDU) and 4 (SHRINK), where */
-/*                         the region parameters are ignored and you get */
-/*                         back either a single HDU or an image that has */
-/*                         had all the blank border pixels removed.      */
-/*                                                                       */
 /*   char  *infile         Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *outfile        Subimage output FITS file                     */
 /*                                                                       */
 /*   double ra             RA of cutout center (or start X pixel in      */
@@ -127,6 +122,15 @@ static char montage_msgstr[1024];
 /*   double ysize          Y size in degrees (SKY mode) or pixels        */
 /*                         (PIX mode)                                    */
 /*                                                                       */
+/*   int    mode           Processing mode. The two main modes are       */
+/*                         0 (SKY) and 1 (PIX), corresponding to cutouts */
+/*                         are in sky coordinate or pixel space. The two */
+/*                         other modes are 3 (HDU) and 4 (SHRINK), where */
+/*                         the region parameters are ignored and you get */
+/*                         back either a single HDU or an image that has */
+/*                         had all the blank border pixels removed.      */
+/*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    nowcs          Indicates that the image has no WCS info      */
 /*                         (only makes sense in PIX mode)                */
 /*                                                                       */
@@ -134,8 +138,8 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile, double ra, double dec, 
-                                  double xsize, double ysize, int nowcs, int debugin)
+struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double dec, 
+                                  double xsize, double ysize, int mode, int hdu, int nowcs, int debugin)
 {
    fitsfile *infptr, *outfptr;
 
@@ -168,7 +172,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    dtr = atan(1.)/45.;
 
-   debug = debugin;
+   mSubimage_debug = debugin;
 
    pixMode    = 0;
    shrinkWrap = 0;
@@ -183,7 +187,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    returnStruct = (struct mSubimageReturn *)malloc(sizeof(struct mSubimageReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -225,6 +229,28 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       }
    }
 
+   fits_get_img_type(infptr, &bitpix, &status);
+   
+   haveBlank = 1;
+   if(fits_read_key_lng(infptr, "BLANK", &blank, (char *)NULL, &status))
+   {
+      haveBlank = 0;
+      status    = 0;
+   }
+
+   if(mSubimage_debug)
+   {
+      printf("DEBUG> bitpix = %d\n", bitpix);
+      printf("DEBUG> blank  = %ld (%d)\n", blank, haveBlank);
+      fflush(stdout);
+   }
+
+   if(bitpix != -64 && shrinkWrap)
+   {
+      strcpy(returnStruct->msg, "Shrinkwrap mode only works for double precision floating point data.");
+      return returnStruct;
+   }
+
    if(shrinkWrap)
    {
       if(mSubimage_dataRange(infptr, &imin, &imax, &jmin, &jmax) > 0)
@@ -233,7 +259,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          return returnStruct;
       }
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("imin  = %d\n", imin);
          printf("imax  = %d\n", imax);
@@ -246,7 +272,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    if (!nowcs) 
    {
-      if(debug) 
+      if(mSubimage_debug) 
       {
          printf("WCS handling\n");
          fflush(stdout);
@@ -277,7 +303,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          cdelt[1] = wcs->cd[3]/cos(rotang*dtr);
       }
 
-      if(debug)
+      if(mSubimage_debug)
       {
          for(i=0; i<params.naxis; ++i)
          {
@@ -349,7 +375,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          epoch = 2000.;
       }
       
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("input coordinate system = %d\n", EQUJ);
          printf("input epoch             = %-g\n", 2000.);
@@ -384,7 +410,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
 
    else if(pixMode)
    {
-      if(debug) {
+      if(mSubimage_debug) {
          printf("xsize= [%lf]\n", xsize);
          printf("ysize= [%lf]\n", ysize);
 
@@ -410,7 +436,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("\npixMode = TRUE\n");
          printf("'ra'    = %-g\n", ra);
@@ -448,7 +474,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       }
       ********************************************************************************************/
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("   ra   = %-g\n", ra);
          printf("   dec  = %-g\n", dec);
@@ -496,7 +522,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
 
-      if(debug)
+      if(mSubimage_debug)
       {
          printf("\npixMode = FALSE\n");
          printf("cdelt1  = %-g\n", cdelt[0]);
@@ -512,8 +538,8 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
          fflush(stdout);
       }
 
-      if(params.ibegin >= params.iend
-      || params.jbegin >= params.jend)
+      if(params.ibegin > params.iend
+      || params.jbegin > params.jend)
       {
          sprintf(returnStruct->msg, "No pixels match area.");
          return returnStruct;
@@ -523,7 +549,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
       
    params.nelements = params.iend - params.ibegin + 1;
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("ibegin    = %d\n",  params.ibegin);
       printf("iend      = %d\n",  params.iend);
@@ -553,7 +579,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
    /* from the input to the output */
    /********************************/
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("Calling copyHeaderInfo()\n");
       fflush(stdout);
@@ -567,7 +593,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
    /************************/
 
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("Calling copyData()\n");
       fflush(stdout);
@@ -584,7 +610,7 @@ struct mSubimageReturn *mSubimage(int mode, char *infile, int hdu, char *outfile
    /* Close the files */
    /*******************/
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("Calling fits_close_file()\n");
       fflush(stdout);
@@ -660,7 +686,7 @@ struct WorldCoor *mSubimage_getFileInfo(fitsfile *infptr, char *header[], struct
       return (struct WorldCoor *)NULL;
    }
    
-   if(debug)
+   if(mSubimage_debug)
    {
       for(i=0; i<params->naxis; ++i)
          printf("naxis%d = %ld\n",  i+1, params->naxes[i]);
@@ -718,13 +744,6 @@ int mSubimage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubima
    /**********************/
    /* Update header info */
    /**********************/
-
-   if(fits_update_key_lng(outfptr, "BITPIX", -64,
-                                  (char *)NULL, &status))
-   {
-      mSubimage_printFitsError(status);
-      return 1;
-   }
 
    if(fits_update_key_lng(outfptr, "NAXIS", 2,
                                   (char *)NULL, &status))
@@ -789,7 +808,7 @@ int mSubimage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubima
       }
    }
 
-   if(debug)
+   if(mSubimage_debug)
    {
       printf("naxis1 -> %ld\n", params->nelements);
       printf("naxis2 -> %d\n",  naxis2);
@@ -814,10 +833,16 @@ int mSubimage_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubima
 
 int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimageParams *params)
 {
-   long    fpixel[4], fpixelo[4];
-   int     i, j, nullcnt;
-   int     status = 0;
-   double *buffer, refval;
+   long       fpixel[4], fpixelo[4];
+   int        i, j, nullcnt;
+   int        status = 0;
+
+   double             *buffer_double,   refval_double;
+   float              *buffer_float,    refval_float;
+   unsigned long long *buffer_longlong, refval_longlong;
+   unsigned long      *buffer_long,     refval_long;
+   unsigned short     *buffer_short,    refval_short;
+   unsigned char      *buffer_byte,     refval_byte;
 
 
    /*************************************************/
@@ -826,17 +851,20 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
 
    union
    {
-      double d;
+      double d8;
+      float  d4[2];
       char   c[8];
    }
    value;
 
-   double nan;
+   double dnan;
+   float  fnan;
 
    for(i=0; i<8; ++i)
       value.c[i] = 255;
 
-   nan = value.d;
+   dnan = value.d8;
+   fnan = value.d4[0];
 
 
    fpixel[0] = params->ibegin;
@@ -844,7 +872,12 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
    fpixel[2] = 1;
    fpixel[3] = 1;
 
-   buffer  = (double *)malloc(params->nelements * sizeof(double));
+        if(bitpix == -64) buffer_double   = (double             *)malloc(params->nelements * sizeof(double));
+   else if(bitpix == -32) buffer_float    = (float              *)malloc(params->nelements * sizeof(float));
+   else if(bitpix ==  64) buffer_longlong = (unsigned long long *)malloc(params->nelements * sizeof(long long));
+   else if(bitpix ==  32) buffer_long     = (unsigned long      *)malloc(params->nelements * sizeof(long));
+   else if(bitpix ==  16) buffer_short    = (unsigned short     *)malloc(params->nelements * sizeof(short));
+   else if(bitpix ==   8) buffer_byte     = (unsigned char      *)malloc(params->nelements * sizeof(char));
 
    fpixelo[0] = 1;
    fpixelo[1] = 1;
@@ -853,37 +886,124 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
 
    isflat = 1;
 
-   refval = nan;
+   refval_double   = dnan;
+   refval_float    = fnan;
+   refval_longlong = blank;
+   refval_long     = blank;
+   refval_short    = blank;
+   refval_byte     = blank;
 
    for (j=params->jbegin; j<=params->jend; ++j)
    {
-      if(debug >= 2)
+      if(mSubimage_debug >= 2)
       {
          printf("Processing input image row %5d\n", j);
          fflush(stdout);
       }
 
-      if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
-                       buffer, &nullcnt, &status))
+      if(bitpix > 0)
+         fits_set_bscale(infptr, 1., 0., &status);
+
+      if(bitpix      == -64) 
+         fits_read_pix(infptr, TDOUBLE,   fpixel, params->nelements, &dnan, buffer_double,   &nullcnt, &status);
+      else if(bitpix == -32) 
+         fits_read_pix(infptr, TFLOAT,    fpixel, params->nelements, &dnan, buffer_float,    &nullcnt, &status);
+      else if(bitpix ==  64) 
+         fits_read_pix(infptr, TLONGLONG, fpixel, params->nelements,  NULL, buffer_longlong, &nullcnt, &status);
+      else if(bitpix ==  32) 
+         fits_read_pix(infptr, TLONG,     fpixel, params->nelements,  NULL, buffer_long,     &nullcnt, &status);
+      else if(bitpix ==  16) 
+         fits_read_pix(infptr, TSHORT,    fpixel, params->nelements,  NULL, buffer_short,    &nullcnt, &status);
+      else if(bitpix ==   8) 
+         fits_read_pix(infptr, TBYTE,     fpixel, params->nelements,  NULL, buffer_byte,     &nullcnt, &status);
+
+      if(status)
       {
          mSubimage_printFitsError(status);
          return 1;
       }
 
-      for(i=0; i<params->nelements; ++i)
-      {
-         if(!mNaN(buffer[i]))
-         {
-            if(mNaN(refval))
-               refval = buffer[i];
+      if(bitpix == -64) 
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(!mNaN(buffer_double[i]))
+            {    
+               if(mNaN(refval_double))
+                  refval_double = buffer_double[i];
 
-            if(buffer[i] != refval)
-               isflat = 0;
-         }
-      }
+               if(buffer_double[i] != refval_double)
+                  isflat = 0; 
+            }    
+         }    
+      }    
 
-      if (fits_write_pix(outfptr, TDOUBLE, fpixelo, params->nelements,
-                         (void *)buffer, &status))
+      else if(bitpix == -32) 
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(!mNaN(buffer_float[i]))
+            {    
+               if(mNaN(refval_float))
+                  refval_float = buffer_float[i];
+
+               if(buffer_float[i] != refval_float)
+                  isflat = 0; 
+            }    
+         }    
+      }    
+
+      else if(bitpix == 64)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_longlong[i] != refval_longlong)
+               isflat = 0; 
+         }    
+      }    
+
+      else if(bitpix == 32)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_long[i] != refval_long)
+               isflat = 0; 
+         }    
+      }    
+
+      else if(bitpix == 16)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_short[i] != refval_short)
+               isflat = 0; 
+         }    
+      }    
+
+      else if(bitpix == 8)
+      {    
+         for(i=0; i<params->nelements; ++i) 
+         {    
+            if(buffer_byte[i] != refval_byte)
+               isflat = 0; 
+         }    
+      }    
+
+
+      if(bitpix      == -64) 
+         fits_write_pix(outfptr, TDOUBLE,   fpixelo, params->nelements, (void *)buffer_double,   &status);
+      else if(bitpix == -32) 
+         fits_write_pix(outfptr, TFLOAT,    fpixelo, params->nelements, (void *)buffer_float,    &status);
+      else if(bitpix ==  64) 
+         fits_write_pix(outfptr, TLONGLONG, fpixelo, params->nelements, (void *)buffer_longlong, &status);
+      else if(bitpix ==  32) 
+         fits_write_pix(outfptr, TLONG,     fpixelo, params->nelements, (void *)buffer_long,     &status);
+      else if(bitpix ==  16) 
+         fits_write_pix(outfptr, TSHORT,    fpixelo, params->nelements, (void *)buffer_short,    &status);
+      else if(bitpix ==   8) 
+         fits_write_pix(outfptr, TBYTE,     fpixelo, params->nelements, (void *)buffer_byte,     &status);
+
+      if(status)
       {
          mSubimage_printFitsError(status);
          return 1;
@@ -894,11 +1014,16 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
    }
 
 
-   free(buffer);
+        if(bitpix == -64) free(buffer_double);
+   else if(bitpix == -32) free(buffer_float);
+   else if(bitpix ==  64) free(buffer_longlong);
+   else if(bitpix ==  32) free(buffer_long);
+   else if(bitpix ==  16) free(buffer_short);
+   else if(bitpix ==   8) free(buffer_byte);
 
    if(isflat)
    {
-      if(mNaN(refval))
+      if(mNaN(refval_double))
          strcpy(content, "blank");
       else
          strcpy(content, "flat");
@@ -963,7 +1088,7 @@ int mSubimage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *
 
    for (j=1; j<=naxes[1]; ++j)
    {
-      if(debug >= 2)
+      if(mSubimage_debug >= 2)
       {
          printf("Processing image row %5d\n", j);
          fflush(stdout);

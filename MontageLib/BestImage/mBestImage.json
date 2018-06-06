@@ -15,6 +15,8 @@
    
    "return":
    [
+      {"type":"int",                 "name":"status",           "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",              "name":"msg",              "desc":"Return message (for errors)."},
       {"type":"string",              "name":"file",             "desc":"'Best' file name."},
       {"type":"int",                 "name":"hdu",              "desc":"HDU in file."},
       {"type":"string",              "name":"url",              "desc":"URL to file (if available)."},

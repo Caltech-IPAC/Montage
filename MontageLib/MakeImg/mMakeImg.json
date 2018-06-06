@@ -30,6 +30,7 @@
 
    "return":
    [
-      {}
+      {"type":"int",                     "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                  "name":"msg",           "desc":"Return message (for errors)."}
    ]
 }

@@ -120,7 +120,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\"]\n");
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mBgModel\"]\n");
        exit(0);
    }
 }

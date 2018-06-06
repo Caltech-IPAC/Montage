@@ -1,0 +1,26 @@
+{
+   "module":"mFitExec",
+
+   "function":"mFitExec",
+
+   "desc" : "mFitExec loops over a list of differnece images, fitting their level/slopes.",
+
+   "arguments":
+   [
+      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input images."},
+      {"type":"string",                   "name":"fitfile",      "desc":"Table file for output difference fit info."},
+      {"type":"string",  "default":"./",  "name":"diffdir",      "desc":"Directory for temporary difference files."},
+      {"type":"boolean", "default":false, "name":"levelOnly",    "desc":"Flag to fit level of differences only, not slopes."},
+      {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                      "name":"status",       "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",          "desc":"Return message (for errors)."},
+      {"type":"int",                      "name":"count",        "desc":"Total number of images."},
+      {"type":"int",                      "name":"failed",       "desc":"Count where fitting failed."},
+      {"type":"int",                      "name":"warning",      "desc":"Count where fitting produced warnings."},
+      {"type":"int",                      "name":"missing",      "desc":"Count of missing difference images."}
+   ]
+}

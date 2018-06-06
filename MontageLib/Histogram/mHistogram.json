@@ -19,6 +19,8 @@
 
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"double",                    "name":"minval",        "desc":"Data value associated with histogram minimum."},
       {"type":"double",                    "name":"minpercent",    "desc":"Percentile value of histogram minimum."},
       {"type":"double",                    "name":"minsigma",      "desc":"'Sigma' level of histogram minimum."},

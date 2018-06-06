@@ -1,0 +1,25 @@
+{
+   "module":"mDiffExec",
+
+   "function":"mDiffExec",
+
+   "desc" : "mDiffExec loops over a list of image overlaps, computing and saving the differences.",
+
+   "arguments":
+   [
+      {"type":"string",                   "name":"path",         "desc":"Path to raw image directory."},
+      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input images."},
+      {"type":"string",                   "name":"template",     "desc":"FITS header file used to define the desired output."},
+      {"type":"string",  "default":"./",  "name":"diffdir",      "desc":"Directory for temporary difference files."},
+      {"type":"boolean", "default":false, "name":"noAreas",      "desc":"Flag indicating there are no area images."},
+      {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                      "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                      "name":"count",        "desc":"Total number of images."},
+      {"type":"int",                      "name":"failed",       "desc":"Count where difference failed."}
+   ]
+}

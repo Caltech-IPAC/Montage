@@ -7,7 +7,7 @@
 
    "arguments":
    [
-      {"type":"string",  "default":"./",   "name":"path",          "desc":"Directory containing files to be coadded."},
+      {"type":"string",                    "name":"path",          "desc":"Directory containing files to be coadded."},
       {"type":"string",                    "name":"tblfile",       "desc":"Table file list of reprojected files to coadded."},
       {"type":"string",                    "name":"template_file", "desc":"FITS header file used to define the desired output."},
       {"type":"string",                    "name":"outfile",       "desc":"Final mosaic FITS file."},
@@ -19,6 +19,8 @@
    
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
    ]
 }

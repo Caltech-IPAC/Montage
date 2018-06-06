@@ -33,10 +33,9 @@ appdir=$(webdir)/applications/mViewer
 srcdir=.
 
 # The names of all executables in this product
-progs = nph-mViewer nph-mViewerInit nph-mViewerHdr nph-mViewerApp
+progs = nph-mViewer nph-mViewerHdr
 
 # The names of all source files in this product
-sources = nph-mViewerInit.c nph-mViewerHdr.c
 
 srcmviewer = nph-mViewer.c \
 	extractViewParam.c \
@@ -59,23 +58,8 @@ srcmviewer = nph-mViewer.c \
 	fileCopy.c \
 	extractAvePlane.c \
 	generateMedianPlane.c \
-	qsort.c \
-	rewriteFitsCube.c \
-	extractWaveSpectra.c \
+	qsort.c
 
-
-srcmviewerapp = nph-mViewerApp.c \
-	makeStartupHtml.c \
-	writeJsonFile.c \
-	extractStartupParam.c \
-	readStartupParam.c \
-	getFitshdr.c \
-	checkFileExist.c \
-	writeOptionList.c \
-	readImfileList.c \
-	readFilelist.c \
-	fileCopy.c \
-	mviewerUtil.c
 
 srcmviewerhdr = nph-mViewerHdr.c \
 	writeFitshdrHtml.c \
@@ -90,7 +74,6 @@ srcmviewerhdr = nph-mViewerHdr.c \
 comp_tgts = all install test $(progs) \
             $(sources:.c=.o) $(sources:.c=.d) \
 	    $(srcmviewer:.c=.o) $(srcmviewer:.c=.d) \
-	    $(srcmviewerapp:.c=.o) $(srcmviewerapp:.c=.d) \
 	    $(srcmviewerhdr:.c=.o) $(srcmviewerhdr:.c=.d)
 
 
@@ -187,14 +170,13 @@ vpath %.h       $(srcdir)
 all :		$(progs) 
 
 .PHONY :	all clean distclean installdirs install installdocs uninstall
-.SECONDARY :    $(sources:.c=.d) $(srcmviewer:.c=.d) $(srcmviewerapp:.c=.d)
+.SECONDARY :    $(sources:.c=.d) $(srcmviewer:.c=.d) $(srcmviewerhdr:.c=.d)
 .DELETE_ON_ERROR : ;
 
 ifeq ($(dep_check),true)
     include $(sources:.c=.d)
     include $(srcmviewer:.c=.d)
     include $(srcmviewerhdr:.c=.d)
-    include $(srcmviewerapp:.c=.d)
 endif
 
 
@@ -204,16 +186,8 @@ nph-mViewer :	$(srcmviewer:.c=.o) $(base_libs) $(tps_libs) \
 		$(env_libs)
 		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
 
-nph-mViewerInit :	nph-mViewerInit.o $(base_libs)
-		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
-
 nph-mViewerHdr :	$(srcmviewerhdr:.c=.o) $(base_libs)
 		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
-
-nph-mViewerApp :	$(srcmviewerapp:.c=.o) $(base_libs) $(tps_libs) \
-		$(env_libs)
-		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
-
 
 
 # Cleans the build tree
@@ -225,7 +199,10 @@ distclean :	clean
 
 # Creates required installation directories
 installdirs :
-		$(INSTALL_DIR) $(datadir) $(cgidir) $(appdir)
+#		$(INSTALL_DIR) $(datadir) $(cgidir) $(appdir)
+		$(INSTALL_DIR) $(cgidir) $(appdir)
+
+
 
 # Creates a tar-ball for all web content
 FORCE:
@@ -239,16 +216,19 @@ webcontent.tar : FORCE
 install :       $(progs) data.tar webcontent.tar installdirs 
 		tar -cf webcontent.tar -C $(srcdir)/html .
 		$(INSTALL_PROGRAM) $(progs) $(cgidir)
-		rm -rf $(datadir)/*
-		$(INSTALL_DATA) data.tar $(datadir)
-		cd $(datadir); tar -xf data.tar; rm data.tar
+#		rm -rf $(datadir)/*
+#		$(INSTALL_DATA) data.tar $(datadir)
+#		cd $(datadir); tar -xf data.tar; rm data.tar
 		rm -rf $(appdir)/*
 		$(INSTALL_DATA) webcontent.tar $(appdir)
 		cd $(appdir); tar -xf webcontent.tar; rm webcontent.tar
+		mv $(appdir)/mViewer.js $(appdir)/mViewer_v1.0.js
+
 
 # Uninstalls the product
 uninstall :
-		rm -rf $(cgidir) $(appdir) $(datadir)
+#		rm -rf $(cgidir) $(appdir) $(datadir)
+		rm -rf $(cgidir) $(appdir)
 
 # ================================================================
 

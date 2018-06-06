@@ -134,7 +134,7 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
 
    returnStruct = (struct mBackgroundReturn *)malloc(sizeof(struct mBackgroundReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -180,7 +180,6 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
 
    if(debug >= 1)
    {
-      printf("debug            = %d\n",   debug);
       printf("input_file       = [%s]\n", input_file);
       printf("output_file      = [%s]\n", output_file);
       printf("output_area_file = [%s]\n", output_area_file);

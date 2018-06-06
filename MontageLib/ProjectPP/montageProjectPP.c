@@ -97,7 +97,7 @@ BorderPoint;
 static BorderPoint polygon[256];
 
 
-static int  debug;
+static int  mProjectPP_debug;
 static int  hdu;
 
 
@@ -118,7 +118,8 @@ input, weight, output, output_area;
 
 static double crpix1, crpix2;
 
-static double pixelArea;
+static double  inPixelArea;
+static double outPixelArea;
 
 
 /* Structure contains the geometric  */
@@ -177,11 +178,11 @@ static char montage_msgstr[1024];
 /*  not required (leading to some interesting combinations).             */
 /*                                                                       */
 /*   char  *input_file     FITS file to reproject                        */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *output_file    Reprojected FITS file                         */
 /*   char  *template_file  FITS header file used to define the desired   */
 /*                         output                                        */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *weight_file    Optional pixel weight FITS file (must match   */
 /*                         input)                                        */
 /*                                                                       */
@@ -199,6 +200,8 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*   double drizzle        Optional pixel area "drizzle" factor          */
 /*   double fluxScale      Scale factor applied to all pixels            */
+/*   int    energyMode     Pixel values are total energy rather than     */
+/*                         energy density                                */
 /*   int    expand         Expand output image area to include all of    */
 /*                         the input pixels                              */
 /*   int    fullRegion     Do not "shrink-wrap" output area to non-blank */
@@ -207,9 +210,9 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, char *template_file,
+struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *template_file, int hduin,
                                     char *weight_file, double fixedWeight, double threshold, char *borderstr, 
-                                    char *altin, char *altout, double drizzle, double fluxScale, 
+                                    char *altin, char *altout, double drizzle, double fluxScale, int energyMode,
                                     int expand, int fullRegion, int debugin)
 {
    int       i, j, l, m;
@@ -288,7 +291,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
 
    returnStruct = (struct mProjectPPReturn *)malloc(sizeof(struct mProjectPPReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -300,7 +303,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    /* Process the command-line parameters */
    /***************************************/
 
-   debug = debugin;
+   mProjectPP_debug = debugin;
+
    hdu   = hduin;
 
    strcpy(output_file, ofile);
@@ -405,7 +409,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    strcat(output_file,  ".fits");
    strcat(area_file,    "_area.fits");
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("\ninput_file    = [%s]\n", input_file);
       printf("output_file   = [%s]\n", output_file);
@@ -426,7 +430,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    /* Read the input image */
    /************************/
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       time(&currtime);
       printf("\nStarting to process pixels (time %.0f)\n\n", 
@@ -443,7 +447,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    if(altin[0] != '\0')
       mProjectPP_readTemplate(altin, ALTERNATE_INPUT);
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("input.naxes[0]   =  %ld\n",  input.naxes[0]);
       printf("input.naxes[1]   =  %ld\n",  input.naxes[1]);
@@ -474,7 +478,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
                         + input.naxes[1]*input.naxes[1]));
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("\nexpand output template by %-g on all sides\n\n", offset);
       fflush(stdout);
@@ -493,7 +497,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    if(altout[0] != '\0')
       mProjectPP_readTemplate(altout, ALTERNATE_OUTPUT);
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("\noutput.naxes[0]  =  %ld\n", output.naxes[0]);
       printf("output.naxes[1]  =  %ld\n",   output.naxes[1]);
@@ -551,7 +555,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 2)
+   if(mProjectPP_debug >= 2)
    {
       printf("Initialize_TwoPlane_BothDistort() successful\n");
       fflush(stdout);
@@ -608,7 +612,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
                 oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n", 
             0.5, j+0.5, oxpixe, oypixe, offscl);
@@ -634,7 +638,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
                 oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n", 
             input.naxes[0]+0.5, j+0.5, oxpixe, oypixe, offscl);
@@ -665,7 +669,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
                 oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n", 
             i+0.5, 0.5, oxpixe, oypixe, offscl);
@@ -691,7 +695,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
                 oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          printf("Range: %-g,%-g -> %-g,%-g (%d)\n",
             i+0.5, input.naxes[1]+0.5, oxpixe, oypixe, offscl);
@@ -785,7 +789,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    if(jlength > output.naxes[1])
       jlength = output.naxes[1];
 
-   if(debug >= 2)
+   if(mProjectPP_debug >= 2)
    {
       printf("\nOutput range:\n");
       printf(" oxpixMin = %-g\n", oxpixMin);
@@ -832,7 +836,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       }
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("\n%lu bytes allocated for image pixels\n", 
          ilength * jlength * sizeof(double));
@@ -882,7 +886,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       }
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("%lu bytes allocated for pixel areas\n", 
          ilength * jlength * sizeof(double));
@@ -912,7 +916,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       {
          ibfound = mProjectPP_BorderRange(j, input.naxes[0]-1, &ibmin, &ibmax);
 
-         if(debug >= 2)
+         if(mProjectPP_debug >= 2)
          {
             printf("\rProcessing input row %5d: border range %d to %d (%d)", 
                j, ibmin, ibmax, ibfound);
@@ -925,7 +929,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
             continue;
          }
       }
-      else if(debug == 2)
+      else if(mProjectPP_debug == 2)
       {
          printf("\rProcessing input row %5d  ", j);
          fflush(stdout);
@@ -1138,7 +1142,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
 
          pixel_value *= fluxScale;
 
-         if(debug >= 3)
+         if(mProjectPP_debug >= 3)
          {
             if(haveWeights)
                printf("\nInput: line %d / pixel %d, value = %-g (weight: %-g)\n\n",
@@ -1229,7 +1233,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
             ypixIndMin = floor(oypixMin - 0.5);
             ypixIndMax = floor(oypixMax - 0.5) + 1;
 
-            if(debug >= 3)
+            if(mProjectPP_debug >= 3)
             {
                printf("\n");
                printf(" oxpixMin = %20.13e\n", oxpixMin);
@@ -1272,19 +1276,30 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
                      overlapArea = mProjectPP_computeOverlapPP(ixpix, iypix, 
                                                                minX,  maxX,
                                                                minY,  maxY,
-                                                               pixelArea);
+                                                               outPixelArea);
                   }
 
 
                   /* Update the output data and area arrays */
-                  if (mNaN(data[m-jstart][l-istart]))
-                     data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+
+                  if(energyMode)
+                  {
+                     if (mNaN(data[m-jstart][l-istart]))
+                        data[m-jstart][l-istart] = pixel_value * overlapArea/inPixelArea * weight_value;
+                     else
+                        data[m-jstart][l-istart] += pixel_value * overlapArea/inPixelArea * weight_value;
+                  }
                   else
-                     data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                  {
+                     if (mNaN(data[m-jstart][l-istart]))
+                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+                     else
+                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                  }
 
                   area[m-jstart][l-istart] += overlapArea * weight_value;
 
-                  if(debug >= 3)
+                  if(mProjectPP_debug >= 3)
                   {
                      printf("Compare out(%d,%d) to in(%d,%d) => ", m, l, j, i);
                      printf("overlapArea = %12.5e (%12.5e / %12.5e)\n", overlapArea, 
@@ -1297,7 +1312,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       }
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       time(&currtime);
       printf("\n\nDone processing pixels (%.0f seconds)\n\n",
@@ -1337,8 +1352,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       {
          if(area[j][i] > 0.)
          {
-            data[j][i] 
-               = data[j][i] / area[j][i];
+            if(!energyMode)
+               data[j][i] = data[j][i] / area[j][i];
 
             if(!haveMinMax)
             {
@@ -1380,7 +1395,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    jmin = jmin + jstart;
    jmax = jmax + jstart;
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("Data min = %-g\n", datamin);
       printf("Data max = %-g\n", datamax);
@@ -1397,6 +1412,24 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       mProjectPP_printError("All pixels are blank. Check for overlap of output template with image file.");
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
+   }
+
+   if(fullRegion)
+   {
+      imin = 0;
+      imax = output.naxes[0]-1;
+
+      jmin = 0;
+      jmax = output.naxes[1]-1;
+
+      if(mProjectPP_debug >= 1)
+      {
+         printf("Full region reset\n");
+         printf("i min    = %d\n", imin);
+         printf("i max    = %d\n", imax);
+         printf("j min    = %d\n", jmin);
+         printf("j max    = %d\n", jmax);
+      }
    }
 
 
@@ -1434,7 +1467,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("\nFITS data image created (not yet populated)\n"); 
       fflush(stdout);
@@ -1447,7 +1480,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("FITS area image created (not yet populated)\n"); 
       fflush(stdout);
@@ -1465,7 +1498,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("Template keywords written to FITS data image\n"); 
       fflush(stdout);
@@ -1478,7 +1511,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("Template keywords written to FITS area image\n\n"); 
       fflush(stdout);
@@ -1594,7 +1627,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
    }
 
 
-   if(debug)
+   if(mProjectPP_debug)
    {
       printf("Template keywords BITPIX, CRPIX, and NAXIS updated\n");
       fflush(stdout);
@@ -1624,7 +1657,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
 
    free(data[0]);
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("Data written to FITS data image\n"); 
       fflush(stdout);
@@ -1654,7 +1687,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
 
    free(area[0]);
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("Data written to FITS area image\n\n"); 
       fflush(stdout);
@@ -1672,7 +1705,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("FITS data image finalized\n"); 
       fflush(stdout);
@@ -1685,7 +1718,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectPP_debug >= 1)
    {
       printf("FITS area image finalized\n\n"); 
       fflush(stdout);
@@ -1726,7 +1759,7 @@ int mProjectPP_readTemplate(char *filename, int headerType)
 
    double    dtr = atan(1.0) / 45.;
 
-   if(debug >= 3)
+   if(mProjectPP_debug >= 3)
    {
       printf("readTemplate() file = [%s]\n", filename);
       fflush(stdout);
@@ -1760,7 +1793,7 @@ int mProjectPP_readTemplate(char *filename, int headerType)
       if(line[strlen(line)-1] == '\r')
          line[strlen(line)-1]  = '\0';
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          printf("Template line: [%s]\n", line);
          fflush(stdout);
@@ -1771,6 +1804,8 @@ int mProjectPP_readTemplate(char *filename, int headerType)
       mProjectPP_stradd(headerStr, line);
    }
 
+   fclose(fp);
+
 
    /****************************************/
    /* Initialize the WCS transform library */
@@ -1778,7 +1813,7 @@ int mProjectPP_readTemplate(char *filename, int headerType)
 
    if(headerType == ALTERNATE_INPUT)
    {
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          printf("Alternate input header to wcsinit() [input.wcs]:\n%s\n", headerStr);
          fflush(stdout);
@@ -1854,7 +1889,7 @@ int mProjectPP_readTemplate(char *filename, int headerType)
 
       input.clockwise = !input.clockwise;
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          if(input.clockwise)
             printf("Input pixels are clockwise.\n");
@@ -1864,7 +1899,7 @@ int mProjectPP_readTemplate(char *filename, int headerType)
    }
    else
    {
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          if(headerType == ALTERNATE_OUTPUT)
          {
@@ -1893,7 +1928,8 @@ int mProjectPP_readTemplate(char *filename, int headerType)
 
       output_area.wcs = output.wcs;
 
-      pixelArea = fabs(output.wcs->xinc * output.wcs->yinc) * dtr * dtr;
+       inPixelArea = fabs( input.wcs->xinc *  input.wcs->yinc) * dtr * dtr;
+      outPixelArea = fabs(output.wcs->xinc * output.wcs->yinc) * dtr * dtr;
 
 
       /*************************************/
@@ -1955,7 +1991,7 @@ int mProjectPP_readTemplate(char *filename, int headerType)
       if((output.wcs->xinc < 0 && output.wcs->yinc < 0)
       || (output.wcs->xinc > 0 && output.wcs->yinc > 0)) output.clockwise = 1;
 
-      if(debug >= 3)
+      if(mProjectPP_debug >= 3)
       {
          if(output.clockwise)
             printf("Output pixels are clockwise.\n");
@@ -2017,7 +2053,7 @@ int mProjectPP_parseLine(char *linein, int headerType)
    
    *end = '\0';
 
-   if(debug >= 2)
+   if(mProjectPP_debug >= 2)
    {
       printf("keyword [%s] = value [%s]\n", keyword, value);
       fflush(stdout);
@@ -2138,7 +2174,7 @@ int mProjectPP_readFits(char *filename, char *weightfile)
    /* Initialize the WCS transform library */
    /****************************************/
 
-   if(debug >= 3)
+   if(mProjectPP_debug >= 3)
    {
       printf("Input header to wcsinit() [input.wcs]:\n%s\n", input_header);
       fflush(stdout);
@@ -2185,7 +2221,7 @@ int mProjectPP_readFits(char *filename, char *weightfile)
    if((input.wcs->xinc < 0 && input.wcs->yinc < 0)
    || (input.wcs->xinc > 0 && input.wcs->yinc > 0)) input.clockwise = 1;
 
-   if(debug >= 3)
+   if(mProjectPP_debug >= 3)
    {
       if(input.clockwise)
          printf("Input pixels are clockwise.\n");
@@ -2322,7 +2358,7 @@ void mProjectPP_UpdateBounds (double oxpix, double oypix,
   offscl = (ixpix < -0.5 || ixpix > two_plane.naxis1_1 + 1.5 ||
             iypix < -0.5 || iypix > two_plane.naxis2_1 + 1.5);
 
-  if(debug >= 3)
+  if(mProjectPP_debug >= 3)
   {
      printf("Bounds: %-g,%-g -> %-g,%-g (%d)\n", 
        oxpix, oypix, ixpix, iypix, offscl);
@@ -2355,7 +2391,7 @@ int mProjectPP_BorderSetup(char *strin)
 
    strcpy(str, strin);
 
-   if(debug >= 3)
+   if(mProjectPP_debug >= 3)
    {
       printf("Polygon string: [%s]\n", str);
 
@@ -2407,7 +2443,7 @@ int mProjectPP_BorderSetup(char *strin)
 
       polygon[nborder].y = atoi(ptr);
 
-      if(debug)
+      if(mProjectPP_debug)
       {
          printf("Polygon border  %3d: %6d %6d\n", 
             nborder,

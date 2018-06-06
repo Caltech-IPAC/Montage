@@ -29,8 +29,7 @@ void createSubHdrs(char *hdrStr, int level);
 
 int main(int argc, char **argv)
 {
-   int    level, index, x, y, fileStat;
-   double crpix1, crpix2;
+   int    level, fileStat;
 
    char   hdrStr  [256];
    char   cmd    [1024];
@@ -135,7 +134,7 @@ int main(int argc, char **argv)
 
    // All done
 
-   printf("[struct stat=\"OK\", level=%d, nheader=%d]\n", level, nhdr);
+   printf("[struct stat=\"OK\", module=\"mHdrWWTExec\", level=%d, nheader=%d]\n", level, nhdr);
    fflush(stdout);
    exit(0);
 }

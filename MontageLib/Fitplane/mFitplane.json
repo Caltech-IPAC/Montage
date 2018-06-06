@@ -15,6 +15,8 @@
    
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"double",                    "name":"a",              "desc":"Plane fit coefficient for X axis."},
       {"type":"double",                    "name":"b",              "desc":"Plane fit coefficient for Y axis."},
       {"type":"double",                    "name":"c",              "desc":"Plane fit constant offset."},

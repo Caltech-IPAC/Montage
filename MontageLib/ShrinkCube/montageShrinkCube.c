@@ -94,12 +94,12 @@ static char montage_msgstr[1024];
 /*  M must be an integer.                                                */
 /*                                                                       */
 /*   char  *infile         Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *output_file    Shrunken output FITS file                     */
 /*                                                                       */
 /*   double shrinkFactor   Scale factor for spatial shrinking.  Can be   */
 /*                         any positive real number                      */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    mfactor        Positive integer scale factor for shrinking   */
 /*                         the third cube dimension                      */
 /*                                                                       */
@@ -110,8 +110,8 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mShrinkCubeReturn *mShrinkCube(char *input_file, int hduin, char *output_file, double shrinkFactor, 
-                                int mfactor, int fixedSize, int debug)
+struct mShrinkCubeReturn *mShrinkCube(char *input_file, char *output_file, double shrinkFactor, 
+                                int mfactor, int hduin, int fixedSize, int debug)
 {
    int       i, j, ii, jj, status, bufrow, split;
    int       ibuffer, jbuffer, ifactor, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
@@ -154,7 +154,7 @@ struct mShrinkCubeReturn *mShrinkCube(char *input_file, int hduin, char *output_
 
    returnStruct = (struct mShrinkCubeReturn *)malloc(sizeof(struct mShrinkCubeReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

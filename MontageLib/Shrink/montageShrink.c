@@ -117,12 +117,12 @@ static char montage_msgstr[1024];
 /*  versions of a FITS file by averaging NxN blocks of pixels.           */
 /*                                                                       */
 /*   char  *infile         Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *output_file    Shrunken output FITS file                     */
 /*                                                                       */
 /*   double shrinkFactor   Scale factor for spatial shrinking.  Can be   */
 /*                         any positive real number                      */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    fixedSize      Alternate mode: shrink so the output fits     */
 /*                         in this many pixels                           */
 /*                                                                       */
@@ -130,7 +130,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mShrinkReturn *mShrink(char *input_file, int hduin, char *output_file, double shrinkFactor, int fixedSize, int debug)
+struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, int hduin, int fixedSize, int debug)
 {
    int       i, j, ii, jj, status, bufrow,  split;
    int       ibuffer, jbuffer, ifactor, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
@@ -172,7 +172,7 @@ struct mShrinkReturn *mShrink(char *input_file, int hduin, char *output_file, do
 
    returnStruct = (struct mShrinkReturn *)malloc(sizeof(struct mShrinkReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -346,7 +346,7 @@ struct mShrinkReturn *mShrink(char *input_file, int hduin, char *output_file, do
 
    strcpy(output.bunit, input.bunit);
 
-   if(haveCnpix)
+   if(haveCnpix && havePP && havePixelsz)
    {
       input.crpix1    = input.ppo3 / input.xpixelsz - input.cnpix1 + 0.5; 
       input.crpix2    = input.ppo6 / input.ypixelsz - input.cnpix2 + 0.5; 

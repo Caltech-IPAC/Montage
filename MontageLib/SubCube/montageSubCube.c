@@ -35,8 +35,12 @@ static struct WorldCoor *wcs;
 static double xcorrection;
 static double ycorrection;
 
-static int debug;
+static int mSubCube_debug;
 static int isflat;
+static int bitpix;
+
+int haveBlank;
+static long blank;
 
 static char content[128];
 
@@ -64,7 +68,6 @@ static char montage_json  [1024];
 /*                         had all the blank border pixels removed.      */
 /*                                                                       */
 /*   char  *infile         Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *outfile        Subimage output FITS file                     */
 /*                                                                       */
 /*   double ra             RA of cutout center (or start X pixel in      */
@@ -77,6 +80,7 @@ static char montage_json  [1024];
 /*   double ysize          Y size in degrees (SKY mode) or pixels        */
 /*                         (PIX mode)                                    */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    nowcs          Indicates that the image has no WCS info      */
 /*                         (only makes sense in PIX mode)                */
 /*                                                                       */
@@ -90,8 +94,9 @@ static char montage_json  [1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, double ra, double dec,
-                                double xsize, double ysize, int nowcs, char *d3constraint, char *d4constraint, int debugin)
+struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra, double dec,
+                                double xsize, double ysize, int hdu, int nowcs, char *d3constraint, 
+                                char *d4constraint, int debugin)
 {
    fitsfile *infptr, *outfptr;
 
@@ -130,7 +135,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    returnStruct = (struct mSubCubeReturn *)malloc(sizeof(struct mSubCubeReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -141,7 +146,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    dtr = atan(1.)/45.;
 
-   debug = debugin;
+   mSubCube_debug = debugin;
 
    pixMode    = 0;
    allPixels  = 0;
@@ -167,7 +172,11 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
    {
       strcpy(params.dConstraint[0], d3constraint);
 
-      mSubCube_parseSelectList(3, &params);
+      if(mSubCube_parseSelectList(3, &params))
+      {
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+      }
 
       params.kbegin = params.range[0][0][0];
       params.kend   = -1;
@@ -211,7 +220,11 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
    {
       strcpy(params.dConstraint[1], d4constraint);
 
-      mSubCube_parseSelectList(4, &params);
+      if(mSubCube_parseSelectList(4, &params))
+      {
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+      }
 
       params.lbegin = params.range[1][0][0];
       params.lend   = -1;
@@ -236,7 +249,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       }
    }
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("DEBUG> mSubCube command parsing:\n\n");
       printf("DEBUG> nowcs      = %d\n", nowcs);
@@ -276,7 +289,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       fflush(stdout);
    }
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("DEBUG> infile     = [%s]\n", infile);
       printf("DEBUG> outfile    = [%s]\n", outfile);
@@ -291,7 +304,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    if (!pixMode && !nowcs) {
 
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("DEBUG> calling checkHdr(\"%s\") for HDU %d\n", infile, hdu);
          fflush(stdout);
@@ -311,7 +324,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    if(fits_open_file(&infptr, infile, READONLY, &status))
    {
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("DEBUG> Opening infile\n");
          fflush(stdout);
@@ -323,7 +336,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    if(hdu > 0)
    {
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("DEBUG> Moving to HDU %d\n", hdu);
          fflush(stdout);
@@ -336,6 +349,28 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       }
    }
 
+   fits_get_img_type(infptr, &bitpix, &status);
+
+   haveBlank = 1; 
+   if(fits_read_key_lng(infptr, "BLANK", &blank, (char *)NULL, &status))
+   {
+      haveBlank = 0; 
+      status    = 0; 
+   }
+
+   if(mSubCube_debug)
+   {
+      printf("DEBUG> bitpix = %d\n", bitpix);
+      printf("DEBUG> blank  = %ld (%d)\n", blank, haveBlank);
+      fflush(stdout);
+   }
+
+   if(bitpix != -64 && shrinkWrap)
+   {
+      strcpy(returnStruct->msg, "Shrinkwrap mode only works for double precision floating point data.");
+      return returnStruct;
+   }
+
    if(shrinkWrap)
    {
       if(mSubCube_dataRange(infptr, &imin, &imax, &jmin, &jmax) > 0)
@@ -344,7 +379,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
          return returnStruct;
       }
 
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("imin  = %d\n", imin);
          printf("imax  = %d\n", imax);
@@ -357,7 +392,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    if (!nowcs) 
    {
-      if(debug) 
+      if(mSubCube_debug) 
       {
          printf("\nDEBUG> Checking WCS\n");
          fflush(stdout);
@@ -388,7 +423,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
          cdelt[1] = wcs->cd[3]/cos(rotang*dtr);
       }
 
-      if(debug)
+      if(mSubCube_debug)
       {
          for(i=0; i<params.naxis; ++i)
          {
@@ -460,7 +495,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
          epoch = 2000.;
       }
       
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("input coordinate system = %d\n", EQUJ);
          printf("input epoch             = %-g\n", 2000.);
@@ -495,7 +530,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    else if(pixMode)
    {
-      if(debug) {
+      if(mSubCube_debug) {
          printf("xsize= [%lf]\n", xsize);
          printf("ysize= [%lf]\n", ysize);
 
@@ -529,7 +564,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
 
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("\npixMode = TRUE\n");
          printf("'ra'    = %-g\n", ra);
@@ -567,7 +602,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       }
       ********************************************************************************************/
 
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("   ra   = %-g\n", ra);
          printf("   dec  = %-g\n", dec);
@@ -623,7 +658,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
 
-      if(debug)
+      if(mSubCube_debug)
       {
          printf("\npixMode = FALSE\n");
          printf("cdelt1  = %-g\n", cdelt[0]);
@@ -640,15 +675,15 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       }
    }
 
-   if(params.ibegin >= params.iend
-   || params.jbegin >= params.jend)
+   if(params.ibegin > params.iend
+   || params.jbegin > params.jend)
    {
       sprintf(returnStruct->msg, "No pixels match area.");
       return returnStruct;
    }
 
-   if(params.iend - params.ibegin < 2
-   && params.jend - params.jbegin < 2)
+   if(params.iend - params.ibegin < 0
+   && params.jend - params.jbegin < 0)
    {
       sprintf(returnStruct->msg, "Output area has no spatial extent.");
       return returnStruct;
@@ -657,7 +692,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
       
    params.nelements = params.iend - params.ibegin + 1;
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("ibegin    = %d\n",  params.ibegin);
       printf("iend      = %d\n",  params.iend);
@@ -687,7 +722,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
    /* from the input to the output */
    /********************************/
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("Calling mSubCube_copyHeaderInfo()\n");
       fflush(stdout);
@@ -701,7 +736,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
    /************************/
 
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("Calling mSubCube_copyData()\n");
       fflush(stdout);
@@ -718,7 +753,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
    /* Close the files */
    /*******************/
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("Calling fits_close_file()\n");
       fflush(stdout);
@@ -732,16 +767,9 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, int hdu, char *outfile, 
 
    strcpy(warning, "");
 
-   if(params.nrange[0]  > 0 && params.nrange[1]  > 0)
+   if(params.nrange[0] == 0 && params.nrange[1] == 0)
    {
       strcpy(warning, "Check CDELT, CRPIX values for axes 3 and 4.");
-
-      sprintf(montage_msgstr, "content=\"%s\", warning=\"%s\"", content, warning);
-      sprintf(montage_json, "{\"content\"=\"%s\", \"warning\"=\"%s\"}", content, warning);
-   }
-   else if(params.nrange[0]  > 0 && params.nrange[1] == 0)
-   {
-      strcpy(warning, "Check CDELT, CRPIX values for axis 3.");
 
       sprintf(montage_msgstr, "content=\"%s\", warning=\"%s\"", content, warning);
       sprintf(montage_json, "{\"content\"=\"%s\", \"warning\"=\"%s\"}", content, warning);
@@ -909,10 +937,6 @@ int mSubCube_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubCube
    /* Update header info */
    /**********************/
 
-   if(fits_update_key_lng(outfptr, "BITPIX", -64,
-                                  (char *)NULL, &status))
-      mSubCube_printFitsError(status);
-
    if(fits_update_key_lng(outfptr, "NAXIS", params->naxis,
                                   (char *)NULL, &status))
       mSubCube_printFitsError(status);
@@ -981,7 +1005,7 @@ int mSubCube_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubCube
          mSubCube_printFitsError(status);
    }
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("subCube> naxis1 -> %ld\n", params->nelements);
       printf("subCube> naxis2 -> %d\n",  naxis2);
@@ -1019,11 +1043,17 @@ int mSubCube_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubCube
 
 int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams *params)
 {
-   long    fpixel[4], fpixelo[4];
-   int     i, j, nullcnt;
-   int     j3, j4, inRange;
-   int     status = 0;
-   double *buffer, refval;
+   long      fpixel[4], fpixelo[4];
+   int       i, j, nullcnt;
+   int       j3, j4, inRange;
+   int       status = 0;
+
+   double             *buffer_double,   refval_double;
+   float              *buffer_float,    refval_float;
+   unsigned long long *buffer_longlong, refval_longlong;
+   unsigned long      *buffer_long,     refval_long;
+   unsigned short     *buffer_short,    refval_short;
+   unsigned char      *buffer_byte,     refval_byte;
 
 
    /*************************************************/
@@ -1032,19 +1062,22 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
 
    union
    {
-      double d;
+      double d8;
+      float  d4[2];
       char   c[8];
    }
    value;
 
-   double nan;
+   double dnan;
+   float  fnan;
 
    for(i=0; i<8; ++i)
       value.c[i] = 255;
 
-   nan = value.d;
+   dnan = value.d8;
+   fnan = value.d4[0];
 
-   if(debug)
+   if(mSubCube_debug)
    {
       printf("copyData> lbegin, lend = %5d %5d\n", params->lbegin, params->lend);
       printf("copyData> kbegin, kend = %5d %5d\n", params->kbegin, params->kend);
@@ -1054,18 +1087,35 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
    fpixel[1] = params->jbegin;
    fpixel[2] = params->kbegin;
 
-   buffer  = (double *)malloc(params->nelements * sizeof(double));
+        if(bitpix == -64) buffer_double   = (double             *)malloc(params->nelements * sizeof(double));
+   else if(bitpix == -32) buffer_float    = (float              *)malloc(params->nelements * sizeof(float));
+   else if(bitpix ==  64) buffer_longlong = (unsigned long long *)malloc(params->nelements * sizeof(long long));
+   else if(bitpix ==  32) buffer_long     = (unsigned long      *)malloc(params->nelements * sizeof(long));
+   else if(bitpix ==  16) buffer_short    = (unsigned short     *)malloc(params->nelements * sizeof(short));
+   else if(bitpix ==   8) buffer_byte     = (unsigned char      *)malloc(params->nelements * sizeof(char));
 
    fpixelo[1] = 1;
 
    isflat = 1;
 
-   refval = nan;
+   refval_double   = dnan;
+   refval_float    = fnan;
+   refval_longlong = blank;
+   refval_long     = blank;
+   refval_short    = blank;
+   refval_byte     = blank;
 
    fpixel [0] = params->ibegin;  // Fixed
    fpixelo[0] = 1;               // Fixed
 
    fpixelo[3] = 1;
+
+   if(bitpix > 0)
+   {
+      fits_set_bscale(infptr,  1., 0., &status);
+      fits_set_bscale(outfptr, 1., 0., &status);
+   }
+
 
    for (j4=params->lbegin; j4<=params->lend; ++j4)
    {
@@ -1105,7 +1155,7 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
       }
 
 
-      // We want this dimension 4 value
+      // We want this dimension 3 value
 
       fpixelo[2] = 1;
 
@@ -1113,7 +1163,7 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
       {
          fpixel[2] = j3;
 
-         // If the dimension 4 value isn't in our range list,
+         // If the dimension 3 value isn't in our range list,
          // we'll skip this one.
 
          if(params->nrange[0] > 0)
@@ -1146,10 +1196,10 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
                continue;
          }
 
-         if(debug)
+         if(mSubCube_debug)
          {
-            printf("copyData> Processing input 4/3  %5ld %5ld",    fpixel[3],  fpixel[2]);
-            printf(                     " to output %5ld %5ld\n", fpixelo[3], fpixelo[2]);
+            printf("copyData> Processing input 4/3  %5ld/%5ld",    fpixel[3],  fpixel[2]);
+            printf(                     " to output %5ld/%5ld\n", fpixelo[3], fpixelo[2]);
             fflush(stdout);
          }
 
@@ -1162,38 +1212,109 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
          {
             fpixel[1] = j;
 
-            if(debug)
+            if(bitpix      == -64)
+               fits_read_pix(infptr, TDOUBLE,   fpixel, params->nelements, &dnan, buffer_double,   &nullcnt, &status);
+            else if(bitpix == -32)
+               fits_read_pix(infptr, TFLOAT,    fpixel, params->nelements, &fnan, buffer_float,    &nullcnt, &status);
+            else if(bitpix ==  64)
+               fits_read_pix(infptr, TLONGLONG, fpixel, params->nelements,  NULL, buffer_longlong, &nullcnt, &status);
+            else if(bitpix ==  32)
+               fits_read_pix(infptr, TLONG,     fpixel, params->nelements,  NULL, buffer_long,     &nullcnt, &status);
+            else if(bitpix ==  16)
+               fits_read_pix(infptr, TSHORT,    fpixel, params->nelements,  NULL, buffer_short,    &nullcnt, &status);
+            else if(bitpix ==   8)
+               fits_read_pix(infptr, TBYTE,     fpixel, params->nelements,  NULL, buffer_byte,     &nullcnt, &status);
+
+            if(status)
             {
-               printf("copyData> Processing input %5ld/%5ld, row %5ld",             fpixel[3],  fpixel[2],  fpixel[1]);
-               printf(                " to output %5ld/%5ld, row %5ld: read ... ", fpixelo[3], fpixelo[2], fpixelo[1]);
-               fflush(stdout);
+               mSubCube_printFitsError(status);
+               return 1;
             }
 
-            if(fits_read_pix(infptr, TDOUBLE, fpixel, params->nelements, &nan,
-                             buffer, &nullcnt, &status))
-               mSubCube_printFitsError(status);
-
-            for(i=0; i<params->nelements; ++i)
+            if(bitpix == -64)
             {
-               if(!mNaN(buffer[i]))
+               for(i=0; i<params->nelements; ++i)
                {
-                  if(mNaN(refval))
-                     refval = buffer[i];
+                  if(!mNaN(buffer_double[i]))
+                  {
+                     if(mNaN(refval_double))
+                        refval_double = buffer_double[i];
 
-                  if(buffer[i] != refval)
+                     if(buffer_double[i] != refval_double)
+                        isflat = 0;
+                  }
+               }
+            }
+
+            else if(bitpix == -32)
+            {
+               for(i=0; i<params->nelements; ++i)
+               {
+                  if(!mNaN(buffer_float[i]))
+                  {
+                     if(mNaN(refval_float))
+                        refval_float = buffer_float[i];
+
+                     if(buffer_float[i] != refval_float)
+                        isflat = 0;
+                  }
+               }
+            }
+
+            else if(bitpix == 64)
+            {
+               for(i=0; i<params->nelements; ++i)
+               {
+                  if(buffer_longlong[i] != refval_longlong)
                      isflat = 0;
                }
             }
 
-            if(debug)
+            else if(bitpix == 32)
             {
-               printf("write.\n");
-               fflush(stdout);
+               for(i=0; i<params->nelements; ++i)
+               {
+                  if(buffer_long[i] != refval_long)
+                     isflat = 0;
+               }
             }
 
-            if (fits_write_pix(outfptr, TDOUBLE, fpixelo, params->nelements,
-                               (void *)buffer, &status))
+            else if(bitpix == 16)
+            {
+               for(i=0; i<params->nelements; ++i)
+               {
+                  if(buffer_short[i] != refval_short)
+                     isflat = 0;
+               }
+            }
+
+            else if(bitpix == 8)
+            {
+               for(i=0; i<params->nelements; ++i)
+               {
+                  if(buffer_byte[i] != refval_byte)
+                     isflat = 0;
+               }
+            }
+
+            if(bitpix      == -64)
+               fits_write_pix(outfptr, TDOUBLE,   fpixelo, params->nelements, (void *)buffer_double,   &status);
+            else if(bitpix == -32)
+               fits_write_pix(outfptr, TFLOAT,    fpixelo, params->nelements, (void *)buffer_float,    &status);
+            else if(bitpix ==  64)
+               fits_write_pix(outfptr, TLONGLONG, fpixelo, params->nelements, (void *)buffer_longlong, &status);
+            else if(bitpix ==  32)
+               fits_write_pix(outfptr, TLONG,     fpixelo, params->nelements, (void *)buffer_long,     &status);
+            else if(bitpix ==  16)
+               fits_write_pix(outfptr, TSHORT,    fpixelo, params->nelements, (void *)buffer_short,    &status);
+            else if(bitpix ==   8)
+               fits_write_pix(outfptr, TBYTE,     fpixelo, params->nelements, (void *)buffer_byte,     &status);
+
+            if(status)
+            {
                mSubCube_printFitsError(status);
+               return 1;
+            }
 
             ++fpixelo[1];
          }
@@ -1204,12 +1325,16 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
       ++fpixelo[3];
    }
 
-
-   free(buffer);
+        if(bitpix == -64) free(buffer_double);
+   else if(bitpix == -32) free(buffer_float);
+   else if(bitpix ==  64) free(buffer_longlong);
+   else if(bitpix ==  32) free(buffer_long);
+   else if(bitpix ==  16) free(buffer_short);
+   else if(bitpix ==   8) free(buffer_byte);
 
    if(isflat)
    {
-      if(mNaN(refval))
+      if(mNaN(refval_double))
          strcpy(content, "blank");
       else
          strcpy(content, "flat");
@@ -1242,12 +1367,12 @@ int mSubCube_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
    }
    value;
 
-   double nan;
+   double dnan;
 
    for(i=0; i<8; ++i)
       value.c[i] = 255;
 
-   nan = value.d;
+   dnan = value.d;
 
    if(fits_read_key_lng(infptr, "NAXIS", &naxis, (char *)NULL, &status))
       mSubCube_printFitsError(status);
@@ -1273,24 +1398,24 @@ int mSubCube_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
       {
          for (j=1; j<=naxes[1]; ++j)
          {
-            if(debug)
+            if(mSubCube_debug)
             {
                printf("dataRange> input plane %5d/%5d, row %5d: \n", j4, j3, j);
                fflush(stdout);
             }
 
-            if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], &nan,
+            if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], &dnan,
                              buffer, &nullcnt, &status))
                mSubCube_printFitsError(status);
 
             for(i=1; i<=naxes[0]; ++i)
             {
-               if(debug && i<11)
+               if(mSubCube_debug && i<11)
                   printf(" %-g", buffer[i-1]);
 
                if(!mNaN(buffer[i-1]))
                {
-                  if(buffer[i-1] != nan)
+                  if(buffer[i-1] != dnan)
                   {
                      if(i < *imin) *imin = i;
                      if(i > *imax) *imax = i;
@@ -1300,7 +1425,7 @@ int mSubCube_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
                }
             }
 
-            if(debug)
+            if(mSubCube_debug)
                printf("\n");
 
             ++fpixel[1];

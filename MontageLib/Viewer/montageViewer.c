@@ -34,11 +34,12 @@ Version  Developer        Date     Change
 #include <montage.h>
 
 #define  MAXSTR    1024
-#define  MAXGRID      8
-#define  MAXCAT      32
+#define  MAXGRID     16
+#define  MAXCAT     128
 #define  MAXMARK   1024
-#define  MAXLABEL   256
+#define  MAXLABEL  1024
 #define  MAXDIM   65500
+#define  MAXJSON 800000
 
 #define  VALUE       0
 #define  PERCENTILE  1
@@ -102,6 +103,8 @@ static double xinc,   yinc;
 static double xcorrection;
 static double ycorrection;
 
+static double saturationValue;
+
 static struct WorldCoor *wcs;
 
 
@@ -121,11 +124,18 @@ static unsigned char *pngOvly;
 
 static double **ovlymask;
 
+double *fitsbuf;
+double *rfitsbuf;
+double *gfitsbuf;
+double *bfitsbuf;
+
 
 static unsigned int ii, jj;
 static unsigned int nx;
 static unsigned int ny;
 static unsigned int membytes;
+
+int isRGB;
 
 static double mynan;
 
@@ -133,7 +143,7 @@ static double dtr;
 
 static char montage_msgstr[1024];
 
-static int debug;
+static int mViewer_debug;
 
 
 /*-***************************************************************************/
@@ -152,12 +162,16 @@ static int debug;
 /*  too involved to document here.  See the mViewer documentation on-line    */
 /*  or delivered with the Montage source.                                    */
 /*                                                                           */
-/*   int    mode           Type of the command string: 0 for argument list   */
-/*                         and 1 for JSON.                                   */
-/*                                                                           */
-/*   char  *cmdstr         The command string (arguments or JSON)            */
+/*   char  *params         The parameters string (arguments or JSON) or JSON */
+/*                         file.                                             */
 /*                                                                           */
 /*   char  *outFile        Output PNG/JPEG                                   */
+/*                                                                           */
+/*   int    mode           Type of the command string: 0 for a JSON file,    */
+/*                         1 for a JSON string, and 2 for a command string.  */
+/*                                                                           */
+/*   char  *fontFile       Font file (overrides default)                     */
+/*                                                                           */
 /*   char  *outFmt         "png" or "jpeg"                                   */
 /*                                                                           */
 /*   int    debug          Debugging output level                            */
@@ -165,7 +179,7 @@ static int debug;
 /*****************************************************************************/
 
 
-struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFmt, int debugin)
+struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFmt, char *fontFile, int debugin)
 {
    int       argc;
    char     *argv[4096];
@@ -173,6 +187,9 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    char      keystr  [MAXSTR];
    char      valstr  [MAXSTR];
    char      ovlyType[MAXSTR];
+   char      ovlyVis [MAXSTR];
+   char      line    [MAXJSON];
+   char      layout  [MAXJSON];
 
    char     *checkHdr;
 
@@ -182,21 +199,23 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    int       nullcnt;
    int       keysexist, keynum;
    int       datatype;
+   int       len;
 
    double    x, y;
    double    ix, iy;
    double    xpos, ypos;
 
-   int       grayType  = 0;
-   int       redType   = 0;
-   int       greenType = 0;
-   int       blueType  = 0;
+   int       grayType;
+   int       redType;
+   int       greenType;
+   int       blueType;
 
    int       noverlay, quality, offscl;
    int       csysimg;
    double    epochimg;
 
    JSON     *sv;
+
 
 
    // COORDINATE GRID LAYERS
@@ -383,11 +402,9 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    double    truecolor;
 
-   int       status = 0;
+   int       status;
 
-   int       isRGB  = 0;
-
-   int       colortable = 0;
+   int       colortable;
    int       pngError;
 
    char      statusfile   [1024];
@@ -420,53 +437,53 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    char      symbolstr    [256];
    char      labelstr     [256];
 
-   double    grayminval      = 0.;
-   double    graymaxval      = 0.;
-   double    grayminpercent  = 0.;
-   double    graymaxpercent  = 0.;
-   double    grayminsigma    = 0.;
-   double    graymaxsigma    = 0.;
-   double    graybetaval     = 0.;
-   int       graylogpower    = 0;
+   double    grayminval;
+   double    graymaxval;
+   double    grayminpercent;
+   double    graymaxpercent;
+   double    grayminsigma;
+   double    graymaxsigma;
+   double    graybetaval;
+   int       graylogpower;
    double    graydataval[256];
 
    double    graydatamin;
    double    graydatamax;
 
-   double    redminval       = 0.;
-   double    redmaxval       = 0.;
-   double    redminpercent   = 0.;
-   double    redmaxpercent   = 0.;
-   double    redminsigma     = 0.;
-   double    redmaxsigma     = 0.;
-   double    redbetaval      = 0.;
-   int       redlogpower     = 0;
+   double    redminval;
+   double    redmaxval;
+   double    redminpercent;
+   double    redmaxpercent;
+   double    redminsigma;
+   double    redmaxsigma;
+   double    redbetaval;
+   int       redlogpower;
    double    reddataval[256];
 
    double    rdatamin;
    double    rdatamax;
 
-   double    greenminval     = 0.;
-   double    greenmaxval     = 0.;
-   double    greenminpercent = 0.;
-   double    greenmaxpercent = 0.;
-   double    greenminsigma   = 0.;
-   double    greenmaxsigma   = 0.;
-   double    greenbetaval    = 0.;
-   int       greenlogpower   = 0;
+   double    greenminval;
+   double    greenmaxval;
+   double    greenminpercent;
+   double    greenmaxpercent;
+   double    greenminsigma;
+   double    greenmaxsigma;
+   double    greenbetaval;
+   int       greenlogpower;
    double    greendataval[256];
 
    double    gdatamin;
    double    gdatamax;
 
-   double    blueminval      = 0.;
-   double    bluemaxval      = 0.;
-   double    blueminpercent  = 0.;
-   double    bluemaxpercent  = 0.;
-   double    blueminsigma    = 0.;
-   double    bluemaxsigma    = 0.;
-   double    bluebetaval     = 0.;
-   int       bluelogpower    = 0;
+   double    blueminval;
+   double    bluemaxval;
+   double    blueminpercent;
+   double    bluemaxpercent;
+   double    blueminsigma;
+   double    bluemaxsigma;
+   double    bluebetaval;
+   int       bluelogpower;
    double    bluedataval[256];
 
    double    bdatamin;
@@ -483,21 +500,16 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    long      fpixelBlue [4];
    long      nelements;
 
-   double   *fitsbuf;
-   double   *rfitsbuf;
-   double   *gfitsbuf;
-   double   *bfitsbuf;
-
    char      bunit[256];
 
    char     *end;
 
-   char     *header  = (char *)NULL;
-   char     *comment = (char *)NULL;
+   char     *header;
 
    char     *ptr;
 
    FILE     *jpegfp;
+   FILE     *fjson;
 
    JSAMPARRAY  jpegptr;
 
@@ -505,6 +517,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    struct jpeg_error_mgr jerr;
 
+   static struct mViewerReturn rtnStruct;
    struct mViewerReturn *returnStruct;
 
 
@@ -520,19 +533,73 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    value;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    mynan = value.d;
+
+
+   /********************************/
+   /* Initialize various variables */
+   /********************************/
+
+   returnStruct = &rtnStruct;
+
+   grayType  = 0;
+   redType   = 0;
+   greenType = 0;
+   blueType  = 0;
+
+   status = 0;
+
+   colortable = 0;
+
+   grayminval      = 0.;
+   graymaxval      = 0.;
+   grayminpercent  = 0.;
+   graymaxpercent  = 0.;
+   grayminsigma    = 0.;
+   graymaxsigma    = 0.;
+   graybetaval     = 0.;
+   graylogpower    = 0;
+
+   redminval       = 0.;
+   redmaxval       = 0.;
+   redminpercent   = 0.;
+   redmaxpercent   = 0.;
+   redminsigma     = 0.;
+   redmaxsigma     = 0.;
+   redbetaval      = 0.;
+   redlogpower     = 0;
+
+   greenminval     = 0.;
+   greenmaxval     = 0.;
+   greenminpercent = 0.;
+   greenmaxpercent = 0.;
+   greenminsigma   = 0.;
+   greenmaxsigma   = 0.;
+   greenbetaval    = 0.;
+   greenlogpower   = 0;
+
+   blueminval      = 0.;
+   bluemaxval      = 0.;
+   blueminpercent  = 0.;
+   bluemaxpercent  = 0.;
+   blueminsigma    = 0.;
+   bluemaxsigma    = 0.;
+   bluebetaval     = 0.;
+   bluelogpower    = 0;
+
+   grayfptr  = (fitsfile *)NULL;
+   redfptr   = (fitsfile *)NULL;
+   greenfptr = (fitsfile *)NULL;
+   bluefptr  = (fitsfile *)NULL;
+
+   header = (char *)NULL;
 
 
    /*******************************/
    /* Initialize return structure */
    /*******************************/
-
-   returnStruct = (struct mViewerReturn *)malloc(sizeof(struct mViewerReturn));
-
-   bzero((void *)returnStruct, sizeof(returnStruct));
-
 
    returnStruct->status = 1;
 
@@ -547,21 +614,26 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    /* restructuring all that when there was no real benefit in doing so.                      */
    /*******************************************************************************************/
 
-   debug = debugin;
+   mViewer_debug = debugin;
 
 
    /* Find the font to be used for text rendering */
 
-   strcpy(fontfile, FONT_DIR);
+   if(strlen(fontFile) > 0)
+      strcpy(fontfile, fontFile);
 
-   if(getenv("MONTAGE_FONT_DIR") != (char *)NULL)
-      strcpy(fontfile, getenv("MONTAGE_FONT_DIR"));
+   else
+   {
+      strcpy(fontfile, FONT_DIR);
 
-   if(fontfile[strlen(fontfile)-1] != '/')
-      strcat(fontfile, "/");
+      if(getenv("MONTAGE_FONT_DIR") != (char *)NULL)
+         strcpy(fontfile, getenv("MONTAGE_FONT_DIR"));
 
-   strcat(fontfile, "FreeSans.ttf");
+      if(fontfile[strlen(fontfile)-1] != '/')
+         strcat(fontfile, "/");
 
+      strcat(fontfile, "FreeSans.ttf");
+   }
 
 
    /* Initial values for "sticky" parameters */
@@ -596,6 +668,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    truecolor   = 0.;
    nowcs       = 0;
 
+   saturationValue = 0.;
+
    strcpy(statusfile,     "");
    strcpy(grayfile,       "");
    strcpy(redfile,        "");
@@ -627,20 +701,54 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    if(strcmp(outFmt, "jpeg") == 0)
       strcpy(jpegfile, outFile);
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("DEBUG> mode = %d\n", mode);
-      printf("DEBUG> cmdstr = [%s]\n", cmdstr);
+      printf("DEBUG> params = [%s]\n", params);
       fflush(stdout);
    }
 
 
-   if(mode == JSONMODE)  // We were passed a JSON string rather than a set of arguments
-                         // so we mine that for display information
+   if(mode == JSONMODE   // We were passed a JSON string rather than a set of arguments
+   || mode == JSONFILE)  // so we mine that for display information
    {
+      /* If it is a JSON file, read it to make the command string */
+
+      if(mode == JSONFILE)
+      {
+         if(mViewer_debug)
+         {
+            printf("DEBUG> JSONFILE mode\n");
+            fflush(stdout);
+         }
+
+         fjson = fopen(params, "r");
+
+         if(fjson == (FILE *)NULL)
+         {
+            strcpy(returnStruct->msg, "Cannot open input JSON file.");
+            return returnStruct;
+         }
+
+         strcpy(layout, "");
+
+         while(1)
+         {
+            if(fgets(line, MAXSTR, fjson) == (char *)NULL)
+               break;
+
+            strcat(layout, line);
+         }
+
+         fclose(fjson);
+      }
+      else
+         strcpy(layout, params);
+
+         
       /* Parse the JSON (set up the structures to mine) */
 
-      if((sv = json_struct(cmdstr)) == (JSON *)NULL)
+      if((sv = json_struct(layout)) == (JSON *)NULL)
       {
          strcpy(returnStruct->msg, "Invalid JSON structure.");
          return returnStruct;
@@ -651,7 +759,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       /* Ignore WCS */
 
-      if(json_val(cmdstr, "no_wcs", valstr))
+      if(json_val(layout, "no_wcs", valstr))
       {
          nowcs = strtol(valstr, &end, 0);
 
@@ -665,7 +773,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       /* COLOR */
 
-      if(json_val(cmdstr, "color", valstr))
+      if(json_val(layout, "color", valstr))
       {
          if(mViewer_colorLookup(valstr, &ovlyred, &ovlygreen, &ovlyblue))
          {
@@ -677,7 +785,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       /* FONT SCALE */
 
-      if(json_val(cmdstr, "font_scale", valstr))
+      if(json_val(layout, "font_scale", valstr))
       {
          fontScale = strtod(valstr, &end);
 
@@ -689,9 +797,23 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       }
 
 
-      /* TRUE COLOR */
+      /* COLOR TABLE (for grayscale) */
 
-      if(json_val(cmdstr, "true_color", valstr))
+      if(json_val(layout, "color_table", valstr))
+      {
+         colortable = strtol(valstr, &end, 10);
+
+         if(colortable < 0 || colortable > 11 || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+            return returnStruct;
+         }
+      }
+
+
+      /* TRUE COLOR (for full color) */
+
+      if(json_val(layout, "true_color", valstr))
       {
          truecolor = strtod(valstr, &end);
 
@@ -705,7 +827,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       /* COORDINATE SYSTEM */
 
-      if(json_val(cmdstr, "coord_sys", valstr))
+      if(json_val(layout, "coord_sys", valstr))
       {
          mViewer_parseCoordStr(valstr, &csys, &epoch);
       }
@@ -713,7 +835,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       /* SYMBOL */
 
-      if(json_val(cmdstr, "symbol", valstr))
+      if(json_val(layout, "symbol", valstr))
       {
          if(mViewer_parseSymbol(valstr, &symNPnt, &symNMax, &symType, &symRotAngle))
          {
@@ -725,369 +847,385 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       /* Gray, red, green, blue FITS files */
 
-      if(json_val(cmdstr, "gray_file", valstr))  // GRAY FILE
+      if(json_val(layout, "gray_file", valstr))  // GRAY FILE
       {
-         if(json_val(cmdstr, "gray_file.fits_file", grayfile) == (char *)NULL)
+         if(json_val(layout, "gray_file.fits_file", grayfile) == (char *)NULL)
          {
             strcpy(returnStruct->msg, "Gray file has no 'fits_file' attribute.");
             return returnStruct;
          }
 
-
-         grayPlaneCount = mViewer_getPlanes(grayfile, grayPlanes);
-
-         if(grayPlaneCount > 0)
-            hdu = grayPlanes[0];
-         else
-            hdu = 0;
-
-         if(!nowcs)
+         if(strlen(grayfile) > 0)
          {
-            checkHdr = montage_checkHdr(grayfile, 0, hdu);
+            grayPlaneCount = mViewer_getPlanes(grayfile, grayPlanes);
 
-            if(checkHdr)
-            {
-               strcpy(returnStruct->msg, checkHdr);
-               return returnStruct;
-            }
-         }
-
-
-         json_val(cmdstr, "gray_file.stretch_min", grayminstr);
-         json_val(cmdstr, "gray_file.stretch_max", graymaxstr);
-
-         if(json_val(cmdstr, "gray_file.stretch_mode", valstr))
-         {
-            grayType = POWER;
-
-            if(valstr[0] == 'g')
-            {
-               grayType = GAUSSIAN;
-
-               if(strlen(valstr) > 1 
-                     && (   valstr[strlen(valstr)-1] == 'g'
-                        || valstr[strlen(valstr)-1] == 'l'))
-                  grayType = GAUSSIANLOG;
-
-               i += 1;
-            }
-
-            else if(valstr[0] == 'a')
-            {
-               grayType = ASINH;
-
-               strcpy(graybetastr, "2s");
-
-               json_val(cmdstr, "gray_file.stretch_beta", graybetastr);
-            }
-
-            else if(strncmp(valstr, "lin", 3) == 0)
-               graylogpower = 0;
-
-            else if(strcmp(valstr, "log") == 0)
-               graylogpower = 1;
-
-            else if(strcmp(valstr, "loglog") == 0)
-               graylogpower = 2;
-
+            if(grayPlaneCount > 0)
+               hdu = grayPlanes[0];
             else
-            {
-               graylogpower = strtol(valstr, &end, 10);
+               hdu = 0;
 
-               if(graylogpower < 0  || end < valstr + strlen(valstr))
-                  graylogpower = 0;
+            if(!nowcs)
+            {
+               checkHdr = montage_checkHdr(grayfile, 0, hdu);
+
+               if(checkHdr)
+               {
+                  strcpy(returnStruct->msg, checkHdr);
+                  return returnStruct;
+               }
             }
-         }
 
 
-         if(fits_open_file(&grayfptr, grayfile, READONLY, &status))
-         {
-            sprintf(returnStruct->msg, "Image file %s invalid FITS", grayfile);
-            return returnStruct;
-         }
-
-         if(hdu > 0)
-         {
-            if(fits_movabs_hdu(grayfptr, hdu+1, NULL, &status))
+            if(json_val(layout, "gray_file.color_table", valstr))
             {
-               sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+               colortable = strtol(valstr, &end, 10);
+
+               if(colortable < 0 || colortable > 11 || end < valstr+strlen(valstr))
+               {
+                  strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+                  return returnStruct;
+               }
+            }
+
+            json_val(layout, "gray_file.stretch_min", grayminstr);
+            json_val(layout, "gray_file.stretch_max", graymaxstr);
+
+            if(json_val(layout, "gray_file.stretch_mode", valstr))
+            {
+               grayType = POWER;
+
+               if(valstr[0] == 'g')
+               {
+                  grayType = GAUSSIAN;
+
+                  if(strlen(valstr) > 1 
+                        && (   valstr[strlen(valstr)-1] == 'g'
+                           || valstr[strlen(valstr)-1] == 'l'))
+                     grayType = GAUSSIANLOG;
+
+                  i += 1;
+               }
+
+               else if(valstr[0] == 'a')
+               {
+                  grayType = ASINH;
+
+                  strcpy(graybetastr, "2s");
+
+                  json_val(layout, "gray_file.stretch_beta", graybetastr);
+               }
+
+               else if(strncmp(valstr, "lin", 3) == 0)
+                  graylogpower = 0;
+
+               else if(strcmp(valstr, "log") == 0)
+                  graylogpower = 1;
+
+               else if(strcmp(valstr, "loglog") == 0)
+                  graylogpower = 2;
+
+               else
+               {
+                  graylogpower = strtol(valstr, &end, 10);
+
+                  if(graylogpower < 0  || end < valstr + strlen(valstr))
+                     graylogpower = 0;
+               }
+            }
+
+
+            if(fits_open_file(&grayfptr, grayfile, READONLY, &status))
+            {
+               sprintf(returnStruct->msg, "Image file %s invalid FITS", grayfile);
                return returnStruct;
+            }
+
+            if(hdu > 0)
+            {
+               if(fits_movabs_hdu(grayfptr, hdu+1, NULL, &status))
+               {
+                  sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+                  return returnStruct;
+               }
             }
          }
       }
 
 
-      if(json_val(cmdstr, "red_file", valstr))  // RED FILE
+      if(json_val(layout, "red_file", valstr))  // RED FILE
       {
-         if(json_val(cmdstr, "red_file.fits_file", redfile) == (char *)NULL)
+         if(json_val(layout, "red_file.fits_file", redfile) == (char *)NULL)
          {
             strcpy(returnStruct->msg, "Red file has no 'fits_file' attribute.");
             return returnStruct;
          }
 
-
-         redPlaneCount = mViewer_getPlanes(redfile, redPlanes);
-
-         if(redPlaneCount > 0)
-            hdu = redPlanes[0];
-         else
-            hdu = 0;
-
-         if(!nowcs)
+         if(strlen(redfile) > 0)
          {
-            checkHdr = montage_checkHdr(redfile, 0, hdu);
+            redPlaneCount = mViewer_getPlanes(redfile, redPlanes);
 
-            if(checkHdr)
-            {
-               strcpy(returnStruct->msg, checkHdr);
-               return returnStruct;
-            }
-         }
-
-
-         json_val(cmdstr, "red_file.stretch_min", redminstr);
-         json_val(cmdstr, "red_file.stretch_max", redmaxstr);
-
-         if(json_val(cmdstr, "red_file.stretch_mode", valstr))
-         {
-            redType = POWER;
-
-            if(valstr[0] == 'g')
-            {
-               redType = GAUSSIAN;
-
-               if(strlen(valstr) > 1 
-                     && (   valstr[strlen(valstr)-1] == 'g'
-                        || valstr[strlen(valstr)-1] == 'l'))
-                  redType = GAUSSIANLOG;
-
-               i += 1;
-            }
-
-            else if(valstr[0] == 'a')
-            {
-               redType = ASINH;
-
-               strcpy(redbetastr, "2s");
-
-               json_val(cmdstr, "red_file.stretch_beta", redbetastr);
-            }
-
-            else if(strncmp(valstr, "lin", 3) == 0)
-               redlogpower = 0;
-
-            else if(strcmp(valstr, "log") == 0)
-               redlogpower = 1;
-
-            else if(strcmp(valstr, "loglog") == 0)
-               redlogpower = 2;
-
+            if(redPlaneCount > 0)
+               hdu = redPlanes[0];
             else
-            {
-               redlogpower = strtol(valstr, &end, 10);
+               hdu = 0;
 
-               if(redlogpower < 0  || end < valstr + strlen(valstr))
-                  redlogpower = 0;
+            if(!nowcs)
+            {
+               checkHdr = montage_checkHdr(redfile, 0, hdu);
+
+               if(checkHdr)
+               {
+                  strcpy(returnStruct->msg, checkHdr);
+                  return returnStruct;
+               }
             }
-         }
 
+            json_val(layout, "red_file.stretch_min", redminstr);
+            json_val(layout, "red_file.stretch_max", redmaxstr);
 
-         if(fits_open_file(&redfptr, redfile, READONLY, &status))
-         {
-            sprintf(returnStruct->msg, "Image file %s invalid FITS", redfile);
-            return returnStruct;
-         }
-
-         if(hdu > 0)
-         {
-            if(fits_movabs_hdu(redfptr, hdu+1, NULL, &status))
+            if(json_val(layout, "red_file.stretch_mode", valstr))
             {
-               sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+               redType = POWER;
+
+               if(valstr[0] == 'g')
+               {
+                  redType = GAUSSIAN;
+
+                  if(strlen(valstr) > 1 
+                        && (   valstr[strlen(valstr)-1] == 'g'
+                           || valstr[strlen(valstr)-1] == 'l'))
+                     redType = GAUSSIANLOG;
+
+                  i += 1;
+               }
+
+               else if(valstr[0] == 'a')
+               {
+                  redType = ASINH;
+
+                  strcpy(redbetastr, "2s");
+
+                  json_val(layout, "red_file.stretch_beta", redbetastr);
+               }
+
+               else if(strncmp(valstr, "lin", 3) == 0)
+                  redlogpower = 0;
+
+               else if(strcmp(valstr, "log") == 0)
+                  redlogpower = 1;
+
+               else if(strcmp(valstr, "loglog") == 0)
+                  redlogpower = 2;
+
+               else
+               {
+                  redlogpower = strtol(valstr, &end, 10);
+
+                  if(redlogpower < 0  || end < valstr + strlen(valstr))
+                     redlogpower = 0;
+               }
+            }
+
+
+            if(fits_open_file(&redfptr, redfile, READONLY, &status))
+            {
+               sprintf(returnStruct->msg, "Image file %s invalid FITS", redfile);
                return returnStruct;
+            }
+
+            if(hdu > 0)
+            {
+               if(fits_movabs_hdu(redfptr, hdu+1, NULL, &status))
+               {
+                  sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+                  return returnStruct;
+               }
             }
          }
       }
 
 
-      if(json_val(cmdstr, "green_file", valstr))  // GREEN FILE
+      if(json_val(layout, "green_file", valstr))  // GREEN FILE
       {
-         if(json_val(cmdstr, "green_file.fits_file", greenfile) == (char *)NULL)
+         if(json_val(layout, "green_file.fits_file", greenfile) == (char *)NULL)
          {
             strcpy(returnStruct->msg, "Green file has no 'fits_file' attribute.");
             return returnStruct;
          }
 
-
-         greenPlaneCount = mViewer_getPlanes(greenfile, greenPlanes);
-
-         if(greenPlaneCount > 0)
-            hdu = greenPlanes[0];
-         else
-            hdu = 0;
-
-         if(!nowcs)
+         if(strlen(greenfile) > 0)
          {
-            checkHdr = montage_checkHdr(greenfile, 0, hdu);
+            greenPlaneCount = mViewer_getPlanes(greenfile, greenPlanes);
 
-            if(checkHdr)
-            {
-               strcpy(returnStruct->msg, checkHdr);
-               return returnStruct;
-            }
-         }
-
-
-         json_val(cmdstr, "green_file.stretch_min", greenminstr);
-         json_val(cmdstr, "green_file.stretch_max", greenmaxstr);
-
-         if(json_val(cmdstr, "green_file.stretch_mode", valstr))
-         {
-            greenType = POWER;
-
-            if(valstr[0] == 'g')
-            {
-               greenType = GAUSSIAN;
-
-               if(strlen(valstr) > 1 
-                     && (   valstr[strlen(valstr)-1] == 'g'
-                        || valstr[strlen(valstr)-1] == 'l'))
-                  greenType = GAUSSIANLOG;
-
-               i += 1;
-            }
-
-            else if(valstr[0] == 'a')
-            {
-               greenType = ASINH;
-
-               strcpy(greenbetastr, "2s");
-
-               json_val(cmdstr, "green_file.stretch_beta", greenbetastr);
-            }
-
-            else if(strncmp(valstr, "lin", 3) == 0)
-               greenlogpower = 0;
-
-            else if(strcmp(valstr, "log") == 0)
-               greenlogpower = 1;
-
-            else if(strcmp(valstr, "loglog") == 0)
-               greenlogpower = 2;
-
+            if(greenPlaneCount > 0)
+               hdu = greenPlanes[0];
             else
-            {
-               greenlogpower = strtol(valstr, &end, 10);
+               hdu = 0;
 
-               if(greenlogpower < 0  || end < valstr + strlen(valstr))
-                  greenlogpower = 0;
+            if(!nowcs)
+            {
+               checkHdr = montage_checkHdr(greenfile, 0, hdu);
+
+               if(checkHdr)
+               {
+                  strcpy(returnStruct->msg, checkHdr);
+                  return returnStruct;
+               }
             }
-         }
 
+            json_val(layout, "green_file.stretch_min", greenminstr);
+            json_val(layout, "green_file.stretch_max", greenmaxstr);
 
-         if(fits_open_file(&greenfptr, greenfile, READONLY, &status))
-         {
-            sprintf(returnStruct->msg, "Image file %s invalid FITS", greenfile);
-            return returnStruct;
-         }
-
-         if(hdu > 0)
-         {
-            if(fits_movabs_hdu(greenfptr, hdu+1, NULL, &status))
+            if(json_val(layout, "green_file.stretch_mode", valstr))
             {
-               sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+               greenType = POWER;
+
+               if(valstr[0] == 'g')
+               {
+                  greenType = GAUSSIAN;
+
+                  if(strlen(valstr) > 1 
+                        && (   valstr[strlen(valstr)-1] == 'g'
+                           || valstr[strlen(valstr)-1] == 'l'))
+                     greenType = GAUSSIANLOG;
+
+                  i += 1;
+               }
+
+               else if(valstr[0] == 'a')
+               {
+                  greenType = ASINH;
+
+                  strcpy(greenbetastr, "2s");
+
+                  json_val(layout, "green_file.stretch_beta", greenbetastr);
+               }
+
+               else if(strncmp(valstr, "lin", 3) == 0)
+                  greenlogpower = 0;
+
+               else if(strcmp(valstr, "log") == 0)
+                  greenlogpower = 1;
+
+               else if(strcmp(valstr, "loglog") == 0)
+                  greenlogpower = 2;
+
+               else
+               {
+                  greenlogpower = strtol(valstr, &end, 10);
+
+                  if(greenlogpower < 0  || end < valstr + strlen(valstr))
+                     greenlogpower = 0;
+               }
+            }
+
+
+            if(fits_open_file(&greenfptr, greenfile, READONLY, &status))
+            {
+               sprintf(returnStruct->msg, "Image file %s invalid FITS", greenfile);
                return returnStruct;
+            }
+
+            if(hdu > 0)
+            {
+               if(fits_movabs_hdu(greenfptr, hdu+1, NULL, &status))
+               {
+                  sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+                  return returnStruct;
+               }
             }
          }
       }
 
 
-      if(json_val(cmdstr, "blue_file", valstr))  // BLUE FILE
+      if(json_val(layout, "blue_file", valstr))  // BLUE FILE
       {
-         if(json_val(cmdstr, "blue_file.fits_file", bluefile) == (char *)NULL)
+         if(json_val(layout, "blue_file.fits_file", bluefile) == (char *)NULL)
          {
             strcpy(returnStruct->msg, "Blue file has no 'fits_file' attribute.");
             return returnStruct;
          }
 
-
-         bluePlaneCount = mViewer_getPlanes(bluefile, bluePlanes);
-
-         if(bluePlaneCount > 0)
-            hdu = bluePlanes[0];
-         else
-            hdu = 0;
-
-         if(!nowcs)
+         if(strlen(bluefile) > 0)
          {
-            checkHdr = montage_checkHdr(bluefile, 0, hdu);
+            bluePlaneCount = mViewer_getPlanes(bluefile, bluePlanes);
 
-            if(checkHdr)
-            {
-               strcpy(returnStruct->msg, checkHdr);
-               return returnStruct;
-            }
-         }
-
-
-         json_val(cmdstr, "blue_file.stretch_min", blueminstr);
-         json_val(cmdstr, "blue_file.stretch_max", bluemaxstr);
-
-         if(json_val(cmdstr, "blue_file.stretch_mode", valstr))
-         {
-            blueType = POWER;
-
-            if(valstr[0] == 'g')
-            {
-               blueType = GAUSSIAN;
-
-               if(strlen(valstr) > 1 
-                     && (   valstr[strlen(valstr)-1] == 'g'
-                        || valstr[strlen(valstr)-1] == 'l'))
-                  blueType = GAUSSIANLOG;
-
-               i += 1;
-            }
-
-            else if(valstr[0] == 'a')
-            {
-               blueType = ASINH;
-
-               strcpy(bluebetastr, "2s");
-
-               json_val(cmdstr, "blue_file.stretch_beta", bluebetastr);
-            }
-
-            else if(strncmp(valstr, "lin", 3) == 0)
-               bluelogpower = 0;
-
-            else if(strcmp(valstr, "log") == 0)
-               bluelogpower = 1;
-
-            else if(strcmp(valstr, "loglog") == 0)
-               bluelogpower = 2;
-
+            if(bluePlaneCount > 0)
+               hdu = bluePlanes[0];
             else
-            {
-               bluelogpower = strtol(valstr, &end, 10);
+               hdu = 0;
 
-               if(bluelogpower < 0  || end < valstr + strlen(valstr))
-                  bluelogpower = 0;
+            if(!nowcs)
+            {
+               checkHdr = montage_checkHdr(bluefile, 0, hdu);
+
+               if(checkHdr)
+               {
+                  strcpy(returnStruct->msg, checkHdr);
+                  return returnStruct;
+               }
             }
-         }
 
+            json_val(layout, "blue_file.stretch_min", blueminstr);
+            json_val(layout, "blue_file.stretch_max", bluemaxstr);
 
-         if(fits_open_file(&bluefptr, bluefile, READONLY, &status))
-         {
-            sprintf(returnStruct->msg, "Image file %s invalid FITS", bluefile);
-            return returnStruct;
-         }
-
-         if(hdu > 0)
-         {
-            if(fits_movabs_hdu(bluefptr, hdu+1, NULL, &status))
+            if(json_val(layout, "blue_file.stretch_mode", valstr))
             {
-               sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+               blueType = POWER;
+
+               if(valstr[0] == 'g')
+               {
+                  blueType = GAUSSIAN;
+
+                  if(strlen(valstr) > 1 
+                        && (   valstr[strlen(valstr)-1] == 'g'
+                           || valstr[strlen(valstr)-1] == 'l'))
+                     blueType = GAUSSIANLOG;
+
+                  i += 1;
+               }
+
+               else if(valstr[0] == 'a')
+               {
+                  blueType = ASINH;
+
+                  strcpy(bluebetastr, "2s");
+
+                  json_val(layout, "blue_file.stretch_beta", bluebetastr);
+               }
+
+               else if(strncmp(valstr, "lin", 3) == 0)
+                  bluelogpower = 0;
+
+               else if(strcmp(valstr, "log") == 0)
+                  bluelogpower = 1;
+
+               else if(strcmp(valstr, "loglog") == 0)
+                  bluelogpower = 2;
+
+               else
+               {
+                  bluelogpower = strtol(valstr, &end, 10);
+
+                  if(bluelogpower < 0  || end < valstr + strlen(valstr))
+                     bluelogpower = 0;
+               }
+            }
+
+
+            if(fits_open_file(&bluefptr, bluefile, READONLY, &status))
+            {
+               sprintf(returnStruct->msg, "Image file %s invalid FITS", bluefile);
                return returnStruct;
+            }
+
+            if(hdu > 0)
+            {
+               if(fits_movabs_hdu(bluefptr, hdu+1, NULL, &status))
+               {
+                  sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
+                  return returnStruct;
+               }
             }
          }
       }
@@ -1101,12 +1239,25 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       {
          sprintf(keystr, "overlays[%d]", noverlay);
 
-         if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+         if(json_val(layout, keystr, valstr) == (char *)NULL)
             break;
+
+         sprintf(keystr, "overlays[%d].visible", noverlay);
+
+         if(json_val(layout, keystr, ovlyVis) != (char *)NULL)
+         {
+            if(strcasecmp(ovlyVis, "false")  == 0
+            || strcasecmp(ovlyVis, "no"   )  == 0
+            || strcasecmp(ovlyVis, "0"    )  == 0)
+            {
+               ++noverlay;
+               continue;
+            }
+         }
 
          sprintf(keystr, "overlays[%d].type", noverlay);
 
-         if(json_val(cmdstr, keystr, ovlyType) == (char *)NULL)
+         if(json_val(layout, keystr, ovlyType) == (char *)NULL)
          {
             sprintf(returnStruct->msg, "Overlay %d has no 'type' attribute.", noverlay);
             return returnStruct;
@@ -1118,7 +1269,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          {
             sprintf(keystr, "overlays[%d].color", noverlay);  // Check for color
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_colorLookup(valstr, &(grid[ngrid].red), &(grid[ngrid].green), &(grid[ngrid].blue)))
                {
@@ -1136,7 +1287,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].font_scale", noverlay);  // Check for font scale
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                 grid[ngrid].fontscale = strtod(valstr, &end);
 
@@ -1152,7 +1303,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Require coordinate system (don't use default)
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'coord_sys' attribute.", noverlay);
                return returnStruct;
@@ -1171,7 +1322,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].color", noverlay);  // Check for color 
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_colorLookup(valstr, &(cat[ncat].red), &(cat[ncat].green), &(cat[ncat].blue)))
                {
@@ -1189,7 +1340,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Check for coordinate system
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                mViewer_parseCoordStr(valstr, &(cat[ncat].csys), &(cat[ncat].epoch));
             }
@@ -1202,7 +1353,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].data_file", noverlay);  // Require catalog file name
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'data_file' attribute.", noverlay);
                return returnStruct;
@@ -1214,20 +1365,20 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             sprintf(keystr, "overlays[%d].data_column", noverlay);  // Check for mag/flux column for scaling
 
             strcpy(cat[ncat].scaleColumn, "");
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].scaleColumn, valstr);
 
 
             sprintf(keystr, "overlays[%d].data_ref", noverlay);  // Check for scaling data reference value
 
             cat[ncat].scaleVal = 1.;
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
                cat[ncat].scaleVal = atof(valstr);
 
 
             sprintf(keystr, "overlays[%d].data_type", noverlay);  // Check for type of scaling data column 
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                cat[ncat].scaleType = FLUX;
 
@@ -1238,7 +1389,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].symbol", noverlay);  // Check for symbol shape info
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_parseSymbol(valstr, &(cat[ncat].symNPnt), &(cat[ncat].symNMax), &(cat[ncat].symType), &(cat[ncat].symRotAngle)))
                {
@@ -1257,7 +1408,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].sym_size", noverlay);  // Check for symbol size
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                ptr = valstr + strlen(valstr) - 1;
 
@@ -1299,28 +1450,28 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             sprintf(keystr, "overlays[%d].size_column", noverlay);  // Check for explicit size column
 
             strcpy(cat[ncat].symSizeColumn, "");
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].symSizeColumn, valstr);
 
 
             sprintf(keystr, "overlays[%d].shape_column", noverlay);  // Check for shape column
 
             strcpy(cat[ncat].symShapeColumn, "");
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].symShapeColumn, valstr);
 
 
             sprintf(keystr, "overlays[%d].label_column", noverlay);  // Check for label column
 
             strcpy(cat[ncat].labelColumn, "");
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].labelColumn, valstr);
 
 
             sprintf(keystr, "overlays[%d].color_column", noverlay);  // Check for color column
 
             strcpy(cat[ncat].colorColumn, "");
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].colorColumn, valstr);
 
             ++ncat;
@@ -1334,7 +1485,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].color", noverlay);  // Check for color 
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_colorLookup(valstr, &(cat[ncat].red), &(cat[ncat].green), &(cat[ncat].blue)))
                {
@@ -1352,7 +1503,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Check for coordinate system
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                mViewer_parseCoordStr(valstr, &(cat[ncat].csys), &(cat[ncat].epoch));
             }
@@ -1365,7 +1516,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].data_file", noverlay);  // Require image metadata file name
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'data_file' attribute.", noverlay);
                return returnStruct;
@@ -1382,7 +1533,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          {
             sprintf(keystr, "overlays[%d].color", noverlay);  // Check for color 
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_colorLookup(valstr, &(mark[nmark].red), &(mark[nmark].green), &(mark[nmark].blue)))
                {
@@ -1400,7 +1551,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Check for coordinate system
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                mViewer_parseCoordStr(valstr, &(mark[nmark].csys), &(mark[nmark].epoch));
             }
@@ -1413,7 +1564,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].lon", noverlay);  // Require longitude
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'lon' attribute.", noverlay);
                return returnStruct;
@@ -1427,7 +1578,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].lat", noverlay);  // Require latitude
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'lat' attribute.", noverlay);
                return returnStruct;
@@ -1441,7 +1592,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].symbol", noverlay);  // Check for symbol shape info
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_parseSymbol(valstr, &(mark[nmark].symNPnt), &(mark[nmark].symNMax), &(mark[nmark].symType), &(mark[nmark].symRotAngle)))
                {
@@ -1460,7 +1611,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].sym_size", noverlay);  // Check for symbol size
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                ptr = valstr + strlen(valstr) - 1;
 
@@ -1504,7 +1655,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          {
             sprintf(keystr, "overlays[%d].color", noverlay);  // Check for color
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                if(mViewer_colorLookup(valstr, &(label[nlabel].red), &(label[nlabel].green), &(label[nlabel].blue)))
                {
@@ -1522,7 +1673,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].font_scale", noverlay);  // Check for font scale
 
-            if(json_val(cmdstr, keystr, valstr))
+            if(json_val(layout, keystr, valstr))
             {
                label[nlabel].fontscale = strtod(valstr, &end);
 
@@ -1538,7 +1689,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].lon", noverlay);  // Require longitude
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'lon' attribute.", noverlay);
                return returnStruct;
@@ -1552,7 +1703,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].lat", noverlay);  // Require latitude
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'lat' attribute.", noverlay);
                return returnStruct;
@@ -1566,7 +1717,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             sprintf(keystr, "overlays[%d].text", noverlay);  // Require text
 
-            if(json_val(cmdstr, keystr, valstr) == (char *)NULL)
+            if(json_val(layout, keystr, valstr) == (char *)NULL)
             {
                sprintf(returnStruct->msg, "Overlay %d has no 'text' attribute.", noverlay);
                return returnStruct;
@@ -1581,11 +1732,19 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          ++noverlay;
       }
+
+      json_free(sv);
    }
 
    else   // CMDMODE mode: parse the original mViewer command-line arguments
    {
-      argc = parsecmd(cmdstr, argv);
+      if(mViewer_debug)
+      {
+         printf("DEBUG> CMDMODE mode\n");
+         fflush(stdout);
+      }
+
+      argc = parsecmd(params, argv);
 
       if(argc < 2)
       {
@@ -1593,12 +1752,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          return returnStruct;
       }
 
-      for(i=1; i<argc; ++i)
+      for(i=0; i<argc; ++i)
       {
-         /* Debug (overrides the debugin variable on the call) */
+         /* Debug (overrides the mViewer_debugin variable on the call) */
 
          if(strcmp(argv[i], "-d") == 0)
-            debug = 1;
+            mViewer_debug = 1;
          
 
          /* Ignore WCS */
@@ -1628,6 +1787,22 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          else if(strcmp(argv[i], "-noflip") == 0)
             noflip = 1;
 
+
+         /* SATURATION VALUE */
+
+         else if(strcmp(argv[i], "-saturate") == 0)
+         {
+            saturationValue = strtod(argv[i+1], &end);
+
+            if(saturationValue < 0.)
+               saturationValue = 0.;
+
+            if(saturationValue > 255.)
+               saturationValue = 255.;
+
+            ++i;
+         }
+         
 
          /* TRUE COLOR */
 
@@ -2004,34 +2179,42 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          else if(strcmp(argv[i], "-scalecol") == 0)
          {
-            if(i+1 >= argc)
+            if(strcmp(argv[i+1], "none") == 0)
             {
-               strcpy(returnStruct->msg, "Too few arguments following -symscale flag");
-               return returnStruct;
-            }
-
-            scaleVal  = 1.;
-            scaleType = FLUX;
-
-            if(i+1 < argc && argv[i+1][0] != '-')
-            {
-               strcat(scaleColumn, argv[i+1]);
+               strcpy(scaleColumn, "");
                ++i;
+            }
+            else
+            {
+               if(i+1 >= argc)
+               {
+                  strcpy(returnStruct->msg, "Too few arguments following -scalecol flag");
+                  return returnStruct;
+               }
+
+               scaleVal  = 1.;
+               scaleType = FLUX;
 
                if(i+1 < argc && argv[i+1][0] != '-')
                {
-                  scaleVal = atof(argv[i+1]);
+                  strcat(scaleColumn, argv[i+1]);
                   ++i;
 
                   if(i+1 < argc && argv[i+1][0] != '-')
                   {
-                     scaleType = FLUX;
+                     scaleVal = atof(argv[i+1]);
+                     ++i;
 
-                     if(strncasecmp(argv[i+1], "mag", 3) == 0) scaleType = MAG;
-                     if(strncasecmp(argv[i+1], "log", 3) == 0) scaleType = LOGFLUX;
+                     if(i+1 < argc && argv[i+1][0] != '-')
+                     {
+                        scaleType = FLUX;
+
+                        if(strncasecmp(argv[i+1], "mag", 3) == 0) scaleType = MAG;
+                        if(strncasecmp(argv[i+1], "log", 3) == 0) scaleType = LOGFLUX;
+                     }
+
+                     ++i;
                   }
-
-                  ++i;
                }
             }
          }
@@ -2042,14 +2225,22 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          else if(strcmp(argv[i], "-colorcol") == 0)
          {
-            if(i+1 >= argc)
+            if(strcmp(argv[i+1], "none") == 0)
             {
-               strcpy(returnStruct->msg, "No color column given.");
-               return returnStruct;
+               strcpy(colorColumn, "");
+               ++i;
             }
+            else
+            {
+               if(i+1 >= argc)
+               {
+                  strcpy(returnStruct->msg, "No color column given.");
+                  return returnStruct;
+               }
 
-            strcpy(colorColumn, argv[i+1]);
-            ++i;
+               strcpy(colorColumn, argv[i+1]);
+               ++i;
+            }
          }
 
 
@@ -2058,14 +2249,22 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          else if(strcmp(argv[i], "-sizecol") == 0)
          {
-            if(i+1 >= argc)
+            if(strcmp(argv[i+1], "none") == 0)
             {
-               strcpy(returnStruct->msg, "No symbol size column given.");
-               return returnStruct;
+               strcpy(symSizeColumn, "");
+               ++i;
             }
+            else
+            {
+               if(i+1 >= argc)
+               {
+                  strcpy(returnStruct->msg, "No symbol size column given.");
+                  return returnStruct;
+               }
 
-            strcpy(symSizeColumn, argv[i+1]);
-            ++i;
+               strcpy(symSizeColumn, argv[i+1]);
+               ++i;
+            }
          }
 
 
@@ -2074,14 +2273,22 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          else if(strcmp(argv[i], "-shapecol") == 0)
          {
-            if(i+1 >= argc)
+            if(strcmp(argv[i+1], "none") == 0)
             {
-               strcpy(returnStruct->msg, "No symbol shape column given.");
-               return returnStruct;
+               strcpy(symShapeColumn, "");
+               ++i;
             }
+            else
+            {
+               if(i+1 >= argc)
+               {
+                  strcpy(returnStruct->msg, "No symbol shape column given.");
+                  return returnStruct;
+               }
 
-            strcpy(symShapeColumn, argv[i+1]);
-            ++i;
+               strcpy(symShapeColumn, argv[i+1]);
+               ++i;
+            }
          }
 
 
@@ -2090,14 +2297,22 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          else if(strcmp(argv[i], "-labelcol") == 0)
          {
-            if(i+1 >= argc)
+            if(strcmp(argv[i+1], "none") == 0)
             {
-               strcpy(returnStruct->msg, "No label column given.");
-               return returnStruct;
+               strcpy(labelColumn, "");
+               ++i;
             }
+            else
+            {
+               if(i+1 >= argc)
+               {
+                  strcpy(returnStruct->msg, "No label column given.");
+                  return returnStruct;
+               }
 
-            strcpy(labelColumn, argv[i+1]);
-            ++i;
+               strcpy(labelColumn, argv[i+1]);
+               ++i;
+            }
          }
 
 
@@ -2875,7 +3090,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          fits_movabs_hdu(greenfptr, redhdu+1, NULL, &status);
    }
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("DEBUG> statusfile      = [%s]\n", statusfile);
       printf("DEBUG> colortable      = [%d]\n", colortable);
@@ -3032,7 +3247,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    if(isRGB)
    {
-      if(debug)
+      if(mViewer_debug)
       {
          printf("DEBUG> Processing RGB mode\n");
       }
@@ -3064,13 +3279,13 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       if(fits_get_hdrpos(redfptr, &keysexist, &keynum, &status))
          mViewer_printFitsError(status);
 
-      header  = malloc(keysexist * 80 + 1024);
-      comment = malloc(keysexist * 80 + 1024);
-
       if(fits_get_image_wcs_keys(redfptr, &header, &status))
          mViewer_printFitsError(status);
 
       wcs = wcsinit(header);
+
+      free(header);
+
 
       if(wcs == (struct WorldCoor *)NULL)
       {
@@ -3153,7 +3368,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          epochimg = 2000.;
       }
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\nRed image:\n");
          printf("naxis1   = %d\n", (int)wcs->nxpix);
@@ -3178,7 +3393,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       redymin = -wcs->yrefpix;
       redymax = redymin + wcs->nypix;
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("redxmin   = %-g\n", redxmin);
          printf("redxmax   = %-g\n", redxmax);
@@ -3219,14 +3434,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       /* Check to see if the green image */
       /* has the same size / scale       */
 
-      free(header);
-      free(comment);
-
       if(fits_get_hdrpos(greenfptr, &keysexist, &keynum, &status))
          mViewer_printFitsError(status);
-
-      header  = malloc(keysexist * 80 + 1024);
-      comment = malloc(keysexist * 80 + 1024);
 
       if(fits_get_image_wcs_keys(greenfptr, &header, &status))
          mViewer_printFitsError(status);
@@ -3234,6 +3443,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       wcsfree(wcs);
 
       wcs = wcsinit(header);
+
+      free(header);
 
       if(wcs == (struct WorldCoor *)NULL)
       {
@@ -3259,7 +3470,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       if(!nowcs)
          montage_checkWCS(wcs);
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\nGreen image:\n");
          printf("naxis1   = %d\n", (int)wcs->nxpix);
@@ -3293,7 +3504,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       greenymin = -wcs->yrefpix;
       greenymax = greenymin + wcs->nypix;
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("greenxmin = %-g\n", greenxmin);
          printf("greenxmax = %-g\n", greenxmax);
@@ -3307,9 +3518,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       /* Check to see if the blue image */
       /* has the same size / scale      */
 
-      free(header);
-      free(comment);
-
       if(fits_get_hdrpos(bluefptr, &keysexist, &keynum, &status))
          mViewer_printFitsError(status);
 
@@ -3319,9 +3527,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       if(status == KEY_NO_EXIST)
          strcpy(bunit, "");
 
-      header  = malloc(keysexist * 80 + 1024);
-      comment = malloc(keysexist * 80 + 1024);
-
       status = 0;
       if(fits_get_image_wcs_keys(bluefptr, &header, &status))
          mViewer_printFitsError(status);
@@ -3329,6 +3534,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       wcsfree(wcs);
 
       wcs = wcsinit(header);
+
+      free(header);
 
       if(wcs == (struct WorldCoor *)NULL)
       {
@@ -3354,7 +3561,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       if(!nowcs)
          montage_checkWCS(wcs);
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\nBlue image:\n");
          printf("naxis1   = %d\n", (int)wcs->nxpix);
@@ -3388,7 +3595,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       blueymin = -wcs->yrefpix;
       blueymax = blueymin + wcs->nypix;
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("bluexmin  = %-g\n", bluexmin);
          printf("bluexmax  = %-g\n", bluexmax);
@@ -3447,7 +3654,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       crpix2 = -ymin;
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\n");
          printf("DEBUG> COLOR: crval1    = %.6f\n", crval1);
@@ -3509,20 +3716,18 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          }
       }
 
-      mViewer_vamp_comment(comment);
-
 
       /* Now adjust the data range if the limits */
       /* were percentiles.  We had to wait until */
       /* we had naxis1, naxis2 values which is   */
       /* why this is here                        */
 
-      if(debug)
+      if(mViewer_debug)
          printf("\n RED RANGE:\n");
 
       if(strlen(redhistfile) > 0)
       {
-         if(debug)
+         if(mViewer_debug)
          {
             printf("DEBUG> redhistfile = [%s]\n", redhistfile);
             fflush(stdout);
@@ -3558,7 +3763,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       reddiff   = redmaxval   - redminval;
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("DEBUG> redminval   = %-g (%-g%%/%-gs)\n", redminval, redminpercent, redminsigma);
          printf("DEBUG> redmaxval   = %-g (%-g%%/%-gs)\n", redmaxval, redmaxpercent, redmaxsigma);
@@ -3566,12 +3771,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          fflush(stdout);
       }
 
-      if(debug)
+      if(mViewer_debug)
          printf("\n GREEN RANGE:\n");
 
       if(strlen(greenhistfile) > 0)
       {
-         if(debug)
+         if(mViewer_debug)
          {
             printf("DEBUG> greenhistfile = [%s]\n", greenhistfile);
             fflush(stdout);
@@ -3607,7 +3812,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       greendiff = greenmaxval - greenminval;
       
-      if(debug)
+      if(mViewer_debug)
       {
          printf("DEBUG> greenminval = %-g (%-g%%/%-gs)\n", greenminval, greenminpercent, greenminsigma);
          printf("DEBUG> greenmaxval = %-g (%-g%%/%-gs)\n", greenmaxval, greenmaxpercent, greenmaxsigma);
@@ -3615,12 +3820,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          fflush(stdout);
       }
 
-      if(debug)
+      if(mViewer_debug)
          printf("\n BLUE RANGE:\n");
 
       if(strlen(bluehistfile) > 0)
       {
-         if(debug)
+         if(mViewer_debug)
          {
             printf("DEBUG> bluehistfile = [%s]\n", bluehistfile);
             fflush(stdout);
@@ -3656,7 +3861,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       bluediff = bluemaxval - blueminval;
       
-      if(debug)
+      if(mViewer_debug)
       {
          printf("DEBUG> blueminval = %-g (%-g%%/%-gs)\n", blueminval, blueminpercent, blueminsigma);
          printf("DEBUG> bluemaxval = %-g (%-g%%/%-gs)\n", bluemaxval, bluemaxpercent, bluemaxsigma);
@@ -3699,7 +3904,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          jinc   = -1;
       }
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\n");
          printf("DEBUG> nx               = %d\n", nx);
@@ -3740,9 +3945,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          jpeg_set_quality (&cinfo, quality, TRUE);
 
          jpeg_start_compress(&cinfo, TRUE);
-
-         jpeg_write_marker(&cinfo, JPEG_COM, 
-            (const JOCTET *)comment, strlen(comment));
       }
 
       else if(outType == PNG)
@@ -3759,7 +3961,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          }
       }
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("Image (PNG/JPEG) space allocated: %u\n", membytes);
          fflush(stdout);
@@ -3899,7 +4101,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             /* Special case: blank pixel */
 
             if(mNaN(redval))
-               redImVal = 0.;
+               redImVal = saturationValue;
 
 
             /* Gaussian histogram equalization */
@@ -3977,7 +4179,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             /* Special case: blank pixel */
 
             if(mNaN(greenval))
-               greenImVal = 0.;
+               greenImVal = saturationValue;
 
 
             /* Special case: blank pixel */
@@ -4060,7 +4262,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             /* Special case: blank pixel */
 
             if(mNaN(blueval))
-               blueImVal = 0.;
+               blueImVal = saturationValue;
 
 
             /* Gaussian histogram equalization */
@@ -4212,7 +4414,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    else
    {
-      if(debug)
+      if(mViewer_debug)
       {
          printf("DEBUG> Processing Gray mode\n");
          fflush(stdout);
@@ -4222,6 +4424,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       if(strlen(grayfile) == 0)
       {
+         mViewer_memCleanup();
          strcpy(returnStruct->msg, "Grayscale/pseudocolor mode but no gray image given");
          return returnStruct;
       }
@@ -4238,14 +4441,13 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       if(status == KEY_NO_EXIST)
          strcpy(bunit, "");
 
-      header  = malloc(keysexist * 80 + 1024);
-      comment = malloc(keysexist * 80 + 1024);
-
       status = 0;
       if(fits_get_image_wcs_keys(grayfptr, &header, &status))
          mViewer_printFitsError(status);
 
       wcs = wcsinit(header);
+
+      free(header);
 
       if(wcs == (struct WorldCoor *)NULL)
       {
@@ -4263,6 +4465,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          }
          else
          {
+            mViewer_memCleanup();
             sprintf(returnStruct->msg, "WCS init failed for [%s].", grayfile);
             return returnStruct;
          }
@@ -4328,7 +4531,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          epochimg = 2000.;
       }
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\nGray image:\n");
          printf("naxis1   = %d\n", (int)wcs->nxpix);
@@ -4374,7 +4577,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       }
 
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\n");
          printf("DEBUG> GRAY: naxis1 = %d\n" , naxis1);
@@ -4422,15 +4625,13 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          }
       }
 
-      mViewer_vamp_comment(comment);
-
 
       /* Now adjust the data range if the limits */
       /* were percentiles.  We had to wait until */
       /* we had naxis1, naxis2 which is why this */
       /* is here                                 */
 
-      if(debug)
+      if(mViewer_debug)
          printf("\n GRAY RANGE:\n");
 
       if(strlen(grayhistfile) > 0)
@@ -4438,6 +4639,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          if(mViewer_readHist(grayhistfile, &grayminval,  &graymaxval, graydataval, 
                              &graydatamin, &graydatamax, &median, &sigma, &grayType))
          {
+            mViewer_memCleanup();
             strcpy(returnStruct->msg, montage_msgstr);
             return returnStruct;
          }
@@ -4452,6 +4654,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
                              &median,         &sigma,
                               grayPlaneCount,  grayPlanes))
          {
+            mViewer_memCleanup();
             strcpy(returnStruct->msg, montage_msgstr);
             return returnStruct;
          }
@@ -4465,7 +4668,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       graydiff = graymaxval - grayminval;
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("DEBUG> grayminval = %-g (%-g%%/%-gs)\n", grayminval, grayminpercent, grayminsigma);
          printf("DEBUG> graymaxval = %-g (%-g%%/%-gs)\n", graymaxval, graymaxpercent, graymaxsigma);
@@ -4508,7 +4711,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          jinc   = -1;
       }
 
-      if(debug)
+      if(mViewer_debug)
       {
          printf("\n");
          printf("DEBUG> nx               = %d\n", nx);
@@ -4548,9 +4751,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          jpeg_set_quality (&cinfo, quality, TRUE);
 
          jpeg_start_compress(&cinfo, TRUE);
-
-         jpeg_write_marker(&cinfo, JPEG_COM, 
-            (const JOCTET *)comment, strlen(comment));
       }
 
 
@@ -4589,7 +4789,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          }
       }
       
-      if(debug)
+      if(mViewer_debug)
       {
          printf("Image (PNG/JPEG) space allocated\n");
          fflush(stdout);
@@ -4640,8 +4840,10 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          {
             /* Special case: blank pixel */
 
-            if(mNaN(fitsbuf[i-istart]))
-               index = 0;
+            grayval = fitsbuf[i-istart];
+
+            if(mNaN(grayval))
+               index = saturationValue;
 
 
             /* Gaussian histogram equalization */
@@ -4649,8 +4851,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             else if(grayType == GAUSSIAN
                  || grayType == GAUSSIANLOG)
             {
-               grayval = fitsbuf[i-istart];
-
                for(index=0; index<256; ++index)
                {
                   if(graydataval[index] >= grayval)
@@ -4666,8 +4866,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             else if(grayType == ASINH)
             {
-               grayval = fitsbuf[i-istart];
-
                grayImVal  = (grayval - grayminval)/(graymaxval - grayminval);
 
                if(grayImVal < 0.0)
@@ -4689,8 +4887,6 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             else
             {
-               grayval = fitsbuf[i-istart];
-
                if(grayval < grayminval)
                   grayval = grayminval;
 
@@ -4768,6 +4964,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    for(i=0; i<ngrid; ++i)
    {
+      if(mViewer_debug)
+      {
+         printf("Grid %d of %d\n", i+1, ngrid);
+         fflush(stdout);
+      }
+
       mViewer_makeGrid(wcs, csysimg, epochimg, 
                        grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue,  
                        fontfile, grid[i].fontscale);
@@ -4777,12 +4979,25 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    for(i=0; i<ncat; ++i)
    {
+      if(mViewer_debug)
+      {
+         printf("Catalog %d of %d\n", i+1, ncat);
+         fflush(stdout);
+      }
+
       if(cat[i].isImgInfo == 0) /* CATALOG */
       {
+         if(mViewer_debug)
+         {
+            printf("Source catalog %s\n", cat[i].file);
+            fflush(stdout);
+         }
+
          ncol = topen(cat[i].file);
 
          if(ncol <= 0)
          {
+            mViewer_memCleanup();
             sprintf(returnStruct->msg, "Invalid table file [%s].", cat[i].file);
             return returnStruct;
          }
@@ -4795,6 +5010,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          if(ira < 0 || idec < 0)
          {
+            tclose();
+            mViewer_memCleanup();
             sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat') in table [%s]", cat[i].file);
             return returnStruct;
          }
@@ -4810,6 +5027,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             if(iscale < 0)
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find flux/mag column [%s] in table [%s]", cat[i].scaleColumn, cat[i].file);
                return returnStruct;
             }
@@ -4826,6 +5045,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             if(icolor < 0)
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find color column [%s] in table [%s]", cat[i].colorColumn, cat[i].file);
                return returnStruct;
             }
@@ -4842,6 +5063,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             if(isymsize < 0)
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find symbol size column [%s] in table [%s]", cat[i].symSizeColumn, cat[i].file);
                return returnStruct;
             }
@@ -4858,6 +5081,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             if(isymshape < 0)
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find symbol shape column [%s] in table [%s]", cat[i].symShapeColumn, cat[i].file);
                return returnStruct;
             }
@@ -4874,6 +5099,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             if(ilabel < 0)
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find label column [%s] in table [%s]", cat[i].labelColumn, cat[i].file);
                return returnStruct;
             }
@@ -4923,6 +5150,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
                   if(mViewer_colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue))
                   {
+                     mViewer_memCleanup();
                      strcpy(returnStruct->msg, montage_msgstr);
                      return returnStruct;
                   }
@@ -5000,7 +5228,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
 
 
-            if(debug)
+            if(mViewer_debug)
                printf("Symbol: color=(%4.2f,%4.2f,%4.2f) shape=(%2d,%d,%6.2f) at (%6.2f,%6.2f) flux=%10.6f->", 
                   ovlyred, ovlygreen, ovlyblue, symNPnt, symType, symRotAngle, ra, dec, flux);
 
@@ -5037,7 +5265,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             if(flux < 0.1*charHeight)
                flux = 0.1*charHeight;
 
-            if(debug)
+            if(mViewer_debug)
             {
                printf("%10.6f\n", flux);
                fflush(stdout);
@@ -5052,7 +5280,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
                               ra, dec, 0, flux, symNPnt, symNMax, symType, symRotAngle, 
                               ovlyred, ovlygreen, ovlyblue);
 
-               if(debug)
+               if(mViewer_debug)
                {
                   printf("Symbol drawn.\n");
                   fflush(stdout);
@@ -5060,7 +5288,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
             }
             else
             {
-               if(debug)
+               if(mViewer_debug)
                {
                   printf("Symbol not drawn.\n");
                   fflush(stdout);
@@ -5086,7 +5314,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
                   mViewer_draw_label(fontfile, fontSize, xpix, ypix, labelstr, ovlyred, ovlygreen, ovlyblue);
                }
 
-               if(debug)
+               if(mViewer_debug)
                {
                   printf("Label [%s] at (%-g,%-g)\n", labelstr, xpix, ypix);
                   fflush(stdout);
@@ -5099,25 +5327,36 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
       else /* IMAGE INFO */
       {
+         if(mViewer_debug)
+         {
+            printf("Image info %s\n", cat[i].file);
+            fflush(stdout);
+         }
+
          ncol = topen(cat[i].file);
 
          if(ncol <= 0)
          {
+            tclose();
+            mViewer_memCleanup();
             sprintf(returnStruct->msg, "Invalid table file [%s].\" ]\n", cat[i].file);
             return returnStruct;
          }
          
-
          // Color
 
          icolor = -1;
 
-         if(strlen(cat[i].colorColumn) > 0)
+         len = strlen(cat[i].colorColumn);
+
+         if(len > 0)
          {
             icolor = tcol(cat[i].colorColumn);
 
             if(icolor < 0)
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find color column [%s] in table [%s]", cat[i].colorColumn, cat[i].file);
                return returnStruct;
             }
@@ -5177,6 +5416,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
             else
             {
+               tclose();
+               mViewer_memCleanup();
                sprintf(returnStruct->msg, "Cannot find 'ra1', 'dec1', etc. corners or WCS columns in table [%s]\n", cat[i].file);
                return returnStruct;
             }
@@ -5206,6 +5447,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
                   if(mViewer_colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue))
                   {
+                     mViewer_memCleanup();
                      strcpy(returnStruct->msg, montage_msgstr);
                      return returnStruct;
                   }
@@ -5271,6 +5513,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
                if(im_wcs == (struct WorldCoor *)NULL)
                {
+                  tclose();
+                  mViewer_memCleanup();
                   sprintf(returnStruct->msg, "Bad WCS for image %d", nimages);
                   return returnStruct;
                }
@@ -5341,6 +5585,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
                convertCoordinates(im_sys, im_epoch, xpos, ypos,
                                   EQUJ, 2000., &ra4, &dec4, 0.0);
+               
+               wcsfree(im_wcs);
             }
 
             mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra1, dec1, ra2, dec2, ovlyred, ovlygreen, ovlyblue);
@@ -5358,6 +5604,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    for(i=0; i<nmark; ++i)
    {
+      if(mViewer_debug)
+      {
+         printf("Marker %d of %d\n", i+1, nmark);
+         fflush(stdout);
+      }
+
       flux = mark[i].symSize;
 
       if(mark[i].symUnits == FRACTIONAL)
@@ -5386,6 +5638,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
    for(i=0; i<nlabel; ++i)
    {
+      if(mViewer_debug)
+      {
+         printf("Label %d of %d\n", i+1, nlabel);
+         fflush(stdout);
+      }
+
       if(label[i].inpix == 0)
       {
          ra  = label[i].x;
@@ -5396,7 +5654,7 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          label[i].x = xpix;
          label[i].y = ypix;
 
-         if(debug)
+         if(mViewer_debug)
          {
             printf("DEBUG> label [%s]: (%-g,%-g) -> (%-g,%-g)\n", label[i].text, ra, dec, label[i].x, label[i].y);
             fflush(stdout);
@@ -5415,6 +5673,12 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
       mViewer_addOverlay();
    }
 
+   if(mViewer_debug)
+   {
+      printf("DEBUG> Image completed. Writing output.\n");
+      fflush(stdout);
+   }
+
 
    /* Write data to JPEG file */
       
@@ -5426,6 +5690,8 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
 
          jpeg_write_scanlines(&cinfo, jpegptr, 1);
       }
+
+      mViewer_memCleanup();
    }
 
 
@@ -5444,7 +5710,9 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    {
       // pngError = lodepng_encode32_file(pngfile, pngData, nx, ny);
 
-      pngError =  mViewer_writePNG(pngfile, pngData, nx, ny, comment);
+      pngError =  mViewer_writePNG(pngfile, pngData, nx, ny, "");
+
+      mViewer_memCleanup();
 
       if(pngError)
       {
@@ -5452,6 +5720,11 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
          return(returnStruct);
       }
    }
+
+   if(grayfptr ) fits_close_file( grayfptr, &status);
+   if(bluefptr ) fits_close_file( bluefptr, &status);
+   if(greenfptr) fits_close_file(greenfptr, &status);
+   if(redfptr  ) fits_close_file(  redfptr, &status);
 
 
    returnStruct->status = 0;
@@ -5590,6 +5863,52 @@ struct mViewerReturn *mViewer(int mode, char *cmdstr, char *outFile, char *outFm
    }
 
    return returnStruct;
+}
+
+
+void mViewer_memCleanup()
+{
+   int i;
+
+   if(mViewer_debug)
+   {
+      printf("DEBUG> memory cleanup\n");
+      fflush(stdout);
+   }
+
+   if(isRGB)
+   {
+      free(rfitsbuf);
+      free(gfitsbuf);
+      free(bfitsbuf);
+   }
+   else
+      free(fitsbuf);
+
+   if(outType == JPEG)
+   {
+      for(i=0; i<ny; ++i)
+      {
+         free(jpegData[i]);
+         free(jpegOvly[i]);
+      }
+
+      free(jpegData);
+      free(jpegOvly);
+   }
+
+   else if(outType == PNG)
+   {
+      free(pngData);
+      free(pngOvly);
+   }
+
+   for(i=0; i<ny; ++i)
+      free(ovlymask[i]);
+
+   free(ovlymask);
+   
+   wcsfree(wcs);
 }
 
 
@@ -6500,7 +6819,7 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    diff = rmax - rmin;
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("DEBUG> mViewer_getRange(): rmin = %-g, rmax = %-g (diff = %-g)\n",
          rmin, rmax, diff);
@@ -6540,6 +6859,8 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
       ++fpixel[1];
    }
+
+   free(data);
 
 
    /* Compute the cumulative histogram      */
@@ -6597,7 +6918,7 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if(*rangemin == *rangemax)
       *rangemax = *rangemin + 1.;
    
-   if(debug)
+   if(mViewer_debug)
    {
       if(type == ASINH)
          printf("DEBUG> mViewer_getRange(): range = %-g to %-g (beta = %-g)\n", 
@@ -6807,7 +7128,7 @@ double mViewer_percentileLevel(double percentile)
 
    value = rmin + (i-1+fraction) * delta;
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("DEBUG> mViewer_percentileLevel(%-g):\n", percentile);
       printf("DEBUG> percent    = %-g -> count = %d -> bin %d\n",
@@ -6851,7 +7172,7 @@ double mViewer_valuePercentile(double value)
 
    percentile = 100. *(minpercent * (1. - fraction) + maxpercent * fraction);
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("DEBUG> mViewer_valuePercentile(%-g):\n", value);
       printf("DEBUG> rmin       = %-g\n", rmin);
@@ -7403,7 +7724,7 @@ void mViewer_coord_label(char *face_path, int fontsize,
    double *ylab;
    int     nlab;
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("DEBUG> mViewer_coord_label(\"%s\", %d, %-g, %-g, \"%s\", %d, %-g, %d, %-g, %-g, %-g, %-g)\n",
               face_path, fontsize, 
@@ -7610,7 +7931,7 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
    double *ylin;
    int     nlin;
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("mViewer_longitude_line(%-g, %-g, %-g, %d, %-g, %d, %-g, %-g, %-g, %-g)\n",
               lon, latmin, latmax, 
@@ -7742,7 +8063,7 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
    double *ylin;
    int     nlin;
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("mViewer_latitude_line(%-g, %-g, %-g, %d, %-g, %d, %-g, %-g, %-g, %-g)\n",
               lat, lonmin, lonmax, 
@@ -7878,7 +8199,7 @@ void mViewer_draw_boundary(double red, double green, double blue)
    double *ylin;
    int     nlin;
 
-   if(debug)
+   if(mViewer_debug)
    {
       printf("mViewer_draw_boundary(%-g, %-g, %-g)\n", red, green, blue);
       fflush(stdout);
@@ -8017,12 +8338,6 @@ void mViewer_draw_label(char *fontfile, int fontsize,
 }
 
 
-
-// ORIGINAL CODE:  lodepng_encode32_file(pngfile, pngData, nx, ny);
-//
-//            ->   mViewer_writePNG(pngfile, pngData, nx, ny, comment);
-
-
 int mViewer_writePNG(const char* filename, const unsigned char* image, unsigned w, unsigned h, char *comment)
 {
    LodePNGColorType colortype;
@@ -8042,9 +8357,8 @@ int mViewer_writePNG(const char* filename, const unsigned char* image, unsigned 
    state.info_png.color.colortype = colortype;
    state.info_png.color.bitdepth  = bitdepth;
 
-   //XXX> lodepng_add_text(LodePNGInfo* info, "/iTXt/XML:com.adobe.xmp", comment);
-
-   lodepng_add_itext(&state.info_png, "XML:com.adobe.xmp", "", "", comment);
+   // We have a couple of routines for generating comment text but are not using them right now.
+   // lodepng_add_itext(&state.info_png, "XML:com.adobe.xmp", "", "", comment);
 
    lodepng_encode(&buffer, &buffersize, image, w, h, &state);
 

@@ -145,7 +145,7 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
 
    returnStruct = (struct mFixNaNReturn *)malloc(sizeof(struct mFixNaNReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

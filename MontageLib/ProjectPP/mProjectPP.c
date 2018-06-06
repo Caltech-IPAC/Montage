@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 {
    int       c, hdu;
    int       expand;
-   int       debug, fullRegion;
+   int       debug, fullRegion, energyMode;
 
    double    threshold, fluxScale;
    double    drizzle, fixedWeight;
@@ -52,6 +52,7 @@ int main(int argc, char **argv)
    hdu         = 0;
    expand      = 0;
    fullRegion  = 0;
+   energyMode  = 0;
 
    opterr = 0;
 
@@ -62,7 +63,7 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "z:d:s:b:h:w:W:t:x:Xfi:o:")) != EOF) 
+   while ((c = getopt(argc, argv, "z:d:s:b:h:w:W:t:x:Xefi:o:")) != EOF) 
    {
       switch (c) 
       {
@@ -164,12 +165,16 @@ int main(int argc, char **argv)
             }
             break;
 
+         case 'e':
+            energyMode = 1;
+            break;
+
          case 'f':
             fullRegion = 1;
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-z factor][-d level][-b border][-s statusfile][-o altout.hdr][-i altin.hdr][-h hdu][-x scale][-w weightfile][-W fixed-weight][-t threshold][-X(expand)][-b border-string] in.fits out.fits template.hdr\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-z factor][-d level][-b border][-s statusfile][-o altout.hdr][-i altin.hdr][-h hdu][-x scale][-w weightfile][-W fixed-weight][-t threshold][-X(expand)][-b border-string][-e(nergy-mode)][-f(ull-region)] in.fits out.fits template.hdr\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -177,7 +182,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 3) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-z factor][-d level][-b border][-s statusfile][-o altout.hdr][-i altin.hdr][-h hdu][-x scale][-w weightfile][-W fixed-weight][-t threshold][-X(expand)][-b border-string] in.fits out.fits template.hdr\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-z factor][-d level][-b border][-s statusfile][-o altout.hdr][-i altin.hdr][-h hdu][-x scale][-w weightfile][-W fixed-weight][-t threshold][-X(expand)][-b border-string][-e(nergy-mode)][-f(ull-region)] in.fits out.fits template.hdr\"]\n", argv[0]);
       exit(1);
    }
 
@@ -186,9 +191,9 @@ int main(int argc, char **argv)
    strcpy(template_file, argv[optind + 2]);
 
 
-   returnStruct = mProjectPP(input_file, hdu, output_file, template_file,
+   returnStruct = mProjectPP(input_file, output_file, template_file, hdu,
                              weight_file, fixedWeight, threshold, borderstr,
-                             altin, altout, drizzle, fluxScale,
+                             altin, altout, drizzle, fluxScale, energyMode,
                              expand, fullRegion, debug);
 
    if(returnStruct->status == 1)
@@ -198,7 +203,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mProjectPP\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

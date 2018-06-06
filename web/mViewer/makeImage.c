@@ -36,6 +36,9 @@ int fileCopy (char *frompath, char *toparah, char *errmsg);
 int hexLookup (char *color, char *colorstr, char *errmsg);
 int str2Integer (char *str, int *intval, char *errmsg);
 
+int checkFileExist (char *fname, char *rootname, char *suffix,
+    char *directory, char *filePath);
+
 
 static char ColortblVal[][30] = {
     "greyscale",
@@ -61,7 +64,7 @@ int getColortblIndx (char *color) {
     int   indx;
     int   colortblIndx;
     
-    int    debugfile = 1;
+    int    debugfile = 0;
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "From getColortblIndx: color= [%s]\n",
@@ -82,11 +85,6 @@ int getColortblIndx (char *color) {
 	    fprintf (fdebug, "colortblIndx= [%d]\n", colortblIndx);
 	    fflush (fdebug);
         }
-
-/*
-	if (colortblIndx > 1)
-	    colortblIndx += 2;
-*/
 
 	return (colortblIndx);
     }
@@ -189,6 +187,12 @@ int makeImage (struct Mviewer *param)
     
     char   str[1024];
 
+    char   imroot[1024];
+    char   suffix[40];
+    char   datamin[1024];
+    char   datamax[1024];
+
+    int    fileExist;
 
     int    ns;
     int    nl;
@@ -197,6 +201,7 @@ int makeImage (struct Mviewer *param)
     
     int	   istatus, l;
 
+
     double factor, xfactor, yfactor;
     double reffactor;
 
@@ -204,7 +209,7 @@ int makeImage (struct Mviewer *param)
     struct timezone  tzp;
     double           exacttime, exacttime0;
 
-    int    debugfile = 1;
+    int    debugfile = 0;
     int    debugtime = 0;
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -229,10 +234,12 @@ int makeImage (struct Mviewer *param)
     if (!param->iscolor) {
 
 	if ((strcasecmp (param->cmd, "init") == 0) ||
-	    (strcasecmp (param->cmd, "replaceimage") == 0) ||
+            (strcasecmp (param->cmd, "initjsonfilte") == 0) ||
+            (strcasecmp (param->cmd, "initjsondata") == 0) ||
+	    (strcasecmp (param->cmd, "replaceim") == 0) ||
 	    (strcasecmp (param->cmd, "resetzoom") == 0))
         {
-            sprintf (impath, "%s/%s", param->directory, param->grayFile);
+              strcpy (impath, param->grayPath);
 	}
         else {
 	    if ((int)strlen(param->subsetimfile) > 0) 
@@ -241,38 +248,41 @@ int makeImage (struct Mviewer *param)
 		    param->subsetimfile);
 	    }
 	    else {
-                sprintf (impath, "%s/%s", param->directory, param->grayFile);
+                  strcpy (impath, param->grayPath);
 	    }
 	}
     }
     else {
 	if ((strcasecmp (param->cmd, "init") == 0) ||
-	    (strcasecmp (param->cmd, "replaceimage") == 0) ||
+            (strcasecmp (param->cmd, "initjsonfilte") == 0) ||
+            (strcasecmp (param->cmd, "initjsondata") == 0) ||
+	    (strcasecmp (param->cmd, "replaceim") == 0) ||
 	    (strcasecmp (param->cmd, "resetzoom") == 0))
         {
             if ((int)strlen(param->redFile) > 0) {
-                sprintf (redpath, "%s/%s", param->directory, param->redFile);
-            }
+                strcpy (redpath, param->redPath);
+	    }
             if ((int)strlen(param->greenFile) > 0) {
-                sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
-            }
+                  strcpy (grnpath, param->greenPath);
+	    }
             if ((int)strlen(param->blueFile) > 0) {
-                sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
+                  strcpy (bluepath, param->bluePath);
             }
 
-            sprintf (impath, "%s/%s", param->directory, param->redFile);
+            strcpy (impath, param->redPath);
 	}
         else {
 	    if ((int)strlen(param->subsetredfile) > 0) 
 	    {
                 sprintf (redpath, "%s/%s", param->directory, 
 		    param->subsetredfile);
+		
 		sprintf (impath, "%s/%s", param->directory, 
 		    param->subsetredfile);
 	    }
 	    else {
-                sprintf (impath, "%s/%s", param->directory, param->redFile);
-                sprintf (redpath, "%s/%s", param->directory, param->redFile);
+                strcpy (redpath, param->redPath);
+                strcpy (impath, param->redPath);
 	    }
 
 	    if ((int)strlen(param->subsetgrnfile) > 0) 
@@ -281,7 +291,7 @@ int makeImage (struct Mviewer *param)
 		    param->subsetgrnfile);
 	    }
 	    else {
-                sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
+                  strcpy (grnpath, param->greenPath);
 	    }
 
 	    if ((int)strlen(param->subsetbluefile) > 0) 
@@ -290,8 +300,8 @@ int makeImage (struct Mviewer *param)
 		    param->subsetbluefile);
 	    }
 	    else {
-                sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
-	    }
+                  strcpy (bluepath, param->bluePath);
+            }
 
 	}
     }
@@ -316,7 +326,7 @@ int makeImage (struct Mviewer *param)
     }
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "ns= [%d] nl= [%d]\n", hdr.ns, hdr.nl);
+	fprintf (fdebug, "hdr.ns= [%d] hdr.nl= [%d]\n", hdr.ns, hdr.nl);
 	fprintf (fdebug, "csysstr= [%s]\n", hdr.csysstr);
 	fprintf (fdebug, "epochstr= [%s]\n", hdr.epochstr);
 	fflush (fdebug);
@@ -333,7 +343,6 @@ int makeImage (struct Mviewer *param)
 	fprintf (fdebug, "ns= [%d] nl= [%d]\n", param->ns, param->nl); 
 	fflush (fdebug);
     }
-
 
 
 /*
@@ -356,6 +365,7 @@ int makeImage (struct Mviewer *param)
 	if (l == 0) {
 	    width = param->canvasWidth;
 	    height = param->canvasHeight;
+
 	    ns = param->ns;
 	    nl = param->nl;
 	}
@@ -384,8 +394,7 @@ int makeImage (struct Mviewer *param)
     make shrunk image
 */
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "iscolor= [%d] factor= [%lf]\n", 
-	        param->iscolor, factor);
+	    fprintf (fdebug, "run mShrink: factor= [%lf]\n", factor);
 	    fflush (fdebug);
         }
 
@@ -396,8 +405,6 @@ int makeImage (struct Mviewer *param)
 	        fflush (fdebug);
             }
 
-//	    sprintf (impath, "%s/%s", param->directory, param->subsetimfile);
-	    
 	    if (l == 0) {
                 sprintf (shrunkimpath, "%s/%s", param->directory, 
 	            param->shrunkimfile);
@@ -650,24 +657,10 @@ int makeImage (struct Mviewer *param)
 /*
     convert ColorTable name to index because that is what mViewer expects
 */
-/*
-    istatus = str2Integer (param->colorTable, &colortblIndx, param->errmsg);
-
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	fprintf (fdebug, "returned str2Integer: istatus= [%d]\n", istatus);
+	fprintf (fdebug, "call getColortblIndx\n");
 	fflush (fdebug);
     }
-
-    if (istatus == 0) {
-        strcpy (param->colorTable, ColortblVal[colortblIndx]); 
-    }
-    else {
-        colortblIndx = getColortblIndx (param->colorTable);
-    
-        if (colortblIndx == -1)
-            colortblIndx = 0;
-    }
-*/
 
     colortblIndx = getColortblIndx (param->colorTable);
 
@@ -889,16 +882,9 @@ int makeImage (struct Mviewer *param)
                 strcat (paramstr, str);
                 strcat (refParamstr, str);
 	    }
-	    else if (strcasecmp (layertype, "catalog") == 0) {
-
-		sprintf (filepath, "%s/%s", param->directory, 
-		    param->overlay[l].dataFile);
-		        
-	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	            fprintf (fdebug, "filepath= [%s]\n", filepath);
-	            fflush (fdebug);
-                }
-            
+	    else if ((strcasecmp (layertype, "catalog") == 0) || 
+	        (strcasecmp (layertype, "iminfo") == 0)) {
+		
 		sprintf (str, "-csys %s ", param->overlay[l].coordSys);
                 strcat (paramstr, str);
                 strcat (refParamstr, str);
@@ -906,77 +892,158 @@ int makeImage (struct Mviewer *param)
                 sprintf (str, "-color %s ", color);
                 strcat (paramstr, str);
                 strcat (refParamstr, str);
-	   
-	        strcpy (symtype, param->overlay[l].symType);
-	        strcpy (symside, param->overlay[l].symSide);
-                
-		if ((int)strlen(symside) == 0) {
-		    strcpy (symside, "3");
-		}
 
-		if (strcasecmp (symtype, "polygon") == 0) {
-	            strcpy (symtype, "0");
-		}
-                else if (strcasecmp (symtype, "starred") == 0) {
-	            strcpy (symtype, "1");
-		}
-                else if (strcasecmp (symtype, "skeletal") == 0) {
-	            strcpy (symtype, "2");
-		}
-                else if ((strcasecmp (symtype, "box") == 0) ||
-		    (strcasecmp (symtype, "square") == 0)) {
-	            
-		    strcpy (symtype, "0");
-		    strcpy (symside, "4");
-		}
+/*
+    Check if overlay dataFile exists
+*/
+	        fileExist = 0;
+                if ((int)strlen(param->overlay[l].datadir) > 0) {
 
-	        sprintf (str, "-symbol %s %s %s ", 
-		    param->overlay[l].symSize, symtype, symside);
-	                
-                strcat (paramstr, str);
-                strcat (refParamstr, str);
-	    
- 
-	        if ((int)strlen(param->overlay[l].dataCol) == 0) {
-			    
-		    sprintf (str, "-catalog %s ", filepath);
+                    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                        fprintf (fdebug, "check dataFile in datadir= %s\n",
+		            param->overlay[l].datadir);
+		        fflush (fdebug);
+                    }
+   
+	            fileExist = checkFileExist (param->overlay[l].dataFile, 
+		        imroot, suffix, param->overlay[l].datadir, 
+			param->overlay[l].dataPath);
+            
+	            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                        fprintf (fdebug, 
+	                    "returned checkFileExist(datadir): "
+			    "fileExist= [%d]\n", fileExist);
+		        fflush (fdebug);
+                    }
+   
                 }
 	        else {
-	            sprintf (str, "-catalog %s %s %s %s ", filepath, 
-		        param->overlay[l].dataCol, 
-			param->overlay[l].dataRef, 
-			param->overlay[l].dataType);
+                    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                        fprintf (fdebug, "check imcubefile in workdir= %s\n",
+		            param->directory);
+		        fflush (fdebug);
+                    }
+   
+	            fileExist = checkFileExist (param->overlay[l].dataFile,
+		        imroot, suffix, param->directory, 
+			param->overlay[l].dataPath);
+            
+	            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                        fprintf (fdebug, 
+		            "returned checkFileExist(ws): fileExist= [%d]\n",
+	                    fileExist);
+		        fflush (fdebug);
+                    }
+                }
+
+                if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, "fileExist= [%d]\n", fileExist);
+                }
+   
+                if (!fileExist) {
+	            sprintf (param->errmsg, "Cannot find overlay datafile [%s] "
+		        "in workspace or data directory.", 
+			param->overlay[l].dataFile);
+	            return (-1);
 	        }
+
+		strcpy (filepath, param->overlay[l].dataPath);
                 
-		strcat (paramstr, str);
-                strcat (refParamstr, str);
-	    }
-	    else if (strcasecmp (param->overlay[l].type, "iminfo") == 0) {
-	                
 		if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	            fprintf (fdebug, "here8: iminfo\n");
+                    fprintf (fdebug, "dataFile= [%s]\n", 
+		        param->overlay[l].dataFile);
+                    fprintf (fdebug, "dataPath= [%s]\n", 
+		        param->overlay[l].dataPath);
+                    fprintf (fdebug, "filepath= [%s]\n", filepath);
+                    fflush (fdebug);
+                }
+
+		        
+	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	            fprintf (fdebug, "filepath= [%s]\n", filepath);
 	            fflush (fdebug);
                 }
-			
-		sprintf (filepath, "%s/%s", param->directory, 
-		    param->overlay[l].dataFile);
-
-	        sprintf (str, "-csys %s ", param->overlay[l].coordSys);
+            
+/*
+    catalog has a few more paramters
+*/
+	        if (strcasecmp (layertype, "catalog") == 0) {
+		
+		    strcpy (symtype, param->overlay[l].symType);
+	            strcpy (symside, param->overlay[l].symSide);
                 
-		strcat (paramstr, str);
-                strcat (refParamstr, str);
-			
-                sprintf (str, "-color %s ", color);
-                strcat (paramstr, str);
-                strcat (refParamstr, str);
+		    if ((int)strlen(symside) == 0) {
+		        strcpy (symside, "3");
+		    }
+
+		    if (strcasecmp (symtype, "polygon") == 0) {
+	                strcpy (symtype, "0");
+		    }
+                    else if (strcasecmp (symtype, "starred") == 0) {
+	                strcpy (symtype, "1");
+		    }
+                    else if (strcasecmp (symtype, "skeletal") == 0) {
+	                strcpy (symtype, "2");
+		    }
+                    else if ((strcasecmp (symtype, "box") == 0) ||
+		        (strcasecmp (symtype, "square") == 0)) {
+	            
+		        strcpy (symtype, "0");
+		        strcpy (symside, "4");
+		    }
+
+                if ((strcasecmp(param->overlay[l].symType,"triangle") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "box") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "square") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "diamond") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "pentagon") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "hexagon") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "septagon") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "octagon") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "el") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "circle") == 0) ||
+                    (strcasecmp (param->overlay[l].symType, "compass") == 0)) 
+                    {
+	                sprintf (str, "-symbol %s %s ", 
+		            param->overlay[l].symSize, symtype);
+		    }
+		    else {
+	                sprintf (str, "-symbol %s %s %s ", 
+		            param->overlay[l].symSize, symtype, symside);
+	            }
+
+                    strcat (paramstr, str);
+                    strcat (refParamstr, str);
 	    
-	        sprintf (str, "-imginfo %s ", filepath);
-                strcat (paramstr, str);
-                strcat (refParamstr, str);
-            }
+ 
+	            if ((int)strlen(param->overlay[l].dataCol) == 0) {
+			    
+		        sprintf (str, "-catalog %s ", filepath);
+                    }
+	            else {
+	                sprintf (str, "-catalog %s %s %s %s ", filepath, 
+		            param->overlay[l].dataCol, 
+			    param->overlay[l].dataRef, 
+			    param->overlay[l].dataType);
+	            }
+                
+		    strcat (paramstr, str);
+                    strcat (refParamstr, str);
+	        }
+	        else if (strcasecmp (param->overlay[l].type, "iminfo") == 0) {
+	                
+		    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	                fprintf (fdebug, "here8: iminfo\n");
+	                fflush (fdebug);
+                    }
+			
+	            sprintf (str, "-imginfo %s ", filepath);
+                    strcat (paramstr, str);
+                    strcat (refParamstr, str);
+                }
+	    }
 	    else if ((strcasecmp (layertype, "marker") == 0) || 
 	        (strcasecmp (layertype, "mark") == 0)) {
-
 
                 sprintf (str, "-color %s ", color);
                 strcat (paramstr, str);
@@ -1013,22 +1080,39 @@ int makeImage (struct Mviewer *param)
     If cmd = 'init', run mViewer on the original imageFile to get 
     the datamin and datamax -- the shrunk image has the flux values altered.
 */
-    if ((strcasecmp (param->cmd, "init") == 0) ||
-        (strcasecmp (param->cmd, "replaceimplane") == 0)) {
+    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	fprintf (fdebug, "cmd= [%s]\n", param->cmd);
+	fprintf (fdebug, "grayPath= [%s]\n", param->grayPath);
+	fprintf (fdebug, "imageTpye= [%s]\n", param->imageType);
+	fflush (fdebug);
+    }
 	
-        sprintf (jpgpath, "%s/%s_orig.jpg", param->directory, param->imageFile);
+    if ((strcasecmp (param->cmd, "init") == 0) ||
+        (strcasecmp (param->cmd, "initjsonfilte") == 0) ||
+        (strcasecmp (param->cmd, "initjsondata") == 0) ||
+        (strcasecmp (param->cmd, "replaceim") == 0) ||
+        (strcasecmp (param->cmd, "replaceimplane") == 0)) {
+
+        if (strcasecmp (param->imageType, "png") == 0) {
+            
+	    sprintf (jpgpath, "%s/%s_orig.png", param->directory, 
+	        param->imageFile);
+	
+	    sprintf (cmd, 
+	        "mViewer -nowcs -ct 0 -grey %s 0.2%% 99.8%% linear -png %s",
+	        param->grayPath, jpgpath);
+	}
+	else {
+            sprintf (jpgpath, "%s/%s_orig.jpg", param->directory, 
+	        param->imageFile);
+	
+	    sprintf (cmd, 
+	        "mViewer -nowcs -ct 0 -grey %s 0.2%% 99.8%% linear -out %s", 
+	        param->grayPath, jpgpath);
+        }
 
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "cmd= [%s] jpgpath= [%s]\n", param->cmd, jpgpath);
-	    fprintf (fdebug, "grayFile= [%s]\n", param->grayFile);
-	    fflush (fdebug);
-        }
-	
-	sprintf (cmd, 
-	  "mViewer -nowcs -ct 0 -grey %s/%s 0.2%% 99.8%% linear -out %s", 
-	    param->directory, param->grayFile, jpgpath);
-	
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+	    fprintf (fdebug, "jpgpath= [%s]\n", jpgpath);
 	    fprintf (fdebug, "Run mViewer: cmd= [%s]\n", cmd);
 	    fflush (fdebug);
         }
@@ -1070,32 +1154,48 @@ int makeImage (struct Mviewer *param)
         }
             
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "datamin= [%s] datamax= [%s]\n",
+	    fprintf (fdebug, "original FITS's datamin= [%s] datamax= [%s]\n",
 		param->datamin, param->datamax);
 	        fflush (fdebug);
 	}
-        
     }
 
 
     for (l=0; l<param->nim; l++) {
 	
         if (l == 0) { 
+        
+	    if (strcasecmp (param->imageType, "png") == 0) {
+                sprintf (param->jpgfile, "%s.png", param->imageFile);
+	        sprintf (jpgpath, "%s/%s", param->directory, param->jpgfile);
+	        sprintf (cmd, "%s %s -png %s", prog, paramstr, jpgpath);
+	    }
+	    else {
+                sprintf (param->jpgfile, "%s.jpg", param->imageFile);
+	        sprintf (jpgpath, "%s/%s", param->directory, param->jpgfile);
+	        sprintf (cmd, "%s %s -out %s", prog, paramstr, jpgpath);
+	    }
 	    
-            sprintf (param->jpgfile, "%s.jpg", param->imageFile);
-            sprintf (jpgpath, "%s/%s", param->directory, param->jpgfile);
-
 	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	        fprintf (fdebug, "(l=0): jpgfile= [%s]\n", param->jpgfile);
 	        fprintf (fdebug, "jpgpath= [%s]\n", jpgpath);
 	        fflush (fdebug);
             }
 	        
-	    sprintf (cmd, "%s %s -out %s", prog, paramstr, jpgpath);
 	}
 	else {
-            sprintf (param->refjpgfile, "%s_ref.jpg", param->imageFile);
-            sprintf (refjpgpath, "%s/%s", param->directory, param->refjpgfile);
+	    if (strcasecmp (param->imageType, "png") == 0) {
+                sprintf (param->jpgfile, "%s.png", param->imageFile);
+                sprintf (refjpgpath, "%s/%s", 
+		    param->directory, param->refjpgfile);
+	        sprintf (cmd, "%s %s -png %s", prog, refParamstr, refjpgpath);
+	    }
+	    else {
+	        sprintf (param->refjpgfile, "%s_ref.jpg", param->imageFile);
+                sprintf (refjpgpath, "%s/%s", 
+		    param->directory, param->refjpgfile);
+	        sprintf (cmd, "%s %s -out %s", prog, refParamstr, refjpgpath);
+            }
 	    
 	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	        fprintf (fdebug, "(l=1): refjpgfile= [%s]\n", 
@@ -1103,8 +1203,6 @@ int makeImage (struct Mviewer *param)
 	        fprintf (fdebug, "refjpgpath= [%s]\n", refjpgpath);
 	        fflush (fdebug);
             }
-	        
-	    sprintf (cmd, "%s %s -out %s", prog, refParamstr, refjpgpath);
         }
 
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -1335,22 +1433,20 @@ int makeImage (struct Mviewer *param)
 	            fflush (fdebug);
 	        }
 
-/*
-                param->datamin[0] = '\0';
+                datamin[0] = '\0';
                 if (svc_value("datamin") != (char *)NULL) {
-	            strcpy (param->datamin, svc_value("datamin"));
+	            strcpy (datamin, svc_value("datamin"));
                 }
-                param->datamax[0] = '\0';
+                datamax[0] = '\0';
                 if (svc_value("datamax") != (char *)NULL) {
-	            strcpy (param->datamax, svc_value("datamax"));
+	            strcpy (datamax, svc_value("datamax"));
                 }
             
 	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	            fprintf (fdebug, "datamin= [%s] datamax= [%s]\n",
-		        param->datamin, param->datamax);
+	            fprintf (fdebug, "Current: datamin= [%s] datamax= [%s]\n",
+		        datamin, datamax);
 	            fflush (fdebug);
 	        }
- */
 
     
                 param->minstr[0] = '\0';
@@ -1389,7 +1485,6 @@ int makeImage (struct Mviewer *param)
     
     }
 
-
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "zoomfactor= [%lf] refzoomfactor= [%lf]\n", 
 	    param->zoomfactor, param->refzoomfactor);
@@ -1402,26 +1497,21 @@ int makeImage (struct Mviewer *param)
     Compute zoomxmin, zoomxmax, zoomymin, zoomymin to draw on refimg.
 */
     if ((strcasecmp (param->cmd, "init") == 0) ||
-        (strcasecmp (param->cmd, "replaceimage") == 0) ||
+        (strcasecmp (param->cmd, "initjsonfilte") == 0) ||
+        (strcasecmp (param->cmd, "initjsondata") == 0) ||
+        (strcasecmp (param->cmd, "replaceim") == 0) ||
         (strcasecmp (param->cmd, "replaceimcubeplane") == 0)) {
         
 	param->zoomxmin = 0;
 	param->zoomymin = 0;
+
 	param->zoomxmax = (int)((double)param->ns*param->refzoomfactor+0.5);
 	param->zoomymax = (int)((double)param->nl*param->refzoomfactor+0.5);
+        
     }
     else {
         reffactor = param->refzoomfactor;
 
-/*
-	param->zoomxmin = (int)(param->ss*reffactor+0.5);
-	param->zoomymin = (int)(param->sl*reffactor+0.5);
-	param->zoomxmax = param->zoomxmin 
-	    + (int)((double)param->ns*reffactor+0.5);
-	param->zoomymax = param->zoomymin 
-	    + (int)((double)param->nl*reffactor+0.5);
-*/
-	
 	param->zoomxmin = (int)(param->xmin*reffactor+0.5);
 	param->zoomymin = (int)(param->ymin*reffactor+0.5);
 	param->zoomxmax = (int)((double)param->xmax*reffactor+0.5);

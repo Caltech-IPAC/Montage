@@ -236,7 +236,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    returnStruct = (struct mCoverageCheckReturn *)malloc(sizeof(struct mCoverageCheckReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -503,11 +503,13 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    else if(imode == HEADER)
    {
-      montage_checkHdr(hdrfile, 1, 0);
+      montage_parseHdr(hdrfile, 1, 0);
 
       header = montage_getHdr();
 
       wcsbox = wcsinit(header);
+
+      free(header);
 
       if(wcsbox->syswcs == WCS_J2000)
       {

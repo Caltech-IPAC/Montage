@@ -77,7 +77,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   for(i=0; i<argc; ++i)
+   for(i=1; i<argc; ++i)
    {
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 
       else if(argv[i][0] == '-')
       {
-         printf("[struct stat=\"ERROR\", msg=\"Invalid flag %s.\"]\n", argv[i]);
+         printf("[struct stat=\"ERROR\", msg=\"Invalid flag '%s'.\"]\n", argv[i]);
          exit(1);
       }
 
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 
    if(argv[1][0] == '-')
    {  
-      printf("[struct stat=\"ERROR\", msg=\"Invalid flag \"%s\".\"]\n", argv[1]);
+      printf("[struct stat=\"ERROR\", msg=\"Invalid flag '%s'.\"]\n", argv[1]);
       exit(1);
    } 
 
@@ -336,14 +336,14 @@ int main(int argc, char **argv)
    
    if(!shrinkWrap)
    {
-      if(xsize <= 0.)
+      if(xsize < 0.)
       {
          printf("[struct stat=\"ERROR\", msg=\"Invalid 'x' size\"]\n");
          fflush(stdout);
          exit(1);
       }
 
-      if(ysize <= 0.)
+      if(ysize < 0.)
       {
          printf("[struct stat=\"ERROR\", msg=\"Invalid 'y' size\"]\n");
          fflush(stdout);
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
    }
 
 
-   returnStruct = mSubCube(mode, infile, hdu, outfile, ra, dec, xsize, ysize, nowcs, d3constraint, d4constraint, debug);
+   returnStruct = mSubCube(mode, infile, outfile, ra, dec, xsize, ysize, hdu, nowcs, d3constraint, d4constraint, debug);
 
    if(returnStruct->status == 1)
    {
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mSubCube\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

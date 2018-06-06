@@ -91,7 +91,7 @@ int main(int argc, char **argv)
    strcpy(infile,  argv[optind]);
    strcpy(hdrfile, argv[optind + 1]);
 
-   returnStruct = mGetHdr(infile, hdu, hdrfile, htmlMode, debug);
+   returnStruct = mGetHdr(infile, hdrfile, hdu, htmlMode, debug);
 
    if(returnStruct->status == 1)
    {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mGetHdr\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

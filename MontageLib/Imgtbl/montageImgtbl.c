@@ -83,7 +83,6 @@ Version  Developer        Date     Change
 #include <coord.h>
 #include <wcs.h>
 #include <coord.h>
-#include <wcs.h>
 #include <mtbl.h>
 #include <montage.h>
 #include <mImgtbl.h>
@@ -95,7 +94,7 @@ FILE *fdopen(int fildes, const char *mode);
 
 int mkstemp(char *template);
 
-static int   debug;
+static int   mImgtbl_debug;
 static int   recursiveMode;
 static int   noGZIP;
 static int   showCorners;
@@ -209,13 +208,13 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    struct mImgtblReturn *returnStruct;
 
 
-  /*******************************/
+   /*******************************/
    /* Initialize return structure */
    /*******************************/
 
    returnStruct = (struct mImgtblReturn *)malloc(sizeof(struct mImgtblReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -223,13 +222,19 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    strcpy(returnStruct->msg, "");
 
 
-   debug            = debugin;
+   mImgtbl_debug    = debugin;
    info             = showinfo;
    recursiveMode    = recursiveModein;
    processAreaFiles = processAreaFilesin;
    noGZIP           = noGZIPin;
    showCorners      = showCornersin;
    showbad          = showbadin;
+
+#ifdef WINDOWS
+   // Special processing for Windows, turn off GZIP check always
+
+   noGZIP = 1;
+#endif
 
    cntr   = 0;
    failed = 0;
@@ -337,7 +342,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
          strcpy(fields[nfields].value,  "");
          strcpy(fields[nfields].defval, "");
 
-         if(debug)
+         if(mImgtbl_debug)
          {
             printf("DEBUG> fields[%d]: [%s][%s][%s]\n",
                nfields, pname, ptype, pwidth);
@@ -369,7 +374,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
          fields[nfields].width = cwidth[i];
 
-         if(debug)
+         if(mImgtbl_debug)
          {
             printf("DEBUG> fields[%d]: [%s][%s][%d] (cube info)\n",
                nfields, fields[nfields].name, fields[nfields].type, fields[nfields].width);
@@ -413,7 +418,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    if(hdrlen && pathname[strlen(pathname) - 1] != '/')
       ++hdrlen;
 
-   if(debug)
+   if(mImgtbl_debug)
    {
       printf("DEBUG: path = [%s](%d)\n", pathname, hdrlen);
       fflush(stdout);
@@ -519,7 +524,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
 
       strcpy(fname, tval(ifname));
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG:  entry [%s]\n", fname);
          fflush(stdout);
@@ -529,7 +534,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
 
       strcpy (hdr_rec.fname, fname);
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG: [%s] -> [%s]\n", dirname, hdr_rec.fname);
          fflush(stdout);
@@ -539,7 +544,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
       {
          len = strlen(dirname);
 
-         if(debug)
+         if(mImgtbl_debug)
          {
             printf("DEBUG: Found file      [%s]\n", dirname);
             fflush(stdout);
@@ -583,7 +588,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
 
                if(fd < 0)
                {
-                  sprintf(montage_msgstr, "Can't create temporary input table.");
+                  sprintf(montage_msgstr, "Can't create temporary input file for gunzip output.");
                   return 1;
                }
 
@@ -628,7 +633,7 @@ int mImgtbl_get_files (char *pathname)
 
    dp = opendir (pathname);
 
-   if(debug)
+   if(mImgtbl_debug)
    {
       printf("DEBUG: Opening path    [%s]\n", pathname);
       fflush(stdout);
@@ -639,7 +644,7 @@ int mImgtbl_get_files (char *pathname)
 
    while ((entry=(struct dirent *)readdir(dp)) != (struct dirent *)0) 
    {
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG:  entry [%s]\n", entry->d_name);
          fflush(stdout);
@@ -652,7 +657,7 @@ int mImgtbl_get_files (char *pathname)
       else
          strcpy (hdr_rec.fname, dirname+hdrlen);
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG: [%s] -> [%s]\n", dirname, hdr_rec.fname);
          fflush(stdout);
@@ -666,7 +671,7 @@ int mImgtbl_get_files (char *pathname)
             && (strcmp(entry->d_name, "." ) != 0)
             && (strcmp(entry->d_name, "..") != 0))
             {
-               if(debug)
+               if(mImgtbl_debug)
                {
                   printf("DEBUG: Found directory [%s]\n", dirname);
                   fflush(stdout);
@@ -680,7 +685,7 @@ int mImgtbl_get_files (char *pathname)
          {
             len = strlen(dirname);
 
-            if(debug)
+            if(mImgtbl_debug)
             {
                printf("DEBUG: Found file      [%s]\n", dirname);
                fflush(stdout);
@@ -781,7 +786,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
    ++nfile;
 
-   if(debug)
+   if(mImgtbl_debug)
    {
       printf("DEBUG> file = \"%s\"\n", fname);
       fflush(stdout);
@@ -806,7 +811,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
    hdr_rec->size = buf.st_size;
 
-   if(debug)
+   if(mImgtbl_debug)
    {
       printf("DEBUG> file size = %lld\n", (long long)hdr_rec->size);
       fflush(stdout);
@@ -825,7 +830,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       if(fits_movabs_hdu(fptr, hdr_rec->hdu, NULL, &status))
          break;
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG> hdu  = %d\n", hdr_rec->hdu);
          fflush(stdout);
@@ -844,7 +849,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       status = 0;
       if(fits_read_keyword(fptr, "CTYPE1", value, comment, &status))
       {
-         if(debug)
+         if(mImgtbl_debug)
          {
             printf("Missing CTYPE1 in file %s\n", fname);
             fflush(stdout);
@@ -872,7 +877,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             continue;
       }
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG> CTYPE1 check: [%s] badhdr -> %d\n", value, badhdr);
          fflush(stdout);
@@ -899,7 +904,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
          if(strlen(ptr) == 0)
          {
-            if(debug)
+            if(mImgtbl_debug)
             {
                printf("Invalid CTYPE1 in file %s\n", fname);
                fflush(stdout);
@@ -930,7 +935,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
       }
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG> CTYPE1 value check: badhdr -> %d\n", badhdr);
          fflush(stdout);
@@ -945,7 +950,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          status = 0;
          if(fits_read_keyword(fptr, "CTYPE2", value, comment, &status))
          {
-            if(debug)
+            if(mImgtbl_debug)
             {
                printf("Missing CTYPE2 in file %s\n", fname);
                fflush(stdout);
@@ -975,9 +980,9 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
       }
 
-      if(debug)
+      if(mImgtbl_debug)
       {
-         printf("DEBUG> CTYPE1 check: [%s] badhdr -> %d\n", value, badhdr);
+         printf("DEBUG> CTYPE2 check: [%s] badhdr -> %d\n", value, badhdr);
          fflush(stdout);
       }
 
@@ -1002,7 +1007,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
          if(strlen(ptr) == 0)
          {
-            if(debug)
+            if(mImgtbl_debug)
             {
                printf("Invalid CTYPE2 in file %s\n", fname);
                fflush(stdout);
@@ -1032,7 +1037,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
       }
 
-      if(debug)
+      if(mImgtbl_debug)
       {
          printf("DEBUG> CTYPE2 value check: badhdr -> %d\n", badhdr);
          fflush(stdout);
@@ -1093,7 +1098,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       {
          wcs = wcsinit(header);
 
-         if(debug)
+         if(mImgtbl_debug)
          {
             if(wcs == (struct WorldCoor *)NULL) 
             {
@@ -1138,7 +1143,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
          if(checkWCS)
          {
-            if(debug)
+            if(mImgtbl_debug)
             {
                printf("Bad WCS for file %s\n", fname);
                fflush(stdout);
@@ -1425,7 +1430,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
          fprintf(tblf, "\\datatype = fitshdr\n");
 
          fprintf(tblf, "| cntr |      ra     |     dec     |      cra     |     cdec     |naxis1|naxis2| ctype1 | ctype2 |     crpix1    |     crpix2    |");
-         fprintf(tblf, "    crval1   |    crval2   |      cdelt1     |      cdelt2     |   crota2    |equinox |");
+         fprintf(tblf, "    crval1   |    crval2   |       cdelt1      |       cdelt2      |   crota2    |equinox |");
 
          for(i=0; i<nfields; ++i)
          {
@@ -1441,7 +1446,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
          fprintf(tblf, "    size    | hdu  | fname\n");
 
          fprintf(tblf, "| int  |     double  |     double  |      char    |     char     | int  | int  |  char  |  char  |     double    |     double    |");
-         fprintf(tblf, "    double   |    double   |      double     |      double     |   double    | double |");
+         fprintf(tblf, "    double   |    double   |      double       |      double       |   double    | double |");
 
          for(i=0; i<nfields; ++i)
          {
@@ -1457,7 +1462,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
          fprintf(tblf, "\\datatype = fitshdr\n");
 
          fprintf(tblf, "| cntr |      ra     |     dec     |      cra     |     cdec     |naxis1|naxis2| ctype1 | ctype2 |     crpix1    |     crpix2    |");
-         fprintf(tblf, "    crval1   |    crval2   |      cdelt1     |      cdelt2     |   crota2    |equinox |");
+         fprintf(tblf, "    crval1   |    crval2   |      cdelt1       |       cdelt2      |   crota2    |equinox |");
 
          for(i=0; i<nfields; ++i)
          {
@@ -1472,7 +1477,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
          fprintf(tblf, "    size    | hdu  | fname\n");
 
          fprintf(tblf, "| int  |    double   |    double   |      char    |    char      | int  | int  |  char  |  char  |     double    |     double    |");
-         fprintf(tblf, "    double   |    double   |      double     |      double     |   double    |  double|");
+         fprintf(tblf, "    double   |    double   |       double      |       double      |   double    | double |");
 
          for(i=0; i<nfields; ++i)
          {
@@ -1502,8 +1507,8 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
     fprintf(tblf, " %15.5f",  hdr_rec->crpix2);
     fprintf(tblf, " %13.7f",  hdr_rec->crval1);
     fprintf(tblf, " %13.7f",  hdr_rec->crval2);
-    fprintf(tblf, " %17.10e", hdr_rec->cdelt1);
-    fprintf(tblf, " %17.10e", hdr_rec->cdelt2);
+    fprintf(tblf, " %19.10e", hdr_rec->cdelt1);
+    fprintf(tblf, " %19.10e", hdr_rec->cdelt2);
     fprintf(tblf, " %13.7f",  hdr_rec->crota2);
     fprintf(tblf, " %8.2f",   hdr_rec->equinox);
 
@@ -1539,8 +1544,8 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
 
 int mImgtbl_update_table(char *tblname)
 {
-   char  str[MAXLEN], tempfile[128];
-   int   i, fd, len, maxlen;
+   char  str[MAXLEN], tempfile[1024];
+   int   i, len, maxlen;
    FILE *fdata, *ftmp;
 
    
@@ -1553,17 +1558,9 @@ int mImgtbl_update_table(char *tblname)
    }
 
 
-   strcpy(tempfile, "/tmp/IMTXXXXXX");
+   sprintf(tempfile, "%s.tmp", tblname);
    
-   fd = mkstemp(tempfile);
-
-   if(fd < 0)
-   {
-      sprintf(montage_msgstr, "Can't create temporary input table.");
-      return 1;
-   }
-
-   ftmp = fdopen(fd, "w");
+   ftmp = fopen(tempfile, "w+");
 
    if(ftmp == (FILE *)NULL)
    {

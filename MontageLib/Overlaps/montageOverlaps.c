@@ -171,7 +171,7 @@ struct mOverlapsReturn *mOverlaps(char *tblfile, char *difftbl, int quickmode, i
 
    returnStruct = (struct mOverlapsReturn *)malloc(sizeof(struct mOverlapsReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

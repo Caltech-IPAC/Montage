@@ -1,0 +1,26 @@
+{
+   "module":"mBgExec",
+
+   "function":"mBgExec",
+
+   "desc" : "mBgExec takes the background correction for each image (usually from mBgModel) and subtracts it using mBackground.",
+
+   "arguments":
+   [
+      {"type":"string",                   "name":"path",          "desc":"Path to input image directory."},
+      {"type":"string",                   "name":"tblfile",       "desc":"Table file list of images to correct."},
+      {"type":"string",                   "name":"fitfile",       "desc":"Table of background correction parameters."},
+      {"type":"string",                   "name":"corrdir",       "desc":"Directory for output corrected images."},
+      {"type":"boolean", "default":false, "name":"noAreas",       "desc":"Flag indicating there are no area images."},
+      {"type":"int",     "default":0,     "name":"debug",         "desc":"Debugging output level."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                      "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                      "name":"count",         "desc":"Total number of images."},
+      {"type":"int",                      "name":"nocorrection",  "desc":"Number of images with no correction parameters."},
+      {"type":"int",                      "name":"failed",        "desc":"Number of images where the correction failed."}
+   ]
+}

@@ -92,7 +92,7 @@ struct ImgInfo
 }
    input;
 
-int debug;
+int mMakeHdr_debug;
 
 
 static char montage_msgstr[1024];
@@ -228,6 +228,25 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
 
    maxfiles = MAXFILES;
 
+
+   /*******************************/
+   /* Initialize return structure */
+   /*******************************/
+
+   returnStruct = (struct mMakeHdrReturn *)malloc(sizeof(struct mMakeHdrReturn));
+
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
+
+
+   returnStruct->status = 1;
+
+   strcpy(returnStruct->msg, "");
+
+
+   /**************************/
+   /* Initialize data arrays */
+   /**************************/
+
    fnames = (char **)malloc(maxfiles * sizeof(char *));
    
    for(i=0; i<maxfiles; ++i)
@@ -238,35 +257,19 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
 
    if(lats == (double *)NULL)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Memory allocation failure.\"]\n");
-      fflush(stdout);
-
-      exit(0);
+      sprintf(returnStruct->msg, "Memory allocation failure.");
+      return returnStruct;
    }
 
    maxcoords = MAXCOORD;
    ncoords   = 0;
 
 
-   /*******************************/
-   /* Initialize return structure */
-   /*******************************/
-
-   returnStruct = (struct mMakeHdrReturn *)malloc(sizeof(struct mMakeHdrReturn));
-
-   bzero((void *)returnStruct, sizeof(returnStruct));
-
-
-   returnStruct->status = 1;
-
-   strcpy(returnStruct->msg, "");
-
-
    /***************************************/
    /* Process the command-line parameters */
    /***************************************/
 
-   debug = debugin;
+   mMakeHdr_debug = debugin;
 
    strcpy(csys, csysin);
 
@@ -372,7 +375,7 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
    {
       strcpy(tfile, fnames[ifiles]);
 
-      if(debug >= 1)
+      if(mMakeHdr_debug >= 1)
       {
          printf("Table file %d: [%s]\n", ifiles, tfile);
          fflush(stdout);
@@ -1298,7 +1301,7 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
          pad = pad / 100. * naxis2;
    }
 
-   if(debug >= 1)
+   if(mMakeHdr_debug >= 1)
    {
       printf("pad = %-g (isPercentage = %d)\n", pad, isPercentage);
       fflush(stdout);
@@ -1397,7 +1400,11 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
 
    /* Collect the locations of the corners of the images */
 
-   mMakeHdr_readTemplate(template);
+   if(mMakeHdr_readTemplate(template))
+   {
+      strcpy(returnStruct->msg, montage_msgstr);
+      return returnStruct;
+   }
 
    ncoords = 0;
 
@@ -1433,7 +1440,7 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
    ++ncoords;
 
 
-   if(debug != 1)
+   if(mMakeHdr_debug != 1)
    {
       strcpy(msg, "");
 
@@ -1594,6 +1601,8 @@ int mMakeHdr_readTemplate(char *filename)
 
       mMakeHdr_stradd(header, line);
    }
+
+   fclose(fp);
 
 
    /****************************************/

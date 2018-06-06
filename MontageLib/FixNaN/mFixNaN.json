@@ -22,6 +22,8 @@
    
    "return":
     [
+      {"type":"int",                       "name":"status",          "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",             "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"rangeCount",      "desc":"Number of pixels found in the range(s) specified."},
       {"type":"int",                       "name":"nanCount",        "desc":"Number of NaN pixels found."},
       {"type":"int",                       "name":"boundaryCount",   "desc":"Number of pixels found in 'boundary' regions."}

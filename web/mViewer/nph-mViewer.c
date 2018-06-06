@@ -34,10 +34,16 @@ change his code.
 -- pick,
 -- zoom,
 -- update,
-
 -- constructRetjson
 
 
+Modified: May25, 2017 (Mihseh Kong)
+
+Rearrange the program to remove project specific functionality such as 
+extracting KOA's FITS keywords (instrument, objname, filter etc.) and 
+re-arranging OSIRIS cube data, and making OSIRIS waveplot.
+
+Project related code will be included in the project software. 
 */
 
 /*************************************************************************/
@@ -97,8 +103,6 @@ int pick (struct Mviewer *param);
 
 int constructRetjson (struct Mviewer *param);
 
-int rewriteFitsCube (char *cubefile, char *outcubefile, char *errmsg);
-
 int extractAvePlane (char *imcubepath, char *graypath, int implanenum,
     int nplaneave, int *splaneave, int *eplaneave, char *errmsg);
 int generateMedianPlane (char *imcubepath, char *graypath, int implanenum,
@@ -156,8 +160,6 @@ int main (int argc, char *argv[], char *envp[])
     struct Mviewer param;
     struct FitsHdr hdr;
 
-    struct stat     buf;
-
     char   *cptr;
     char   str[1024];
     char   suffix[40];
@@ -167,16 +169,16 @@ int main (int argc, char *argv[], char *envp[])
     char   redroot[1024];
     char   grnroot[1024];
     char   blueroot[1024];
-    
+
     char   impath[1024];
+
+/*
     char   redpath[1024];
     char   grnpath[1024];
     char   bluepath[1024];
-    
-    char   refJpgpath[1024];
+*/
 
-    char   imcubefile[1024];
-    char   imcubepath[1024];
+    char   refJpgpath[1024];
 
     char   errmsg[256];
     char   debugfname[1024];
@@ -200,8 +202,6 @@ int main (int argc, char *argv[], char *envp[])
     nkey = keyword_init (argc, argv);
     pid = getpid();
     param.nkey = nkey;
-
-
 
     if (debugfile) {
         sprintf (debugfname, "/tmp/mviewer_%d.debug", pid);
@@ -229,21 +229,6 @@ int main (int argc, char *argv[], char *envp[])
         fflush (fdebug);
     }
     
-/*    
-    if (cmd[0] == '\0') {
-    
-        strcpy (param.errmsg, 
-	    "Required input parameter \'cmd\' is missing.");
-
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-            fprintf (fdebug, "errmsg= [%s]\n", param.errmsg);
-            fflush (fdebug);
-        }
-    
-        printError (param.errmsg);
-    }
-*/
-
     strcpy (param.cmd , cmd);
     
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
@@ -285,7 +270,7 @@ int main (int argc, char *argv[], char *envp[])
 
 
 /*
-    Check if input imfile exists
+    Check if input image file exists
 */
     if (!param.iscolor) {
     
@@ -295,220 +280,94 @@ int main (int argc, char *argv[], char *envp[])
         }
         
         if (param.isimcube) {
-        
 /*
-    Rewrite imcubefile if necessary,
-    first check if the input cubefile is a full path name
+    Case: data cube
 */
-            strcpy (str, param.imcubefile);
-	    
-            cptr = (char *)NULL;
-            cptr = strrchr (str, '/');
+	    fileExist = 0;
 
-            if (cptr != (char *)NULL) {
-	        strcpy (imcubepath, param.imcubefile);
-	        strcpy (imcubefile, cptr+1);
-            }
-            else {
-	        strcpy (imcubefile, param.imcubefile);
-	        sprintf (imcubepath, "%s/%s", param.directory, imcubefile);
-            } 
-	    
-            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-                fprintf (fp_debug, "imcubepath= [%s]\n", imcubepath);
-                fprintf (fp_debug, "imcubefile= [%s]\n", imcubefile);
-	        fflush (fp_debug);
-            }
+            if ((int)strlen(param.cubedatadir) > 0) {
 
-	    if (strcasecmp (param.cmd, "init") == 0) {
+
+                if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, "check cubefile in cubedatadir= %s\n",
+		        param.cubedatadir);
+		    fflush (fp_debug);
+                }
+   
+	        fileExist = checkFileExist (param.imcubefile, imroot, 
+	            suffix, param.cubedatadir, param.imcubepath);
+            
+	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, 
+	            "returned checkFileExist(cubedatadir): fileExist= [%d]\n",
+	                fileExist);
+		    fflush (fp_debug);
+                }
                 
-		fileExist = stat (imcubepath, &buf);
-
-                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-                    fprintf (fp_debug, "fileExist (ws)= [%d]\n", fileExist); 
-	            fflush (fp_debug);
-                }
-
-                if (fileExist < 0) {
-	            sprintf (param.errmsg, 
-	                "Error: input image cube file [%s] doesn't exist.", 
-		        param.imcubefile);
-                    printError (param.errmsg);
-                }
-
-/*
-    getFitshdr to analyze if the cube data needs to be re-arranged
-*/
-                if (debugfile) {
-                    fprintf (fp_debug, "call getFitshdr\n");
-                    fprintf (fp_debug, "imcubepath= [%s]\n", imcubepath);
-                    fflush (fp_debug);
-                }
-           
-                istatus = getFitshdr (imcubepath, &hdr, param.isimcube);
-
-                if (istatus == -1) {
-                    printError (param.errmsg);
-                }
-
-                if (debugfile) {
-                    fprintf (fp_debug, "returned getFitshdr, istatus= [%d]\n", 
-		        istatus);
-                    fprintf (fp_debug, "naxes[0]= [%d] axisIndx[0]= [%d]\n", 
-                        hdr.naxes[0], hdr.axisIndx[0]);
-                    fprintf (fp_debug, "naxes[1]= [%d] axisIndx[1]= [%d]\n", 
-                        hdr.naxes[1], hdr.axisIndx[1]);
-                    fprintf (fp_debug, "naxes[2]= [%d] axisIndx[2]= [%d]\n", 
-                        hdr.naxes[2], hdr.axisIndx[2]);
-                    fflush (fp_debug);
-                }
-
-
-                if ((hdr.axisIndx[0] == 0) && 
-                    (hdr.axisIndx[1] == 1) && 
-                    (hdr.axisIndx[2] == 2)) {
-/*
-    Use original cube file
-*/
-                    strcpy (param.imcubefile, imcubefile);
-                    strcpy (param.imcubepath, imcubepath);
-                    
-		    strcpy (param.imcubepathOrig, "");
-		}
-		else {
-                    strcpy (str, imcubefile);
-	    
-                    cptr = (char *)NULL;
-                    cptr = strrchr (str, '.');
-
-                    if (cptr != (char *)NULL) {
-                        *cptr = '\0';
-                    }
-
-                    sprintf (param.imcubefile, "%s_dbl.fits", str);            
-                    sprintf (param.imcubepath, "%s/%s_dbl.fits", 
-		        param.directory, str);            
-             
-                    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-                        fprintf (fp_debug, "imcubepath= [%s]\n", imcubepath);
-                        fprintf (fp_debug, "outcubepath= [%s]\n", 
-			    param.imcubepath);
-	                fflush (fp_debug);
-                    }
-
-		    strcpy (param.imcubepathOrig, imcubepath);
-                    
-		    istatus = rewriteFitsCube (imcubepath, 
-		        param.imcubepath, param.errmsg);
-
-                    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-                        fprintf (fdebug, 
-			    "returned rewriteFitsCube: istatus= [%d]\n",
-		            istatus);
-                        fflush (fdebug);
-                    }
-       
-                    if (istatus < 0) {
-                        printError (param.errmsg);
-	            }
-		}
-	    
-/*
-    getFitshdr again after cube has been re-arranged
-*/
-                if (debugfile) {
-                    fprintf (fp_debug, "call getFitshdr after re-arrange\n");
-                    fprintf (fp_debug, "imcubepath= [%s]\n", param.imcubepath);
-                    fflush (fp_debug);
-                }
-           
-                istatus = getFitshdr (param.imcubepath, &hdr, param.isimcube);
-
-                if (istatus == -1) {
-                    printError (param.errmsg);
-                }
-
-                if (debugfile) {
-                    fprintf (fp_debug, "returned getFitshdr, istatus= [%d]\n", 
-		        istatus);
-                    fprintf (fp_debug, "naxes[0]= [%d] axisIndx[0]= [%d]\n", 
-                        hdr.naxes[0], hdr.axisIndx[0]);
-                    fprintf (fp_debug, "naxes[1]= [%d] axisIndx[1]= [%d]\n", 
-                        hdr.naxes[1], hdr.axisIndx[1]);
-                    fprintf (fp_debug, "naxes[2]= [%d] axisIndx[2]= [%d]\n", 
-                        hdr.naxes[2], hdr.axisIndx[2]);
-                    fflush (fp_debug);
-                }
-	   
-/*
-    adjust nplaneave if it exceeds the number of plane
-*/
-                param.nfitsplane = hdr.naxes[2];
-               
-
-                strcpy (param.objname, hdr.objname);
-		strcpy (param.filter, hdr.filter);
-                strcpy (param.pixscale, hdr.pixscale);
-
-		strcpy (param.ctype3, hdr.ctype[2]);
-                param.crval3 = hdr.crval[2];
-                param.cdelt3 = hdr.cdelt[2];
-
-		if (debugfile) {
-                    fprintf (fp_debug, "nfitsplane= [%d]\n", param.nfitsplane);
-                    
-		    fprintf (fp_debug, "objname= [%s]\n", param.objname);
-                    fprintf (fp_debug, "filter= [%s]\n", param.filter);
-                    fprintf (fp_debug, "pixscale= [%s]\n", param.pixscale);
-                    
-		    fprintf (fp_debug, "ctype3= [%s]\n", param.ctype3);
-                    fprintf (fp_debug, "crval3= [%lf]\n", param.crval3);
-                    fprintf (fp_debug, "cdelt3= [%lf]\n", param.cdelt3);
-                }
-
-                if (param.nplaneave > param.nfitsplane)
-		    param.nplaneave = param.nfitsplane;
-                if (param.centerplane > param.nfitsplane)
-		    param.centerplane = (param.startplane + param.nplaneave)/2;
-                
-		if (debugfile) {
-                    fprintf (fp_debug, "nplaneave adjusted: nplaneave= [%d]\n",
-		        param.nplaneave);
-                    fprintf (fp_debug, "centerplane= [%d]\n", 
-		        param.centerplane);
-                    fprintf (fp_debug, "startplane= [%d]\n", param.startplane);
-                    fflush (fp_debug);
-                }
-           
-	    }
+   
+            }
 	    else {
-                strcpy (param.imcubefile, imcubefile);
-                strcpy (param.imcubepath, imcubepath);
+                if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, "check imcubefile in workdir= %s\n",
+		        param.directory);
+		    fflush (fp_debug);
+                }
+   
+	        fileExist = checkFileExist (param.imcubefile, imroot, 
+	            suffix, param.directory, param.imcubepath);
+            
+	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, 
+		        "returned checkFileExist (ws): fileExist= [%d]\n", 
+	                fileExist);
+		    fflush (fp_debug);
+                }
+		
+            }
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "fileExist= [%d]\n", fileExist);
+            }
+   
+            if (!fileExist) {
+	        sprintf (param.errmsg, "Cannot find required FITS image file "
+		    "[%s] in workspace or data directory.", param.imcubefile);
+	        printError (param.errmsg);
 	    }
 
-            if (debugfile) {
+/*    
+    if implane name is not defined, supply the default name
+*/
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                 fprintf (fp_debug, "imcubepath= [%s]\n", param.imcubepath);
-                fprintf (fp_debug, "startplane= [%d]\n", param.startplane);
-                fprintf (fp_debug, "nplaneave adjusted: nplaneave= [%d]\n",
+                fprintf (fp_debug, "imcubefile= [%s]\n", param.imcubefile);
+                fprintf (fp_debug, "grayFile= [%s]\n", param.grayFile);
+                
+		fprintf (fp_debug, "planeavemode= [%s]\n", param.planeavemode);
+		fprintf (fp_debug, "nplaneave adjusted: nplaneave= [%d]\n",
 		    param.nplaneave);
                 fprintf (fp_debug, "centerplane= [%d]\n", param.centerplane);
                 fflush (fp_debug);
             }
-	   
-/*
-    extract one implane
-*/
-	    strcpy (param.grayFile, "implane.fits");
-            sprintf (impath, "%s/%s", param.directory, param.grayFile);
-	    
-            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-                fprintf (fp_debug, "impath= [%s]\n", impath);
+
+            if ((int)strlen(param.grayFile) == 0) {
+		strcpy (param.grayFile, "implane.fits");
             }
 
-	    if ((strcasecmp (param.cmd, "init") == 0) ||
+            sprintf (param.grayPath, "%s/%s", param.directory, param.grayFile);
+	    
+            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+                fprintf (fp_debug, "grayPath= [%s]\n", param.grayPath);
+            }
+
+	    if ((strcasecmp (param.cmd, "initjsonfile") == 0) ||
+	        (strcasecmp (param.cmd, "initjsondata") == 0) ||
 	        (strcasecmp (param.cmd, "replaceimplane") == 0))  
 	    {
-                if (strcasecmp (param.imcubemode, "ave") == 0) {
+/*
+    New implane: extract implane from cube
+*/
+                if (strcasecmp (param.planeavemode, "ave") == 0) {
 
 		    if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                         fprintf (fp_debug, "call extractAvePlane\n");
@@ -516,7 +375,7 @@ int main (int argc, char *argv[], char *envp[])
                     }
 		    
 		    istatus = extractAvePlane (param.imcubepath, 
-		        impath, param.centerplane, param.nplaneave, 
+		        param.grayPath, param.centerplane, param.nplaneave, 
 		        &param.startplane, &param.endplane, param.errmsg);
 
 
@@ -542,13 +401,14 @@ int main (int argc, char *argv[], char *envp[])
                     }
 
 	            istatus = generateMedianPlane (param.imcubepath, 
-		        impath, param.centerplane, param.nplaneave,
+		        param.grayPath, param.centerplane, param.nplaneave,
 		        &param.startplane, &param.endplane, param.errmsg);
             
                     if ((debugfile) && (fp_debug != (FILE *)NULL)) {
                         fprintf (fp_debug, 
 		            "returned generateMedianPlane: istatus= [%d]\n",
 		            istatus);
+		        fflush (fp_debug);
                     }
 
                     if (istatus == -1) {
@@ -558,73 +418,232 @@ int main (int argc, char *argv[], char *envp[])
                 }
             }
 	    else {
+/*
+    Same implane: grayFile should have already existed in workdir 
+*/
 	        fileExist = checkFileExist (param.grayFile, imroot, 
-	            suffix, param.directory, impath);
+	            suffix, param.directory, param.grayPath);
 
                 if ((debugfile) && (fdebug != (FILE *)NULL)) {
                     fprintf (fdebug, 
-		        "returned checkFileExist (ws): fileExist[%s]= [%d]\n", 
-	                param.grayFile, fileExist);
+		        "returned checkFileExist (ws): fileExist= [%d]\n", 
+	                fileExist);
+		    fflush (fp_debug);
                 }
    
                 if (!fileExist) {
 	            sprintf (param.errmsg, 
-	            "Cannot find required FITS image file in workspace [%s].",
+	                "Cannot find image plane file in work directory [%s].",
 	                param.directory);
 	            printError (param.errmsg);
 	        }
             }
-        }
+	
+	}
 	else {
-	    fileExist = checkFileExist (param.grayFile, imroot, 
-	        suffix, param.directory, impath);
+/*
+    Case: 2D imageD
+*/
+	    fileExist = 0;
+
+            if ((int)strlen(param.imdatadir) > 0) {
+
+                if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, "check file in imdatadir= %s\n",
+		        param.imdatadir);
+		    fflush (fp_debug);
+                }
+   
+	        fileExist = checkFileExist (param.grayFile, imroot, 
+	            suffix, param.imdatadir, param.grayPath);
+            
+	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, 
+		    "returned checkFileExist(imdatadir): fileExist= [%d]\n",
+	                fileExist);
+		    fflush (fp_debug);
+                }
+   
+            }
+	    else {
+                if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, "check file in workdir= %s\n",
+		        param.directory);
+		    fflush (fp_debug);
+                }
+   
+	        fileExist = checkFileExist (param.grayFile, imroot, 
+	            suffix, param.directory, param.grayPath);
+            
+	        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                    fprintf (fdebug, 
+		        "returned checkFileExist (ws): fileExist= [%d]\n", 
+	                fileExist);
+		    fflush (fp_debug);
+                }
+   
+            }
 
             if ((debugfile) && (fdebug != (FILE *)NULL)) {
-                fprintf (fdebug, 
-		    "returned checkFileExist (ws): fileExist[%s]= [%d]\n", 
-	            param.grayFile, fileExist);
+                fprintf (fdebug, "fileExist= [%d]\n", fileExist);
+		fflush (fp_debug);
             }
    
             if (!fileExist) {
-	        sprintf (param.errmsg, 
-	            "Cannot find required FITS image file in workspace [%s].",
-	            param.directory);
+	        sprintf (param.errmsg, "Cannot find required FITS image file "
+		    "in either workdir or datadir.");
 	        printError (param.errmsg);
 	    }
+            
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "grayFile= [%s]\n", param.grayFile);
+                fprintf (fdebug, "grayPath= [%s]\n", param.grayPath);
+		fflush (fp_debug);
+            }
+   
         } 
+            
+	strcpy (impath, param.grayPath);
+	
     }
     else {
+/*
+    Case: color image
+*/
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "iscolor=1\n");
             fflush (fdebug);
         }
-        
-        redExist = checkFileExist (param.redFile, redroot, 
-	    suffix, param.directory, redpath);
+	    
+	redExist = 0;
+        if ((int)strlen(param.imdatadir) > 0) {
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "check file in imdatadir= %s\n",
+		    param.imdatadir);
+		fflush (fp_debug);
+            }
+   
+	    redExist = checkFileExist (param.redFile, imroot, 
+	        suffix, param.imdatadir, param.redPath);
             
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "returned checkFileExist(imdatadir): redExist= [%d]\n",
+	            redExist);
+		fflush (fp_debug);
+            }
+   
+        }
+	else {
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "check file in workdir= %s\n",
+		    param.directory);
+		fflush (fp_debug);
+            }
+   
+            redExist = checkFileExist (param.redFile, redroot, 
+	        suffix, param.directory, param.redPath);
+            
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "returned checkFileExist(ws): redExist= [%d]\n", redExist);
+                fflush (fdebug);
+            }
+	}
+	
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
-            fprintf (fdebug, "returned checkFileExist: redExist= [%d]\n", 
-	        redExist);
+            fprintf (fdebug, "redExist= [%d]\n", redExist);
             fflush (fdebug);
-        }
+	}
         
-	grnExist = checkFileExist (param.greenFile, grnroot, 
-            suffix, param.directory, grnpath);
+	
+	grnExist = 0;
+        if ((int)strlen(param.imdatadir) > 0) {
 
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-            fprintf (fdebug, "returned checkFileExist: grnExist= [%d]\n", 
-	        grnExist);
-            fflush (fdebug);
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "check file in imdatadir= %s\n",
+		    param.imdatadir);
+		fflush (fp_debug);
+            }
+   
+	    grnExist = checkFileExist (param.greenFile, imroot, 
+	        suffix, param.imdatadir, param.greenPath);
+            
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "returned checkFileExist(imdatadir): grnExist= [%d]\n",
+	            grnExist);
+		fflush (fp_debug);
+            }
+   
         }
+	else {
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "check file in workdir= %s\n",
+		    param.directory);
+		fflush (fp_debug);
+            }
+	
+	    grnExist = checkFileExist (param.greenFile, grnroot, 
+                suffix, param.directory, param.greenPath);
+
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "returned checkFileExist(ws): grnExist= [%d]\n", grnExist);
+                fflush (fdebug);
+            }
+	}
+	
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "grnExist= [%d]\n", grnExist);
+            fflush (fdebug);
+	}
         
+        
+	blueExist = 0;
+        if ((int)strlen(param.imdatadir) > 0) {
+
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "check file in imdatadir= %s\n",
+		    param.imdatadir);
+		fflush (fp_debug);
+            }
+   
+	    blueExist = checkFileExist (param.blueFile, imroot, 
+	        suffix, param.imdatadir, param.bluePath);
+            
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "returned checkFileExist(imdatadir): blueExist= [%d]\n",
+	            blueExist);
+		fflush (fp_debug);
+            }
+   
+        }
+	else {
+            if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, "check file in workdir= %s\n",
+		    param.directory);
+		fflush (fp_debug);
+            }
+   
         blueExist = checkFileExist (param.blueFile, blueroot, 
-	    suffix, param.directory, bluepath);
+	    suffix, param.directory, param.bluePath);
 
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-            fprintf (fdebug, "returned checkFileExist: blueExist= [%d]\n", 
-	        blueExist);
+	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
+                fprintf (fdebug, 
+		    "returned checkFileExist(ws): blueExist= [%d]\n", 
+	            blueExist);
+                fflush (fdebug);
+            }
+	}
+	
+	if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "blueExist= [%d]\n", blueExist);
             fflush (fdebug);
-        }
+	}
+        
     
         if ((!redExist) || 
             (!blueExist)) { 
@@ -635,11 +654,14 @@ int main (int argc, char *argv[], char *envp[])
 	        errmsg, param.directory);
 	    printError (param.errmsg);
         }    
+	
+	strcpy (impath, param.redPath);
+	
     }
     
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-        fprintf (fdebug, "here2\n");
-        fflush (fdebug);
+        fprintf (fdebug, "here2: impath= [%s]\n", impath);
+	fflush (fp_debug);
     }
 
 
@@ -711,6 +733,9 @@ int main (int argc, char *argv[], char *envp[])
     if (!param.iscolor) {
 
 	if ((strcasecmp (param.cmd, "init") == 0) ||
+	    (strcasecmp (param.cmd, "initjsonfile") == 0) ||
+	    (strcasecmp (param.cmd, "initjsondata") == 0) ||
+	    (strcasecmp (param.cmd, "replaceim") == 0) ||
 	    (strcasecmp (param.cmd, "replaceimplane") == 0) ||
 	    (strcasecmp (param.cmd, "resetzoom") == 0))
         {	
@@ -718,13 +743,14 @@ int main (int argc, char *argv[], char *envp[])
         }
 
         if ((int)strlen(param.shrunkimfile) == 0) {
-	    sprintf (param.shrunkimfile, "%s_shrunk_%s",  
-	        param.imageFile, param.grayFile);
+	    
+	    sprintf (param.shrunkimfile, "%s_shrunk.fits",  
+	        param.imageFile);
         }
 	
-	sprintf (param.shrunkRefimfile, "%s_shrunkref_%s",  
-	    param.imageFile, param.grayFile);
-    
+	sprintf (param.shrunkRefimfile, "%s_shrunkref.fits",  
+	    param.imageFile);
+
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	    fprintf (fdebug, "subsetimfile= [%s]\n", param.subsetimfile);
 	    fprintf (fdebug, "shrunkimfile= [%s]\n", param.shrunkimfile);
@@ -734,6 +760,9 @@ int main (int argc, char *argv[], char *envp[])
     } 
     else {
 	if ((strcasecmp (param.cmd, "init") == 0) ||
+	    (strcasecmp (param.cmd, "initjsonfile") == 0) ||
+	    (strcasecmp (param.cmd, "initjsondata") == 0) ||
+	    (strcasecmp (param.cmd, "replaceim") == 0) ||
 	    (strcasecmp (param.cmd, "replaceimplane") == 0) ||
 	    (strcasecmp (param.cmd, "resetzoom") == 0))
         {	
@@ -788,6 +817,7 @@ int main (int argc, char *argv[], char *envp[])
     "waveplot" doesn't need to call makeImage, just extract the wavelength
     spectra into a plot file.
 */
+    
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	fprintf (fdebug, "XXX\n");
         fflush (fdebug);
@@ -812,66 +842,20 @@ int main (int argc, char *argv[], char *envp[])
         }
 
     }
-    else if (strcasecmp (param.cmd, "waveplot") == 0) { 
-        
-        if (strcasecmp (param.waveplottype, "pix") == 0) {
-             
-            if ((debugfile) && (fdebug != (FILE *)NULL)) {
-                fprintf (fdebug, "call pick routine\n");
-                fflush (fdebug);
-            }
-      
-	    istatus = pick (&param);
-	
-	    if (istatus == -1) {
-                printError (param.errmsg);
-            }
-   	
-	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	        fprintf (fdebug, "returned pick: istatus= [%d]\n", istatus);
-                fflush (fdebug);
-            }
-
-        }
-
-        if ((debugfile) && (fdebug != (FILE *)NULL)) {
-            fprintf (fdebug, "waveplot cmd\n");
-            fflush (fdebug);
-        }
-      
-	istatus = extractWaveSpectra (&param);
-	    
-	if (istatus == -1) {
-            printError (param.errmsg);
-        }
-   	
-   	
-	if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	    fprintf (fdebug, "returned extractWaveSpectra: istatus= [%d]\n", 
-	        istatus);
-            fflush (fdebug);
-        }
-    }
     else {
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
 	    fprintf (fdebug, "XXX here0\n");
             fflush (fdebug);
         }
    
-	if (strcasecmp (param.cmd, "init") == 0) 
+	if ((strcasecmp (param.cmd, "init") == 0) ||
+	    (strcasecmp (param.cmd, "initjsonfile") == 0) ||
+	    (strcasecmp (param.cmd, "initjsondata") == 0) ||
+	    (strcasecmp (param.cmd, "replaceim") == 0)) 
         {     
 /*
     First look at image header to check if WCS info exists
 */
-
-            impath[0] = '\0';
-            if (!param.iscolor) {
-                sprintf (impath, "%s/%s", param.directory, param.grayFile);
-            }
-            else {
-                sprintf (impath, "%s/%s", param.directory, param.redFile);
-            }
-
             if ((debugfile) && (fdebug != (FILE *)NULL)) {
                 fprintf (fdebug, "call getFitshdr\n"); 
                 fflush (fdebug);
@@ -933,28 +917,6 @@ int main (int argc, char *argv[], char *envp[])
                 fflush (fdebug);
             }
 
-
-/*
-    Don't need to subset file 
-*/
-/*
-            if (!param.iscolor) {
-                strcpy (param.subsetimfile, param.grayFile); 
-             
-                if ((debugfile) && (fdebug != (FILE *)NULL)) {
-	            fprintf (fdebug, "subsetimfile= [%s]\n", 
-		        param.subsetimfile);
-                    fflush (fdebug);
-	        }
-            } 
-            else {
-                strcpy (param.subsetredfile, param.redFile);
-                strcpy (param.subsetgrnfile, param.greenFile);
-                strcpy (param.subsetbluefile, param.blueFile);
-            }
-*/
-
-
         }
         else if ((strcasecmp (param.cmd, "movebox") == 0) ||
             (strcasecmp (param.cmd, "zoombox") == 0) ||
@@ -974,6 +936,8 @@ int main (int argc, char *argv[], char *envp[])
 	
 	    if ((debugfile) && (fdebug != (FILE *)NULL)) {
                 fprintf (fdebug, "returned imZoom, istatus= [%d]\n", istatus);
+                fprintf (fdebug, "zoomfactor= [%lf] zoomfacorstr= [%s]\n", 
+		    param.zoomfactor, param.zoomfactorstr);
                 fflush (fdebug);
             }
 
@@ -1006,9 +970,10 @@ int main (int argc, char *argv[], char *envp[])
             printError (param.errmsg);
         }
    	
-    
         if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "returned makeImage: istatus= [%d]\n", istatus);
+            fprintf (fdebug, "zoomfactor= [%lf] zoomfacorstr= [%s]\n", 
+		param.zoomfactor, param.zoomfactorstr);
 	    fflush (fdebug);
         }
     
@@ -1018,8 +983,10 @@ int main (int argc, char *argv[], char *envp[])
     istatus = constructRetjson (&param);
 
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-        fprintf (fdebug, "returned from constructRetjson\n");
-	fprintf (fdebug, "\nretjsonstr= [%s]\n", param.jsonStr);
+        fprintf (fdebug, "returned from constructRetjson: retjsonstr=\n");
+	fprintf (fdebug, "%s\n", param.jsonStr);
+	fflush (fdebug);
+	fprintf (fdebug, "\n\n");
 	fflush (fdebug);
     }
 
@@ -1029,10 +996,6 @@ int main (int argc, char *argv[], char *envp[])
         fprintf (fdebug, "returned printRetval\n");
         fflush (fdebug);
     }        
-    
-    if ((debugfile) && (fdebug != (FILE *)NULL)) {
-        fclose (fdebug);
-    } 
     
     return (0);
 }
