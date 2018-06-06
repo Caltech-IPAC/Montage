@@ -675,15 +675,15 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
       }
    }
 
-   if(params.ibegin >= params.iend
-   || params.jbegin >= params.jend)
+   if(params.ibegin > params.iend
+   || params.jbegin > params.jend)
    {
       sprintf(returnStruct->msg, "No pixels match area.");
       return returnStruct;
    }
 
-   if(params.iend - params.ibegin < 2
-   && params.jend - params.jbegin < 2)
+   if(params.iend - params.ibegin < 0
+   && params.jend - params.jbegin < 0)
    {
       sprintf(returnStruct->msg, "Output area has no spatial extent.");
       return returnStruct;

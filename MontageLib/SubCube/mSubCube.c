@@ -336,14 +336,14 @@ int main(int argc, char **argv)
    
    if(!shrinkWrap)
    {
-      if(xsize <= 0.)
+      if(xsize < 0.)
       {
          printf("[struct stat=\"ERROR\", msg=\"Invalid 'x' size\"]\n");
          fflush(stdout);
          exit(1);
       }
 
-      if(ysize <= 0.)
+      if(ysize < 0.)
       {
          printf("[struct stat=\"ERROR\", msg=\"Invalid 'y' size\"]\n");
          fflush(stdout);

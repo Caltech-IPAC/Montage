@@ -538,8 +538,8 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
          fflush(stdout);
       }
 
-      if(params.ibegin >= params.iend
-      || params.jbegin >= params.jend)
+      if(params.ibegin > params.iend
+      || params.jbegin > params.jend)
       {
          sprintf(returnStruct->msg, "No pixels match area.");
          return returnStruct;
