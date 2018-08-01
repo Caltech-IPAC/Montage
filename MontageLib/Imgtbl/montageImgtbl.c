@@ -195,7 +195,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 {
    int   i, istat, ncols, ifname;
 
-   char  pathname [256];
+   char  pathname [1024];
    char  line     [1024];
    char *end;
 

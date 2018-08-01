@@ -47,7 +47,7 @@ int main(int argc, char **argv)
    debug   = 0;
    noAreas = 0;
 
-   strcpy(path, "");
+   strcpy(path, ".");
 
    opterr = 0;
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
       switch (c) 
       {
          case 'p':
-	    strcpy(path, optarg);
+            strcpy(path, optarg);
             break;
 
          case 'd':
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-	    printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-p projdir] [-d] [-n(o-areas)] [-s statusfile] diffs.tbl template.hdr diffdir\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-p projdir] [-d] [-n(o-areas)] [-s statusfile] diffs.tbl template.hdr diffdir\"]\n", argv[0]);
             exit(1);
             break;
       }

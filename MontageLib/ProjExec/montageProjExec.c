@@ -128,7 +128,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, char *projdir, int quickMode,
+struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, char *projdir, int quickMode,
                                   int exact, int expand, int energyMode, char *borderStr, char *scaleCol,
                                   char *weightCol, int restart, char *stats, int debugin)
 {
@@ -152,6 +152,8 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
 
    char   msg        [MAXSTR];
 
+   char   path       [MAXSTR];
+
    char  *inheader;
 
    FILE   *fout;
@@ -174,6 +176,12 @@ struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, cha
    mProjExec_debug = debugin;
 
    mProjExec_fdebug = stdout;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /*******************************/

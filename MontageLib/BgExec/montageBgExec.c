@@ -44,7 +44,7 @@ Version         Developer          Date           Change
 #define MAXSTR 4096
 
 
-/*******************************************************************/
+/*-*****************************************************************/
 /*                                                                 */
 /*  mBgExec                                                        */
 /*                                                                 */
@@ -60,7 +60,7 @@ Version         Developer          Date           Change
 /*                                                                 */
 /*******************************************************************/
 
-struct mBgExecReturn *mBgExec(char *path, char *tblfile, char *fitfile, char *corrdir, int noAreas, int debug)
+struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *corrdir, int noAreas, int debug)
 {
    int  i, istat, ncols;
    int  count, nocorrection, failed;
@@ -72,6 +72,8 @@ struct mBgExecReturn *mBgExec(char *path, char *tblfile, char *fitfile, char *co
    char   file [MAXSTR];
    char   ifile[MAXSTR];
    char   ofile[MAXSTR];
+
+   char   path [MAXSTR];
 
    int    icntr;
    int    ia;
@@ -95,6 +97,12 @@ struct mBgExecReturn *mBgExec(char *path, char *tblfile, char *fitfile, char *co
    memset((void *)returnStruct, 0, sizeof(returnStruct));
 
    returnStruct->status = 1;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /**********************************/ 

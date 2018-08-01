@@ -104,7 +104,7 @@ Version  Developer        Date     Change
 /*                                                                       */
 /*************************************************************************/
 
-struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outfile, int modein, char *hdrfile, int narray, double *array, int debug)
+struct mCoverageCheckReturn *mCoverageCheck(char *inpath, char *infile, char *outfile, int modein, char *hdrfile, int narray, double *array, int debug)
 {
 
    int    i, j, inext, jnext,  offscl, ii, blankRec;
@@ -200,6 +200,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    char   fname   [1024];
    char   fullname[1024];
+
+   char   path[1024];
    
    char   field     [512][MTBL_MAXSTR];
    int    ifield    [512];
@@ -213,6 +215,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
    struct COORD in, out;
 
    struct mCoverageCheckReturn *returnStruct;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    box_xsize    = 0.;

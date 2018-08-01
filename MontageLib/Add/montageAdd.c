@@ -115,7 +115,7 @@ Version  Developer        Date     Change
 #include <montage.h>
 
 
-#define MAXSTR     256
+#define MAXSTR    1024
 #define MAXFILE     50
 #define MAXFITS    200
 #define MAXLIST    500
@@ -244,7 +244,7 @@ static char montage_msgstr[1024];
 /*************************************************************************/
 
 
-struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *outfile,
+struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *outfile,
                         int shrink, int haveAreas, int coadd, int debugin)
 {
    int       i, j, ncols, namelen, imgcount;
@@ -282,6 +282,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
    char      filename [MAXSTR];
    char      errstr   [MAXSTR];
+   char      path     [MAXSTR];
 
    int       ifile, nfile;
    char    **inctype1, **inctype2;
@@ -313,6 +314,12 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    double    valOffset;
 
    struct mAddReturn *returnStruct;
+
+   
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /*************************************************/

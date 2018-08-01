@@ -49,7 +49,7 @@ int mDiffFitExec_debug;
 /*                                                                 */
 /*******************************************************************/
 
-struct mDiffFitExecReturn *mDiffFitExec(char *path, char *tblfile, char *template, char *diffdir,
+struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *template, char *diffdir,
                                         char *fitfile, int keepAll, int levelOnly, int noAreas, int debugin)
 {
    int    stat, ncols, count, ffailed, warning, dfailed;
@@ -67,6 +67,7 @@ struct mDiffFitExecReturn *mDiffFitExec(char *path, char *tblfile, char *templat
    char   fname2  [MAXSTR];
    char   diffname[MAXSTR];
    char   rmname  [MAXSTR];
+   char   path    [MAXSTR];
 
    double a;
    double b;
@@ -98,6 +99,12 @@ struct mDiffFitExecReturn *mDiffFitExec(char *path, char *tblfile, char *templat
    memset((void *)returnStruct, 0, sizeof(returnStruct));
 
    returnStruct->status = 1;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /***************************************/

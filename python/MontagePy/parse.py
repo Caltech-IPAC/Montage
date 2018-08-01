@@ -133,6 +133,14 @@ for json_file in glob.glob(os.path.join(MONTAGELIB, '*', '*.json')):
         arg['description'] = inp['desc']
         function['docstring_arguments'].append(arg)
 
+    function['return_arguments'] = []
+    for ret in data['return']:
+        arg = {}
+        arg['name'] = ret['name']
+        arg['type'] = PTYPE[ret['type']]
+        arg['description'] = ret['desc']
+        function['return_arguments'].append(arg)
+
     functions.append(function)
 
 with open('MontagePy/wrappers.pxd', 'w') as f:

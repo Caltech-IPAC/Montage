@@ -26,7 +26,7 @@ Version  Developer        Date     Change
 static char montage_msgstr[1024];
 
 
-/*************************************************************************/
+/*-***********************************************************************/
 /*                                                                       */
 /* mArchiveList -- Given a location on the sky, archive name, and size   */
 /* in degrees contact the IRSA server to retreive a list of archive      */

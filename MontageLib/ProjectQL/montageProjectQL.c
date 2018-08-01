@@ -175,10 +175,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    double    oxpixMax, oypixMax;
    double    xoff, yoff;
    int       imin, imax, jmin, jmax;
+   int       ibmin, ibmax, ibfound;
    int       istart, ilength;
    int       jstart, jlength;
    double    xpos, ypos;
-   int       offscl, border;
+   int       offscl, border, bordertype;
    double    *buffer;
    double    *area;
 
@@ -300,6 +301,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    time(&currtime);
    start = currtime;
 
+   border     = 0;
+   bordertype = FIXEDBORDER;
+
    border = strtol(borderstr, &end, 10);
 
    if(end < borderstr + strlen(borderstr))
@@ -311,7 +315,10 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          return returnStruct;
       }
       else
+      {
          border = 0;
+         bordertype = POLYBORDER;
+      }
    }
 
    if(border < 0)
@@ -806,6 +813,38 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
+      }
+   }
+
+
+   /*****************************************************/
+   /* If we have a border, change border values to NaNs */
+   /*****************************************************/
+
+   if(bordertype == FIXEDBORDER && border > 0)
+   {
+      for(j=0; j<input.naxes[1]; ++j)
+      {
+         for(i=0; i<input.naxes[0]; ++i)
+         {
+            if(j<border || j>input.naxes[1]-border
+            || i<border || i>input.naxes[0]-border)
+               data[j][i] = nan;
+         }
+      }
+   }
+
+   else if(bordertype == POLYBORDER)
+   {
+      for(j=0; j<input.naxes[1]; ++j)
+      {
+         ibfound = mProjectQL_BorderRange(j, input.naxes[0]-1, &ibmin, &ibmax);
+
+         for(i=0; i<input.naxes[0]; ++i)
+         {
+            if(ibfound == 0 || (i >= ibmin && i <= ibmax))
+               data[j][i] = nan;
+         }
       }
    }
       

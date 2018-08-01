@@ -43,7 +43,7 @@ struct mArchiveExecReturn
    int    failed;        // Number of retrievals that failed
 };
 
-struct mArchiveExecReturn *mArchiveExec(char *tblfile, int nrestart, int timeout, int debug);
+struct mArchiveExecReturn *mArchiveExec(char *tblfile, char *path, int nrestart, int timeout, int debug);
 
 //-------------------
 

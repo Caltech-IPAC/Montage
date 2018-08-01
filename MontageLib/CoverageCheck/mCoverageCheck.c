@@ -56,8 +56,6 @@ int main(int argc, char **argv)
 
    /* Process basic command-line arguments */
 
-   strcpy(path, "");
-
    if(argc < 5)
    {
       printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
@@ -100,6 +98,8 @@ int main(int argc, char **argv)
       argv += 2;
       argc -= 2;
    }
+   else
+      strcpy(path, ".");
 
    if(debug)
    {

@@ -20,7 +20,7 @@ extern int getopt(int argc, char *const *argv, const char *options);
 char *svc_value();
 
 
-/*******************************************************************/
+/*-*****************************************************************/
 /*                                                                 */
 /*  mArchiveExec                                                   */
 /*                                                                 */
@@ -29,13 +29,14 @@ char *svc_value();
 /*                                                                 */
 /*   char *tblfile     Table file list of images to get.           */
 /*                                                                 */
-/*   int nrestart      Restart record, if download interupted.     */
-/*   int timeout       Download timeout (sec) per image.           */
-/*   int debug         Debug flag.                                 */
+/*   char *path        Path to output directory.                   */
+/*   int   nrestart    Restart record, if download interupted.     */
+/*   int   timeout     Download timeout (sec) per image.           */
+/*   int   debug       Debug flag.                                 */
 /*                                                                 */
 /*******************************************************************/
 
-struct mArchiveExecReturn *mArchiveExec(char *tblfile, int nrestart, int timeout, int debug)
+struct mArchiveExecReturn *mArchiveExec(char *tblfile, char *inpath, int nrestart, int timeout, int debug)
 {
    int    i, c, stat, ncols, count, failed, nread;
 
@@ -52,6 +53,7 @@ struct mArchiveExecReturn *mArchiveExec(char *tblfile, int nrestart, int timeout
    char   urlbase [MAXSTR];
    char   file    [MAXSTR];
    char   filebase[MAXSTR];
+   char   path    [MAXSTR];
 
    char   cmd     [MAXSTR];
    char   status  [32];
@@ -64,6 +66,12 @@ struct mArchiveExecReturn *mArchiveExec(char *tblfile, int nrestart, int timeout
    memset((void *)returnStruct, 0, sizeof(returnStruct));
 
    returnStruct->status = 1;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /***********************************/ 
@@ -113,6 +121,8 @@ struct mArchiveExecReturn *mArchiveExec(char *tblfile, int nrestart, int timeout
    count  = 0;
    failed = 0;
    nread  = 0;
+
+   chdir(path);
 
    while(1)
    {

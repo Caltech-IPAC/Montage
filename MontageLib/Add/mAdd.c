@@ -45,7 +45,7 @@ int main(int argc, char **argv)
    /* Process the command-line parameters */
    /***************************************/
 
-   strcpy(path, "");
+   strcpy(path, ".");
 
    montage_status = stdout;
 

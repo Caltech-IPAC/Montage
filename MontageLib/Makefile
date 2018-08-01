@@ -393,7 +393,6 @@ pythonlibs:
 		-cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
 # The last four lines are needed because we have .o file name conflicts
 
-
 doc:
 			gcc -o mLibDoc mLibDoc.c
 			mLibDoc Add
@@ -434,6 +433,47 @@ doc:
 			mLibDoc FitExec
 			mLibDoc DiffFitExec
 			mLibDoc ProjExec
+
+jupyter:
+			gcc -o mJupyter mJupyter.c -I../lib/include -L ../lib -lsvc
+			mJupyter Add
+			mJupyter AddCube
+			mJupyter ArchiveList
+			mJupyter ArchiveGet
+			mJupyter ArchiveExec
+			mJupyter Background
+			mJupyter BestImage
+			mJupyter BgModel
+			mJupyter CoverageCheck
+			mJupyter Diff
+			mJupyter Examine
+			mJupyter Fitplane
+			mJupyter FixNaN
+			mJupyter GetHdr
+			mJupyter Hdr
+			mJupyter Histogram
+			mJupyter Imgtbl
+			mJupyter MakeHdr
+			mJupyter MakeImg
+			mJupyter Overlaps
+			mJupyter ProjectCube
+			mJupyter Project
+			mJupyter ProjectPP
+			mJupyter ProjectQL
+			mJupyter PutHdr
+			mJupyter ShrinkCube
+			mJupyter Shrink
+			mJupyter SubCube
+			mJupyter Subimage
+			mJupyter Subset
+			mJupyter TANHdr
+			mJupyter Transpose
+			mJupyter Viewer
+			mJupyter BgExec
+			mJupyter DiffExec
+			mJupyter FitExec
+			mJupyter DiffFitExec
+			mJupyter ProjExec
 
 clean:
 		-(cd util;          make clean)

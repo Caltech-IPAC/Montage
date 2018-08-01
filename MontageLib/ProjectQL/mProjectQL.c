@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "ad:Ls:h:w:W:t:x:Xf")) != EOF) 
+   while ((c = getopt(argc, argv, "ab:d:Ls:h:w:W:t:x:Xf")) != EOF) 
    {
       switch (c) 
       {

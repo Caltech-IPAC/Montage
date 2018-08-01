@@ -59,7 +59,7 @@ int main(int argc, char **argv)
    energyMode  = 0;
    expand      = 0;
 
-   strcpy(path,      "");
+   strcpy(path,      ".");
    strcpy(border,    "");
    strcpy(scaleCol,  "");
    strcpy(weightCol, "");

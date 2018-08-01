@@ -28,6 +28,7 @@ int main(int argc, char **argv)
    int  c, opterr, debug, timeout, nrestart;
 
    char tblfile[MAXSTR];
+   char path   [MAXSTR];
 
 struct mArchiveExecReturn *returnStruct;
 
@@ -41,18 +42,24 @@ struct mArchiveExecReturn *returnStruct;
    timeout    = 0;
    nrestart   = 0;
 
+   strcpy(path, ".");
+
    if(debug)
    {
       printf("DEBUGGING OUTPUT\n\n");
       fflush(stdout);
    }
 
-   while ((c = getopt(argc, argv, "d:r:t:")) != EOF)
+   while ((c = getopt(argc, argv, "d:p:r:t:")) != EOF)
    {
       switch (c)
       {
          case 'd':
             debug = atoi(optarg);
+            break;
+
+         case 'p':
+            strcpy(path, optarg);
             break;
 
          case 't':
@@ -64,7 +71,7 @@ struct mArchiveExecReturn *returnStruct;
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mArchiveExec [-d level][-r startrec][-t timeout] region.tbl\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mArchiveExec [-d level][-p outputdir][-r startrec][-t timeout] region.tbl\"]\n");
             exit(0);
             break;
       }
@@ -72,18 +79,18 @@ struct mArchiveExecReturn *returnStruct;
 
    if(argc - optind < 1)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mArchiveExec [-d level][-r startrec][-t timeout] region.tbl\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mArchiveExec [-d level][-p outputdir][-r startrec][-t timeout] region.tbl\"]\n");
       exit(1);
    }
 
    strcpy(tblfile, argv[optind]);
 
 
-   /*****************************************/
+   /********************************************/
    /* Call the mArchiveExec processing routine */
-   /*****************************************/
+   /********************************************/
 
-   returnStruct = mArchiveExec(tblfile, nrestart, timeout, debug);
+   returnStruct = mArchiveExec(tblfile, path, nrestart, timeout, debug);
 
    if(returnStruct->status == 1)
    {

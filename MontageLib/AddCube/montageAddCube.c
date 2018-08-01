@@ -24,7 +24,7 @@ Version  Developer        Date     Change
 #include <mAddCube.h>
 #include <montage.h>
 
-#define MAXSTR     256
+#define MAXSTR    1024
 #define MAXFILE     50
 #define MAXFITS    200
 #define MAXLIST    500
@@ -160,7 +160,7 @@ static char montage_json  [1024];
 /*************************************************************************/
 
 
-struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, char *outfile,
+struct mAddCubeReturn *mAddCube(char *inpath, char *tblfile, char *template_file, char *outfile,
                                 int shrink, int haveAreas, int coadd, int debugin)
 {
    int       i, j, j3, j4, ncols, namelen, imgcount;
@@ -198,6 +198,7 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
 
    char      filename     [MAXSTR];
    char      errstr       [MAXSTR];
+   char      path         [MAXSTR];
 
    int       ifile, nfile;
    char    **inctype1, **inctype2;
@@ -235,6 +236,12 @@ struct mAddCubeReturn *mAddCube(char *path, char *tblfile, char *template_file, 
    double dtr;
 
    double valOffset;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else 
+      strcpy(path, inpath);
 
 
    /*************************************************/

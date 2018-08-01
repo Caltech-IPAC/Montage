@@ -48,7 +48,7 @@ int main(int argc, char **argv)
    debug   = 0;
    noAreas = 0;
 
-   strcpy(path, "");
+   strcpy(path, ".");
 
    opterr = 0;
 

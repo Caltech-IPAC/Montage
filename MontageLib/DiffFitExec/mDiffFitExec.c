@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
    levelOnly = 0;
 
-   strcpy(path, "");
+   strcpy(path, ".");
 
    opterr = 0;
 

@@ -34,7 +34,7 @@ Version  Developer        Date     Change
 int mDiffExec_debug;
 
 
-/*******************************************************************/
+/*-*****************************************************************/
 /*                                                                 */
 /*  mDiffExec                                                      */
 /*                                                                 */
@@ -52,7 +52,7 @@ int mDiffExec_debug;
 /*                                                                 */
 /*******************************************************************/
 
-struct mDiffExecReturn *mDiffExec(char *path, char *tblfile, char *template, char *diffdir, int noAreas, int debugin)
+struct mDiffExecReturn *mDiffExec(char *inpath, char *tblfile, char *template, char *diffdir, int noAreas, int debugin)
 {
    int    istat, ncols, count, failed;
 
@@ -63,6 +63,7 @@ struct mDiffExecReturn *mDiffExec(char *path, char *tblfile, char *template, cha
    char   fname1  [MAXSTR];
    char   fname2  [MAXSTR];
    char   diffname[MAXSTR];
+   char   path    [MAXSTR];
 
    struct stat type;
 
@@ -74,6 +75,11 @@ struct mDiffExecReturn *mDiffExec(char *path, char *tblfile, char *template, cha
    memset((void *)returnStruct, 0, sizeof(returnStruct));
 
    returnStruct->status = 1;
+
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /***************************************/
