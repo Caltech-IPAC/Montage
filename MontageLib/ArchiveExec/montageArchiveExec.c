@@ -29,7 +29,7 @@ char *svc_value();
 /*                                                                 */
 /*   char *tblfile     Table file list of images to get.           */
 /*                                                                 */
-/*   char *path        Path to output directory.                   */
+/*   char *path        Directory to write retrieved files.         */
 /*   int   nrestart    Restart record, if download interupted.     */
 /*   int   timeout     Download timeout (sec) per image.           */
 /*   int   debug       Debug flag.                                 */

@@ -8,6 +8,7 @@
    "arguments":
    [
       {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input images."},
+      {"type":"string",  "default":".",   "name":"path",         "desc":"Directory to write retrieved files."},
       {"type":"int",     "default":0,     "name":"restart",      "desc":"Restart record, if download interupted."},
       {"type":"int",     "default":300,   "name":"timeout",      "desc":"Download timeout (sec) per image."},
       {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output flag."}
