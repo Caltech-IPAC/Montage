@@ -8,7 +8,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -I. -I.. -I../../lib/include
+CFLAGS =	-g -I. -I.. -I../../lib/include -fPIC
 LIBS   =	-L../../lib -lwcs -lmtbl -lbz2
 
 .c.o:
