@@ -53,8 +53,8 @@ static char montage_json  [1024];
 /*  Outputs these corners plus all the image projection information.     */
 /*                                                                       */
 /*   char  *infile         FITS file to examine                          */
-
-/*   int    areaMode       We can examine the image in general (0:NONE)  */
+/*                                                                       */
+/*   int    areaMode       We can examine the image in general (0:ALL)   */
 /*                         a specific region with radius (1:AREA) or     */
 /*                         perform aperture photometry out to a fixed    */
 /*                         radius (2:APPHOT)                             */
@@ -427,269 +427,278 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
    }
 
 
-   /* If a location was given, get region statistics */
+   // Treat the default region (ALL) as a circle 
+   // containing the whole image
 
-   // First find the pixel center/radius
-
-   if(areaMode != NONE)
+   if(areaMode == ALL)
    {
-      ixpix = 1;
-      iypix = 1;
+      locinpix = 1;
+      radinpix = 1;
 
-      if(radius > 0.)
+      ra  = wcs->nxpix / 2.;
+      dec = wcs->nypix / 2.;
+
+      radius = sqrt(wcs->nxpix*wcs->nxpix + wcs->nypix*wcs->nypix)/2.;
+   }
+
+
+   /* Get region statistics */
+
+   ixpix = 1;
+   iypix = 1;
+
+   if(radinpix) 
+   {
+      rpix   = radius;
+      radius = rpix * fabs(cdelt2);
+   }
+   else
+      rpix = radius / fabs(cdelt2);
+
+   if(locinpix)
+   {
+      xpix = ra;
+      ypix = dec;
+
+      pix2wcs(wcs, xpix, ypix, &lon, &lat);
+
+      if(wcs->offscl)
       {
-         if(radinpix) 
-         {
-            rpix   = radius;
-            radius = rpix * fabs(cdelt2);
-         }
-         else
-            rpix = radius / fabs(cdelt2);
-
-         if(locinpix)
-         {
-            xpix = ra;
-            ypix = dec;
-
-            pix2wcs(wcs, xpix, ypix, &lon, &lat);
-
-            if(wcs->offscl)
-            {
-               if(ap) free(ap);
-               sprintf(returnStruct->msg, "Location off the image.");
-               return returnStruct;
-            }
-
-            convertCoordinates (csys, equinox, lon, lat,
-                  EQUJ, 2000., &ra, &dec, 0);
-         }
-         else
-         {
-            convertCoordinates (EQUJ, 2000., ra, dec,  
-                  csys, equinox, &lon, &lat, 0.);
-
-            wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
-
-            if(offscl)
-            {
-               if(ap) free(ap);
-               sprintf(returnStruct->msg, "Location off the image.");
-               return returnStruct;
-            }
-         }
-
-         x0 = cos(ra*dtr) * cos(dec*dtr);
-         y0 = sin(ra*dtr) * cos(dec*dtr);
-         z0 = sin(dec*dtr);
-
-         ixpix = (int)(xpix+0.5);
-         iypix = (int)(ypix+0.5);
-
-         if(debug)
-         {
-            printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d] [Equatorial (%-g, %-g)\n",
-                  rpix, xpix, ypix, ixpix, iypix, ra, dec);
-            fflush(stdout);
-         }
+         if(ap) free(ap);
+         sprintf(returnStruct->msg, "Location off the image.");
+         return returnStruct;
       }
 
+      convertCoordinates (csys, equinox, lon, lat,
+            EQUJ, 2000., &ra, &dec, 0);
+   }
+   else
+   {
+      convertCoordinates (EQUJ, 2000., ra, dec,  
+            csys, equinox, &lon, &lat, 0.);
 
-      // Then read the data
+      wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
 
-      jbegin = iypix - rpix - 1;
-      jend   = iypix + rpix + 1;
-
-      ibegin = ixpix - rpix - 1;
-      iend   = ixpix + rpix + 1;
-
-      if(ibegin < 1         ) ibegin = 1;
-      if(iend   > wcs->nxpix) iend   = wcs->nxpix;
-
-      nelements = iend - ibegin + 1;
-
-      if(jbegin < 1         ) jbegin = 1;
-      if(jend   > wcs->nypix) jend   = wcs->nxpix;
-
-      fpixel[0] = ibegin;
-      fpixel[1] = jbegin;
-      fpixel[2] = 1;
-      fpixel[3] = 1;
-      fpixel[2] = plane3;
-      fpixel[3] = plane4;
-
-
-      data = (double *)malloc(nelements * sizeof(double));
-
-      status = 0;
-
-      sumflux  = 0.;
-      sumflux2 = 0.;
-      npix     = 0;
-      nnull    = 0;
-
-      val      = 0.;
-      valx     = 0.;
-      valy     = 0.;
-      valra    = 0.;
-      valdec   = 0.;
-
-      max      = 0.;
-      maxx     = 0.;
-      maxy     = 0.;
-      maxra    = 0.;
-      maxdec   = 0.;
-
-      min      = 0.;
-      minx     = 0.;
-      miny     = 0.;
-      minra    = 0.;
-      mindec   = 0.;
-
-      first = 1;
-
-      if(radius > 0.)
+      if(offscl)
       {
-         if(debug)
-         {
-            printf("\nDEBUG> Location: (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
-            printf("DEBUG> Radius: %.6f\n\n", rpix);
+         if(ap) free(ap);
+         sprintf(returnStruct->msg, "Location off the image.");
+         return returnStruct;
+      }
+   }
 
-            printf("DEBUG> i: %d to %d\n", ibegin, iend);
-            printf("DEBUG> j: %d to %d\n", jbegin, jend);
+
+
+   x0 = cos(ra*dtr) * cos(dec*dtr);
+   y0 = sin(ra*dtr) * cos(dec*dtr);
+   z0 = sin(dec*dtr);
+
+   ixpix = (int)(xpix+0.5);
+   iypix = (int)(ypix+0.5);
+
+   if(debug)
+   {
+      printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d] [Equatorial (%-g, %-g)\n",
+            rpix, xpix, ypix, ixpix, iypix, ra, dec);
+      fflush(stdout);
+   }
+
+
+   // Then read the data
+
+   jbegin = iypix - rpix - 1;
+   jend   = iypix + rpix + 1;
+
+   ibegin = ixpix - rpix - 1;
+   iend   = ixpix + rpix + 1;
+
+   if(ibegin < 1         ) ibegin = 1;
+   if(iend   > wcs->nxpix) iend   = wcs->nxpix;
+
+   nelements = iend - ibegin + 1;
+
+   if(jbegin < 1         ) jbegin = 1;
+   if(jend   > wcs->nypix) jend   = wcs->nxpix;
+
+   fpixel[0] = ibegin;
+   fpixel[1] = jbegin;
+   fpixel[2] = 1;
+   fpixel[3] = 1;
+   fpixel[2] = plane3;
+   fpixel[3] = plane4;
+
+
+   data = (double *)malloc(nelements * sizeof(double));
+
+   status = 0;
+
+   sumflux  = 0.;
+   sumflux2 = 0.;
+   npix     = 0;
+   nnull    = 0;
+
+   val      = 0.;
+   valx     = 0.;
+   valy     = 0.;
+   valra    = 0.;
+   valdec   = 0.;
+
+   max      = 0.;
+   maxx     = 0.;
+   maxy     = 0.;
+   maxra    = 0.;
+   maxdec   = 0.;
+
+   min      = 0.;
+   minx     = 0.;
+   miny     = 0.;
+   minra    = 0.;
+   mindec   = 0.;
+
+   first = 1;
+
+   if(radius > 0.)
+   {
+      if(debug)
+      {
+         printf("\nDEBUG> Location: (%.6f %.6f) -> (%d,%d)\n\n", xpix, ypix, ixpix, iypix);
+         printf("DEBUG> Radius: %.6f\n\n", rpix);
+
+         printf("DEBUG> i: %d to %d\n", ibegin, iend);
+         printf("DEBUG> j: %d to %d\n", jbegin, jend);
+      }
+
+      for (j=jbegin; j<=jend; ++j)
+      {
+         status = 0;
+         if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
+                  (void *)data, &nullcnt, &status))
+         {
+            ++fpixel[1];
+
+            continue;
          }
 
-         for (j=jbegin; j<=jend; ++j)
+         for(i=0; i<nelements; ++i)
          {
-            status = 0;
-            if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
-                     (void *)data, &nullcnt, &status))
+            if(mNaN(data[i]))
             {
-               ++fpixel[1];
+               if(debug)
+                  printf("%10s ", "NULL");
 
+               ++nnull;
                continue;
             }
 
-            for(i=0; i<nelements; ++i)
-            {
-               if(mNaN(data[i]))
-               {
-                  if(debug)
-                     printf("%10s ", "NULL");
+            sumflux  += data[i];
+            sumflux2 += data[i]*data[i];
+            ++npix;
 
-                  ++nnull;
-                  continue;
-               }
+            x  = ibegin + i;
+            y  = j;
 
-               sumflux  += data[i];
-               sumflux2 += data[i]*data[i];
-               ++npix;
+            pix2wcs(wcs, x, y, &lon, &lat);
 
-               x  = ibegin + i;
-               y  = j;
+            convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &ra, &dec, 0.);
 
-               pix2wcs(wcs, x, y, &lon, &lat);
+            xp = cos(ra*dtr) * cos(dec*dtr);
+            yp = sin(ra*dtr) * cos(dec*dtr);
+            zp = sin(dec*dtr);
 
-               convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &ra, &dec, 0.);
+            dot = xp*x0 + yp*y0 + zp*z0;
 
-               xp = cos(ra*dtr) * cos(dec*dtr);
-               yp = sin(ra*dtr) * cos(dec*dtr);
-               zp = sin(dec*dtr);
+            if(dot > 1.)
+               dot = 1.;
 
-               dot = xp*x0 + yp*y0 + zp*z0;
-
-               if(dot > 1.)
-                  dot = 1.;
-
-               r = acos(dot)/dtr / fabs(cdelt2);
-
-               if(debug)
-               {
-                  if(r <= rpix)
-                     printf("%10.3f ", data[i]);
-                  else
-                     printf("%10s ", ".");
-               }
-
-               if(r > rpix)
-                  continue;
-
-
-               if(x == ixpix && y == iypix)
-               {
-                  val = data[i];
-
-                  valx = x;
-                  valy = y;
-               }
-
-               if(first)
-               {
-                  first = 0;
-
-                  min = data[i];
-
-                  minx = x;
-                  miny = y;
-
-                  max = data[i];
-
-                  maxx = x;
-                  maxy = y;
-
-                  maxi = i+ibegin;
-                  maxj = j;
-               }
-
-               if(data[i] > max)
-               {
-                  max = data[i];
-
-                  maxx = x;
-                  maxy = y;
-
-                  maxi = i+ibegin;
-                  maxj = j;
-               }
-
-               if(data[i] < min)
-               {
-                  min = data[i];
-
-                  minx = x;
-                  miny = y;
-               }
-            }
-
-            pix2wcs(wcs, valx, valy, &lon, &lat);
-            convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &valra, &valdec, 0.);
-
-            pix2wcs(wcs, minx, miny, &lon, &lat);
-            convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &minra, &mindec, 0.);
-
-            pix2wcs(wcs, maxx, maxy, &lon, &lat);
-            convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &maxra, &maxdec, 0.);
+            r = acos(dot)/dtr / fabs(cdelt2);
 
             if(debug)
-               printf("\n");
+            {
+               if(r <= rpix)
+                  printf("%10.3f ", data[i]);
+               else
+                  printf("%10s ", ".");
+            }
 
-            ++fpixel[1];
+            if(r > rpix)
+               continue;
+
+
+            if(x == ixpix && y == iypix)
+            {
+               val = data[i];
+
+               valx = x;
+               valy = y;
+            }
+
+            if(first)
+            {
+               first = 0;
+
+               min = data[i];
+
+               minx = x;
+               miny = y;
+
+               max = data[i];
+
+               maxx = x;
+               maxy = y;
+
+               maxi = i+ibegin;
+               maxj = j;
+            }
+
+            if(data[i] > max)
+            {
+               max = data[i];
+
+               maxx = x;
+               maxy = y;
+
+               maxi = i+ibegin;
+               maxj = j;
+            }
+
+            if(data[i] < min)
+            {
+               min = data[i];
+
+               minx = x;
+               miny = y;
+            }
          }
 
-         mean     = 0.;
-         rms      = 0.;
-         sigmaref = 0.;
-         sigmamin = 0.;
-         sigmamax = 0.;
+         pix2wcs(wcs, valx, valy, &lon, &lat);
+         convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &valra, &valdec, 0.);
 
-         if(npix > 0)
-         {
-            mean = sumflux / npix;
-            rms  = sqrt(sumflux2/npix - mean*mean);
+         pix2wcs(wcs, minx, miny, &lon, &lat);
+         convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &minra, &mindec, 0.);
 
-            sigmaref = (val - mean) / rms; 
-            sigmamin = (min - mean) / rms; 
-            sigmamax = (max - mean) / rms; 
-         }
+         pix2wcs(wcs, maxx, maxy, &lon, &lat);
+         convertCoordinates(csys, equinox, lon, lat, EQUJ, 2000., &maxra, &maxdec, 0.);
+
+         if(debug)
+            printf("\n");
+
+         ++fpixel[1];
+      }
+
+      mean     = 0.;
+      rms      = 0.;
+      sigmaref = 0.;
+      sigmamin = 0.;
+      sigmamax = 0.;
+
+      if(npix > 0)
+      {
+         mean = sumflux / npix;
+         rms  = sqrt(sumflux2/npix - mean*mean);
+
+         sigmaref = (val - mean) / rms; 
+         sigmamin = (min - mean) / rms; 
+         sigmamax = (max - mean) / rms; 
       }
    }
    
@@ -699,83 +708,8 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
    strcpy(montage_json,  "{");
    strcpy(montage_msgstr,  "");
 
-   if(areaMode == NONE)
-   {
-      sprintf(tmpstr, "\"proj\":\"%s\",",     proj);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"csys\":\"%s\",",    csys_str);             strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"equinox\":%.1f,",   equinox);              strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"naxis\":%ld,",      naxis);                strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"naxis1\":%d,",      (int)naxis1);          strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"naxis2\":%d,",      (int)naxis2);          strcat(montage_json, tmpstr);
 
-      if(naxis > 2)
-         sprintf(tmpstr, " \"naxis3\":%ld,",   naxes[2]);            strcat(montage_json, tmpstr);
-
-      if(naxis > 3)
-         sprintf(tmpstr, " \"naxis4\":%ld,",   naxes[3]);            strcat(montage_json, tmpstr);
-
-      sprintf(tmpstr, " \"crval1\":%.7f,",    crval1);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crval2\":%.7f,",    crval2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crpix1\":%-g,",     crpix1);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crpix2\":%-g,",     crpix2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt1\":%.7f,",    cdelt1);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt2\":%.7f,",    cdelt2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crota2\":%.4f,",    crota2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"lonc\":%.7f,",      lonc);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"latc\":%.7f,",      latc);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ximgsize\":%.6f,",  fabs(naxis1*cdelt1));  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"yimgsize\":%.6f,",  fabs(naxis1*cdelt2));  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"rotequ\":%.4f,",    rot);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"rac\":%.7f,",       rac);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"decc\":%.7f,",      decc);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra1\":%.7f,",       ra1);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec1\":%.7f,",      dec1);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra2\":%.7f,",       ra2);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec2\":%.7f,",      dec2);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra3\":%.7f,",       ra3);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec3\":%.7f,",      dec3);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra4\":%.7f,",       ra4);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec4\":%.7f",       dec4);                 strcat(montage_json, tmpstr);
-
-
-      sprintf(tmpstr, "proj=\"%s\",",     proj);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " csys=\"%s\",",    csys_str);             strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " equinox=%.1f,",   equinox);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis=%ld,",      naxis);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis1=%d,",      (int)naxis1);          strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis2=%d,",      (int)naxis2);          strcat(montage_msgstr, tmpstr);
-
-      if(naxis > 2)
-         sprintf(tmpstr, " naxis3=%ld,",   naxes[2]);            strcat(montage_msgstr, tmpstr);
-
-      if(naxis > 3)
-         sprintf(tmpstr, " naxis4=%ld,",   naxes[3]);            strcat(montage_msgstr, tmpstr);
-
-      sprintf(tmpstr, " crval1=%.7f,",    crval1);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crval2=%.7f,",    crval2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix1=%-g,",     crpix1);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix2=%-g,",     crpix2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt1=%.7f,",    cdelt1);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt2=%.7f,",    cdelt2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crota2=%.4f,",    crota2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " lonc=%.7f,",      lonc);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " latc=%.7f,",      latc);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ximgsize=%.6f,",  fabs(naxis1*cdelt1));  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " yimgsize=%.6f,",  fabs(naxis1*cdelt2));  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rotequ=%.4f,",    rot);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rac=%.7f,",       rac);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " decc=%.7f,",      decc);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra1=%.7f,",       ra1);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec1=%.7f,",      dec1);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra2=%.7f,",       ra2);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec2=%.7f,",      dec2);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra3=%.7f,",       ra3);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec3=%.7f,",      dec3);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra4=%.7f,",       ra4);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec4=%.7f",       dec4);                 strcat(montage_msgstr, tmpstr);
-   }
-
-   else if(areaMode == REGION)
+   if(areaMode == ALL || areaMode == REGION)
    {
       sprintf(tmpstr, "\"proj\":\"%s\",",   proj);                   strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"csys\":\"%s\",",   csys_str);              strcat(montage_json, tmpstr);
@@ -785,10 +719,14 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
       sprintf(tmpstr, " \"naxis2\":%d,",     (int)naxis2);           strcat(montage_json, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " \"naxis3\":%ld,", naxes[2]);              strcat(montage_json, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " \"naxis4\":%ld,", naxes[3]);              strcat(montage_json, tmpstr);
+      }
 
       sprintf(tmpstr, " \"crval1\":%.7f,",   crval1);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crval2\":%.7f,",   crval2);                strcat(montage_json, tmpstr);
@@ -846,10 +784,14 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
       sprintf(tmpstr, " naxis2=%d,",     (int)naxis2);           strcat(montage_msgstr, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " naxis3=%ld,", naxes[2]);              strcat(montage_msgstr, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " naxis4=%ld,", naxes[3]);              strcat(montage_msgstr, tmpstr);
+      }
 
       sprintf(tmpstr, " crval1=%.7f,",   crval1);                strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " crval2=%.7f,",   crval2);                strcat(montage_msgstr, tmpstr);
@@ -1056,10 +998,14 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
       sprintf(tmpstr, " \"naxis2\":%d,",      (int)naxis2);         strcat(montage_json, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " \"naxis3\":%ld,",   naxes[2]);           strcat(montage_json, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " \"naxis4\":%ld,",   naxes[3]);           strcat(montage_json, tmpstr);
+      }
 
       sprintf(tmpstr, " \"crval1\":%.7f,",    crval1);              strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crval2\":%.7f,",    crval2);              strcat(montage_json, tmpstr);
@@ -1093,10 +1039,14 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
       sprintf(tmpstr, " naxis2=%d,",      (int)naxis2);         strcat(montage_msgstr, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " naxis3=%ld,",   naxes[2]);           strcat(montage_msgstr, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " naxis4=%ld,",   naxes[3]);           strcat(montage_msgstr, tmpstr);
+      }
 
       sprintf(tmpstr, " crval1=%.7f,",    crval1);              strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " crval2=%.7f,",    crval2);              strcat(montage_msgstr, tmpstr);

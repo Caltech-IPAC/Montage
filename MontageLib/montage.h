@@ -591,10 +591,10 @@ struct mTANHdrReturn
    char   json[4096];    // Return parameters as JSON string
    double fwdxerr;       // Maximum error in X for forward transformation
    double fwdyerr;       // Maximum error in Y for forward transformation
-   double fwditer;       // Number of iterations needed in forward transformation
+   int    fwditer;       // Number of iterations needed in forward transformation
    double revxerr;       // Maximum error in X for reverse transformation
    double revyerr;       // Maximum error in Y for reverse transformation
-   double reviter;       // Number of iterations needed in reverse transformation
+   int    reviter;       // Number of iterations needed in reverse transformation
 };
 
 struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int order, int maxiter, double tolerance, 

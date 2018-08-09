@@ -175,7 +175,7 @@ struct mDiffExecReturn *mDiffExec(char *inpath, char *tblfile, char *template, c
 
    sprintf(returnStruct->msg,  "count=%d, failed=%d", count, failed);
 
-   sprintf(returnStruct->json, "{\"count\"=%d, \"failed\"=%d}", count, failed);
+   sprintf(returnStruct->json, "{\"count\":%d, \"failed\":%d}", count, failed);
 
    returnStruct->count   = count;
    returnStruct->failed  = failed;

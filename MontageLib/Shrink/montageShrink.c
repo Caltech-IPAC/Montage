@@ -1226,7 +1226,7 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
    returnStruct->status = 0;
 
    sprintf(returnStruct->msg,  "time=%.1f",       (double)(currtime - start));
-   sprintf(returnStruct->json, "{\"time\"s:=%.1f}", (double)(currtime - start));
+   sprintf(returnStruct->json, "{\"time\":%.1f}", (double)(currtime - start));
 
    returnStruct->time = (double)(currtime - start);
 

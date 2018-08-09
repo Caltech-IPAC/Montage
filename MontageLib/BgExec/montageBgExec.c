@@ -333,7 +333,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
 
    sprintf(returnStruct->msg,  "count=%d, nocorrection=%d, failed=%d", count, nocorrection, failed);
 
-   sprintf(returnStruct->json, "{\"count\"=%d, \"nocorrection\"=%d, \"failed\"=%d}",
+   sprintf(returnStruct->json, "{\"count\":%d, \"nocorrection\":%d, \"failed\":%d}",
       count, nocorrection, failed);
 
    returnStruct->count        = count;

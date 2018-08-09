@@ -226,7 +226,7 @@ struct mFitExecReturn *mFitExec(char *tblfile, char *fitfile, char *diffdir, int
    sprintf(returnStruct->msg,  "count=%d, failed=%d, warning=%d, missing=%d",
       count, failed, warning, missing);
 
-   sprintf(returnStruct->json, "{\"count\"=%d, \"failed\"=%d, \"warning\"=%d, \"missing\"=%d}",
+   sprintf(returnStruct->json, "{\"count\":%d, \"failed\":%d, \"warning\":%d, \"missing\":%d}",
       count, failed, warning, missing);
 
    returnStruct->count   = count;

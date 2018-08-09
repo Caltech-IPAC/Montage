@@ -870,7 +870,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    returnStruct->status = 0;
 
    sprintf(returnStruct->msg,  "count=%d, failed=%d, nooverlap=%d", count-restart, failed, nooverlap);
-   sprintf(returnStruct->json, "{\"count\"=%d, \"failed\"=%d, \"nooverlap\"=%d}", count-restart, failed, nooverlap);
+   sprintf(returnStruct->json, "{\"count\":%d, \"failed\":%d, \"nooverlap\":%d}", count-restart, failed, nooverlap);
 
    returnStruct->count     = count-restart;
    returnStruct->failed    = failed;

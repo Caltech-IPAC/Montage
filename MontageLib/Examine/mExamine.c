@@ -10,7 +10,7 @@
 #define STRLEN  1024
 #define MAXFLUX 1024
 
-#define NONE    0
+#define ALL     0
 #define REGION  1
 #define APPHOT  2
 
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
    locinpix = 0;
    radinpix = 0;
 
-   areaMode = NONE;
+   areaMode = ALL;
 
    montage_status = stdout;
 

@@ -268,7 +268,7 @@ struct mArchiveExecReturn *mArchiveExec(char *tblfile, char *inpath, int nrestar
 
    sprintf(returnStruct->msg,  "count=%d, failed=%d", count, failed);
 
-   sprintf(returnStruct->json, "{\"count\"=%d, \"failed\"=%d}", count, failed);
+   sprintf(returnStruct->json, "{\"count\":%d, \"failed\":%d}", count, failed);
 
    returnStruct->count   = count;
    returnStruct->failed  = failed;

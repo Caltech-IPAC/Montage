@@ -1,7 +1,7 @@
 #ifndef MEXAMINE_H
 #define MEXAMINE_H
 
-#define NONE    0
+#define ALL     0
 #define REGION  1
 #define APPHOT  2
 

@@ -67,6 +67,8 @@ int main(int argc, char **argv)
 
    FILE    *montage_status;
 
+   montage_status = stdout;
+
 
    /************************************/
    /* Read the command-line parameters */

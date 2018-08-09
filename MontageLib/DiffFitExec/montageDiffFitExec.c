@@ -280,7 +280,7 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
    sprintf(returnStruct->msg,  "count=%d, diff_failed=%d, fit_failed=%d, warning=%d", 
       count, dfailed, ffailed, warning);
 
-   sprintf(returnStruct->json, "{\"count\"=%d, \"diff_failed\"=%d, \"fit_failed\"=%d, \"warning\"=%d}",
+   sprintf(returnStruct->json, "{\"count\":%d, \"diff_failed\":%d, \"fit_failed\":%d, \"warning\":%d}",
       count, dfailed, ffailed, warning);
 
    returnStruct->count       = count;

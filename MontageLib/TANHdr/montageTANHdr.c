@@ -1156,7 +1156,7 @@ struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int order, int maxi
       fwdmaxx, fwdmaxy, fwditer+1,
       revmaxx, revmaxy, reviter+1);
 
-   sprintf(returnStruct->json, "{\"fwdxerr\"=%-g, \"fwdyerr\"=%-g, \"fwditer\"=%d, \"revxerr\"=%-g, \"revyerr=\"%-g, \"reviter\"=%d}",
+   sprintf(returnStruct->json, "{\"fwdxerr\":%-g, \"fwdyerr\":%-g, \"fwditer\":%d, \"revxerr\":%-g, \"revyerr\":%-g, \"reviter\":%d}",
       fwdmaxx, fwdmaxy, fwditer+1,
       revmaxx, revmaxy, reviter+1);
 
