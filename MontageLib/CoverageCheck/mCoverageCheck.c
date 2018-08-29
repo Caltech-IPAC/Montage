@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 
    debug = 0;
 
+    *path = NULL; // ensure it's empty
 
    /* Process basic command-line arguments */
 

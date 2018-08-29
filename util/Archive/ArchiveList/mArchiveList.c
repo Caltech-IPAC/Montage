@@ -99,7 +99,7 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   strcpy(server, "montage-web.ipac.caltech.edu");
+   strcpy(server, "irsa.ipac.caltech.edu");
 
    port = 80;
 
