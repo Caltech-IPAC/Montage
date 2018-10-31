@@ -12,26 +12,22 @@ done using a Docker image of CentOS 5.
 SOURCES
 -------
 
-Here are all the sources of stuff we need.  Besides Montage itself, there
-is the Docker image we use:
+Here are all the sources of stuff we need.  Besides Montage itself 
+(downloaded from GitHub or as a tarball), which you should already have
+if you are reading this file, you need the following Docker image:
 
-
-   http://montage.ipac.caltech.edu/download/Montage_v6.0.tar.gz (or a more recent version)
 
    https://hub.docker.com/r/dockcross/manylinux-x64/ ("docker pull dockcross/manylinux-x64")
-
-
-We'll go through dealing with both of these separately.
 
 
 
 DOCKER
 ------
 
-You have to install the Docker package first (from https://www.docker.com/). 
-On a Mac this installs as a package, so there is no real work.  Then run the
-"docker pull" request from above and your docker install will be update
-with that image.  
+If you do not already have Docker, you will have to install it first (from 
+https://www.docker.com/).  On a Mac this installs as a package, so there is
+no real work.  Then run the "docker pull" request from above and your docker
+install will be update with that image.  
 
    #!/bin/bash
 
@@ -43,41 +39,37 @@ with that image.
 
 
 This script ("startDocker.sh") plus some other stuff we will need can be found 
-in the same directory as these instructions.  You can read Docker tutorials if
-you need more information.  The "-v" flag makes the current directory visible
-inside the Docker container.  This give you access to the code from inside docker
-and also means that anything you create in this tree persists (again, Docker
-stuff has a tendency to go away when you exit a container unless you make such 
-arrangements).
+in the same directory as these instructions (and that directory should be
+named "Python_ManyLinux").  The "-v" flag makes the parent directory (i.e. the
+top level Montage directory) visible inside the Docker container as "/build".
+This give you access to the code from inside docker and also means that anything
+you create in this tree persists as it real disk space rather than inside the 
+Docker image (again, Docker stuff has a tendency to go away when you exit a 
+container unless you make such arrangements).
 
-So start up the container ("startDocker.sh").  There are severeal versions
-of Python installed since you may want to build multiple wheels.  For 
-simplicity, we are just going to cover 3.6 here, so if you go to the /build
-directory and "source bashrc" you will get the right path.  
+So start up the container ("startDocker.sh") and "cd /build/Python_ManyLinux" 
+to get back where we were outside the container.  Finally, run the configure
+script ("./configureDocker.sh") which updates Python with Cython and jinja2
+(since this is a docker container, we have to do this each time). 
 
-Next we run the configure script ("./configureDocker.sh") which updates 
-Python with Cython and jinja2 (since this is a docker container, we have
-to do this each time). 
+That takes care of setting us up in Docker.
 
 
 MONTAGE
 -------
 
-Back in the main directory, get the Montage package above and gunzip, untar
-it and run "make".  This will create a single Montage directory tree.  This 
-can be done either in the Docker container or back in the native OS.  
+Back in the main directory ("/build"), run "make".  This will create a Montage
+directory tree of Centos 5 binaries.  
 
-We tend to go back and forth between the host OS and the Docker container.
-It would probably be possible to do all the host commands up front but they 
-would then be without context.  If you prefer to analyze this process and 
-do things in a slightly different order, go ahead (but be careful).
-
-Running 'make' builds everything except the python package as this is still
-somewhat system dependent.
+Running "make" builds everything except the python package as this is still
+somewhat system dependent.  We could probably create a tarball of generic
+executables here that would work on any Linux but in general we prefer that
+people rebuild on their own system if they aren't building the Python package.
 
 
 Python
 ------
 The only thing left is to actually build the python binary package.  This is
 done in the Montage python/MontagePy directory.  There is more information 
-on Python packaging there.
+on Python packaging there but basically running "./make_manylinux.sh" should
+do it (the Python wheels created are put in the "dist" subdirectory).

@@ -186,7 +186,12 @@ struct mPutHdrReturn *mPutHdr(char *input_file, char *output_file, char *templat
    /* Check the input image */
    /*************************/
 
-   mPutHdr_readFits(input_file);
+   if(mPutHdr_readFits(input_file) > 0)
+   {
+      fclose(ftemp);
+      strcpy(returnStruct->msg, montage_msgstr);
+      return(returnStruct);
+   }
 
    if(debug >= 1)
    {

@@ -517,6 +517,8 @@ int main(int argc, char **argv)
       exit(1);
    }
 
+   tsetlen(40000);
+
    ncol = topen(infile);
 
    if(ncol < 0)
@@ -701,6 +703,8 @@ int main(int argc, char **argv)
          strcpy(set[0].file, infile);
          strcpy(set[0].name, "single_catalog");
 
+         tsetlen(40000);
+
          ncol = topen(infile);
 
          nrec = (long)tlen();
@@ -831,6 +835,8 @@ int main(int argc, char **argv)
    {
       /* Read in the image set info and    */
       /* allocate space for image set info */
+
+      tsetlen(40000);
 
       ncol = topen(infile);
 
@@ -1078,6 +1084,8 @@ int main(int argc, char **argv)
          strcat(tblfile, set[iset].file);
 
 
+         tsetlen(40000);
+
          ncol = topen(tblfile);
 
          nrec = (long)tlen();
@@ -1242,6 +1250,8 @@ int main(int argc, char **argv)
             fflush(stdout);
          }
 
+
+         tsetlen(40000);
 
          ncol = topen(tblfile);
 
@@ -2319,6 +2329,8 @@ int main(int argc, char **argv)
             continue;
          }
 
+         tsetlen(40000);
+
          ncol = topen(filename);
 
          if(ncol <= 0)
@@ -2700,6 +2712,8 @@ int main(int argc, char **argv)
          }
          else
          {
+            tsetlen(40000);
+
             ncol = topen(infile);
 
             ifile = tcol( "file");
@@ -2822,6 +2836,8 @@ int main(int argc, char **argv)
          }
          else
          {
+            tsetlen(40000);
+
             ncol = topen(infile);
 
             ifile = tcol( "file");
@@ -2975,6 +2991,8 @@ int main(int argc, char **argv)
          strcat(tblfile, set[subsetSetid].file);
 
 
+         tsetlen(40000);
+
          ncol = topen(tblfile);
 
          nkey = thdrcount();
@@ -3098,6 +3116,8 @@ int main(int argc, char **argv)
                }
 
 
+               tsetlen(40000);
+
                topen(tblfile);
 
                strcpy(refNames, tbl_hdr_string);
@@ -3139,6 +3159,8 @@ int main(int argc, char **argv)
             fflush(stdout);
             continue;
          }
+
+         tsetlen(40000);
 
          ncol = topen(filename);
 
@@ -3507,9 +3529,9 @@ int main(int argc, char **argv)
                {
                   printf("\nSearch Rectangle (MATCHES):\n\n");
 
-                  printf("x: %16.8f %16.8f\n", search_rect.boundary[0], search_rect.boundary[4]);
-                  printf("y: %16.8f %16.8f\n", search_rect.boundary[1], search_rect.boundary[5]);
-                  printf("z: %16.8f %16.8f\n", search_rect.boundary[2], search_rect.boundary[6]);
+                  printf("x: %16.8f %16.8f\n", search_rect.boundary[0], search_rect.boundary[3]);
+                  printf("y: %16.8f %16.8f\n", search_rect.boundary[1], search_rect.boundary[4]);
+                  printf("z: %16.8f %16.8f\n", search_rect.boundary[2], search_rect.boundary[5]);
 
                   printf("\n");
                   fflush(stdout);
@@ -4028,7 +4050,7 @@ SearchHitCallback overlapCallback(long index, void* arg)
       if(rdebug > 2)
       {
          printf("overlapCallback(): isMatch> refOffset=%lld tbl_hdr_rec=[%s](%d) refRec=[%s]\n", 
-            refOffset, tbl_hdr_string, strlen(tbl_hdr_string), refRec);
+            refOffset, tbl_hdr_string, (int)strlen(tbl_hdr_string), refRec);
          fflush(stdout);
       }
 

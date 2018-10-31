@@ -161,13 +161,13 @@ static char montage_msgstr[1024];
 /*  pixel coverage. Once this has been done for all input images,        */
 /*  mAdd can be used to coadd them into a composite output.              */
 /*                                                                       */
-/*  mProjectPP is a "special case" version of mProject and can be used   */
+/*  mProjectPP is a 'special case' version of mProject and can be used   */
 /*  only where the input and output images have tangent-plane            */
 /*  projections (e.g. TAN, SIN) or where they can be approximated by     */
-/*  a "pseudo-TAN" header as determined by mTANHdr.                      */
+/*  a 'pseudo-TAN' header as determined by mTANHdr.                      */
 /*                                                                       */
 /*  Each input pixel is projected onto the output pixel space and the    */
-/*  exact area of overlap is computed.  Both the total "flux" and the    */
+/*  exact area of overlap is computed.  Both the total 'flux' and the    */
 /*  total sky area of input pixels added to each output pixel is         */
 /*  tracked, and the flux is appropriately normalized before writing to  */
 /*  the final output file.  This automatically corrects for any multiple */
@@ -191,20 +191,20 @@ static char montage_msgstr[1024];
 /*                         as blank                                      */
 /*                                                                       */
 /*   char  *borderstr      Optional string that contains either a border */
-/*                         width or comma-separated "x1,y1,x2,y2, ..."   */
+/*                         width or comma-separated 'x1,y1,x2,y2, ...'   */
 /*                         pairs defining a pixel region polygon where   */
 /*                         we keep only the data inside.                 */
 /*                                                                       */
 /*   char  *altin          Alternate psuedo-TAN header for input.        */
 /*   char  *altout         Alternate psuedo-TAN header for output.       */
 /*                                                                       */
-/*   double drizzle        Optional pixel area "drizzle" factor          */
+/*   double drizzle        Optional pixel area 'drizzle' factor          */
 /*   double fluxScale      Scale factor applied to all pixels            */
 /*   int    energyMode     Pixel values are total energy rather than     */
 /*                         energy density                                */
 /*   int    expand         Expand output image area to include all of    */
 /*                         the input pixels                              */
-/*   int    fullRegion     Do not "shrink-wrap" output area to non-blank */
+/*   int    fullRegion     Do not 'shrink-wrap' output area to non-blank */
 /*                         pixels                                        */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */

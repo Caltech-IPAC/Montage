@@ -3,11 +3,11 @@
 
    "function":"mFitExec",
 
-   "desc" : "mFitExec loops over a list of differnece images, fitting their level/slopes.",
+   "desc" : "mFitExec loops over a list of difference images, fitting their level/slopes.",
 
    "arguments":
    [
-      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input images."},
+      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input difference images."},
       {"type":"string",                   "name":"fitfile",      "desc":"Table file for output difference fit info."},
       {"type":"string",  "default":"./",  "name":"diffdir",      "desc":"Directory for temporary difference files."},
       {"type":"boolean", "default":false, "name":"levelOnly",    "desc":"Flag to fit level of differences only, not slopes."},

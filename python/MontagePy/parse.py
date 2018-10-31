@@ -52,11 +52,6 @@ for json_file in glob.glob(os.path.join(MONTAGELIB, '*', '*.json')):
     if data['return'] is None:
         continue
 
-    # FIXME: we need to make sure the code works below for functions
-    #        that don't return anything.
-    if data['function'] == 'mMakeImg':
-        continue
-
     # We set up our own dictionary that we will then pass on to the jinja2
     # templates.
     function = {}

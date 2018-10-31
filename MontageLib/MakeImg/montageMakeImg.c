@@ -23,11 +23,33 @@ Version  Developer        Date     Change
 #include <coord.h>
 #include <wcs.h>
 #include <mtbl.h>
+#include <cmd.h>
+#include <json.h>
 
 #include <mMakeImg.h>
 #include <montage.h>
 
-#define MAXSTR  256
+int       isJSON;
+
+double    noise;
+double    bg1;
+double    bg2;
+double    bg3;
+double    bg4;
+int       ncat;
+char    **cat_file;
+char    **colname;
+double   *width;
+int      *flat;
+double   *ref;
+int      *ismag;
+int      *sys;
+double   *epoch;
+int       nimage;
+char   **image_file;
+double   *refval;
+char    *arrayfile;
+int       replace;
 
 static struct
 {
@@ -70,37 +92,56 @@ static int mMakeImg_debug;
 /*  of point sources.  The source fluxes from the table are distributed based on a        */
 /*  source-specific point-spread function.                                                */
 /*                                                                                        */
-/*   char*    *template_file Header template describing the image (and to be part of it). */
-/*   char*    *output_file   Output FITS file.                                            */
+/*   char     *template_file Header template describing the image (and to be part of it). */
+/*   char     *output_file   Output FITS file.                                            */
+/*                                                                                        */
+/*   char     *layout        Command string or JSON string.  If given, overrides all the  */
+/*                           parameters below except 'debug' since the JSON covers all    */
+/*                           the same parameters. If null or an empty string, we expect   */
+/*                           at least some of the below. JSON and parameter mode can't    */
+/*                           be mixed.                                                    */
+/*                                                                                        */
+/*   int       debug         Debugging flag.                                              */
+/*                                                                                        */
+/*  The parsed command string / JSON contains some subset of the following parameters:    */
+/*                                                                                        */
 /*   double    noise         Additive noise level.                                        */
 /*   double    bg1           Background value for pixel (1,1).                            */
 /*   double    bg2           Background value for pixel (NAXIS1, 1).                      */
 /*   double    bg3           Background value for pixel (NAXIS1, NAXIS2).                 */
 /*   double    bg4           Background value for pixel (1, NAXIS2).                      */
+/*                                                                                        */
+/*   int       ncat          Table file(s) with coordinates and source magnitudes.        */
 /*   char    **cat_file      Table file(s) with coordinates and source magnitudes.        */
 /*   char    **colname       Magnitude column in cat_file.                                */
 /*   double   *width         'PSF' (gaussian) width for catalog sources.                  */
-/*   int       region        Use uniform brightness rather than gaussian drop-off.        */
-/*   double   *refmag        Reference magnitude for scaling catalog sources.             */
-/*   double   *tblEpoch      Epoch for coordinates in catalog table.                      */
+/*   int      *flat          Use uniform brightness rather than gaussian drop-off.        */
+/*   double   *ref           Reference magnitude for scaling catalog sources.             */
+/*   int      *ismag         Boolean: Are the reference value and values magnitudes.      */
+/*   int      *sys           Coordinate system ID (EQUJ:0, EQUB:1, ECLJ:2, ECLB:3, GAL:4, */
+/*                           SGAL:5)                                                      */
+/*   double   *epoch         Epoch for coordinates in catalog table.                      */
+/*                                                                                        */
+/*   int       nimage        Table file(s) with coordinates and source magnitudes.        */
 /*   char    **image_file    Image metadata (four corners) tables (region fill).          */
+/*   double   *refval        Fill values to use for image areas.                          */
+/*                                                                                        */
 /*   char     *arrayfile     ASCII file with pixel value array.                           */
+/*                                                                                        */
 /*   int       replace       Boolean: if true replace pixel values instead of adding      */
-/*   int       debug         Debug level.                                                 */
+/*                           (applies to both catalogs and image lists).                  */
 /*                                                                                        */
 /******************************************************************************************/
 
-struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double noise, double bg1, double bg2, double bg3, double bg4,
-                                 int ncat, char **cat_file, char **colname, double *width, double *refmag, double *tblEpoch, int region,
-                                 int nimage, char **image_file, char *arrayfile, int replace, int debugin)
+struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *layout, int mode, int debugin)
 {
    int       i, j, jnext, k, l, m, count, ncol;
-   int       dl, dm, inext;
+   int       dl, dm, inext, ndataset;
    int       loncol, latcol, fluxcol;
+   int       imgcnt, srccnt, index;
    long      fpixel[4], nelements;
    double    oxpix, oypix;
    int       ifile, offscl;
-   int       tblSys;
    double    dx, dy, dist2, width2, weight;
    double    noise_level, randnum;
    double    x, y, background;
@@ -125,7 +166,12 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    int       endline, stat;
 
-   char      valstr       [MAXSTR];
+   char      valstr  [STRLEN];
+   char      keystr  [STRLEN];
+   char      dataType[STRLEN];
+   char      csys    [STRLEN];
+   char      usage   [STRLEN];
+   char      coordStr[STRLEN];
 
    int       bitpix = DOUBLE_IMG; 
    long      naxis  = 2;  
@@ -157,6 +203,11 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
    char     *end;
    FILE     *farray;
 
+   int       argc;
+   char     *argv[4096];
+
+   JSON     *sv;
+
    struct mMakeImgReturn *returnStruct;
 
 
@@ -174,9 +225,11 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
+
+   dtr = atan(1.)/45.;
 
 
    /*******************************/
@@ -199,13 +252,499 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    mMakeImg_debug = debugin;
 
-   dtr = atan(1.)/45.;
+
+   /****************************************************/ 
+   /* If the JSON parameter structure is given, ignore */ 
+   /* any other paramters sent and repopulate the data */ 
+   /* arrays from the JSON.                            */ 
+   /****************************************************/ 
+
+   cat_file   = (char **)malloc(MAXFILE*sizeof(char *));
+   image_file = (char **)malloc(MAXFILE*sizeof(char *));
+   colname    = (char **)malloc(MAXFILE*sizeof(char *));
+
+   for(i=0; i<MAXFILE; ++i)
+   {
+      cat_file[i]   = (char *)malloc(STRLEN*sizeof(char));
+      image_file[i] = (char *)malloc(STRLEN*sizeof(char));
+      colname[i]    = (char *)malloc(STRLEN*sizeof(char));
+   }
+
+   width          = (double *)malloc(MAXFILE * sizeof(double));
+   flat           = (int    *)malloc(MAXFILE * sizeof(int));
+   ref            = (double *)malloc(MAXFILE * sizeof(double));
+   ismag          = (int    *)malloc(MAXFILE * sizeof(int));
+   sys            = (int    *)malloc(MAXFILE * sizeof(int));
+   epoch          = (double *)malloc(MAXFILE * sizeof(double));
+   refval         = (double *)malloc(MAXFILE * sizeof(double));
+
+   arrayfile      = (char   *)malloc(STRLEN * sizeof(char));
+
+   strcpy(usage, "Usage: mMakeImg [-d level] [-r(eplace)] [-n noise_level] [-b bg1 bg2 bg3 bg4] [-t tblfile col width csys epoch refval mag/flux flat/gaussian] [-i imagetbl refval] [-a array.txt] template.hdr out.fits (-t and -i args can be repeated)");
+
+
+   if(mode == CMDMODE)
+   {
+      ncat     = 0;
+      nimage   = 0;
+
+      srccnt   = 0;
+      imgcnt   = 0;
+
+      argc = parsecmd(layout, argv);
+
+      
+      index = 0;
+
+      while(1)
+      {
+         if(index >= argc)
+            break;
+
+         if(argv[index][0] == '-')
+         {
+            if(strlen(argv[index]) < 2)
+            {
+               strcpy(returnStruct->msg, usage);
+               return returnStruct;
+            }
+
+            switch(argv[index][1])
+            {
+               case 'd':
+                  index += 2;
+                  break;
+
+
+               case 'r':
+                  replace = 1;
+
+                  ++index;
+
+                  break;
+
+
+               case 'a':
+                  if(argc < index+2)
+                  {
+                     strcpy(returnStruct->msg, usage);
+                     return returnStruct;
+                  }
+
+                  strcpy(arrayfile, argv[index+1]);
+
+                  index += 2;
+
+                  break;
+
+
+               case 'n':
+                  if(argc < index+2)
+                  {
+                     strcpy(returnStruct->msg, usage);
+                     return returnStruct;
+                  }
+
+                  noise = atof(argv[index+1]);
+
+                  index += 2;
+
+                  break;
+
+
+               case 'b':
+                  if(argc < index+5)
+                  {
+                     strcpy(returnStruct->msg, usage);
+                     return returnStruct;
+                  }
+
+                  bg1 = atof(argv[index+1]);
+                  bg2 = atof(argv[index+2]);
+                  bg3 = atof(argv[index+3]);
+                  bg4 = atof(argv[index+4]);
+
+                  index += 5;
+
+                  break;
+
+
+               case 't':
+                  if(argc < index+9)
+                  {
+                     strcpy(returnStruct->msg, usage);
+                     return returnStruct;
+                  }
+
+                  strcpy(cat_file[ncat], argv[index+1]);
+                  strcpy(colname [ncat], argv[index+2]);
+
+                  width[ncat] = atof(argv[index+3]);
+                  
+                  strcpy(coordStr, argv[index+4]);
+                  strcat(coordStr, " ");
+                  strcat(coordStr, argv[index+5]);
+
+                  mMakeImg_parseCoordStr(coordStr, &sys[ncat], &epoch[ncat]);
+
+                  ref[ncat] = atof(argv[index+6]);
+
+                  ismag[ncat] = 0;
+                  if(strcasecmp(argv[index+7], "mag") == 0)
+                     ismag[ncat] = 1;
+
+                  flat[ncat] = 0;
+                  if(strcasecmp(argv[index+8], "flat") == 0)
+                     flat[ncat] = 1;
+
+                  index += 9;
+
+                  ++ncat;
+
+                  break;
+                  
+
+               case 'i':
+                  if(argc < index+3)
+                  {
+                     strcpy(returnStruct->msg, usage);
+                     return returnStruct;
+                  }
+
+                  strcpy(image_file[nimage], argv[index+1]);
+
+                  refval[nimage] = atof(argv[index+2]);
+
+                  index += 3;
+
+                  ++nimage;
+
+                  break;
+
+                  
+               default:
+                  strcpy(returnStruct->msg, usage);
+                  return returnStruct;
+                  break;
+            }
+         }
+
+         else
+         {
+            strcpy(returnStruct->msg, usage);
+            return returnStruct;
+         }
+      }
+   }
+
+   if(mode == JSONMODE)
+   {
+      if((sv = json_struct(layout)) == (JSON *)NULL)
+      {
+         mMakeImg_cleanup();
+         strcpy(returnStruct->msg, "Invalid JSON structure.");
+         return returnStruct;
+      }
+
+
+      // Noise level and background values at four corners
+     
+      noise = 0.;
+
+      if(json_val(layout, "background.noise", valstr))
+      {
+         noise = strtod(valstr, &end);
+
+         if(end < valstr+strlen(valstr) || noise < 0.)
+         {
+            mMakeImg_cleanup();
+            strcpy(returnStruct->msg, "Noise level parameter must a number greater than zero.");
+            return returnStruct;
+         }
+      }
+
+
+      bg1 = 0.;
+
+      if(json_val(layout, "background.bg11", valstr))
+      {
+         bg1 = strtod(valstr, &end);
+
+         if(end < valstr+strlen(valstr))
+         {
+            mMakeImg_cleanup();
+            strcpy(returnStruct->msg, "Background levels must numbers.");
+            return returnStruct;
+         }
+      }
+
+
+      bg2 = 0.;
+
+      if(json_val(layout, "background.bg1N", valstr))
+      {
+         bg2 = strtod(valstr, &end);
+
+         if(end < valstr+strlen(valstr))
+         {
+            mMakeImg_cleanup();
+            strcpy(returnStruct->msg, "Background levels must numbers.");
+            return returnStruct;
+         }
+      }
+
+
+      bg3 = 0.;
+
+      if(json_val(layout, "background.bgNN", valstr))
+      {
+         bg3 = strtod(valstr, &end);
+
+         if(end < valstr+strlen(valstr))
+         {
+            mMakeImg_cleanup();
+            strcpy(returnStruct->msg, "Background levels must numbers.");
+            return returnStruct;
+         }
+      }
+
+
+      bg4 = 0.;
+
+      if(json_val(layout, "background.bgN1", valstr))
+      {
+         bg4 = strtod(valstr, &end);
+
+         if(end < valstr+strlen(valstr))
+         {
+            mMakeImg_cleanup();
+            strcpy(returnStruct->msg, "Background levels must numbers.");
+            return returnStruct;
+         }
+      }
+
+
+      // Datasets
+
+      ndataset = 0;
+      ncat     = 0;
+      nimage   = 0;
+
+      srccnt   = 0;
+      imgcnt   = 0;
+
+      while(1)
+      {
+         sprintf(keystr, "datasets[%d]", ndataset);
+
+         if(json_val(layout, keystr, valstr) == (char *)NULL)
+            break;
+
+         sprintf(keystr, "datasets[%d].type", ndataset);
+
+         if(json_val(layout, keystr, dataType) == (char *)NULL)
+         {
+            sprintf(returnStruct->msg, "Dataset %d has no 'type' attribute.", ndataset);
+            return returnStruct;
+         }
+
+         if(strcmp(dataType, "catalog") == 0)
+         {
+            sprintf(keystr, "datasets[%d].file", ndataset);  // Catalog file
+
+            if(json_val(layout, keystr, valstr))
+               strcpy(cat_file[ncat], valstr);
+            else
+            {
+               mMakeImg_cleanup();
+               strcpy(returnStruct->msg, "No file name given for catalog.");
+               return returnStruct;
+            }
+
+
+            sprintf(keystr, "datasets[%d].column", ndataset);  // Flux/mag column name
+
+            if(json_val(layout, keystr, valstr))
+               strcpy(colname[ncat], valstr);
+            else
+            {
+               mMakeImg_cleanup();
+               strcpy(returnStruct->msg, "No column name given for catalog.");
+               return returnStruct;
+            }
+
+
+            sprintf(keystr, "datasets[%d].width", ndataset);  // Source width
+
+            width[ncat] = 1.;
+
+            if(json_val(layout, keystr, valstr))
+               width[ncat] = atof(valstr);
+
+            if(width[ncat] <= 0.)
+               width[ncat] = 1.0;
+
+
+            sprintf(keystr, "datasets[%d].shape", ndataset);  // Source shape
+
+            flat[ncat] = 0;
+
+            if(json_val(layout, keystr, valstr))
+            {
+               if(strcasecmp(valstr, "flat") == 0)
+                  flat[ncat] = 1;
+
+               else if(strcasecmp(valstr, "gaussian") == 0)
+                  flat[ncat] = 0;
+
+               else
+               {
+                  mMakeImg_cleanup();
+                  strcpy(returnStruct->msg, "Shape parameter must be 'flat' or 'gaussian'.");
+                  return returnStruct;
+               }
+            }
+
+
+            sprintf(keystr, "datasets[%d].refval", ndataset);  // Reference data value
+
+            ref[ncat] = 1.;
+
+            if(json_val(layout, keystr, valstr))
+               ref[ncat] = atof(valstr);
+
+            if(ref[ncat] <= 0.)
+               ref[ncat] = 1.0;
+
+
+            sprintf(keystr, "datasets[%d].mode", ndataset);  // Flux mode   
+
+            ismag[ncat] = 1;
+
+            if(json_val(layout, keystr, valstr))
+            {
+               if(strncasecmp(valstr, "mag", 3) == 0)
+                  ismag[ncat] = 1;
+
+               else if(strcasecmp(valstr, "flux") == 0)
+                  ismag[ncat] = 0;
+            }
+
+
+            sprintf(keystr, "datasets[%d].csys", ndataset);  // Coordinate system   
+
+            strcpy(csys, "EQU J2000");
+
+            sys  [ncat] = EQUJ;
+            epoch[ncat] = 2000.;
+
+            if(json_val(layout, keystr, valstr))
+               strcpy(csys, valstr);
+
+            mMakeImg_parseCoordStr(csys, &sys[ncat], &epoch[ncat]);
+
+            ++ncat;
+         }
+
+         if(strcmp(dataType, "imginfo") == 0)
+         {
+            sprintf(keystr, "datasets[%d].file", ndataset);  // Catalog file
+
+            if(json_val(layout, keystr, valstr))
+               strcpy(image_file[nimage], valstr);
+            else
+            {
+               mMakeImg_cleanup();
+               strcpy(returnStruct->msg, "No file name given for catalog.");
+               return returnStruct;
+            }
+
+
+            sprintf(keystr, "datasets[%d].refval", ndataset);  // Reference data value
+
+            refval[nimage] = 1.;
+
+            if(json_val(layout, keystr, valstr))
+               refval[nimage] = atof(valstr);
+
+            if(refval[nimage] <= 0.)
+               refval[nimage] = 1.0;
+
+            ++nimage;
+         }
+
+         ++ndataset;
+      }
+
+
+      // Data values array from ASCII file
+     
+      strcpy(valstr, "");
+
+      if(json_val(layout, "arrayfile", valstr))
+         strcpy(arrayfile, valstr);
+
+
+      // Replace with new pixel value rather than add
+      
+      replace = 0;
+
+      if(json_val(layout, "replace", valstr))
+      {
+         if(strcasecmp(valstr, "true") == 0
+         || strcasecmp(valstr, "1"   ) == 0)
+            replace = 1;
+
+         else if(strcasecmp(valstr, "true") == 0
+              || strcasecmp(valstr, "1"   ) == 0)
+            replace = 0;
+      }
+   }
+
+   if(mMakeImg_debug >= 1)
+   {
+      printf("from JSON:\n");
+      printf("noise           =  %-g\n", noise);
+      printf("bg1             =  %-g\n", bg1);
+      printf("bg2             =  %-g\n", bg2);
+      printf("bg3             =  %-g\n", bg3);
+      printf("bg4             =  %-g\n", bg4);
+
+      printf("\nncat            =  %d\n",  ncat);
+
+      for(i=0; i<ncat; ++i)
+      {
+         printf("cat_file[%d]     = [%s]\n",  i, cat_file[i]);
+         printf("colname [%d]     = [%s]\n",  i, colname [i]);
+         printf("width   [%d]     =  %-g\n",  i, width   [i]);
+         printf("flat    [%d]     =  %d \n",  i, flat    [i]);
+         printf("ref     [%d]     =  %-g\n",  i, ref     [i]);
+         printf("ismag   [%d]     =  %d \n",  i, ismag   [i]);
+         printf("sys     [%d]     =  %d \n",  i, sys     [i]);
+         printf("epoch   [%d]     =  %-g\n",  i, epoch   [i]);
+      }
+
+      printf("\nnimage          =  %d\n",  nimage);
+
+      for(i=0; i<nimage; ++i)
+      {
+         printf("image_file[%d]   = [%s]\n",  i, image_file[i]);
+         printf("refval    [%d]   =  %-g\n",  i, refval    [i]);
+      }
+   
+      printf("arrayfile       = [%s]\n", arrayfile);
+   }
+
+
+   /************************************/ 
+   /* Open the array file if it exists */ 
+   /************************************/ 
 
    farray = (FILE *)NULL;
 
    if(strlen(arrayfile) > 0)
    {
-   farray = fopen(arrayfile, "r");
+      farray = fopen(arrayfile, "r");
 
       if(farray == (FILE *)NULL)
       {
@@ -214,6 +753,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       }
    }
 
+
    /*************************************************/ 
    /* Process the output header template to get the */ 
    /* image size, coordinate system and projection  */ 
@@ -221,6 +761,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    if(mMakeImg_readTemplate(template_file) > 0)
    {
+      mMakeImg_cleanup();
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -368,6 +909,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    if(fits_create_file(&output.fptr, output_file, &status)) 
    {
+      mMakeImg_cleanup();
       mMakeImg_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
@@ -381,6 +923,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    if (fits_create_img(output.fptr, bitpix, naxis, output.naxes, &status))
    {
+      mMakeImg_cleanup();
       mMakeImg_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
@@ -411,31 +954,27 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
       if(ncol <= 0)
       {
+         mMakeImg_cleanup();
          sprintf(returnStruct->msg, "Can't open table file %s.", cat_file[ifile]);
          return returnStruct;
       }
-
-      tblSys = EQUJ;
 
       loncol  = tcol("ra");
       latcol  = tcol("dec");
 
       if(loncol <  0 || latcol <  0)
       {
-         tblSys = GAL;
-
          loncol  = tcol("glon");
          latcol  = tcol("glat");
 
          if(loncol <  0 || latcol <  0)
          {
-            tblSys = ECLJ;
-
             loncol  = tcol("elon");
             latcol  = tcol("elat");
 
             if(loncol <  0 || latcol <  0)
             {
+               mMakeImg_cleanup();
                strcpy(returnStruct->msg, "Can't find lon, lat columns.");
                return returnStruct;
             }
@@ -456,8 +995,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
          ilon = atof(tval(loncol));
          ilat = atof(tval(latcol));
 
-         convertCoordinates(    tblSys, tblEpoch[ifile],  ilon,  ilat,
-                            output.sys,    output.epoch, &olon, &olat, 0.);
+         convertCoordinates(sys[ifile], epoch[ifile],  ilon,  ilat,
+                            output.sys, output.epoch, &olon, &olat, 0.);
 
          if(fluxcol < 0)
             pixel_value = 1.;
@@ -465,10 +1004,10 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
          {
             pixel_value = atof(tval(fluxcol));
 
-            if(refmag[ifile] > 0.)
-               pixel_value = pow(10., 0.4 * (refmag[ifile] - pixel_value));
+            if(ismag[ifile])
+               pixel_value = pow(10., 0.4 * (ref[ifile] - pixel_value));
             else
-               pixel_value = refmag[ifile] * pixel_value;
+               pixel_value = ref[ifile] * pixel_value;
 
             if(pixel_value < 3.)
                pixel_value = 3.;
@@ -546,7 +1085,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
                         dist2 = dx*dx + dy*dy;
 
-                        if(region)
+                        if(flat[ifile])
                            weight = 1;
                         else
                            weight = exp(-dist2/width2);
@@ -565,6 +1104,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                   }
                }
             }
+
+            ++srccnt;
          }
       }
 
@@ -593,6 +1134,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
       if(ncol <= 0)
       {
+         mMakeImg_cleanup();
          sprintf(returnStruct->msg, "Can't open table table %s.", cat_file[ifile]);
          return returnStruct;
       }
@@ -618,6 +1160,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       || ira[3] <  0 || idec[3] <  0
       || ira[4] <  0 || idec[4] <  0)
       {
+         mMakeImg_cleanup();
          strcpy(returnStruct->msg, "Can't find image center or four corners.");
          return returnStruct;
       }
@@ -1078,9 +1621,9 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                   ++npix;
 
                   if(replace)
-                     data[j][i]  = 1.;
+                     data[j][i]  = refval[ifile];
                   else
-                     data[j][i] += 1.;
+                     data[j][i] += refval[ifile];
                }
             }
          }
@@ -1111,6 +1654,8 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
                   data[j][i] += 1.;
             }
          }
+
+         ++imgcnt;
       }
 
       tclose();
@@ -1133,6 +1678,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements,
                          (void *)(data[j]), &status))
       {
+         mMakeImg_cleanup();
          mMakeImg_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
@@ -1154,6 +1700,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    if(fits_write_key_template(output.fptr, template_file, &status))
    {
+      mMakeImg_cleanup();
       mMakeImg_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
@@ -1172,6 +1719,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
 
    if(fits_close_file(output.fptr, &status))
    {
+      mMakeImg_cleanup();
       mMakeImg_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
@@ -1183,15 +1731,74 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, double 
       fflush(stdout);
    }
 
-   strcpy(montage_msgstr, "");
-   strcpy(montage_json,   "{}");
+   sprintf(montage_msgstr, "sources=%d, images=%d", srccnt, imgcnt);
+   sprintf(montage_json,   "{\"sources\":%d, \"images\":%d}", srccnt, imgcnt);
 
    returnStruct->status = 0;
+   returnStruct->srccnt = srccnt;
+   returnStruct->imgcnt = imgcnt;
 
    strcpy(returnStruct->msg,  montage_msgstr);
    strcpy(returnStruct->json, montage_json);
 
+   mMakeImg_cleanup();
    return returnStruct;
+}
+
+
+/**************************************************/
+/*  Analyze csys/epoch text to extract the two.   */
+/**************************************************/
+
+void mMakeImg_parseCoordStr(char *coordStr, int *csys, double *epoch)
+{
+   int   cmdc, ref;
+   char *cmdv[256];
+
+   cmdc = parsecmd(coordStr, cmdv);
+
+   *csys  = EQUJ;
+   *epoch = -999.;
+   ref    = JULIAN;
+
+   if(cmdc > 1)
+   {
+      if(cmdv[1][0] == 'j' || cmdv[1][0] == 'J')
+      {
+         ref = JULIAN;
+         *epoch = atof(cmdv[1]+1);
+      }
+
+      else if(cmdv[1][0] == 'b' || cmdv[1][0] == 'B')
+      {
+         ref = BESSELIAN;
+         *epoch = atof(cmdv[1]+1);
+      }
+   }
+
+   if(strncasecmp(cmdv[0], "eq", 2) == 0)
+   {
+      if(ref == BESSELIAN)
+         *csys = EQUB;
+      else
+         *csys = EQUJ;
+   }
+
+   else if(strncasecmp(cmdv[0], "ec", 2) == 0)
+   {
+      if(ref == BESSELIAN)
+         *csys = ECLB;
+      else
+         *csys = ECLJ;
+   }
+
+   else if(strncasecmp(cmdv[0], "ga", 2) == 0)
+      *csys = GAL;
+
+   if(*epoch == -999.)
+      *epoch = 2000.;
+
+   return;
 }
 
 
@@ -1232,7 +1839,7 @@ int mMakeImg_readTemplate(char *filename)
 
    FILE     *fp;
 
-   char      line[MAXSTR];
+   char      line[STRLEN];
 
    char     *header[2];
 
@@ -1262,7 +1869,7 @@ int mMakeImg_readTemplate(char *filename)
 
    while(1)
    {
-      if(fgets(line, MAXSTR, fp) == (char *)NULL)
+      if(fgets(line, STRLEN, fp) == (char *)NULL)
          break;
 
       if(line[strlen(line)-1] == '\n')
@@ -1470,7 +2077,7 @@ void mMakeImg_printFitsError(int status)
 int mMakeImg_nextStr(FILE *fin, char *val)
 {
    int ch, i;
-   static char valstr[MAXSTR];
+   static char valstr[STRLEN];
 
    i = 0;
 
@@ -1731,4 +2338,34 @@ double mMakeImg_ltqnorm(double p)
 		return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
 			(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
 	}
+}
+
+
+
+void mMakeImg_cleanup()
+{
+   int i;
+
+   if(isJSON)
+   {
+      for(i=0; i<MAXFILE; ++i)
+      {
+         free(cat_file[i]);
+         free(image_file[i]);
+         free(colname[i]);
+      }
+
+      free(cat_file);
+      free(image_file);
+      free(colname);
+
+      free(width);
+      free(flat);
+      free(ref);
+      free(ismag);
+      free(sys);
+      free(epoch);
+
+      free(arrayfile);
+   }
 }

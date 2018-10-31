@@ -139,7 +139,7 @@ static char montage_msgstr[1024];
 /*                         as blank                                      */
 /*                                                                       */
 /*   char  *borderstr      Optional string that contains either a border */
-/*                         width or comma-separated "x1,y1,x2,y2, ..."   */
+/*                         width or comma-separated 'x1,y1,x2,y2, ...'   */
 /*                         pairs defining a pixel region polygon where   */
 /*                         we keep only the data inside.                 */
 /*                                                                       */
@@ -148,7 +148,7 @@ static char montage_msgstr[1024];
 /*   int    expand         Expand output image area to include all of    */
 /*                         the input pixels                              */
 /*                                                                       */
-/*   int    fullRegion     Do not "shrink-wrap" output area to non-blank */
+/*   int    fullRegion     Do not 'shrink-wrap' output area to non-blank */
 /*   int    noAreas        In the interest of speed, generation of area  */
 /*                         images is turned off.  This turns it back on. */
 /*                         pixels                                        */

@@ -7,30 +7,18 @@
 
    "arguments":
    [
-      {"type":"string",                  "name":"template_file", "desc":"Header template describing the image (and to be part of it)."},
-      {"type":"string",                  "name":"output_file",   "desc":"Output FITS file."},
-      {"type":"double",   "default":0.0, "name":"bg1",           "desc":"Background value for pixel (1,1)."},
-      {"type":"double",   "default":0.0, "name":"bg2",           "desc":"Background value for pixel (NAXIS1, 1)."},
-      {"type":"double",   "default":0.0, "name":"bg3",           "desc":"Background value for pixel (NAXIS1, NAXIS2)."},
-      {"type":"double",   "default":0.0, "name":"bg4",           "desc":"Background value for pixel (1, NAXIS2)."},
-      {"type":"double",   "default":0.0, "name":"noise",         "desc":"Additive noise level."},
-      {"type":"int",      "default":0,   "name":"ncat",          "desc":"Number of catalog tables."},
-      {"type":"string*",                 "name":"cat_file",      "desc":"Table file(s) with coordinates and source magnitudes."},
-      {"type":"string*",                 "name":"colname",       "desc":"Magnitude column in cat_file.                  "},
-      {"type":"double*",                 "name":"width",         "desc":"'PSF' (gaussian) width for catalog sources."},
-      {"type":"double*",                 "name":"refmag",        "desc":"Reference magnitude for scaling catalog sources."},
-      {"type":"double*",                 "name":"tblEpoch",      "desc":"Epoch for coordinates in catalog table."},
-      {"type":"int",      "default":0,   "name":"region",        "desc":"Use flat sources rather than gaussian drop-off."},
-      {"type":"int",      "default":0,   "name":"nimage",        "desc":"Number of image metadata tables."},
-      {"type":"string*",                 "name":"image_file",    "desc":"Image metadata (four corners) tables (region fill)."},
-      {"type":"string",                  "name":"arrayfile",     "desc":"ASCII file with pixel value array."},
-      {"type":"int",      "default":0,   "name":"replace",       "desc":"Replace pixel with new values instead of adding them in."},
-      {"type":"int",      "default":0,   "name":"debug",         "desc":"Debugging output level."}
+      {"type":"string",                   "name":"template_file", "desc":"Header template describing the image (and to be part of it)."},
+      {"type":"string",                   "name":"output_file",   "desc":"Output FITS file."},
+      {"type":"string",   "default":"",   "name":"layout",        "desc":"JSON structure alternative input to all parameters below."},
+      {"type":"int",      "default":0,    "name":"mode",          "desc":"0: JSON file, 1: JSON, 2: command string."},
+      {"type":"int",      "default":0,    "name":"debug",         "desc":"Debugging output level."}
    ],
 
    "return":
    [
-      {"type":"int",                     "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
-      {"type":"string",                  "name":"msg",           "desc":"Return message (for errors)."}
+      {"type":"int",                      "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                      "name":"srccnt",        "desc":"Number of catalog sources included."},
+      {"type":"int",                      "name":"imgcnt",        "desc":"Number of image regions included."}
    ]
 }

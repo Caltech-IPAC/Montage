@@ -168,6 +168,10 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
    params.kbegin = 1;
    params.kend   = 1;
 
+   strcpy(params.dConstraint[0], "");
+
+   params.naxes[2] = 0;
+
    if(strlen(d3constraint) > 0) 
    {
       strcpy(params.dConstraint[0], d3constraint);
@@ -215,6 +219,10 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
 
    params.lbegin = 1;
    params.lend   = 1;
+
+   strcpy(params.dConstraint[1], "");
+
+   params.naxes[3] = 0;
 
    if(strlen(d4constraint) > 0)
    {
@@ -402,7 +410,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
 
       if(wcs == (struct WorldCoor *)NULL)
       {
-         strcpy(returnStruct->msg, "Invalid input file WCS");
+         strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
    

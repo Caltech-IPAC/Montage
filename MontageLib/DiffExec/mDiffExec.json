@@ -8,7 +8,7 @@
    "arguments":
    [
       {"type":"string",                   "name":"path",         "desc":"Path to raw image directory."},
-      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input images."},
+      {"type":"string",                   "name":"difffile",     "desc":"Table file list of all image overlaps."},
       {"type":"string",                   "name":"template",     "desc":"FITS header file used to define the desired output."},
       {"type":"string",  "default":"./",  "name":"diffdir",      "desc":"Directory for temporary difference files."},
       {"type":"boolean", "default":false, "name":"noAreas",      "desc":"Flag indicating there are no area images."},

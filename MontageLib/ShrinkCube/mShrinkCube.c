@@ -117,7 +117,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   returnStruct = mShrinkCube(input_file, output_file, shrinkFactor, hdu, mfactor, fixedSize, debug);
+   returnStruct = mShrinkCube(input_file, output_file, shrinkFactor, mfactor, hdu, fixedSize, debug);
 
    if(returnStruct->status == 1)
    {

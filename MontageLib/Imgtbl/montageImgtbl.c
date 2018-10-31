@@ -181,7 +181,7 @@ static char montage_msgstr[1024];
 /*   char *imgListFile     Rather than searching through directories,    */
 /*                         get the list of images from a table file.     */
 /*   char *fieldListFile   List of FITS keywords to include in output    */
-/*                         table (in addition to the standard WCS info.  */
+/*                         table (in addition to the standard WCS info). */
 /*                                                                       */
 /*   int debug             Turn on debugging output (not for general     */
 /*                         use).                                         */
@@ -277,7 +277,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
          end = line + strlen(line);
 
          while(ptr < end &&
-              (*ptr == ' ' || *ptr == '\t'))
+              (*ptr == ' ' || *ptr == '\t' || *ptr == ','))
             ++ptr;
             
          if(ptr == end)
@@ -286,33 +286,33 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
          pname = ptr;
 
          while(ptr < end &&
-              *ptr != ' ' && *ptr != '\t')
+              *ptr != ' ' && *ptr != '\t' && *ptr != ',')
             ++ptr;
       
          *ptr = '\0';
          ++ptr;
          
          while(ptr < end &&
-              (*ptr == ' ' || *ptr == '\t'))
+              (*ptr == ' ' || *ptr == '\t' || *ptr == ','))
             ++ptr;
 
          ptype = ptr;
    
          while(ptr < end && 
-              *ptr != ' ' && *ptr != '\t')
+              *ptr != ' ' && *ptr != '\t' && *ptr != ',')
             ++ptr;
 
          *ptr = '\0';
          ++ptr;
 
          while(ptr < end &&
-              (*ptr == ' ' || *ptr == '\t'))
+              (*ptr == ' ' || *ptr == '\t' || *ptr == ','))
             ++ptr;
  
          pwidth = ptr;
 
          while(ptr < end && 
-              *ptr != ' ' && *ptr != '\t')
+              *ptr != ' ' && *ptr != '\t' && *ptr != ',')
             ++ptr;
 
          *ptr = '\0';
@@ -690,6 +690,9 @@ int mImgtbl_get_files (char *pathname)
                printf("DEBUG: Found file      [%s]\n", dirname);
                fflush(stdout);
             }
+
+            if(noGZIP && strncmp(dirname+len-3,  ".gz", 3) == 0)
+               continue;
 
             if(!processAreaFiles)
             {

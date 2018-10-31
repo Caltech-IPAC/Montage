@@ -2968,7 +2968,7 @@ int main(int argc, char **argv)
             fprintf(fsum, fmt, "identifier", "count");
             fflush(fsum);
 
-            sprintf(fmt, " %%%ds %%10ld \n", ilen);
+            sprintf(fmt, " %%%lds %%10ld \n", ilen);
 
             if(setcount[0].srcmatch > 0)
             {

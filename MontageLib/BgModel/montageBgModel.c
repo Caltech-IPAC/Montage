@@ -158,7 +158,7 @@ static int ncorrs, maxcorrs;
 /*                                                                       */
 /*  Given a set of image overlap difference fits (parameters on the      */
 /*  planes fit to pairwise difference images between adjacent images)    */
-/*  interatively determine the "best" background adjustment for each     */
+/*  interatively determine the 'best' background adjustment for each     */
 /*  image (assuming each image is changed to best match its neighbors    */
 /*  with them remaining unchanged) uses these adjustments to modify      */
 /*  each set of difference parameters, and iterate until the changes     */

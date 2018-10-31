@@ -84,6 +84,9 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    long       naxis;
    long       nAxisIn [4];
    long       nAxisOut[4];
+   long       blank;
+   double     bscale;
+   double     bzero;
 
    double    *indata;
    double ****outdata;
@@ -102,14 +105,6 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 
    struct mTransposeReturn *returnStruct;
 
-   norder = innorder;
-
-   for(i=0; i<4; ++i)
-      order[i] = -1;
-
-   for(i=0; i<norder; ++i)
-      order[i] = inorder[i];
-
 
    /************************************************/
    /* Make a NaN value to use setting blank pixels */
@@ -125,7 +120,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    double nan;
 
    for(i=0; i<8; ++i)
-      nvalue.c[i] = 255;
+      nvalue.c[i] = (char)255;
 
    nan = nvalue.d;
 
@@ -186,6 +181,21 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
       return returnStruct;
    }
 
+   status = 0;
+   if(fits_read_key_lng(inFptr, "BLANK", &blank, comment, &status))
+      blank = 0;
+
+   status = 0;
+   if(fits_read_key_dbl(inFptr, "BSCALE", &bscale, comment, &status))
+      bscale = 1.;
+
+   if(bscale == 0.)
+      bscale = 1.;
+
+   status = 0;
+   if(fits_read_key_dbl(inFptr, "BZERO", &bzero, comment, &status))
+      bzero = 0.;
+
    if(nfound < 4)
       nAxisIn[3] = 1;
 
@@ -206,11 +216,16 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    }
 
 
-   /****************************************************/
-   /* We analyzed the image for lat/lot and initialize */
-   /* the transpose order.  Here we optionally set it  */
-   /* manually with command-line arguments.            */
-   /****************************************************/
+   /*****************************************************/
+   /* We analyzed the image for lat/lot and initialized */
+   /* the transpose order.  Here we optionally set it   */
+   /* manually with command-line arguments.             */
+   /*****************************************************/
+
+   norder = innorder;
+
+   for(i=0; i<innorder; ++i)
+      order[i] = inorder[i];
 
    if(norder != naxis)
    {
@@ -383,7 +398,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 
             if(debug >= 2)
             {
-               printf("Reading input 4plane/plane/row %5d/%5d/%5d\n", l, k, j);
+               printf("Reading input plane/plane/row %5d/%5d/%5d\n", l, k, j);
                fflush(stdout);
             }
 
@@ -552,6 +567,32 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    }
 
 
+   /*********************************/
+   /* Convert NaN pixels to BLANK   */
+   /* value (for integer datatypes) */
+   /*********************************/
+   
+   if(bitpix > 0)
+   {
+      for (l=0; l<nAxisOut[3]; ++l)
+      {
+         for (k=0; k<nAxisOut[2]; ++k)
+         {
+            for (j=0; j<nAxisOut[1]; ++j)
+            {
+               for (i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(mNaN(indata[i]))
+                     outdata[l][k][j][i] = blank;
+                  else
+                     outdata[l][k][j][i] = (outdata[l][k][j][i] - bzero)/bscale;
+               }
+            }
+         }
+      }
+   }
+
+
    /************************/
    /* Write the image data */
    /************************/
@@ -583,6 +624,12 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
             if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
                                (void *)outdata[l][k][j], &status))
             {
+               for (i=0; i<nAxisOut[0]; ++i)
+               {
+                  printf("XXX> %d: %-g\n", i, outdata[l][k][j][i]);
+                  fflush(stdout);
+               }
+
                mTranspose_printFitsError(status);
                strcpy(returnStruct->msg, montage_msgstr);
                return returnStruct;
@@ -871,7 +918,7 @@ int mTranspose_initTransform(long *naxis, long *NAXIS)
 
       Bt[i] = 0;
 
-      index = fabs(order[i]-1);
+      index = abs(order[i]-1);
       dir   = 1;
 
       if(order[i] < 0)

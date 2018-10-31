@@ -103,13 +103,15 @@ static char montage_json  [1024];
 /*                                                                       */
 /*  mMakeHdr                                                             */
 /*                                                                       */
-/*  Read through a table of image metadata and find the 'best' header    */
-/*  for a mosaic of the set of images.                                   */
+/*  Create the best header 'bounding' a table or set of tables (each     */
+/*  with image metadata or point sources).                               */
 /*                                                                       */
-/*   char  *tblfile        Input image metadata table                    */
+/*   char  *tblfile        Input image metadata table or source table    */
+/*                         or table of tables                            */
+/*                                                                       */
 /*   char  *template       Output image header template                  */
 /*                                                                       */
-/*   char  *csys           Coordinate system (e.g. "EquJ", "Galactic").  */
+/*   char  *csys           Coordinate system (e.g. 'EquJ', 'Galactic').  */
 /*                         Fairly forgiving                              */
 /*                                                                       */
 /*   double equinox        Coordinate system equinox (e.g. 2000.0)       */
@@ -273,12 +275,21 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
 
    strcpy(csys, csysin);
 
-        if(strcasecmp(csys, "EQUJ") == 0) sys = EQUJ;
-   else if(strcasecmp(csys, "EQUB") == 0) sys = EQUB;
-   else if(strcasecmp(csys, "ECLJ") == 0) sys = ECLJ;
-   else if(strcasecmp(csys, "ECLB") == 0) sys = ECLB;
-   else if(strcasecmp(csys, "GAL" ) == 0) sys = GAL ;
-   else if(strcasecmp(csys, "SGAL") == 0) sys = SGAL;
+        if(strcasecmp(csys, "eq")            == 0) sys = EQUJ;
+   else if(strcasecmp(csys, "equ")           == 0) sys = EQUJ;
+   else if(strcasecmp(csys, "equatorial")    == 0) sys = EQUJ;
+   else if(strcasecmp(csys, "equj")          == 0) sys = EQUJ;
+   else if(strcasecmp(csys, "equb")          == 0) sys = EQUB;
+   else if(strcasecmp(csys, "ec")            == 0) sys = ECLJ;
+   else if(strcasecmp(csys, "ecl")           == 0) sys = ECLJ;
+   else if(strcasecmp(csys, "ecliptic")      == 0) sys = ECLJ;
+   else if(strcasecmp(csys, "eclj")          == 0) sys = ECLJ;
+   else if(strcasecmp(csys, "eclb")          == 0) sys = ECLB;
+   else if(strcasecmp(csys, "ga")            == 0) sys = GAL;
+   else if(strcasecmp(csys, "gal")           == 0) sys = GAL;
+   else if(strcasecmp(csys, "galactic")      == 0) sys = GAL;
+   else if(strcasecmp(csys, "sgal")          == 0) sys = SGAL;
+   else if(strcasecmp(csys, "supergalactic") == 0) sys = SGAL;
    else
    {
       sprintf(returnStruct->msg, "Invalid system string.  Must be EQUJ|EQUB|ECLJ|ECLB|GAL|SGAL");

@@ -118,7 +118,7 @@ struct mDiffExecReturn *mDiffExec(char *inpath, char *tblfile, char *template, c
 
    if(ncols <= 0)
    {
-      sprintf(returnStruct->msg, "Invalid image metadata file: %s", tblfile);
+      sprintf(returnStruct->msg, "Invalid image difference list file: %s", tblfile);
       return returnStruct;
    }
 

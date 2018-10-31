@@ -13,7 +13,7 @@ all:
 	(cd two_plane_v1.1; make; make install)
 	(cd lodepng_20140823; make; make install)
 	(cd jpeg-8b; ./configure --with-pic; make; cp .libs/libjpeg.a ../..; cp jpeglib.h jconfig.h jmorecfg.h ../../include)
-	(cd freetype-2.5.4; ./configure --prefix=`pwd`/../../freetype --without-png; make; make install)
+	(cd freetype-2.9.1; ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib; make; make install)
 	(cd ..; ranlib *.a)
 	chmod 644 ../include/*.h
 
@@ -34,4 +34,4 @@ clean:
 	(cd two_plane_v1.1; make clean)
 	(cd lodepng_20140823; make clean)
 	(cd jpeg-8b; make clean)
-	(cd freetype-2.5.4; make clean; rm -rf objs/libfreetype.la  objs/.libs)
+	(cd freetype-2.9.1; make clean; rm -rf objs/libfreetype.la  objs/.libs)

@@ -134,8 +134,8 @@ struct mCoverageCheckReturn
    int    count;         // Number of images matching region
 };
 
-struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outfile, int mode, char *hdrfile, 
-                                            int narray, double *array, int debug);
+struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mode, char *hdrfile, 
+                                            int narray, double *array, char *path, int debug);
 
 //-------------------
 
@@ -307,8 +307,8 @@ struct mFixNaNReturn
    int    boundaryCount; // Number of pixels found in "boundary" regions
 };
 
-struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundaries, int haveVal, double NaNvalue,
-                               int nMinMax, double *minblank, int *ismin, double *maxblank, int *ismax, int debug);
+struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int haveVal, double NaNvalue, int nMinMax,
+                               double *minblank, int *ismin, double *maxblank, int *ismax, int boundaries, int debug);
 
 //-------------------
 
@@ -411,11 +411,11 @@ struct mMakeImgReturn
    int    status;        // Return status (0: OK, 1:ERROR)
    char   msg [1024];    // Return message (for error return)
    char   json[4096];    // Return parameters as JSON string
+   int    srccnt;        // Number of catalog sources
+   int    imgcnt;        // Number of overlay images
 };
 
-struct mMakeImgReturn *mMakeImg(char *template_file, char *output_file, double noise, double bg1, double bg2, double bg3, double bg4,
-                                int ncat, char **cat_file, char **colname, double *width, double *refmag, double *tblEpoch, int region,
-                                int nimage, char **image_file, char *arrayfile, int replace, int indebug);
+struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *layout, int mode, int debug);
 
 //-------------------
 

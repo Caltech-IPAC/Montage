@@ -146,7 +146,7 @@ static char montage_msgstr[1024];
 /*  to disk.                                                             */
 /*                                                                       */
 /*                                                                       */
-/*  NOTE:  The "reverse" error is the important one for deciding whether */
+/*  NOTE:  The 'reverse' error is the important one for deciding whether */
 /*  the new distorted-TAN header can be used in place of the original    */
 /*  when reprojecting in mProjectPP since it is a measure of the         */
 /*  process of going from distorted TAN to sky to original projection.   */
@@ -165,7 +165,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int order, int maxiter, double tolerance, 
+struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int orderin, int maxiter, double tolerance, 
                               int useOffscl, int debugin)
 {
    int      iter;
@@ -197,6 +197,8 @@ struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int order, int maxi
    struct mTANHdrReturn *returnStruct;
 
    dtr = atan(1.)/45.;
+
+   order = orderin;
 
 
    /*******************************/

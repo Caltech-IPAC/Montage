@@ -3,7 +3,7 @@
 
    "function":"mImgtbl",
 
-   "desc" : "mImgtbl extracts the FITS header geometry information from a set of files and creates an ASCII image metadata table which is used by several of the other programs. It only collects data from headers that comply with the FITS standard, but reports a count of images that fail that check.",
+   "desc" : "mImgtbl extracts the FITS header geometry information from a set of files and creates an ASCII image metadata table which is used by several of the other programs. It only collects data from headers that comply with the FITS standard, but reports a count of images that fail that check.  See http://montage.ipac.caltech.edu/docs/notes/mImgtbl.html",
 
    "arguments":
    [

@@ -172,7 +172,7 @@ static int mViewer_debug;
 /*                                                                           */
 /*   char  *fontFile       Font file (overrides default)                     */
 /*                                                                           */
-/*   char  *outFmt         "png" or "jpeg"                                   */
+/*   char  *outFmt         'png' or 'jpeg'                                   */
 /*                                                                           */
 /*   int    debug          Debugging output level                            */
 /*                                                                           */

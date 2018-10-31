@@ -62,12 +62,6 @@ static char montage_json  [1024];
 /*   char  *input_file     FITS file to fix                              */
 /*   char  *output_file    Fixed FITS file                               */
 /*                                                                       */
-/*   int    boundaries     Some projections (e.g. Aitoff) have regions   */
-/*                         of the image that are non-physical but which  */
-/*                         may have non-blank values (e.g. 0 instead of  */
-/*                         NaN).  If this flag is on, check for that and */
-/*                         convert those pixels to proper NaNs.          */
-/*                                                                       */
 /*   int    haveVal        This flag indicates that NaNs should be       */
 /*                         converted to a different value.               */
 /*                                                                       */
@@ -79,7 +73,7 @@ static char montage_json  [1024];
 /*                         ranges which will be converted to NaNs.  This */
 /*                         one is the count of these ranges.             */
 /*                                                                       */
-/*   double *minblank      The "ranges" can either have min/max values   */
+/*   double *minblank      The 'ranges' can either have min/max values   */
 /*                         or can be just an upper (max) value (i.e.     */
 /*                         with a min of -Infinity) or a lower (min)     */
 /*                         value (i.e. with a max of +Infinity).  This   */
@@ -88,7 +82,7 @@ static char montage_json  [1024];
 /*   int    *ismin         This array is a set of booleans indicating    */
 /*                         whether each min value above is part of a     */
 /*                         min/max range (0) or a standalone lower limit */
-/*                         (in which case the corresponding max is       */
+/*                         (1, in which case the corresponding max is    */
 /*                         ignored).                                     */
 /*                                                                       */
 /*   double *maxblank      Max values for min/max ranges or standalone   */
@@ -98,15 +92,28 @@ static char montage_json  [1024];
 /*                         part of a min/max range (0) or a standalone   */
 /*                         upper limit (1).                              */
 /*                                                                       */
+/*   int    boundaries     Some projections (e.g. Aitoff) have regions   */
+/*                         of the image that are non-physical but which  */
+/*                         may have non-blank values (e.g. 0 instead of  */
+/*                         NaN).  If this flag is on, check for that and */
+/*                         convert those pixels to proper NaNs.          */
+/*                                                                       */
 /*   int    debug          Debugging output level                        */
+/*                                                                       */
+/*                                                                       */
+/* The 'NaNvalue' and ranges can be used together: The ranges are used   */
+/* to logically convert some values to NaN and then the NaNvalue is used */
+/* to convert those and any other naturally occuring NaNs to the         */
+/* the NaNvalue.  However, this is unlikely to be of much use in         */
+/* practice.                                                             */
 /*                                                                       */
 /*************************************************************************/
 
-struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundaries, int haveVal, double NaNvalue, 
-                               int nMinMax, double *minblank, int *ismin, double *maxblank, int *ismax, int debug)
+struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int haveVal, double NaNvalue, int nMinMax, 
+                               double *minblank, int *ismin, double *maxblank, int *ismax, int boundaries, int debug)
 {
    int       i, j, k, countRange, countNaN, bcount, status;
-   int       inRange, offscl;
+   int       inRange, offscl, nullcnt;
    long      fpixel[4], nelements;
 
    double   *inbuffer;
@@ -118,6 +125,8 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
    char     *checkHdr;
 
    struct mFixNaNReturn *returnStruct;
+
+   FILE* fd;
 
 
    /************************************************/
@@ -134,9 +143,19 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
+
+   fd = fopen("/tmp/jcg.debug", "w+");
+
+   fprintf(fd, "XXX> nMinMax:      [%d]\n", nMinMax);
+
+   for(i=0; i<nMinMax; ++i)
+      fprintf(fd, "XXX> [%-g](%d) -> [%-g](%d)\n", minblank[i], ismin[i], maxblank[i], ismax[i]);
+
+   fflush(fd);
+   fclose(fd);
 
 
    /*******************************/
@@ -178,7 +197,7 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
 
    if(debug >= 1)
    {
-      printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
+      printf("\ninput.naxes[0]       =  %ld\n",   input.naxes[0]);
       printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
       printf("input.crpix1         =  %-g\n",   input.crpix1);
       printf("input.crpix2         =  %-g\n",   input.crpix2);
@@ -190,6 +209,17 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
    output.naxes[1] = input.naxes[1];
    output.crpix1   = input.crpix1;
    output.crpix2   = input.crpix2;
+
+   if(debug >= 1)
+   {
+      printf("\noutput.naxes[0]      =  %ld\n",   output.naxes[0]);
+      printf("output.naxes[1]      =  %ld\n",   output.naxes[1]);
+      printf("output.crpix1        =  %-g\n",   output.crpix1);
+      printf("output.crpix2        =  %-g\n",   input.crpix2);
+
+      fflush(stdout);
+   }
+
 
 
    /********************************/
@@ -312,13 +342,13 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
 
       status = 0;
       if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
-                       inbuffer, NULL, &status))
+                       inbuffer, &nullcnt, &status))
       {
          mFixNaN_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
-      
+
 
       /************************/
       /* For each input pixel */
@@ -375,12 +405,12 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
 
             for(k=0; k<nMinMax; ++k)
             {
-               if(ismin[k] && inbuffer[i] <= maxblank[k])
+               if(ismin[k] && !ismax[k] && inbuffer[i] >= minblank[k])
                {
                   inRange = 1;
                   break;
                }
-               else if(ismax[k] && inbuffer[i] >= minblank[k])
+               else if(!ismin[k] && ismax[k] && inbuffer[i] <= maxblank[k])
                {
                   inRange = 1;
                   break;
@@ -450,7 +480,6 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int boundari
 
       ++fpixel[1];
    }
-
 
    if(debug >= 1)
    {

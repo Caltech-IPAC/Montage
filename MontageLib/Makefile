@@ -39,7 +39,6 @@ pgm:
 		-(cd Shrink;                        make; make install)
 		-(cd SubCube;       ./Configure.sh; make; make install)
 		-(cd Subimage;      ./Configure.sh; make; make install)
-		-(cd Subset;        ./Configure.sh; make; make install)
 		-(cd TANHdr;                        make; make install)
 		-(cd Transpose;     ./Configure.sh; make; make install)
 		-(cd WWT;           ./Configure.sh; make; make install)
@@ -84,7 +83,6 @@ lib:
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
 			Subimage/montageSubimage.o \
-			Subset/montageSubset.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
@@ -127,7 +125,6 @@ lib:
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
 			Subimage/montageSubimage.o \
-			Subset/montageSubset.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
@@ -172,7 +169,6 @@ pythonlibs:
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
 			Subimage/montageSubimage.o \
-			Subset/montageSubset.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
@@ -424,7 +420,6 @@ doc:
 			mLibDoc Shrink
 			mLibDoc SubCube
 			mLibDoc Subimage
-			mLibDoc Subset
 			mLibDoc TANHdr
 			mLibDoc Transpose
 			mLibDoc Viewer
@@ -465,7 +460,6 @@ jupyter:
 			mJupyter Shrink
 			mJupyter SubCube
 			mJupyter Subimage
-			mJupyter Subset
 			mJupyter TANHdr
 			mJupyter Transpose
 			mJupyter Viewer
@@ -506,7 +500,6 @@ clean:
 		-(cd Shrink;        make clean)
 		-(cd SubCube;       make clean)
 		-(cd Subimage;      make clean)
-		-(cd Subset;        make clean)
 		-(cd TANHdr;        make clean)
 		-(cd Transpose;     make clean)
 		-(cd WWT;           make clean)

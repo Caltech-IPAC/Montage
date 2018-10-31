@@ -30,7 +30,6 @@
 int debugCheck(char *debugStr);
 
 static char montage_msgstr[1024];
-static char montage_json  [1024];
 
 
 /*-***********************************************************************/
@@ -694,8 +693,10 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    if(iurl < 0)
       strcpy(bestURL, "");
 
-   sprintf(montage_msgstr, "file=\"%s\", hdu=%d, url=\"%s\", edgedist=%.6f", bestName, bestHDU, bestURL, bestdist);
-   sprintf(montage_json, "{\"file\":\"%s\", \"hdu\":%d, \"url\":\"%s\", \"edgedist\":%.6f}", bestName, bestHDU, bestURL, bestdist);
+   returnStruct->status = 0;
+
+   sprintf(returnStruct->msg, "file=\"%s\", hdu=%d, url=\"%s\", edgedist=%.6f", bestName, bestHDU, bestURL, bestdist);
+   sprintf(returnStruct->json, "{\"file\":\"%s\", \"hdu\":%d, \"url\":\"%s\", \"edgedist\":%.6f}", bestName, bestHDU, bestURL, bestdist);
 
    strcpy(returnStruct->file, bestName);
 

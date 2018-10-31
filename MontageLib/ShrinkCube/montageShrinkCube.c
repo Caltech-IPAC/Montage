@@ -86,7 +86,7 @@ static char montage_msgstr[1024];
 
 /*-***********************************************************************/
 /*                                                                       */
-/*  mCubeShrink                                                          */
+/*  mShrinkCube                                                          */
 /*                                                                       */
 /*  This module, is a utility program for making smaller versions of a   */
 /*  FITS file by averaging NxN blocks of pixels spatially and M values   */
@@ -99,9 +99,10 @@ static char montage_msgstr[1024];
 /*   double shrinkFactor   Scale factor for spatial shrinking.  Can be   */
 /*                         any positive real number                      */
 /*                                                                       */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   int    mfactor        Positive integer scale factor for shrinking   */
 /*                         the third cube dimension                      */
+/*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*                                                                       */
 /*   int    fixedSize      Alternate mode: shrink so the output fits     */
 /*                         in this many pixels                           */

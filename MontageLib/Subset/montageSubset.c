@@ -111,7 +111,7 @@ static char montage_msgstr[1024];
 /*  mSubset                                                              */
 /*                                                                       */
 /*  Given a list of image metadata and a region definition (in the form  */
-/*  of a "header" file), determine which subset of the list to keep by   */
+/*  of a 'header' file), determine which subset of the list to keep by   */
 /*  checking to see if the image overlaps with the area defined by the   */
 /*  header.                                                              */
 /*                                                                       */

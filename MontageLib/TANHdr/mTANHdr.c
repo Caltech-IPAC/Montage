@@ -44,7 +44,7 @@ extern int getopt(int argc, char *const *argv, const char *options);
 /*  to disk.                                                             */
 /*                                                                       */
 /*                                                                       */
-/*  NOTE:  The "reverse" error is the important one for deciding whether */
+/*  NOTE:  The 'reverse' error is the important one for deciding whether */
 /*  the new distorted-TAN header can be used in place of the original    */
 /*  when reprojecting in mProjectPP since it is a measure of the         */
 /*  process of going from distorted TAN to sky to original projection.   */
