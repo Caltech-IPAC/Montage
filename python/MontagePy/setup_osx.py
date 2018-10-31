@@ -25,7 +25,7 @@ extensions = [
 
 setup(
     name = 'MontagePy',
-    version = '0.9.2',
+    version = '1.0.0',
     author = 'John Good',
     author_email = 'jcg@ipac.caltech.edu',
     description = 'Montage toolkit for reprojecting, mosaicking, and displaying astronomical images.',

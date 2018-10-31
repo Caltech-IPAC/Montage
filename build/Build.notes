@@ -1,0 +1,147 @@
+This file is kept under CM but not meant for distribution.  It describes the
+organization of directories and copies of Montage kept on various machines
+for transferring from Accurev to GitHub and for building the Windows and
+Python (manylinux and osx) versions of the package.  
+
+The root source of Montage is kept in Accurev, with the main development
+workspace in exodev:/exo/cm/ws/jcg/montage.  As with most development 
+directories, there are several extraneous files there as well (tests,
+temporary versions of files, etc.), so we keep a second Accurev workspace
+with just the pristine, distributed files (the ones actually under CM).
+
+This directory was originally in ~jcg/work/GITHUB/Montage and did dual
+duty as a git repository (for upload to GitHub).  We decided it would
+be more robust to make the git transfer a two-step process, with 
+separate Accurev and Git directories connected by rsync.  Neither of
+these is ever built; they are just for the purposes of transfering the
+code to GitHub and for building release tarballs.
+
+There are some things in CM (like this file and the "docs" directory)
+that don't get included in either of the above and are explicitly excluded
+in a .gitigore file (for Git) and in the mktar.sh script that builds the
+tarball.
+
+With the above approach, we don't need to filter things through a single
+directory (single point failure) and in fact the entire above infrastructure
+can be recreated from scratch if necessary.  We are maintaining two 
+copies of it on different Mac OS X machines, both in the following
+directories/files:
+
+
+   /Users/jcg/MontageTransfer/Montage -- Accurev workspace connected
+   to the CM Dev stream.  This one is remembered by Accurev since we have
+   to run "accurev mkws -w montage-transfer -l Montage -b montage-dev"
+   to create it.  But this name can be reused if we delete the directory
+   through the "accurev chws -w montage-transfer -l <new-directory>" 
+   command.
+
+   ---
+
+   /Users/jcg/MontageTransfer/build/mktar.sh -- Script for building
+   a source tarball for distribution.  We change directory to 
+   /Users/jcg/MontageTransfer, then run "Montage/build/mktar.sh".
+   This results in a dated tarball like
+
+      /Users/jcg/MontageTransfer/Montage_24Mar18.tar.gz
+
+   ---
+
+   /Users/jcg/MontageTransfer/Montage.git -- Git repository originally
+   created from GitHub, then updated from the Accurev directory, then
+   the changes pushed to GitHub.  We populate it using
+
+      git clone https://github.com/Caltech-IPAC/Montage.git .
+      git checkout dev
+
+   This gets the files for both the master and dev branches from GitHub.
+   The Montage directory contains the ".gitignore" file which gets used
+   in determining what gets transferred (e.g. not "docs" or "build".
+
+
+
+Using rsync on the Mac has one little glitch.  You cannot use "-r" 
+(recursive) since the comparison used between source and destination 
+files includes the date in the check, so everything is copied.  Instead
+you have to use "-a".  While this still copies everything the first time,
+subsequent updates only get the differences.
+
+So after setting up the two "transfer" directories above, we update the 
+Accurev one, synch the Git one with Accurev, and push the changes in the
+Git one to GitHub (dev branch):
+
+   (cd Montage; accurev update)
+   rsync -av Montage/ Montage.git
+   (cd Montage.git; git add -u)
+   (cd Montage.git; git commit -m "Reason for the changes")
+   (cd Montage.git; git push origin dev)
+
+This will update essentially everything, though normally most of that
+will be dates.  It will actually copy all the "docs", etc. files but
+these won't affect GitHub because of the ".gitignore" file.
+
+For example, after making a few changes locally in the main Accurev Dev
+directory and going through the above (creating tranfer directories,
+populating one from Accurev and one from GitHub, and running the rsync),
+I then went into the Git directory (MontageTransfer/Montage.git) and 
+ran:
+
+   git diff --name-only
+
+which returned:
+
+   .gitignore
+   MontageLib/ArchiveGet/montageArchiveGet.c
+   MontageLib/ArchiveList/montageArchiveList.c
+   MontageLib/ProjExec/montageProjExec.c
+   MontageLib/Viewer/mViewer.c
+   MontageLib/Viewer/mViewer.h
+   MontageLib/Viewer/mViewer.json
+   MontageLib/Viewer/mViewer_grid.c
+   MontageLib/Viewer/montageViewer.c
+   MontageLib/montage.h
+   MontageLib/util/checkHdr.c
+   lib/src/Makefile
+   lib/src/json/jsonlib.c
+   lib/src/mtbl/mtbl.c
+   lib/src/mtbl/test/Makefile
+   util/Makefile
+
+which is indeed the set of files I updated.
+
+All of this may seem a little convoluted but it has the advantage that
+nothing here has a permanent effect.  I could delete both transfer-related
+directories and start over.
+
+
+----------
+
+
+At this point we have both CM systems happy and a tarball based on what is
+in Accurev.  The next set of directories has to do with building the Python
+and Windows versions of Montage.  These are:
+
+
+   /Users/jcg/MontageBuild/OSX -- Montage built on OSX, including the
+   Python binary extension package for OSX.  The binaries built here 
+   can to used to run locally as well.
+
+   /Users/jcg/MontageBuild/ManyLinux -- Montage built using a Docker
+   container based on Centos 5.11.  This is according to Python PEP 513
+   and the main reason for doing this is so we can then construct the
+   "manylinux" binary extension package for Linux.
+
+   /Users/jcg/MontageBuild/Windows -- Again using a Docker image, this 
+   copy uses a minGW-based set of tools to cross-compile Montage for 
+   use as native executables on Window machines.  This is more complicated
+   than the Linux build above as the code actually needs some small changes
+   from the original.  These are few enough that we opted for a couple of
+   SED scripts to make the changes in place on the original Linux C code.
+
+
+There are detailed notes in the Montage/ManyLinux and Montage/Windows 
+directorys, along with scripts, etc. to streamline things.  All three of
+the above directories contain a "Montage" subdirectory populated by the
+Montage tarball from above.
+
+
+
