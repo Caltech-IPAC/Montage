@@ -1,0 +1,250 @@
+
+Notes on the MontagePy Package
+
+
+Layout
+------
+The top level directory for the package is "MontagePy".  See the diagram 
+below.
+
+In it is another subdirectory of the same name ("MontagePy") which will
+contain the files that make up the package distributed to the Python Package
+Index (PyPI).  This doubly nested structure is normal for Python packages.
+The outer top level directory name is immaterial to the build but it would
+normally be silly to use something different from the package name.
+
+The "MontagePy" subdirectory initially contains "__init__.py", a
+file that tell Python that this is a package.  It can also contain the
+package description (available using help()) and setup code, though we
+don't need the latter. The other files necessary to make that package will 
+copied in from elsewhere or built by Cython as described below.
+
+This top level directory mainly contains the build instructions ("setup.py").
+This is a simple Python script that provides metadata about the package.
+
+|
+|  Note: The descriptive metadata can include the following parameters:
+|
+|     name              name of the package
+|     version           version of this release
+|     author            package author’s name
+|     author_email      email address of the package author
+|     maintainer        package maintainer’s name  short string
+|     maintainer_email  email address of the package maintainer
+|     url               home page for the package
+|     description       short, summary description of the package
+|     long_description  longer description of the package
+|     download_url      location where the package may be downloaded
+|     classifiers       a list of classifiers
+|     platforms         a list of platforms
+|     license           license for the package
+|
+
+
+For MontagePy, this metadata also includes the C library and Cython wrapper
+dependencies.  It has a couple of active bits:  it checks for the existence
+of the Montage/lib and Montage/MontageLib directories; and it generates the
+"extension module" parameter by running cythonize() on the .pyx files (below) and
+list of libraries to create the linkage between python and the Montage C 
+libraries.
+
+The files needed to build the Cython wrapper are "parse.py" and in the "templates" 
+directory.  Basically, parse.py looks through the Montage source directories for
+a set of JSON files we have created that describe each module and creates a 
+Python 'functions' structure with the information.  Then it uses the templates
+to create the following files in the "MontagePy" subdirectory:
+
+
+   templates/template_main.pyx  ->  MontagePy/main.pyx
+   templates/template.pyx       ->  MontagePy/_wrappers.pyx
+   templates/template.pxd       ->  MontagePy/wrappers.pxd
+
+ 
+    main.pyx  --  .pyx files are compiled by Cython to .c files, containing 
+    the code of a Python extension module. The .c file is compiled by a C compiler 
+    to a .so file which can be import -ed directly into a Python session.  
+
+
+    _wrappers.pyx  --  Contains the code describing the calling syntax for each 
+    Montage module.  This conde is converted by Cython into C that can be called
+    by Python.  Here is the snippet for the Montage "mAdd" function.
+
+
+    wrappers.pxd  --  In addition to .pyx source files, Cython uses .pxd files 
+    which work like C header files – they contain Cython declarations which are
+    only meant for inclusion by Cython modules. A pxd file is imported into a 
+    pyx module by using the cimport keyword.  In our case, the declarations 
+    involve the names and calling parameters for each Montage C library module.
+
+
+The creation of the C code associated with the above (main.c and _wrappers.c)
+and the compiled shared-object files from these (the .so files are what actually
+gets distributed) is done by cythonize() commands in setup.py.
+
+
+The package layout looks like this:
+
+   MontagePy
+      |                                        
+      | setup.py                              (Package setup script. 
+      |                                        Besides defining the package
+      |                                        this also runs the cythonize()
+      |                                        function that populates the
+      |                                        MontagePy directory.)
+      |                                        
+      | parse.py                              (Run manually before distributing                                       
+      |                                        to create the pyx/pxd files from
+      |                                        the templates.  Scans MontageLib
+      |                                        for JSON module definitions.)
+      |                                        
+      | validate_json.py                      (A tool used during development                                         
+      |                                        to find and check the validity  
+      |                                        of the module JSON files in     
+      |                                        MontageLib directories.)
+      |                
+      | lib                                   (This directory contains all the 
+      |                                        support library .o files and was 
+      |                                        populated by the MontageLib      
+      |                                        Makefile.)
+      |                
+      |                                        
+      | MontagePy |
+      |           | __init__.py               (Package initialization file. In
+      |           |                            our case this only contains the
+      |           |                            package description text.)     
+      |           |
+      |           | wrappers.pxd              (The first three files here
+      |           | main.pyx                   are generated before distribution
+      |           | _wrappers.pyx              using a "parse.py" utility.)
+      |           |
+      |           | main.c                    (The C versions are generated
+      |           | _wrappers.c                from the above using cythonize()
+      |           |                            during setup.)
+      |           |    
+      |           | main.so                   (As are the compiled library 
+      |           | _wrappers.so               versions.  Only these files are
+      |           |                            distributed, the above five are
+      |           |                            not.) 
+      |           |    
+      |           | FreeSans.tff              (The mViewer module required a
+      |                                        font file and we include one rather
+      |                                        than trying to find it on the user 
+      |                                        machine.)
+      | 
+      | templates |
+      |           | template.pxd              (These templates are used
+      |           | template_main.pyx          by the "parse.py" script
+      |           | template.pyx               to generate the pyx/pxd
+      |                                        files above.)
+      |
+      | dist                                  (This directory gets created and
+                                               filled when setup.py is run.  The
+                                               resulting .whl files get uplaoded
+                                               to PyPI for public consumption.)  
+
+
+
+Build
+-----
+Building the MontagePy package consists of running "python parse.py" to build 
+the Cython wrapper code and "python setup.py build_wheel --inplace", or variants
+on this command.   Our setup code requires Python packages "Cython" and "jinja2"
+which need to be pip-installed beforehand.  The top-level directory incudes a
+"make.sh" file with the commands to produce a clean package and upload it.  This
+script removes previous attempts from the package index and uninstalls the package
+locally in preparation for the new attempt.  It also has code to tweak one of 
+the functions in the cythonized _wrappers.pyx file:  We needed to include a 
+reference in the Python part of the code there to our included font file.
+
+But first we describe below how we built the package and our test "package index" 
+setup and finally the process of getting it into PyPI.
+
+
+                            . . . . . . 
+
+
+Ultimately, we want to upload this package to PyPI for others to use but since
+our initial trial and error phase will involve a lot of false starts we don't
+really want that to be too public.  So instead we create a package index service
+of our own, which is reasonably simple as there are a number of simple server
+packages out there.  Here's the one we set up:
+
+|
+|   On desktop Mac (local machine "mosaic"), in directory: /Users/jcg/PyPIserver
+|   
+|      pip install pypiserver
+|      rehash
+|      mkdir packages
+|      pypi-server -p 9022 -P htpasswd.txt packages &
+|
+|   This can be accessed through pip but also viewed through a 
+|   browser at 
+|   
+|      http://mosaic:9022
+|   
+|   Once we have a package (on exodev in Montage directory) we
+|   can upload it to this server using setup.py. (On ours, the 
+|   password is "p....s".)
+|
+
+
+                            . . . . . . 
+
+
+The processes of building the package, uploading it to a package index,
+and installing it locally (though we don't do the last this way) are all
+handled by "setup.py".  This file is a python script but one that mainly
+calls the setuptools.setup() method.  This method is given all the package 
+metadata (e.g. "author", "version") and does all the work of compiling 
+building distribution files, installing and uploading to a package index 
+for others to get.
+
+You activate these steps with commands like
+
+
+   python setup.py build
+   python setup.py bdist_wheel upload -r http://mosaic.ipac.caltech.edu:9022
+
+
+In the last command we uploaded it to our local package index server using
+the "-r" flag.
+
+To actually install the package from our index we use the standard 'pip'
+command (with the alternate index again called out):
+
+
+   pip install -i http://mosaic.ipac.caltech.edu:9022 MontagePy
+ 
+
+However, since we ran the package index server without secure HTTPS we
+need to authorize the client pip to use it.  This is done by adding pip
+configuration (the ~/.pip/pip.conf file):
+
+
+   [global]
+   extra-index-url = http://mosaic.ipac.caltech.edu:9022
+   [install]
+   trusted-host = mosaic.ipac.caltech.edu
+
+
+
+Use
+---
+The Montage package is called MontagePy but due to the Cython machinations
+we need to refer to modules used as coming from "MontagePy.main":
+
+
+    from MontagePy.main import *
+
+
+After that, we can use it just like any normal Python module, e.g.:
+
+
+    help("MontagePy")
+
+    help(mHdr)
+
+    mHdr("M51", 0.5, 0.5, "region.hdr")
+
+
+

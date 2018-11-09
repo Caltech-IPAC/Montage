@@ -9,19 +9,21 @@
    [
       {"type":"string",                    "name":"input_file",      "desc":"FITS file to fix."},
       {"type":"string",                    "name":"output_file",     "desc":"Fixed FITS file."},
-      {"type":"boolean",  "default":false, "name":"boundaries",      "desc":"Some projections (e.g. Aitoff) have non-physical regions. This flag checks for those and converts them to NaN."},
-      {"type":"boolean",  "default":false, "name":"haveVal",         "desc":"This flag indicates that NaNs should be converted to a different value."},
+      {"type":"boolean",                   "name":"haveVal",         "desc":"This flag indicates that NaNs should be converted to a different value."},
       {"type":"double",                    "name":"NaNvalue",        "desc":"Value to convert NaNs to.  Used when the NaNs in an image are incorrectly used."},
-      {"type":"int",      "default":0,     "name":"nMinMax",         "desc":"Number of min/max (or limit) ranges/values."},
+      {"type":"int",                       "name":"nMinMax",         "desc":"Number of min/max (or limit) ranges/values."},
       {"type":"double*",                   "name":"minblank",        "desc":"Min values for min/max ranges or standalone lower limits."},
       {"type":"boolean*",                  "name":"ismin",           "desc":"Booleans indicating whether min values are min/max (0) or standalone lower limit."},
       {"type":"double*",                   "name":"maxblank",        "desc":"Max values for min/max ranges or standalone upper limits."},
       {"type":"boolean*",                  "name":"ismax",           "desc":"Booleans indicating whether each max value is part of a min/max range (0) or a standalone upper limit (1)."},
+      {"type":"boolean",  "default":false, "name":"boundaries",      "desc":"Some projections (e.g. Aitoff) have non-physical regions. This flag checks for those and converts them to NaN."},
       {"type":"int",      "default":0,     "name":"debug",           "desc":"Debugging output level."}
    ],
    
    "return":
     [
+      {"type":"int",                       "name":"status",          "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",             "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"rangeCount",      "desc":"Number of pixels found in the range(s) specified."},
       {"type":"int",                       "name":"nanCount",        "desc":"Number of NaN pixels found."},
       {"type":"int",                       "name":"boundaryCount",   "desc":"Number of pixels found in 'boundary' regions."}

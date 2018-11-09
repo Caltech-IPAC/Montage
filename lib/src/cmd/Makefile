@@ -1,5 +1,5 @@
 CC      =		gcc
-CFLAGS  =		-c -g -I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS  =		-c -g -fPIC -I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBNAME =		libcmd.a
 
 SRCS    =		cmd.c

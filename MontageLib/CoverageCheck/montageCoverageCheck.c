@@ -74,8 +74,6 @@ Version  Developer        Date     Change
 /*  overlap with a region definition (box or circle on the sky) given    */
 /*  on the command line.                                                 */
 /*                                                                       */
-/*   char  *path           Path to image files (table contains relative  */
-/*                         paths)                                        */
 /*   char  *infile         Table of image metadata                       */
 /*   char  *outfile        Output table of matching records              */
 /*                                                                       */
@@ -86,10 +84,10 @@ Version  Developer        Date     Change
 /*                         center and radius of a cone on the sky;       */
 /*                         3 (POINT), a single point on the sky;         */
 /*                         4 (HEADER), a FITS header template (file);    */
-/*                         and 5 (CUTOUT),and 5 (CUTOUT), like box but   */
-/*                         uses the full image file WCS and updates the  */
-/*                         record to indicate what subset of each image  */
-/*                         overlaps the box.                             */
+/*                         and 5 (CUTOUT), like box but uses the full    */
+/*                         image file WCS and updates the record to      */
+/*                         indicate what subset of each image overlap    */
+/*                         the box.                                      */
 /*                                                                       */
 /*   char  *hdrfile        FITS header template file; only used by mode  */
 /*                         4 (HEADER) above.                             */
@@ -100,11 +98,19 @@ Version  Developer        Date     Change
 /*                         0 (POINTS) the number is twice the number     */
 /*                         of vertices in the polygon.                   */
 /*                                                                       */
+/*   char  *path           Path to image files (table contains relative  */
+/*                         paths).  The files are only used if this      */
+/*                         parameter is not an empty string and only     */
+/*                         needed where the metadata WCS is inadequate   */
+/*                         (i.e. for a subset of projections) and we     */
+/*                         don't have the four corners in the metadata.  */
+/*                                                                       */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
-struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outfile, int modein, char *hdrfile, int narray, double *array, int debug)
+struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int modein, char *hdrfile, 
+                                            int narray, double *array, char *inpath, int debug)
 {
 
    int    i, j, inext, jnext,  offscl, ii, blankRec;
@@ -200,6 +206,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    char   fname   [1024];
    char   fullname[1024];
+
+   char   path[1024];
    
    char   field     [512][MTBL_MAXSTR];
    int    ifield    [512];
@@ -213,6 +221,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
    struct COORD in, out;
 
    struct mCoverageCheckReturn *returnStruct;
+
+
+   if(inpath == (char *)NULL)
+      strcpy(path, "");
+   else
+      strcpy(path, inpath);
 
 
    box_xsize    = 0.;
@@ -236,7 +250,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    returnStruct = (struct mCoverageCheckReturn *)malloc(sizeof(struct mCoverageCheckReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -503,11 +517,13 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
    else if(imode == HEADER)
    {
-      montage_checkHdr(hdrfile, 1, 0);
+      montage_parseHdr(hdrfile, 1, 0);
 
       header = montage_getHdr();
 
       wcsbox = wcsinit(header);
+
+      free(header);
 
       if(wcsbox->syswcs == WCS_J2000)
       {
@@ -686,7 +702,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
       circle_radius = 0.;
 
       if(narray > 2)
-         circle_radius = array[3];
+         circle_radius = array[2];
       
       else
          imode = POINT;
@@ -1565,98 +1581,102 @@ struct mCoverageCheckReturn *mCoverageCheck(char *path, char *infile, char *outf
 
             /* If we aren't sure the WCS from the metadata table   */
             /* is adequately defined, go back to the original file */
+            /* (if we can; sometimes we only have the metadata)    */
 
-            if(strcmp(proj, "-ZPN") == 0 
-            || strcmp(proj, "-COP") == 0
-            || strcmp(proj, "-COE") == 0
-            || strcmp(proj, "-COD") == 0
-            || strcmp(proj, "-COO") == 0
-            || strcmp(proj, "-BON") == 0
-            || strcmp(proj, "-DSS") == 0)
+            if(strlen(path) > 0)
             {
-               strcpy(fname, tval(ifname));
-
-               if(fname[0] != '/')
+               if(strcmp(proj, "-ZPN") == 0 
+                     || strcmp(proj, "-COP") == 0
+                     || strcmp(proj, "-COE") == 0
+                     || strcmp(proj, "-COD") == 0
+                     || strcmp(proj, "-COO") == 0
+                     || strcmp(proj, "-BON") == 0
+                     || strcmp(proj, "-DSS") == 0)
                {
-                  strcpy(fullname, path);
+                  strcpy(fname, tval(ifname));
 
-                  if(fullname[strlen(fullname)-1] != '/')
-                     strcat(fullname, "/");
+                  if(fname[0] != '/')
+                  {
+                     strcpy(fullname, path);
 
-                  strcat(fullname, fname);
+                     if(fullname[strlen(fullname)-1] != '/')
+                        strcat(fullname, "/");
 
-                  strcpy(fname, fullname);
-               }
+                     strcat(fullname, fname);
 
-               status = 0;
-               if(fits_open_file(&fptr, fname, READONLY, &status))
-               {
-                  sprintf(returnStruct->msg, "Image file %s missing or invalid FITS", fname);
-                  return returnStruct;
-               }
+                     strcpy(fname, fullname);
+                  }
 
-               status = 0;
-               if(fits_get_image_wcs_keys(fptr, &header, &status))
-               {
-                  fits_get_errstatus(status, status_str);
+                  status = 0;
+                  if(fits_open_file(&fptr, fname, READONLY, &status))
+                  {
+                     sprintf(returnStruct->msg, "Image file %s missing or invalid FITS", fname);
+                     return returnStruct;
+                  }
 
-                  strcpy(returnStruct->msg, status_str);
+                  status = 0;
+                  if(fits_get_image_wcs_keys(fptr, &header, &status))
+                  {
+                     fits_get_errstatus(status, status_str);
 
-                  return returnStruct;
-               }
+                     strcpy(returnStruct->msg, status_str);
 
-               wcsimg = wcsinit(header);
+                     return returnStruct;
+                  }
 
-               if(wcsimg == (struct WorldCoor *)NULL)
-               {
-                  sprintf(returnStruct->msg, "Input wcsinit() failed.");
-                  return returnStruct;
-               }
+                  wcsimg = wcsinit(header);
 
-               csys = EQUJ;
+                  if(wcsimg == (struct WorldCoor *)NULL)
+                  {
+                     sprintf(returnStruct->msg, "Input wcsinit() failed.");
+                     return returnStruct;
+                  }
 
-               if(strncmp(wcsimg->ctype[0], "RA",   2) == 0)
                   csys = EQUJ;
-               if(strncmp(wcsimg->ctype[0], "GLON", 4) == 0)
-                  csys = GAL;
-               if(strncmp(wcsimg->ctype[0], "ELON", 4) == 0)
-                  csys = ECLJ;
 
-               equinox = wcsimg->equinox;
+                  if(strncmp(wcsimg->ctype[0], "RA",   2) == 0)
+                     csys = EQUJ;
+                  if(strncmp(wcsimg->ctype[0], "GLON", 4) == 0)
+                     csys = GAL;
+                  if(strncmp(wcsimg->ctype[0], "ELON", 4) == 0)
+                     csys = ECLJ;
 
-               if (equinox == 0) 
-                 equinox = 2000;
+                  equinox = wcsimg->equinox;
 
-               strcpy(ctype1, wcsimg->ctype[0]);
-               strcpy(ctype2, wcsimg->ctype[1]);
+                  if (equinox == 0) 
+                     equinox = 2000;
 
-               ns     = wcsimg->nxpix;
-               nl     = wcsimg->nypix;
-               crval1 = wcsimg->crval[0];
-               crval2 = wcsimg->crval[1];
-               crpix1 = wcsimg->xrefpix;
-               crpix2 = wcsimg->yrefpix;
-               cdelt1 = wcsimg->xinc;
-               cdelt2 = wcsimg->yinc;
-               crota2 = wcsimg->rot;
+                  strcpy(ctype1, wcsimg->ctype[0]);
+                  strcpy(ctype2, wcsimg->ctype[1]);
 
-               if(debug)
-               {
-                 printf("csys      = %d\n",   csys);
-                 printf("equinox   = %d\n",   equinox);
-                 printf("ctype1    = \"%s\"\n",   ctype1);
-                 printf("ctype2    = \"%s\"\n",   ctype2);
-                 printf("ns        = %d\n",   ns);
-                 printf("nl        = %d\n",   nl);
-                 printf("crval1    = %-g\n",  crval1);
-                 printf("crval2    = %-g\n",  crval2);
-                 printf("crpix1    = %-g\n",  crpix1);
-                 printf("crpix2    = %-g\n",  crpix2);
-                 printf("cdelt1    = %-g\n",  cdelt1);
-                 printf("cdelt2    = %-g\n",  cdelt2);
-                 printf("crota2    = %-g\n",  crota2);
-                 printf("\n");
-                 fflush(stdout);
+                  ns     = wcsimg->nxpix;
+                  nl     = wcsimg->nypix;
+                  crval1 = wcsimg->crval[0];
+                  crval2 = wcsimg->crval[1];
+                  crpix1 = wcsimg->xrefpix;
+                  crpix2 = wcsimg->yrefpix;
+                  cdelt1 = wcsimg->xinc;
+                  cdelt2 = wcsimg->yinc;
+                  crota2 = wcsimg->rot;
+
+                  if(debug)
+                  {
+                     printf("csys      = %d\n",   csys);
+                     printf("equinox   = %d\n",   equinox);
+                     printf("ctype1    = \"%s\"\n",   ctype1);
+                     printf("ctype2    = \"%s\"\n",   ctype2);
+                     printf("ns        = %d\n",   ns);
+                     printf("nl        = %d\n",   nl);
+                     printf("crval1    = %-g\n",  crval1);
+                     printf("crval2    = %-g\n",  crval2);
+                     printf("crpix1    = %-g\n",  crpix1);
+                     printf("crpix2    = %-g\n",  crpix2);
+                     printf("cdelt1    = %-g\n",  cdelt1);
+                     printf("cdelt2    = %-g\n",  cdelt2);
+                     printf("crota2    = %-g\n",  crota2);
+                     printf("\n");
+                     fflush(stdout);
+                  }
                }
             }
 

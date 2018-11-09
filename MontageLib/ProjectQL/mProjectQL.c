@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "ad:Ls:h:w:W:t:x:Xf")) != EOF) 
+   while ((c = getopt(argc, argv, "ab:d:Ls:h:w:W:t:x:Xf")) != EOF) 
    {
       switch (c) 
       {
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
    strcpy(output_file,   argv[optind + 1]);
    strcpy(template_file, argv[optind + 2]);
 
-   returnStruct = mProjectQL(input_file, hdu, output_file, template_file, interp,
+   returnStruct = mProjectQL(input_file, output_file, template_file, hdu, interp,
                              weight_file, fixedWeight, threshold, borderstr,
                              fluxScale, expand, fullRegion, noAreas, debug);
 
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mProjectQL\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

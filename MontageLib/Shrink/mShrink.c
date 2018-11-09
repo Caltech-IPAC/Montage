@@ -105,7 +105,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   returnStruct = mShrink(input_file, hdu, output_file, shrinkFactor, fixedSize, debug);
+   returnStruct = mShrink(input_file, output_file, shrinkFactor, hdu, fixedSize, debug);
 
    if(returnStruct->status == 1)
    {
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mShrink\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

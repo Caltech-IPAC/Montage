@@ -40,16 +40,16 @@ static char montage_msgstr[1024];
 /*  This program extracts the FITS header from an image into a text file */
 /*                                                                       */
 /*   char  *infile         Input FITS file                               */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *hdrfile        ASCII header stripped from the input, with    */
 /*                         newlines added for readability                */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    htmlMode       Write output as an HTML file                  */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
-struct mGetHdrReturn *mGetHdr(char *infile, int hdu, char *hdrfile, int htmlMode, int debug)
+struct mGetHdrReturn *mGetHdr(char *infile, char *hdrfile, int hdu, int htmlMode, int debug)
 {
    int i, j, odd, class, morekeys, status;
 
@@ -77,7 +77,7 @@ struct mGetHdrReturn *mGetHdr(char *infile, int hdu, char *hdrfile, int htmlMode
 
    returnStruct = (struct mGetHdrReturn *)malloc(sizeof(struct mGetHdrReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;

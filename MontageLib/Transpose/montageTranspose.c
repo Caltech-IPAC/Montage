@@ -84,9 +84,23 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    long       naxis;
    long       nAxisIn [4];
    long       nAxisOut[4];
+   long       blank;
+   double     bscale;
+   double     bzero;
 
-   double    *indata;
-   double ****outdata;
+   double    *inDouble;
+   float     *inFloat;
+   long long *inLongLong;
+   long      *inLong;
+   short     *inShort;
+   char      *inByte;
+
+   double    ****outDouble;
+   float     ****outFloat;
+   long long ****outLongLong;
+   long      ****outLong;
+   short     ****outShort;
+   char      ****outByte;
 
    char       card      [STRLEN];
    char       newcard   [STRLEN];
@@ -101,14 +115,6 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    fitsfile  *outFptr;
 
    struct mTransposeReturn *returnStruct;
-
-   norder = innorder;
-
-   for(i=0; i<4; ++i)
-      order[i] = -1;
-
-   for(i=0; i<norder; ++i)
-      order[i] = inorder[i];
 
 
    /************************************************/
@@ -125,7 +131,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    double nan;
 
    for(i=0; i<8; ++i)
-      nvalue.c[i] = 255;
+      nvalue.c[i] = (char)255;
 
    nan = nvalue.d;
 
@@ -136,7 +142,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 
    returnStruct = (struct mTransposeReturn *)malloc(sizeof(struct mTransposeReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -186,6 +192,21 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
       return returnStruct;
    }
 
+   status = 0;
+   if(fits_read_key_lng(inFptr, "BLANK", &blank, comment, &status))
+      blank = 0;
+
+   status = 0;
+   if(fits_read_key_dbl(inFptr, "BSCALE", &bscale, comment, &status))
+      bscale = 1.;
+
+   if(bscale == 0.)
+      bscale = 1.;
+
+   status = 0;
+   if(fits_read_key_dbl(inFptr, "BZERO", &bzero, comment, &status))
+      bzero = 0.;
+
    if(nfound < 4)
       nAxisIn[3] = 1;
 
@@ -206,11 +227,16 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    }
 
 
-   /****************************************************/
-   /* We analyzed the image for lat/lot and initialize */
-   /* the transpose order.  Here we optionally set it  */
-   /* manually with command-line arguments.            */
-   /****************************************************/
+   /*****************************************************/
+   /* We analyzed the image for lat/lot and initialized */
+   /* the transpose order.  Here we optionally set it   */
+   /* manually with command-line arguments.             */
+   /*****************************************************/
+
+   norder = innorder;
+
+   for(i=0; i<innorder; ++i)
+      order[i] = inorder[i];
 
    if(norder != naxis)
    {
@@ -291,66 +317,382 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    /* We don't need the whole array, just one    */
    /* line which we read in and immediately      */
    /* redistribute to the output array.          */
+   /*                                            */
+   /* Then allocate the entire output array.     */
+   /*                                            */
+   /* There is a big switch by data type with    */
+   /* the general logic in each block the same.  */
    /**********************************************/
 
-   indata = (double *)malloc(nAxisIn[0] * sizeof(double));
-
-
-   /***********************************************/
-   /* Allocate memory for the output image pixels */
-   /***********************************************/
-
-   outdata = (double ****)malloc(nAxisOut[3] * sizeof(double ***));
-
-   for(l=0; l<nAxisOut[3]; ++l)
+   if(datatype == TDOUBLE)
    {
-      if(debug && l == 0)
-      {
-         printf("%ld (double **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
-         fflush(stdout);
-      }
+      // DOUBLE
 
-      outdata[l] = (double ***)malloc(nAxisOut[2] * sizeof(double **));
+      inDouble = (double *)malloc(nAxisIn[0] * sizeof(double));
 
-      for(k=0; k<nAxisOut[2]; ++k)
+
+      outDouble = (double ****)malloc(nAxisOut[3] * sizeof(double ***));
+
+      for(l=0; l<nAxisOut[3]; ++l)
       {
-         if(debug && l == 0 && k == 0)
+         if(debug && l == 0)
          {
-            printf("%ld (double *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+            printf("%ld (double **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
             fflush(stdout);
          }
 
-         outdata[l][k] = (double **)malloc(nAxisOut[1] * sizeof(double *));
+         outDouble[l] = (double ***)malloc(nAxisOut[2] * sizeof(double **));
 
-         for(j=0; j<nAxisOut[1]; ++j)
+         for(k=0; k<nAxisOut[2]; ++k)
          {
-            if(debug && l == 0 && k == 0 && j == 0)
+            if(debug && l == 0 && k == 0)
             {
-               printf("%ld (double) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+               printf("%ld (double *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
                fflush(stdout);
             }
 
-            outdata[l][k][j] = (double *)malloc(nAxisOut[0] * sizeof(double));
+            outDouble[l][k] = (double **)malloc(nAxisOut[1] * sizeof(double *));
 
-            for(i=0; i<nAxisOut[0]; ++i)
+            for(j=0; j<nAxisOut[1]; ++j)
             {
-               if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+               if(debug && l == 0 && k == 0 && j == 0)
                {
-                  printf("%ld doubles zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                  printf("%ld (double) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
                   fflush(stdout);
                }
 
-               outdata[l][k][j][i] = 0;
+               outDouble[l][k][j] = (double *)malloc(nAxisOut[0] * sizeof(double));
+
+               for(i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+                  {
+                     printf("%ld doubles zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                     fflush(stdout);
+                  }
+
+                  outDouble[l][k][j][i] = 0;
+               }
             }
          }
       }
-   }
 
-   if(debug >= 1)
+      if(debug >= 1)
+      {
+         printf("%ld bytes allocated for input image pixels\n\n",
+            nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(double));
+         fflush(stdout);
+      }
+   }
+   
+
+   else if(datatype == TFLOAT)
    {
-      printf("%ld bytes allocated for input image pixels\n\n",
-         nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(double));
-      fflush(stdout);
+      // FLOAT 
+
+      inFloat = (float *)malloc(nAxisIn[0] * sizeof(float));
+
+
+      outFloat = (float ****)malloc(nAxisOut[3] * sizeof(float ***));
+
+      for(l=0; l<nAxisOut[3]; ++l)
+      {
+         if(debug && l == 0)
+         {
+            printf("%ld (float **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
+            fflush(stdout);
+         }
+
+         outFloat[l] = (float ***)malloc(nAxisOut[2] * sizeof(float **));
+
+         for(k=0; k<nAxisOut[2]; ++k)
+         {
+            if(debug && l == 0 && k == 0)
+            {
+               printf("%ld (float *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+               fflush(stdout);
+            }
+
+            outFloat[l][k] = (float **)malloc(nAxisOut[1] * sizeof(float *));
+
+            for(j=0; j<nAxisOut[1]; ++j)
+            {
+               if(debug && l == 0 && k == 0 && j == 0)
+               {
+                  printf("%ld (float) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                  fflush(stdout);
+               }
+
+               outFloat[l][k][j] = (float *)malloc(nAxisOut[0] * sizeof(float));
+
+               for(i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+                  {
+                     printf("%ld floats zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                     fflush(stdout);
+                  }
+
+                  outFloat[l][k][j][i] = 0;
+               }
+            }
+         }
+      }
+
+      if(debug >= 1)
+      {
+         printf("%ld bytes allocated for input image pixels\n\n",
+            nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(float));
+         fflush(stdout);
+      }
+   }
+   
+
+   else if(datatype == TLONGLONG)
+   {
+      // LONG LONG
+
+      inLongLong = (long long *)malloc(nAxisIn[0] * sizeof(long long));
+
+
+      outLongLong = (long long ****)malloc(nAxisOut[3] * sizeof(long long ***));
+
+      for(l=0; l<nAxisOut[3]; ++l)
+      {
+         if(debug && l == 0)
+         {
+            printf("%ld (long long **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
+            fflush(stdout);
+         }
+
+         outLongLong[l] = (long long ***)malloc(nAxisOut[2] * sizeof(long long **));
+
+         for(k=0; k<nAxisOut[2]; ++k)
+         {
+            if(debug && l == 0 && k == 0)
+            {
+               printf("%ld (long long *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+               fflush(stdout);
+            }
+
+            outLongLong[l][k] = (long long **)malloc(nAxisOut[1] * sizeof(long long *));
+
+            for(j=0; j<nAxisOut[1]; ++j)
+            {
+               if(debug && l == 0 && k == 0 && j == 0)
+               {
+                  printf("%ld (long long) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                  fflush(stdout);
+               }
+
+               outLongLong[l][k][j] = (long long *)malloc(nAxisOut[0] * sizeof(long long));
+
+               for(i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+                  {
+                     printf("%ld long longs zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                     fflush(stdout);
+                  }
+
+                  outLongLong[l][k][j][i] = 0;
+               }
+            }
+         }
+      }
+
+      if(debug >= 1)
+      {
+         printf("%ld bytes allocated for input image pixels\n\n",
+            nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(long long));
+         fflush(stdout);
+      }
+   }
+   
+
+   else if(datatype == TLONG)
+   {
+      // LONG  
+
+      inLong = (long *)malloc(nAxisIn[0] * sizeof(long));
+
+
+      outLong = (long ****)malloc(nAxisOut[3] * sizeof(long ***));
+
+      for(l=0; l<nAxisOut[3]; ++l)
+      {
+         if(debug && l == 0)
+         {
+            printf("%ld (long **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
+            fflush(stdout);
+         }
+
+         outLong[l] = (long ***)malloc(nAxisOut[2] * sizeof(long **));
+
+         for(k=0; k<nAxisOut[2]; ++k)
+         {
+            if(debug && l == 0 && k == 0)
+            {
+               printf("%ld (long *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+               fflush(stdout);
+            }
+
+            outLong[l][k] = (long **)malloc(nAxisOut[1] * sizeof(long *));
+
+            for(j=0; j<nAxisOut[1]; ++j)
+            {
+               if(debug && l == 0 && k == 0 && j == 0)
+               {
+                  printf("%ld (long) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                  fflush(stdout);
+               }
+
+               outLong[l][k][j] = (long *)malloc(nAxisOut[0] * sizeof(long));
+
+               for(i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+                  {
+                     printf("%ld longs zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                     fflush(stdout);
+                  }
+
+                  outLong[l][k][j][i] = 0;
+               }
+            }
+         }
+      }
+
+      if(debug >= 1)
+      {
+         printf("%ld bytes allocated for input image pixels\n\n",
+            nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(long));
+         fflush(stdout);
+      }
+   }
+   
+
+   else if(datatype == TSHORT)
+   {
+      // SHORT
+
+      inShort = (short *)malloc(nAxisIn[0] * sizeof(short));
+
+
+      outShort = (short ****)malloc(nAxisOut[3] * sizeof(short ***));
+
+      for(l=0; l<nAxisOut[3]; ++l)
+      {
+         if(debug && l == 0)
+         {
+            printf("%ld (short **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
+            fflush(stdout);
+         }
+
+         outShort[l] = (short ***)malloc(nAxisOut[2] * sizeof(short **));
+
+         for(k=0; k<nAxisOut[2]; ++k)
+         {
+            if(debug && l == 0 && k == 0)
+            {
+               printf("%ld (short *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+               fflush(stdout);
+            }
+
+            outShort[l][k] = (short **)malloc(nAxisOut[1] * sizeof(short *));
+
+            for(j=0; j<nAxisOut[1]; ++j)
+            {
+               if(debug && l == 0 && k == 0 && j == 0)
+               {
+                  printf("%ld (short) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                  fflush(stdout);
+               }
+
+               outShort[l][k][j] = (short *)malloc(nAxisOut[0] * sizeof(short));
+
+               for(i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+                  {
+                     printf("%ld shorts zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                     fflush(stdout);
+                  }
+
+                  outShort[l][k][j][i] = 0;
+               }
+            }
+         }
+      }
+
+      if(debug >= 1)
+      {
+         printf("%ld bytes allocated for input image pixels\n\n",
+            nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(short));
+         fflush(stdout);
+      }
+   }
+   
+
+   else if(datatype == TBYTE)
+   {
+      // BYTE
+
+      inByte = (char *)malloc(nAxisIn[0] * sizeof(char));
+
+
+      outByte = (char ****)malloc(nAxisOut[3] * sizeof(char ***));
+
+      for(l=0; l<nAxisOut[3]; ++l)
+      {
+         if(debug && l == 0)
+         {
+            printf("%ld (char **) allocated %ld times\n", nAxisOut[2], nAxisOut[3]);
+            fflush(stdout);
+         }
+
+         outByte[l] = (char ***)malloc(nAxisOut[2] * sizeof(char **));
+
+         for(k=0; k<nAxisOut[2]; ++k)
+         {
+            if(debug && l == 0 && k == 0)
+            {
+               printf("%ld (char *) allocated %ldx%ld times\n", nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+               fflush(stdout);
+            }
+
+            outByte[l][k] = (char **)malloc(nAxisOut[1] * sizeof(char *));
+
+            for(j=0; j<nAxisOut[1]; ++j)
+            {
+               if(debug && l == 0 && k == 0 && j == 0)
+               {
+                  printf("%ld (char) allocated %ldx%ldx%ld times\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                  fflush(stdout);
+               }
+
+               outByte[l][k][j] = (char *)malloc(nAxisOut[0] * sizeof(char));
+
+               for(i=0; i<nAxisOut[0]; ++i)
+               {
+                  if(debug && l == 0 && k == 0 && j == 0 && i == 0)
+                  {
+                     printf("%ld chars zeroed %ldx%ldx%ld times\n\n", nAxisOut[0], nAxisOut[1], nAxisOut[2], nAxisOut[3]);
+                     fflush(stdout);
+                  }
+
+                  outByte[l][k][j][i] = 0;
+               }
+            }
+         }
+      }
+
+      if(debug >= 1)
+      {
+         printf("%ld bytes allocated for input image pixels\n\n",
+            nAxisOut[0] * nAxisOut[1] * nAxisOut[2] * nAxisOut[3] * sizeof(char));
+         fflush(stdout);
+      }
    }
 
 
@@ -383,18 +725,71 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 
             if(debug >= 2)
             {
-               printf("Reading input 4plane/plane/row %5d/%5d/%5d\n", l, k, j);
+               printf("Reading input plane/plane/row %5d/%5d/%5d\n", l, k, j);
                fflush(stdout);
             }
 
             status = 0;
 
-            if(fits_read_pix(inFptr, TDOUBLE, fpixel, nAxisIn[0], &nan,
-                             (void *)indata, &nullcnt, &status))
+            if(datatype == TDOUBLE)
             {
-               mTranspose_printFitsError(status);
-               strcpy(returnStruct->msg, montage_msgstr);
-               return returnStruct;
+               if(fits_read_pix(inFptr, TDOUBLE, fpixel, nAxisIn[0], &nan,
+                                (void *)inDouble, &nullcnt, &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TFLOAT)
+            {
+               if(fits_read_pix(inFptr, TFLOAT, fpixel, nAxisIn[0], &nan,
+                                (void *)inFloat, &nullcnt, &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TLONGLONG)
+            {
+               if(fits_read_pix(inFptr, TLONGLONG, fpixel, nAxisIn[0], &nan,
+                                (void *)inLongLong, &nullcnt, &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TLONG)
+            {
+               if(fits_read_pix(inFptr, TLONG, fpixel, nAxisIn[0], &nan,
+                                (void *)inLong, &nullcnt, &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TSHORT)
+            {
+               if(fits_read_pix(inFptr, TSHORT, fpixel, nAxisIn[0], &nan,
+                                (void *)inShort, &nullcnt, &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TBYTE)
+            {
+               if(fits_read_pix(inFptr, TBYTE, fpixel, nAxisIn[0], &nan,
+                                (void *)inByte, &nullcnt, &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
             }
 
 
@@ -412,29 +807,160 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
             {
                mTranspose_transform(i, j, k, l, &it, &jt, &kt, &lt);
 
-               if(debug >= 3)
+               if(datatype == TDOUBLE)
                {
-                  printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%-g]\n",
-                     l, k, j, i, lt, kt, jt, it, indata[i]);
-                  fflush(stdout);
-               }
-
-               if(mNaN(indata[i]))
-                  outdata[lt][kt][jt][it] = nan;
-               else
-               {
-                  outdata[lt][kt][jt][it] = indata[i];
-
-                  if(first)
+                  if(debug >= 3)
                   {
-                     mindata = indata[i];
-                     maxdata = indata[i];
-                     first = 0;
+                     printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%-g]\n",
+                        l, k, j, i, lt, kt, jt, it, inDouble[i]);
+                     fflush(stdout);
                   }
-                  else
+
+                  outDouble[lt][kt][jt][it] = inDouble[i];
+
+                  if(!mNaN(inDouble[i]))
                   {
-                     if(indata[i] < mindata) mindata = indata[i];
-                     if(indata[i] > maxdata) maxdata = indata[i];
+                     if(first)
+                     {
+                        mindata = inDouble[i];
+                        maxdata = inDouble[i];
+                        first = 0;
+                     }
+                     else
+                     {
+                        if(inDouble[i] < mindata) mindata = inDouble[i];
+                        if(inDouble[i] > maxdata) maxdata = inDouble[i];
+                     }
+                  }
+               }
+               else if(datatype == TFLOAT)
+               {
+                  if(debug >= 3)
+                  {
+                     printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%-g]\n",
+                        l, k, j, i, lt, kt, jt, it, (double)inFloat[i]);
+                     fflush(stdout);
+                  }
+
+                  outFloat[lt][kt][jt][it] = inFloat[i];
+
+                  if(!mNaN((double)inFloat[i]))
+                  {
+                     if(first)
+                     {
+                        mindata = inFloat[i];
+                        maxdata = inFloat[i];
+                        first = 0;
+                     }
+                     else
+                     {
+                        if(inFloat[i] < mindata) mindata = inFloat[i];
+                        if(inFloat[i] > maxdata) maxdata = inFloat[i];
+                     }
+                  }
+               }
+               else if(datatype == TLONGLONG)
+               {
+                  if(debug >= 3)
+                  {
+                     printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%lld]\n",
+                        l, k, j, i, lt, kt, jt, it, inLongLong[i]);
+                     fflush(stdout);
+                  }
+
+                  outLongLong[lt][kt][jt][it] = inLongLong[i];
+
+                  if(inLongLong[i] != blank)
+                  {
+                     if(first)
+                     {
+                        mindata = inLongLong[i];
+                        maxdata = inLongLong[i];
+                        first = 0;
+                     }
+                     else
+                     {
+                        if(inLongLong[i] < mindata) mindata = inLongLong[i];
+                        if(inLongLong[i] > maxdata) maxdata = inLongLong[i];
+                     }
+                  }
+               }
+               else if(datatype == TLONG)
+               {
+                  if(debug >= 3)
+                  {
+                     printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%ld]\n",
+                        l, k, j, i, lt, kt, jt, it, inLong[i]);
+                     fflush(stdout);
+                  }
+
+                  outLong[lt][kt][jt][it] = inLong[i];
+
+                  if(inLong[i] != (long)blank)
+                  {
+                     if(first)
+                     {
+                        mindata = inLong[i];
+                        maxdata = inLong[i];
+                        first = 0;
+                     }
+                     else
+                     {
+                        if(inLong[i] < mindata) mindata = inLong[i];
+                        if(inLong[i] > maxdata) maxdata = inLong[i];
+                     }
+                  }
+               }
+               else if(datatype == TSHORT)
+               {
+                  if(debug >= 3)
+                  {
+                     printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%d]\n",
+                        l, k, j, i, lt, kt, jt, it, (int)inShort[i]);
+                     fflush(stdout);
+                  }
+
+                  outShort[lt][kt][jt][it] = inShort[i];
+
+                  if(inShort[i] != (short)blank)
+                  {
+                     if(first)
+                     {
+                        mindata = inShort[i];
+                        maxdata = inShort[i];
+                        first = 0;
+                     }
+                     else
+                     {
+                        if(inShort[i] < mindata) mindata = inShort[i];
+                        if(inShort[i] > maxdata) maxdata = inShort[i];
+                     }
+                  }
+               }
+               else if(datatype == TDOUBLE)
+               {
+                  if(debug >= 3)
+                  {
+                     printf("%5d %5d %5d %5d -> %5d %5d %5d %5d [%d]\n",
+                        l, k, j, i, lt, kt, jt, it, (int)inByte[i]);
+                     fflush(stdout);
+                  }
+
+                  outByte[lt][kt][jt][it] = inByte[i];
+
+                  if(inByte[i] != (char)blank)
+                  {
+                     if(first)
+                     {
+                        mindata = inByte[i];
+                        maxdata = inByte[i];
+                        first = 0;
+                     }
+                     else
+                     {
+                        if(inByte[i] < mindata) mindata = inByte[i];
+                        if(inByte[i] > maxdata) maxdata = inByte[i];
+                     }
                   }
                }
             }
@@ -580,14 +1106,66 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 
             status = 0;
 
-            if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
-                               (void *)outdata[l][k][j], &status))
+            if(datatype == TDOUBLE)
             {
-               mTranspose_printFitsError(status);
-               strcpy(returnStruct->msg, montage_msgstr);
-               return returnStruct;
+               if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
+                        (void *)outDouble[l][k][j], &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
             }
-
+            else if(datatype == TFLOAT)
+            {
+               if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
+                        (void *)outFloat[l][k][j], &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TLONGLONG)
+            {
+               if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
+                        (void *)outLongLong[l][k][j], &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TLONG)
+            {
+               if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
+                        (void *)outLong[l][k][j], &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TSHORT)
+            {
+               if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
+                        (void *)outShort[l][k][j], &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
+            else if(datatype == TBYTE)
+            {
+               if (fits_write_pix(outFptr, datatype, fpixel, nAxisOut[0],
+                        (void *)outByte[l][k][j], &status))
+               {
+                  mTranspose_printFitsError(status);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
+               }
+            }
          }
       }
    }
@@ -871,7 +1449,7 @@ int mTranspose_initTransform(long *naxis, long *NAXIS)
 
       Bt[i] = 0;
 
-      index = fabs(order[i]-1);
+      index = abs(order[i]-1);
       dir   = 1;
 
       if(order[i] < 0)

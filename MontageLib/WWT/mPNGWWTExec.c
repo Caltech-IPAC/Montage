@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 
    // All done
 
-   printf("[struct stat=\"OK\", level=%d, nimage=%d]\n", level, nimage);
+   printf("[struct stat=\"OK\", module=\"mPNGWWTExec\", level=%d, nimage=%d]\n", level, nimage);
    fflush(stdout);
    exit(0);
 }

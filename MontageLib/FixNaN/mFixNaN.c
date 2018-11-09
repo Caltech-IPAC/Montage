@@ -23,6 +23,8 @@ extern int getopt(int argc, char *const *argv, const char *options);
 int main(int argc, char **argv)
 {
    int       i, c, offset, boundaries, haveVal, nMinMax, debug;
+   int       minflag, maxflag;
+   double    minval, maxval;
    double    NaNvalue;
    double    minblank[256], maxblank[256];
    int       ismin[256], ismax[256];
@@ -48,7 +50,7 @@ int main(int argc, char **argv)
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -88,7 +90,7 @@ int main(int argc, char **argv)
             break;
 
          case 'v':
-            NaNvalue = strtod(argv[i+1], &end);
+            NaNvalue = strtod(optarg, &end);
 
             if(end < optarg + strlen(optarg))
             {
@@ -133,42 +135,68 @@ int main(int argc, char **argv)
             break;
 
          ismin[nMinMax] = 0;
-
-         if(strcmp(argv[offset], "min") == 0)
-         {
-            ismin[nMinMax] = 1;
-
-            minblank[nMinMax]= 0.;
-         }
-         else
-         {
-            minblank[nMinMax] = strtod(argv[offset], &end);
-
-            if(end < argv[offset] + strlen(argv[offset]))
-            {
-               printf ("[struct stat=\"ERROR\", msg=\"min blank value string is not a number\"]\n");
-               exit(1);
-            }
-         }
-
-
          ismax[nMinMax] = 0;
 
+         minblank[nMinMax]= 0.;
+         maxblank[nMinMax]= 0.;
+
+         minflag = 0;
+         maxflag = 0;
+
+         if(strcmp(argv[offset], "min") == 0)
+            maxflag = 1;
+
          if(strcmp(argv[offset+1], "max") == 0)
+            minflag = 1;
+
+         minval = strtod(argv[offset], &end);
+
+         if(!minflag && end < argv[offset] + strlen(argv[offset]))
          {
+            printf ("[struct stat=\"ERROR\", msg=\"min blank value string is not a number\"]\n");
+            exit(1);
+         }
+
+         maxval = strtod(argv[offset+1], &end);
+
+         if(!maxflag && end < argv[offset] + strlen(argv[offset]))
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"min blank value string is not a number\"]\n");
+            exit(1);
+         }
+
+         
+         if(minflag && maxflag)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Range from 'min' to 'max' is invalid.]\n");
+            exit(1);
+         }
+
+         else if(minflag && !maxflag)
+         {
+            ismin[nMinMax] = 1;
+            ismax[nMinMax] = 0;
+
+            minblank[nMinMax] = minval;
+            maxblank[nMinMax] = 0.;
+         }
+
+         else if(!minflag && maxflag)
+         {
+            ismin[nMinMax] = 0;
             ismax[nMinMax] = 1;
 
-            maxblank[nMinMax]= 0.;
+            minblank[nMinMax] = 0.;
+            maxblank[nMinMax] = maxval;
          }
-         else
-         {
-            maxblank[nMinMax] = strtod(argv[offset+1], &end);
 
-            if(end < argv[offset+1] + strlen(argv[offset+1]))
-            {
-               printf ("[struct stat=\"ERROR\", msg=\"max blank value string is not a number\"]\n");
-               exit(1);
-            }
+         else 
+         {
+            ismin[nMinMax] = 0;
+            ismax[nMinMax] = 0;
+
+            minblank[nMinMax] = minval;
+            maxblank[nMinMax] = maxval;
          }
 
          ++nMinMax;
@@ -200,8 +228,9 @@ int main(int argc, char **argv)
    /****************************************/
 
 
-   returnStruct = mFixNaN(input_file, output_file, boundaries, haveVal, NaNvalue, 
-                               nMinMax, minblank, ismin, maxblank, ismax, debug);
+   returnStruct = mFixNaN(input_file, output_file, haveVal, NaNvalue, 
+                          nMinMax, minblank, ismin, maxblank, ismax, 
+                          boundaries, debug);
 
    if(returnStruct->status == 1)
    {
@@ -210,7 +239,7 @@ int main(int argc, char **argv)
    }
    else
    {   
-      fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+      fprintf(montage_status, "[struct stat=\"OK\", module=\"mFixNaN\", %s]\n", returnStruct->msg);
       exit(0);
    }     
 }        

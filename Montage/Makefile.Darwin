@@ -52,13 +52,8 @@ CFLAGS =	-g -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std
 LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		   -lwww -lboundaries -lpixbounds -ltwoplane -lm
 
-SBINS  = mAdd mAddCube mAddExec mBackground mBgExec mBgModel mConvert mCoverageCheck mDiff mDiffExec \
-         mDiffFitExec mFitExec mFitplane mFlattenExec mGetHdr mHdrCheck mHdrtbl mImgtbl mMakeHdr mMakeImg \
-         mOverlaps mProject mProjectCube mProjectPP mProjExec mPutHdr mShrink mShrinkCube mSubCube mSubimage \
-         mSubset mTANHdr mTblSort mTileHdr mTileImage
-
-MBINS  = 	mProjExecMPI mFitExecMPI mDiffExecMPI mBgExecMPI mAddMPI \
-		mAddExecMPI
+SBINS  =  mConvert mFlattenExec mHdrCheck mHdrtbl mTblSort mTileHdr mTileImage
+MBINS  =  mProjExecMPI mFitExecMPI mDiffExecMPI mBgExecMPI mAddMPI  mAddExecMPI
 
 BINS   = 	$(SBINS)
 

@@ -8,9 +8,9 @@
    "arguments":
    [
       {"type":"string",                    "name":"input_file",    "desc":"FITS file to reproject."},
-      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input cube."},
       {"type":"string",                    "name":"output_file",   "desc":"Reprojected FITS cube."},
       {"type":"string",                    "name":"template_file", "desc":"FITS header file used to define the desired output."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input cube."},
       {"type":"string",  "default":"",     "name":"weight_file",   "desc":"Optional pixel weight FITS file (must match input)."},
       {"type":"double",  "default":1.0,    "name":"fixedWeight",   "desc":"A weight value used for all pixels."},
       {"type":"double",  "default":0.0,    "name":"threshold",     "desc":"Pixels with weights below this level treated as weight 0."},
@@ -24,6 +24,8 @@
    
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"double",                    "name":"time",          "desc":"Total processing time (sec)."}
    ]
 }

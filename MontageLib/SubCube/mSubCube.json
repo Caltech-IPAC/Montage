@@ -7,14 +7,14 @@
 
    "arguments":
    [
-      {"type":"int",     "default":0,      "name":"mode",          "desc":"Processing mode. The two main modes are 0 (SKY) and 1 (PIX), corresponding to cutouts are in sky coordinate or pixel space. The two other modes are 3 (HDU) and 4 (SHRINK), where the region parameters are ignored and you get back either a single HDU or an image that has had all the blank border pixels removed."},
+      {"type":"int",                       "name":"mode",          "desc":"Processing mode. The two main modes are 0 (SKY) and 1 (PIX), corresponding to cutouts are in sky coordinate or pixel space. The two other modes are 3 (HDU) and 4 (SHRINK), where the region parameters are ignored and you get back either a single HDU or an image that has had all the blank border pixels removed."},
       {"type":"string",                    "name":"infile",        "desc":"Input FITS file."},
-      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"string",                    "name":"outfile",       "desc":"Sub-cube output FITS file."},
       {"type":"double",                    "name":"ra",            "desc":"RA of cutout center (or start X pixel in PIX mode."},
       {"type":"double",                    "name":"dec",           "desc":"Dec of cutout center (or start X pixel in PIX mode."},
       {"type":"double",                    "name":"xsize",         "desc":"X size in degrees (SKY mode) or pixels (PIX mode)."},
       {"type":"double",                    "name":"ysize",         "desc":"Y size in degrees (SKY mode) or pixels (PIX mode)."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"boolean", "default":false,  "name":"nowcs",         "desc":"Indicates that the image has no WCS info (only makes sense in PIX mode)."},
       {"type":"string",  "default":"",     "name":"d3constraint",  "desc":"Constraint string (list of index values and index ranges) for third cube dimension."},
       {"type":"string",  "default":"",     "name":"d4constraint",  "desc":"Constraint string (list of index values and index ranges) for fourth cube dimension."},
@@ -23,6 +23,8 @@
 
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"string",                    "name":"content",       "desc":"String giving an idea of output content (e.e., 'blank', 'flat', or 'normal'."},
       {"type":"string",                    "name":"warning",       "desc":"If warranted, warning message about CDELT, CRPIX, etc."}
    ]

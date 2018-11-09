@@ -1,0 +1,25 @@
+{
+   "module":"mArchiveList",
+
+   "function":"mArchiveList",
+
+   "desc" : "mArchiveList retrieves a list of images (and download URLs) from the Montage metadata service based on archive/band/location/size.",
+
+   "arguments":
+   [
+      {"type":"string",                         "name":"survey",        "desc":"Survey (2MASS, SDSS, WISE, etc."},
+      {"type":"string",                         "name":"band",          "desc":"Wavelength band (e.g. J for 2MASS)."},
+      {"type":"string",                         "name":"locstr",        "desc":"A (quoted if necessary) string containing a coordinate or the name of an object on the sky."},
+      {"type":"double",                         "name":"width",         "desc":"Region width in degrees."},
+      {"type":"double",                         "name":"height",        "desc":"Region height in degrees."},
+      {"type":"string",                         "name":"outfile",       "desc":"Output table file."},
+      {"type":"int",     "default":0,           "name":"debug",         "desc":"Debugging output flag."} 
+   ],
+
+   "return":
+   [
+      {"type":"int",                            "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                         "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                            "name":"count",         "desc":"Number of images in list."}
+   ]
+}

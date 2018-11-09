@@ -8,14 +8,16 @@
    "arguments":
    [
       {"type":"string",                    "name":"infile",        "desc":"Input FITS file."},
-      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"string",                    "name":"hdrfile",       "desc":"ASCII header stripped from the input, with newlines added for readability."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"int",     "default":0,      "name":"htmlMode",      "desc":"Output in HTML form (0: none, 1: full doc, 2:fragment)."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
    ],
    
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"ncard",         "desc":"Number of lines in the header."}
    ]
 }

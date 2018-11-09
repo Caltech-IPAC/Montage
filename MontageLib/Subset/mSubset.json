@@ -16,6 +16,8 @@
    
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"count",         "desc":"Number of images in the input table."},
       {"type":"int",                       "name":"nmatches",      "desc":"Number of matches."}
    ]

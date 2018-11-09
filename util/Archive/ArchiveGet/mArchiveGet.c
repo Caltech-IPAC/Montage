@@ -22,6 +22,7 @@ Version  Developer        Date     Change
 #include <sys/uio.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <mcurl.h>
 #include <montage.h>
 
 #define MAXLEN 16384
@@ -31,11 +32,7 @@ extern int optind, opterr;
 
 extern int getopt(int argc, char *const *argv, const char *options);
 
-int tcp_connect(char *hostname, int port);
-
 int checkHdr(char *infile, int hdrflag, int hdu);
-
-void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref);
 
 void archive_sigset();
 
@@ -64,50 +61,29 @@ int debug;
 
 int main(int argc, char **argv)
 {
-   int    socket, ihead, pastHeader;
-   int    i, c, nread, count, port, raw;
-
    unsigned int timeout;
 
-   struct timeval timer;
- 
-   char  *dataref;
-
-   char   buf     [MAXLEN];
-   char   lead    [MAXLEN];
-   char   head    [MAXLEN];
-   char   request [MAXLEN];
+   int    c, status;
    char   urlStr  [MAXLEN];
-   char   hostStr [MAXLEN];
-   char   cmd     [MAXLEN];
    char   fileName[MAXLEN];
- 
-   char  *proxy;
-   char   phostStr[MAXLEN];
-   int    pport;
-   char  *pdataref;
- 
-   int    fd;
+   char   msg     [MAXLEN];
+   char   cmd     [MAXLEN];
 
-   fd_set fdset;
+   double size;
  
    FILE  *fdebug;
 
-   fdebug  = stdout;
-   fstatus = stdout;
+   fdebug = stdout;
 
-   strcpy(hostStr, "vaoweb3.ipac.caltech.edu");
    strcpy(archive_msg, "");
 
    archive_sigset();
 
    debug   =   0;
    opterr  =   0;
-   port    =  80;
-   raw     =   0;
    timeout = 300;
  
-   while ((c = getopt(argc, argv, "drt:")) != EOF)
+   while ((c = getopt(argc, argv, "dt:")) != EOF)
    {
       switch (c)
       {
@@ -115,16 +91,12 @@ int main(int argc, char **argv)
             debug = 1;
             break;
 
-         case 'r':
-            raw = 1;
-            break;
-
          case 't':
             timeout = atoi(optarg);
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage:  %s [-d][-r] remoteref localfile\"]\n",argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage:  %s [-d][-t timeout] remoteref localfile\"]\n",argv[0]);
             exit(0);
             break;
       }
@@ -132,31 +104,12 @@ int main(int argc, char **argv)
 
    if(argc - optind < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage:  %s [-d][-r] remoteref localfile\"]\n",argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage:  %s [-d][-t timeout] remoteref localfile\"]\n",argv[0]);
       exit(0);
    }
 
 
-   /* Try to open the output file */
- 
-   if(debug)
-   {
-      fprintf(fdebug, "DEBUG> localfile = [%s]\n", argv[optind+1]);
-      fflush(fdebug);
-   }
-
-   strcpy(fileName, argv[optind+1]);
-
-   fd = open(fileName, O_WRONLY | O_CREAT, 0644);
- 
-   if(fd < 0)
-   {
-      fprintf(fdebug, "[struct stat=\"ERROR\", msg=\"Output file(%s) open failed\"]\n", 
-         argv[optind+1]);
-      exit(0);
-   }
-  
-   /* Parse the reference string to get host and port info */
+   /* Get the URL */
 
    strcpy(urlStr, argv[optind]);
 
@@ -166,164 +119,28 @@ int main(int argc, char **argv)
       fflush(fdebug);
    }
 
-   parseUrl(urlStr, hostStr, &port, &dataref);
 
-   if(*dataref == '\0')
+   /* Try to open the output file */
+
+   strcpy(fileName, argv[optind+1]);
+ 
+   if(debug)
    {
-      printf("[struct stat=\"ERROR\", msg=\"No data reference given in URL\"]\n");
+      fprintf(fdebug, "DEBUG> fileName = [%s]\n", fileName);
+      fflush(fdebug);
+   }
+
+  
+   /* Use cURL library to retrieve file */
+
+   status = mcurl(urlStr, fileName, timeout, &size, msg);
+
+   if(status)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+      fflush(stdout);
       exit(0);
    }
-
-   proxy = getenv("http_proxy");
-   
-   if(proxy)
-     parseUrl(proxy, phostStr, &pport, &pdataref);
-
-   /* Connect to the port on the host we want */
-
-   if(debug)
-   {
-      fprintf(fdebug, "DEBUG> hostStr = [%s]\n", hostStr);
-      fprintf(fdebug, "DEBUG> port    =  %d\n",  port);
-      fflush(fdebug);
-   }
- 
-   strcpy(archive_msg, "Timeout connecting to remote host.");
-   alarm(timeout);
-
-   if(proxy) {
-     socket = tcp_connect(phostStr, pport);
-   } else {
-     socket = tcp_connect(hostStr, port);
-   }
- 
-   /* Send a request for the file we want */
- 
-   if(raw) {
-     if(proxy)
-       sprintf(request, "GET %s/%s\r\n\r\n",
-               hostStr, dataref);
-     else 
-       sprintf(request, "GET %s\r\n\r\n",
-               dataref);       
-   } else {
-     if(proxy)
-       sprintf(request, "GET %s HTTP/1.0\r\n\r\n",
-               urlStr);
-     else 
-       sprintf(request, "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n",
-               dataref, hostStr);
-   }
- 
-   if(debug)
-   {
-      fprintf(fdebug, "DEBUG> request = [%s]\n", request);
-      fflush(fdebug);
-   }
-
-   send(socket, request, strlen(request), 0);
- 
-
-   /* Read the data coming back */
- 
-   count = 0;
-   ihead = 0;
-
-   pastHeader = 0;
- 
-   strcpy(archive_msg, "Data retrieval remote read timeout.");
-
-   while(1)
-   { 
-      alarm(timeout);
-
-      nread = read(socket, buf, MAXLEN);
- 
-      if(nread <= 0)
-         break;
-
-      if(debug)
-      {
-         fprintf(fdebug, "DEBUG> read %d bytes\n", nread);
-         fflush(fdebug);
-      }
-      
-      if(!pastHeader && ihead == 0 && strncmp(buf, "H", 1) != 0)
-      {
-         if(debug)
-         {
-            fprintf(fdebug, "DEBUG> No HTTP header on this one.\n");
-            fflush(fdebug);
-
-            for(i=0; i<40; ++i)
-              lead[i] = buf[i];
-
-            lead[40] = '\0';
-            fprintf(fdebug, "DEBUG> Starts with: [%s]... \n", lead);
-            fflush(fdebug);
-         }
-
-         pastHeader = 1;
-      }
-
-      if(!pastHeader)
-      {
-         for(i=0; i<nread; ++i)
-         {
-            head[ihead] = buf[i];
-            ++ihead;
-         }
-
-         head[ihead] = '\0';
-
-         if(debug)
-         {
-            fprintf(fdebug, "DEBUG> Header ->\n%s\nDEBUG> Length = %d\n",
-               head, ihead);
-            fflush(fdebug);
-         }
-
-         for(i=0; i<ihead-3; ++i)
-         {
-            if(strncmp(head+i, "\r\n\r\n", 4) == 0 && ihead-i-4 > 0)
-            {
-               if(debug)
-               {
-                  fprintf(fdebug, "DEBUG> End of header found: %d - %d\n",
-                     i, i+3);
-
-                  fprintf(fdebug, "DEBUG> Writing %d from header array\n",
-                     ihead-i-4);
-
-                  fflush(fdebug);
-               }
-
-               write(fd, head+i+4, ihead-i-4);
-
-               pastHeader = 1;
-
-               break;
-            }
-         }
-      }
-      else
-      {
-         count += nread;
-
-         if(debug)
-         {
-            fprintf(fdebug, "DEBUG> Writing %d\n", nread);
-            fflush(fdebug);
-         }
-
-        
-         write(fd, buf, nread);
-      }
-   }
-
-   close(fd);
-
-   alarm(0);
 
 
    /* Unzip the file if necesary */
@@ -331,118 +148,19 @@ int main(int argc, char **argv)
    if(strlen(fileName) > 4 && strcmp(fileName+strlen(fileName)-4, ".bz2") == 0)
    {
       sprintf(cmd, "bunzip2 %s", fileName);
-      system(cmd);
 
       *(fileName+strlen(fileName)-4) = '\0';
+
+      unlink(fileName);
+
+      system(cmd);
    }
 
-
-   checkHdr(fileName, 0, 0);
+   // checkHdr(fileName, 0, 0);
  
-   printf("[struct stat=\"OK\", count=\"%d\"]\n", count);
+   printf("[struct stat=\"OK\", count=\"%-g\"]\n", size);
    fflush(fdebug);
    exit(0);
-}
-
-
-
-
-/***********************************************/
-/* This is the basic "make a connection" stuff */
-/***********************************************/
-
-int tcp_connect(char *hostname, int port)
-{
-   int                 sock_fd;
-   struct hostent     *host;
-   struct sockaddr_in  sin;
-
-
-   if((host = gethostbyname(hostname)) == NULL) 
-   {
-      fprintf(stderr, "Couldn't find host %s\n", hostname);
-      return(0);
-   }
-
-   if((sock_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
-   {
-      fprintf(stderr, "Couldn't create socket()\n");
-      return(0);
-   }
-
-   sin.sin_family = AF_INET;
-   sin.sin_port = htons(port);
-   bcopy(host->h_addr_list[0], &sin.sin_addr, host->h_length);
-
-   if(connect(sock_fd, (struct sockaddr *)&sin, sizeof(sin)) < 0)
-   {
-      fprintf(stderr, "%s: connect failed.\n", hostname);
-      return(0);
-   }
-
-   return sock_fd;
-}
-
-
-void parseUrl(char *urlStr, char *hostStr, int *port, char **dataref) {
-  
-   char  *hostPtr;
-   char  *portPtr;
-   char   save;
-
-   if(strncmp(urlStr, "http://", 7) != 0)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Invalid URL string (must start 'http://')\n"); 
-      exit(0);
-   }
-
-   hostPtr = urlStr + 7;
-
-   *dataref = hostPtr;
-
-   while(1)
-   {
-      if(**dataref == ':' || **dataref == '/' || **dataref == '\0')
-         break;
-      
-      ++*dataref;
-   }
-
-   save = **dataref;
-
-   **dataref = '\0';
-
-   strcpy(hostStr, hostPtr);
-
-   **dataref = save;
-
-
-   if(**dataref == ':')
-   {
-      portPtr = *dataref+1;
-
-      *dataref = portPtr;
-
-      while(1)
-      {
-         if(**dataref == '/' || **dataref == '\0')
-            break;
-         
-         ++*dataref;
-      } 
-
-      **dataref = '\0';
-
-      *port = atoi(portPtr);
-
-      **dataref = '/';
-
-      if(*port <= 0)
-      {
-         printf("[struct stat=\"ERROR\", msg=\"Illegal port number in URL\"]\n");
-        exit(0);
-      }
-   }
 }
 
 

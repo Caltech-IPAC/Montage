@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <freetype2/ft2build.h>
-#include <freetype.h>
+#include FT_FREETYPE_H
 
 void  mViewer_labeledCurve (char *face_path, int fontsize, int showLine,
                             double *xcurve, double *ycurve, int npt,  
