@@ -42,10 +42,8 @@ pipelines or as the basis for interactive image exploration and there
 is Python support for the latter (It has also been used in web/Javascript
 applications).
 
-Montage was funded from 2002 to 2005 by the National Aeronautics and
-Space Administration's Earth Science Technology Office, Computation
-Technologies Project, under Cooperative Agreement Number NCC5-626
-between NASA and the California Institute of Technology. The Montage
-distribution includes an adaptation of the MOPEX algorithm developed
-at the Spitzer Science Center. Montage is now funded by the National
-Science Foundation under Award Number NSF ACI-1440620.
+Montage is funded by the National Science Foundation under Grant Numbers 
+ACI-1440620 and ACI-1642453., and was previously funded by the National 
+Aeronautics and Space Administration's Earth Science Technology Office, 
+Computation Technologies Project, under Cooperative Agreement Number NCC5-626 
+between NASA and the California Institute of Technology.
