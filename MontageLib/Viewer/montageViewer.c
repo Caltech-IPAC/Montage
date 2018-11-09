@@ -6814,6 +6814,12 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
       ++fpixel[1];
    }
 
+   if(npix == 0)
+   {
+      strcpy(montage_msgstr, "Image contains no non-blank pixels.");
+      return 1;
+   }
+
    *datamin = rmin;
    *datamax = rmax;
 
