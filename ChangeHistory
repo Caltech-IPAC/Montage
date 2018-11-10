@@ -1,7 +1,7 @@
 
 Montage Release Change History
 
-6.0   09Nov2016    The primary addition in Version 6.0 is the packaging of Montage
+6.0   09Nov2018    The primary addition in Version 6.0 is the packaging of Montage
                    as a set of Python binary extensions (for Mac OS/X and Linux 
                    platforms, Python versions 2.7 and 3.6).  This is very different
                    from previous Python interfaces to Montage which relied on the 
