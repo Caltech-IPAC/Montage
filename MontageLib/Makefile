@@ -47,7 +47,7 @@ pgm:
 		-(cd BgExec;                        make; make install)
 		-(cd DiffFitExec;                   make; make install)
 		-(cd FitExec;                       make; make install)
-		-(cd ProjExec;      ./Configure.sh; make; make install)
+		-(cd ProjExec;                      make; make install)
 
 lib:
 		-rm -f libmontage.a libmontage.so libmontagepy.so
