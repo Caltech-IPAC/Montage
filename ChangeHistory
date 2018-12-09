@@ -1,21 +1,22 @@
 
 Montage Release Change History
 
+
 6.0   09Nov2018    The primary addition in Version 6.0 is the packaging of Montage
-                   as a set of Python binary extensions (for Mac OS/X and Linux
+                   as a set of Python binary extensions (for Mac OS/X and Linux 
                    platforms, Python versions 2.7 and 3.6).  This is very different
-                   from previous Python interfaces to Montage which relied on the
+                   from previous Python interfaces to Montage which relied on the 
                    user to pre-install Montage on their platform and then provided
                    access through wrappers.
 
                    This release is a true extension in that it is installs a binary
                    libraries that extend the Python executable itself.  No compilers
-                   or other build infrastructure is needed, just a simple
+                   or other build infrastructure is needed, just a simple 
 
                       pip install MontagePy
 
                    A few Montage modules have not been included but only because
-                   we consider them of questionable utility at this time.  We can
+                   we consider them of questionable utility at this time.  We can 
                    certainly reconsider any of these that people find useful.
 
 
