@@ -937,7 +937,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
                      }
                   }
                }
-               else if(datatype == TDOUBLE)
+               else if(datatype == TBYTE)
                {
                   if(debug >= 3)
                   {
@@ -966,6 +966,15 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
             }
          }
       }
+   }
+
+   if(datatype == TLONGLONG
+   || datatype == TLONG
+   || datatype == TSHORT
+   || datatype == TBYTE)
+   {
+      mindata = mindata * bscale + bzero;
+      maxdata = maxdata * bscale + bzero;
    }
 
    if(debug >= 1)

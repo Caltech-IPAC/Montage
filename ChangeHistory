@@ -1,6 +1,7 @@
 
 Montage Release Change History
 
+
 6.0   09Nov2018    The primary addition in Version 6.0 is the packaging of Montage
                    as a set of Python binary extensions (for Mac OS/X and Linux 
                    platforms, Python versions 2.7 and 3.6).  This is very different
@@ -18,7 +19,7 @@ Montage Release Change History
                    we consider them of questionable utility at this time.  We can 
                    certainly reconsider any of these that people find useful.
 
-                   
+
 5.0   21Dec2016    Version 5.0 offers a new fast reprojection module, mProjectQL,
                    that is suitable for creating images for visualization; support
                    for FITS files containing data written in the HEALPix sky-

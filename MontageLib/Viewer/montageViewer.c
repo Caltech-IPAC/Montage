@@ -122,7 +122,10 @@ static JSAMPROW *jpegOvly;
 static unsigned char *pngData;
 static unsigned char *pngOvly;
 
-static double **ovlymask;
+// Drawing overlay
+
+static double **ovlyweight;
+static int    **ovlylock;
 
 double *fitsbuf;
 double *rfitsbuf;
@@ -225,6 +228,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    struct gridInfo
    {
       double fontscale;               // Multiplicative factor on default label size
+      double linewidth;               // Line thickness for grid lines
       int    csys;                    // Coordinate system (default EQUJ)
       double epoch;                   // Coordinate epoch (default 2000.)
       double red, green, blue;        // Grid color
@@ -263,7 +267,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       char   scaleColumn[MAXSTR];     // Column for data-scaled symbols
 
       char   labelColumn[MAXSTR];     // Column containing label string
-      double fontscale;
+      double fontscale;               // Multiplicative factor on default label size
+      double linewidth;               // Line thickness for drawing    
    };
 
    struct catInfo cat[MAXCAT];
@@ -303,6 +308,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       int    symNMax;                 // Special cutoff for symbols like 'el'
       int    symType;                 // Polygon, starred, skeletal
       double symRotAngle;             // Symbol rotation (e.g. 45 degrees)
+      double linewidth;               // Line thickness for drawing    
 
       double red, green, blue;        // Mark color
    };
@@ -316,6 +322,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    int       csys, symUnits, symNPnt, symNMax, symType, scaleType;
    double    epoch, symSize, symRotAngle, scaleVal, fontScale, fontSize;
+   double    lineWidth;
 
    char      symSizeColumn [MAXSTR];
    char      symShapeColumn[MAXSTR];
@@ -654,6 +661,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    scaleType   = FLUX;
 
    fontScale   = 1.;
+   lineWidth   = 1.;
 
    strcpy(symSizeColumn,  "");
    strcpy(symShapeColumn, "");
@@ -792,6 +800,20 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(fontScale <= 0.  || end < valstr+strlen(valstr))
          {
             strcpy(returnStruct->msg, "Font scale parameter must a number greater than zero.");
+            return returnStruct;
+         }
+      }
+
+
+      /* LINE WIDTH */
+
+      if(json_val(layout, "line_width", valstr))
+      {
+         lineWidth = strtod(valstr, &end);
+
+         if(lineWidth <= 0.  || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Line width`parameter must a number greater than zero.");
             return returnStruct;
          }
       }
@@ -1298,7 +1320,25 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                }
             }
             else
+            {
                grid[ngrid].fontscale = fontScale;
+            }
+
+
+            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
+
+            if(json_val(layout, keystr, valstr))
+            {
+                grid[ngrid].linewidth = strtod(valstr, &end);
+
+               if(grid[ngrid].linewidth <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               grid[ngrid].linewidth = lineWidth;
 
 
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Require coordinate system (don't use default)
@@ -1474,6 +1514,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].colorColumn, valstr);
 
+
+            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].linewidth = strtod(valstr, &end);
+
+               if(cat[ncat].linewidth <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].linewidth = lineWidth;
+
             ++ncat;
          }
 
@@ -1523,6 +1579,23 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
 
             strcpy(cat[ncat].file, valstr);
+
+
+            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].linewidth = strtod(valstr, &end);
+
+               if(cat[ncat].linewidth <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].linewidth = lineWidth;
+
 
             ++ncat;
          }
@@ -1646,6 +1719,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                mark[nmark].symSize  = symSize;
             }
 
+            
+            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
+
+            if(json_val(layout, keystr, valstr))
+            {
+                mark[nmark].linewidth = strtod(valstr, &end);
+
+               if(mark[nmark].linewidth <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               mark[nmark].linewidth = lineWidth;
+
             ++nmark;
          }
 
@@ -1684,7 +1773,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                }
             }
             else
+            {
                label[nlabel].fontscale = fontScale;
+            }
 
 
             sprintf(keystr, "overlays[%d].lon", noverlay);  // Require longitude
@@ -1723,7 +1814,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                return returnStruct;
             }
             strcpy(label[nlabel].text, valstr);
-
 
             ++nlabel;
          }
@@ -1775,6 +1865,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             if(fontScale <= 0.  || end < argv[i+1]+strlen(argv[i+1]))
             {
                strcpy(returnStruct->msg, "Font scale parameter must a number greater than zero.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+         
+
+         /* LINE WIDTH */
+
+         else if(strcmp(argv[i], "-linewidth") == 0)
+         {
+            lineWidth = strtod(argv[i+1], &end);
+
+            if(lineWidth <= 0.  || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Line width parameter must a number greater than zero.");
                return returnStruct;
             }
 
@@ -1897,6 +2003,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             ref = JULIAN;
 
             grid[ngrid].fontscale = fontScale;
+
+            grid[ngrid].linewidth = lineWidth;
 
             grid[ngrid].csys   = EQUJ;
             grid[ngrid].epoch  = -999.;
@@ -2378,6 +2486,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             strcpy(cat[ncat].symShapeColumn, symShapeColumn);
 
             cat[ncat].fontscale = fontScale;
+            cat[ncat].linewidth = lineWidth;
 
             ++ncat;
          }
@@ -2416,6 +2525,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             mark[nmark].green = ovlygreen;
             mark[nmark].blue  = ovlyblue;
 
+            mark[nmark].linewidth = lineWidth;
+
             ++nmark;
 
             i += 2;
@@ -2453,10 +2564,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].green = ovlygreen;
             cat[ncat].blue  = ovlyblue;
 
+            cat[ncat].linewidth = lineWidth;
+
             strcpy(cat[ncat].colorColumn,    colorColumn);
             strcpy(cat[ncat].labelColumn,    "");
             strcpy(cat[ncat].symSizeColumn,  "");
             strcpy(cat[ncat].symShapeColumn, "");
+
+            cat[ncat].fontscale = fontScale;
 
             ++ncat;
 
@@ -3151,6 +3266,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("DEBUG> cat[%d].red          = [%-g]\n", i, cat[i].red  );
          printf("DEBUG> cat[%d].green        = [%-g]\n", i, cat[i].green);
          printf("DEBUG> cat[%d].blue         = [%-g]\n", i, cat[i].blue );
+         printf("DEBUG> cat[%d].linewidth    = [%-g]\n", i, cat[i].linewidth );
       }
 
       for(i=0; i<nmark; ++i)
@@ -3168,6 +3284,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("DEBUG> mark[%d].red         = [%-g]\n", i, mark[i].red  );
          printf("DEBUG> mark[%d].green       = [%-g]\n", i, mark[i].green);
          printf("DEBUG> mark[%d].blue        = [%-g]\n", i, mark[i].blue );
+         printf("DEBUG> mark[%d].linewidth   = [%-g]\n", i, mark[i].linewidth );
       }
 
       for(i=0; i<nlabel; ++i)
@@ -4009,7 +4126,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          jpegOvly = (JSAMPROW *)malloc(ny * sizeof (JSAMPROW));
       }
 
-      ovlymask = (double  **)malloc(ny * sizeof (double *));
+      ovlyweight = (double  **)malloc(ny * sizeof (double *));
+      ovlylock   = (int     **)malloc(ny * sizeof (int    *));
 
       for(jj=0; jj<ny; ++jj)
       {
@@ -4019,7 +4137,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             jpegOvly[jj] = (JSAMPROW)malloc(3*nelements);
          }
 
-         ovlymask[jj] = (double *)malloc(nelements * sizeof(double));
+         ovlyweight[jj] = (double *)malloc(nelements * sizeof(double));
+         ovlylock  [jj] = (int    *)malloc(nelements * sizeof(int));
       }
 
       for(jj=0; jj<ny; ++jj)
@@ -4041,7 +4160,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                jpegOvly[jj][3*i+2] = 0;
             }
 
-            ovlymask[jj][i] = 0.;
+            ovlyweight[jj][i] = 0.;
+            ovlylock  [jj][i] = 0;
          }
 
          j = jstart + jj*jinc;
@@ -4795,7 +4915,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          fflush(stdout);
       }
 
-      ovlymask = (double  **)malloc(ny * sizeof (double *));
+      ovlyweight = (double  **)malloc(ny * sizeof (double *));
+      ovlylock   = (int     **)malloc(ny * sizeof (int    *));
 
       for(jj=0; jj<ny; ++jj)
       {
@@ -4805,7 +4926,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             jpegOvly[jj] = (JSAMPROW)malloc(3*nelements);
          }
 
-         ovlymask[jj] = (double *)malloc(nelements * sizeof(double));
+         ovlyweight[jj] = (double *)malloc(nelements * sizeof(double));
+         ovlylock  [jj] = (int    *)malloc(nelements * sizeof(int));
       }
 
       for(jj=0; jj<ny; ++jj)
@@ -4825,7 +4947,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                jpegOvly[jj][3*i+2] = 0;
             }
 
-            ovlymask[jj][i] = 0.;
+            ovlyweight[jj][i] = 0.;
+            ovlylock  [jj][i] = 0;
          }
 
          j = jstart + jj*jinc;
@@ -4972,7 +5095,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
       mViewer_makeGrid(wcs, csysimg, epochimg, 
                        grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue,  
-                       fontfile, grid[i].fontscale);
+                       fontfile, grid[i].fontscale, grid[i].linewidth);
+
       mViewer_addOverlay();
    }
 
@@ -5278,7 +5402,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             {
                mViewer_symbol(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch,
                               ra, dec, 0, flux, symNPnt, symNMax, symType, symRotAngle, 
-                              ovlyred, ovlygreen, ovlyblue);
+                              ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
 
                if(mViewer_debug)
                {
@@ -5589,10 +5713,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                wcsfree(im_wcs);
             }
 
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra1, dec1, ra2, dec2, ovlyred, ovlygreen, ovlyblue);
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra2, dec2, ra3, dec3, ovlyred, ovlygreen, ovlyblue);
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra3, dec3, ra4, dec4, ovlyred, ovlygreen, ovlyblue);
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra4, dec4, ra1, dec1, ovlyred, ovlygreen, ovlyblue);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra1, dec1, ra2, dec2, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra2, dec2, ra3, dec3, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra3, dec3, ra4, dec4, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra4, dec4, ra1, dec1, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
          }
 
          tclose();
@@ -5630,7 +5754,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       mViewer_symbol(wcs, flipY, csysimg, epochimg, mark[i].csys, mark[i].epoch,
                      mark[i].ra, mark[i].dec, mark[i].inpix, flux, 
                      mark[i].symNPnt, mark[i].symNMax, mark[i].symType, mark[i].symRotAngle, 
-                     mark[i].red, mark[i].green, mark[i].blue);
+                     mark[i].red, mark[i].green, mark[i].blue, mark[i].linewidth);
 
       mViewer_addOverlay();
    }
@@ -5904,10 +6028,14 @@ void mViewer_memCleanup()
    }
 
    for(i=0; i<ny; ++i)
-      free(ovlymask[i]);
+   {
+      free(ovlyweight[i]);
+      free(ovlylock  [i]);
+   }
 
-   free(ovlymask);
-   
+   free(ovlyweight);
+   free(ovlylock);
+
    wcsfree(wcs);
 }
 
@@ -7591,10 +7719,12 @@ double mViewer_erfinv (double p)
 /*                          */
 /****************************/
 
-int mViewer_setPixel(int i, int j, double brightness, double red, double green, double blue, int force)
+int mViewer_setPixel(int i, int j, double brightness, double red, double green, double blue, int replace)
 {
    int offset;
    int rval, gval, bval;
+   int rref, gref, bref;
+   int valmag, refmag;
 
    if(i < 0 || i >= nx)
       return 0;
@@ -7602,12 +7732,37 @@ int mViewer_setPixel(int i, int j, double brightness, double red, double green, 
    if(j < 0 || j >= ny)
       return 0;
 
-   if(!force && ovlymask[ny - 1 - j][i] != 0.)
-      return 1;
+   if(!replace && ovlylock[ny - 1 - j][i] == 1)
+      return 0;
 
    rval = red   * 255;
    gval = green * 255;
    bval = blue  * 255;
+
+   if(outType == JPEG)
+   {
+      rref = jpegOvly[ny - 1 - j][3*i]; 
+      gref = jpegOvly[ny - 1 - j][3*i+1];
+      bref = jpegOvly[ny - 1 - j][3*i+2];
+   }
+
+   else if(outType == PNG)
+   {
+      offset = 4 * nx * (ny-1-j) + 4 * i;
+
+      if(brightness > 0)
+      {
+         rref = pngOvly[offset + 0]; 
+         gref = pngOvly[offset + 1];
+         bref = pngOvly[offset + 2];
+      }
+   }
+
+   refmag = (rref + gref + bref) * ovlyweight[ny - 1 - j][i];
+   valmag = (rval + gval + bval) * brightness;
+
+   if(!replace && refmag > valmag)
+      return 1;
 
    if(outType == JPEG)
    {
@@ -7628,13 +7783,25 @@ int mViewer_setPixel(int i, int j, double brightness, double red, double green, 
       }
    }
 
-   if(brightness < 1.e-9)
-      ovlymask[ny - 1 - j][i] = 1.e-9;
-   else
-      ovlymask[ny - 1 - j][i] = brightness;
+   ovlyweight[ny - 1 - j][i] = brightness;
 
    return 1;
 }
+
+
+
+void mViewer_lockPixel(int i, int j)
+{
+   if(i < 0 || i >= nx)
+      return;
+
+   if(j < 0 || j >= ny)
+      return;
+
+   ovlylock[ny - 1 - j][i] = 1;
+   return;
+}
+
 
 
 int mViewer_getPixel(int i, int j, int color)
@@ -7678,7 +7845,7 @@ void mViewer_addOverlay()
    {
       for(i=0; i<nx; ++i)
       {
-         brightness = ovlymask[j][i];
+         brightness = ovlyweight[j][i];
 
          if(outType == JPEG)
          {
@@ -7699,7 +7866,8 @@ void mViewer_addOverlay()
             }
          }
 
-         ovlymask[j][i] = 0.;
+         ovlyweight[j][i] = 0.;
+         ovlylock  [j][i] = 0;
       }
    }
 }
@@ -7907,7 +8075,7 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
    // Use this arc of points to control placement of the string characters
 
-   mViewer_labeledCurve(face_path, fontsize, 0, xlab, ylab, ii, label, 0., red, green, blue);
+   mViewer_labeledCurve(face_path, fontsize, 0, xlab, ylab, ii, label, 0., red, green, blue, 1);
 
    free(xlab);
    free(ylab);
@@ -7923,7 +8091,7 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
 void mViewer_longitude_line(double lon, double latmin, double latmax, 
                             int csysimg, double epochimg, int csysgrid, double epochgrid,
-                            double red, double green, double blue)
+                            double red, double green, double blue, double linewidth)
 {
    int     ii, offscl, convert;
 
@@ -7939,10 +8107,10 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
 
    if(mViewer_debug)
    {
-      printf("mViewer_longitude_line(%-g, %-g, %-g, %d, %-g, %d, %-g, %-g, %-g, %-g)\n",
+      printf("mViewer_longitude_line(%-g, %-g, %-g, %d, %-g, %d, %-g, %-g, %-g, %-g, %-g)\n",
               lon, latmin, latmax, 
               csysimg, epochimg, csysgrid, epochgrid,
-              red, green, blue);
+              red, green, blue, linewidth);
       fflush(stdout);
    }
 
@@ -8009,7 +8177,7 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
 
       if((offscl > 0 || mNaN(xval) || mNaN(yval)) && ii > 1)
       {
-         mViewer_curve(xlin, ylin, ii, red, green, blue);
+         mViewer_curve(xlin, ylin, ii, red, green, blue, linewidth);
          
          ii = 0;
 
@@ -8039,7 +8207,7 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
    }
 
    if(ii > 0)
-      mViewer_curve(xlin, ylin, ii, red, green, blue);
+      mViewer_curve(xlin, ylin, ii, red, green, blue, linewidth);
 
    free(xlin);
    free(ylin);
@@ -8055,7 +8223,7 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
 
 void mViewer_latitude_line(double lat, double lonmin, double lonmax, 
                            int csysimg, double epochimg, int csysgrid, double epochgrid,
-                           double red, double green, double blue)
+                           double red, double green, double blue, double linewidth)
 {
    int     ii, offscl, convert;
 
@@ -8071,10 +8239,10 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
 
    if(mViewer_debug)
    {
-      printf("mViewer_latitude_line(%-g, %-g, %-g, %d, %-g, %d, %-g, %-g, %-g, %-g)\n",
+      printf("mViewer_latitude_line(%-g, %-g, %-g, %d, %-g, %d, %-g, %-g, %-g, %-g, %-g)\n",
               lat, lonmin, lonmax, 
               csysimg, epochimg, csysgrid, epochgrid,
-              red, green, blue);
+              red, green, blue, linewidth);
       fflush(stdout);
    }
 
@@ -8142,7 +8310,7 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
 
       if((offscl > 0 || mNaN(xval) || mNaN(xval)) && ii > 1)
       {
-         mViewer_curve(xlin, ylin, ii, red, green, blue);
+         mViewer_curve(xlin, ylin, ii, red, green, blue, linewidth);
          
          ii = 0;
 
@@ -8175,7 +8343,7 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
    }
 
    if(ii > 0)
-      mViewer_curve(xlin, ylin, ii, red, green, blue);
+      mViewer_curve(xlin, ylin, ii, red, green, blue, linewidth);
 
    free(xlin);
    free(ylin);
@@ -8190,7 +8358,7 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
 /*                                             */
 /***********************************************/
 
-void mViewer_draw_boundary(double red, double green, double blue)
+void mViewer_draw_boundary(double red, double green, double blue, double linewidth)
 {
    int     ii, offscl, side;
 
@@ -8274,7 +8442,7 @@ void mViewer_draw_boundary(double red, double green, double blue)
 
          if((offscl > 0 || mNaN(xval) || mNaN(yval)) && ii > 1)
          {
-            mViewer_curve(xlin, ylin, ii, red, green, blue);
+            mViewer_curve(xlin, ylin, ii, red, green, blue, linewidth);
 
             ii = 0;
 
@@ -8304,7 +8472,7 @@ void mViewer_draw_boundary(double red, double green, double blue)
       }
 
       if(ii > 0)
-         mViewer_curve(xlin, ylin, ii, red, green, blue);
+         mViewer_curve(xlin, ylin, ii, red, green, blue, linewidth);
    }
 
    free(xlin);
@@ -8337,7 +8505,7 @@ void mViewer_draw_label(char *fontfile, int fontsize,
 
    lablen = mViewer_label_length(fontfile, 8, text);
 
-   mViewer_labeledCurve(fontfile, fontsize, 0, xcurve, ycurve, nx, text, (double)xlab - lablen/2., red, green, blue);
+   mViewer_labeledCurve(fontfile, fontsize, 0, xcurve, ycurve, nx, text, (double)xlab - lablen/2., red, green, blue, 1);
 
    free(xcurve);
    free(ycurve);
