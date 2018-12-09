@@ -7,18 +7,20 @@
 
    "arguments":
    [
-      {"type":"string",  "default":"./",   "name":"path",          "desc":"Path to image files (table contains relative paths)."},
       {"type":"string",                    "name":"infile",        "desc":"Table of image metadata."},
       {"type":"string",                    "name":"outfile",       "desc":"Output table of matching records."},
-      {"type":"int",     "default":0,      "name":"mode",          "desc":"There are six 'modes' of use, depending on the region to be checked is defined: 0 (POINTS), a set of convex polygon vertices; 1 (BOX), box center and sizes; 2 (CIRCLE), center and radius of a cone on the sky; 3 (POINT), a single point on the sky; 4 (HEADER), a FITS header template (file); and 5 (CUTOUT),and 5 (CUTOUT), like box but uses the full image file WCS and updates the record to indicate what subset of each image overlaps the box."},
+      {"type":"int",     "default":0,      "name":"mode",          "desc":"There are six 'modes' of use, depending on the region to be checked is defined: 0 (POINTS), a set of convex polygon vertices; 1 (BOX), box center and sizes; 2 (CIRCLE), center and radius of a cone on the sky; 3 (POINT), a single point on the sky; 4 (HEADER), a FITS header template (file); and 5 (CUTOUT), like box but uses the full image file WCS and updates the record to indicate what subset of each image overlaps the box."},
       {"type":"string",  "default":"",     "name":"hdrfile",       "desc":"FITS header template file; only used by mode 4 (HEADER) above."},
       {"type":"int",     "default":0,      "name":"narray",        "desc":"Size of the 'array' of real numbers to use."},
-      {"type":"double*",                   "name":"array",         "desc":"Array of real numbers.  The size and use depend on mode.  For instance for mode 0 (POINTS) the number is twice the number of vertices in the polygon."},
+      {"type":"double*", "default":0,      "name":"array",         "desc":"Array of real numbers.  The size and use depend on mode.  For instance for mode 0 (POINTS) the number is twice the number of vertices in the polygon."},
+      {"type":"string",  "default":"",     "name":"path",          "desc":"Path to the data files (if we have them and want a double check on WCS info)."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
    ],
 
    "return":
    [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"count",         "desc":"Number of images matching region."}
    ]
 }

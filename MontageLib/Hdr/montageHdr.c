@@ -41,6 +41,8 @@ static char montage_msgstr[1024];
 /*   double width          Image width in degrees                        */
 /*   double height         Image height in degrees                       */
 /*                                                                       */
+/*   char  *outfile        Output FITS header file                       */
+/*                                                                       */
 /*   char  *csys           Coordinate system string (e.g. 'EquJ',        */
 /*                         'Galactic', etc. Fairly forgiving.            */
 /*                                                                       */
@@ -51,14 +53,12 @@ static char montage_msgstr[1024];
 /*   char  *band2MASS      Optional argument when mosaicking 2MASS, adds */
 /*                         proper MAGZP value                            */
 /*                                                                       */
-/*   char  *outfile        Output FITS header file                       */
-/*                                                                       */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
-struct mHdrReturn *mHdr(char *locstr, double width, double height, char *csys, double equinox, 
-                        double resolution, double rotation, char *band2MASS, char *outfile, int debug)
+struct mHdrReturn *mHdr(char *locstr, double width, double height, char *outfile, char *csys, double equinox, 
+                        double resolution, double rotation, char *band2MASS, int debug)
 {
    int    sock, port, count;
   
@@ -86,7 +86,7 @@ struct mHdrReturn *mHdr(char *locstr, double width, double height, char *csys, d
 
    returnStruct = (struct mHdrReturn *)malloc(sizeof(struct mHdrReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -150,7 +150,7 @@ struct mHdrReturn *mHdr(char *locstr, double width, double height, char *csys, d
 
    if(sock == 0)
    {
-      strcpy(returnStruct->msg, "Cannot open network socket to header service.");
+      strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
   
@@ -298,8 +298,6 @@ int mHdr_readline (int fd, char *line)
    *line = 0 ;
    return n ;
 }
-
-
 
 
 /**************************************/

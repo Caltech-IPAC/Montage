@@ -55,11 +55,12 @@ int main(int argc, char **argv)
 
     *path = NULL; // ensure it's empty
 
+
    /* Process basic command-line arguments */
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-d(ebug)][-p path][-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
 
       exit(0);
    }
@@ -99,6 +100,8 @@ int main(int argc, char **argv)
       argv += 2;
       argc -= 2;
    }
+   else
+      strcpy(path, ".");
 
    if(debug)
    {
@@ -108,7 +111,7 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-d(ebug)][-p path][-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
 
       exit(0);
    }
@@ -161,7 +164,7 @@ int main(int argc, char **argv)
    }
 
 
-   returnStruct = mCoverageCheck(path, infile, outfile, imode, hdrfile, narray, array, debug);
+   returnStruct = mCoverageCheck(infile, outfile, imode, hdrfile, narray, array, path, debug);
 
    if(returnStruct->status == 1)
    {
@@ -170,7 +173,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mCoverageCheck\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

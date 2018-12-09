@@ -1,4 +1,4 @@
-CC =		 gcc -g -I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CC =		 gcc -g -fPIC -I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
 libjson.a:	jsonlib.o
 		ar rv libjson.a jsonlib.o

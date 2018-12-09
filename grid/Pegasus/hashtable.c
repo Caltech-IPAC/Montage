@@ -4,8 +4,6 @@
 
 #include <hashtable.h>
 
-char *strdup(const char *s1);
-
 int HT_debug = 0;
 
 /********************************************************/

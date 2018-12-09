@@ -64,7 +64,7 @@ int getFitshdr (char *fname, struct FitsHdr *hdr, int iscube)
     
     fitsfile  *fitsptr;
     
-    int    debugfile = 1;
+    int    debugfile = 0;
 
     
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {

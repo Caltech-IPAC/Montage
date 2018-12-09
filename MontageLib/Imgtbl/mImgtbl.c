@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 2) 
    {
-       fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"Usage: %s [-rcCaidbd][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl\"]\n", argv[0]);
+       fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"Usage: %s [-rcCaidbdz][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl\"]\n", argv[0]);
        exit(1);
    }
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mImgtbl\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

@@ -1,5 +1,5 @@
 CC      =	gcc
-CFLAGS  =	-g -c -D_LARGEFILE_SOURCE \
+CFLAGS  =	-g -c -fPIC -D_LARGEFILE_SOURCE \
 		-D_FILE_OFFSET_BITS=64 -I. -I../../include
 LIBNAME =	libcoord.a
 

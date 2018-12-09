@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+5.2      John Good        26Apr17  Added SUM 'averaging' mode (for X-ray observers)
 5.3      John Good        08Sep15  fits_read_pix() incorrect null value
 5.2      Daniel S. Katz   16Jul10  Small change for MPI with new fits library
 5.1      John Good        09Jul06  Only show maxopen warning in debug mode
@@ -114,7 +115,7 @@ Version  Developer        Date     Change
 #include <montage.h>
 
 
-#define MAXSTR     256
+#define MAXSTR    1024
 #define MAXFILE     50
 #define MAXFITS    200
 #define MAXLIST    500
@@ -141,7 +142,7 @@ static char output_area_file [MAXSTR];
 static struct WorldCoor *imgWCS;
 static struct WorldCoor *hdrWCS;
 
-static int  debug;
+static int  mAdd_debug;
 static int  status = 0;
 
 static int  isCAR = 0;
@@ -236,14 +237,14 @@ static char montage_msgstr[1024];
 /*   int    shrink         Shrink-wrap to remove blank border areas      */
 /*   int    haveAreas      Area files exist for weighting the coadd      */
 /*   int    coadd          Image stacking: 0 (MEAN), 1 (MEDIAN)          */
-/*                         2 (COUNT)                                     */
+/*                         2 (COUNT), 3 (SUM)                            */
 /*                                                                       */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
 
-struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *outfile,
+struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *outfile,
                         int shrink, int haveAreas, int coadd, int debugin)
 {
    int       i, j, ncols, namelen, imgcount;
@@ -281,6 +282,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
    char      filename [MAXSTR];
    char      errstr   [MAXSTR];
+   char      path     [MAXSTR];
 
    int       ifile, nfile;
    char    **inctype1, **inctype2;
@@ -312,6 +314,12 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    double    valOffset;
 
    struct mAddReturn *returnStruct;
+
+   
+   if(inpath == (char *)NULL)
+      strcpy(path, ".");
+   else
+      strcpy(path, inpath);
 
 
    /*************************************************/
@@ -347,7 +355,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
    returnStruct = (struct mAddReturn *)malloc(sizeof(struct mAddReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -364,7 +372,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    time(&currtime);
    start = currtime;
 
-   debug = debugin;
+   mAdd_debug = debugin;
 
 
    /***********************************************/
@@ -401,7 +409,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    strcat(output_file,  ".fits");
    strcat(output_area_file, "_area.fits");
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       printf("image list       = [%s]\n", tblfile);
       printf("output_file      = [%s]\n", output_file);
@@ -485,7 +493,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    || icrpix2 < 0 || inaxis1 < 0 || inaxis2 < 0 || icrval1 < 0 || icrval2 < 0
    || ictype1 < 0 || ictype2 < 0)
    {
-      sprintf(returnStruct->msg, "Need columns: cntr,fname, crpix1, crpix2, cdelt1, cdelt2, naxis1, naxis2, crval1, crval2 ctype1, ctype2 in image list");
+      strcpy(returnStruct->msg, "Need columns: cntr,fname, crpix1, crpix2, cdelt1, cdelt2, naxis1, naxis2, crval1, crval2 ctype1, ctype2 in image list");
       return returnStruct;
    }
 
@@ -518,7 +526,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       inctype2[ifile] = (char *)malloc(32*sizeof(char));
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for file metadata table info [time: %.0f]\n", 
@@ -686,7 +694,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
    tclose();
 
-   if(debug >= 3)
+   if(mAdd_debug >= 3)
    {
       printf("\n%d input files:\n\n", nfile);
 
@@ -701,7 +709,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       fflush(stdout);
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("File metadata read [time: %.0f]\n", 
@@ -727,6 +735,8 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
          {
             sprintf(errstr, "CRVAL1 CAR pixel offset (%-g) not integer for image %s", valOffset, infile[ifile]);
             mAdd_printError(errstr);
+            strcpy(returnStruct->msg, montage_msgstr);
+            return returnStruct;
          }
 
          incrpix1[ifile] = incrpix1[ifile] + valOffset;
@@ -738,6 +748,8 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
          {
             sprintf(errstr, "CRVAL2 CAR pixel offset (%.2f) not integer for image %s", valOffset, infile[ifile]);
             mAdd_printError(errstr);
+            strcpy(returnStruct->msg, montage_msgstr);
+            return returnStruct;
          }
 
          incrpix2[ifile] = incrpix2[ifile] + valOffset;
@@ -775,7 +787,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       }
    }
    
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for file info structures [time: %.0f]\n", 
@@ -801,7 +813,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
      output.crpix2 = jmax; /* bottom side of inputs */
    }
 
-   if (debug >= 1)
+   if (mAdd_debug >= 1)
    {
      printf("output.naxes[0] = %ld\n", output.naxes[0]);
      printf("output.naxes[1] = %ld\n", output.naxes[1]);
@@ -815,12 +827,12 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    /* Allocate memory for input buffers */
    /*************************************/
 
-   inbuflen = labs(imax-imin);
+   inbuflen = (int)(fabs(imax-imin)+0.5);
 
    if( output.naxes[0] > inbuflen)
       inbuflen = output.naxes[0];
 
-   if (debug >= 1)
+   if (mAdd_debug >= 1)
    {
      printf("Input buffer length = %d\n", inbuflen);
      fflush(stdout);
@@ -842,7 +854,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for input buffers [time: %.0f]\n", 
@@ -855,7 +867,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    /* Build array of fileinfo structures on input files */
    /*****************************************************/
 
-   if(debug >= 2)
+   if(mAdd_debug >= 2)
    {
       printf("\nFILE RANGES\n");
       printf(" i   start   end   offset\n");
@@ -881,11 +893,15 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       /* Check that all files are in the same pixel space */
       /****************************************************/
 
-       if(incrval1[ifile] != nom_crval1 
-       || incrval2[ifile] != nom_crval2
-       || incdelt1[ifile] != nom_cdelt1
-       || incdelt2[ifile] != nom_cdelt2)
-          mAdd_printError("Images are not in same pixel space");
+      if(incrval1[ifile] != nom_crval1 
+      || incrval2[ifile] != nom_crval2
+      || incdelt1[ifile] != nom_cdelt1
+      || incdelt2[ifile] != nom_cdelt2)
+      {
+         mAdd_printError("Images are not in same pixel space");
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+      }
 
 
       /************************************************/
@@ -917,7 +933,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       else
          input[ifile].offset = -floor(incrpix1[ifile] - output.crpix1 + 0.5);
 
-      if (debug >= 2)
+      if (mAdd_debug >= 2)
       {
          printf("%4d %6d %6d %6d\n", ifile, input[ifile].start, input[ifile].end, input[ifile].offset);
          fflush(stdout);
@@ -994,7 +1010,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
        }
     }
 
-    if(debug >= 2)
+    if(mAdd_debug >= 2)
     {
        printf("\nSTART LINES:\n");
        printf(" i   start   file \n");
@@ -1013,7 +1029,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
        fflush(stdout);
     }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("File start/end information organized [time: %.0f]\n", 
@@ -1089,7 +1105,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
    }
 
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for input data buffer [time: %.0f]\n", 
@@ -1118,7 +1134,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
      
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Memory allocated for output data buffers [time: %.0f]\n", 
@@ -1171,7 +1187,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       printf("FITS data image created (not yet populated)\n"); 
       fflush(stdout);
@@ -1185,13 +1201,13 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       printf("FITS area image created (not yet populated)\n"); 
       fflush(stdout);
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Output FITS files created [time: %.0f]\n", 
@@ -1212,7 +1228,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       printf("Template keywords written to FITS data image\n"); 
       fflush(stdout);
@@ -1226,7 +1242,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       printf("Template keywords written to FITS area image\n"); 
       fflush(stdout);
@@ -1357,7 +1373,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
      return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       time(&currtime);
       printf("Output FITS headers updated [time: %.0f]\n", 
@@ -1383,13 +1399,13 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
    for (lineout=1; lineout<=output.naxes[1]; ++lineout)
    {
-      if (debug >= 2)
+      if (mAdd_debug >= 2)
       {
         printf("\nOUTPUT LINE %d\n",lineout);
         fflush(stdout);
       }
 
-      if (debug == 1)
+      if (mAdd_debug == 1)
       {
          printf("\r Processing line: %d", lineout);
          fflush(stdout);
@@ -1473,7 +1489,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       /* Read from files that overlap this line */
       /******************************************/
      
-      if (debug >= 2) 
+      if (mAdd_debug >= 2) 
       {
          printf("\nContributing files (%d):\n\n", imgcount);
          printf(" i   isopen   open/max      infile[i]       \n");
@@ -1485,7 +1501,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       {
          ifile = mAdd_listIndex(j);
 
-         if(debug >= 2)
+         if(mAdd_debug >= 2)
          {
             printf("%4d %4d %6d/%6d %s\n",
                ifile, input[ifile].isopen, open_files, MAXFITS, infile[ifile]);
@@ -1514,7 +1530,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                return returnStruct;
             }
 
-            if(debug >= 2)
+            if(mAdd_debug >= 2)
             {
                printf("Open:  %4d\n", ifile); 
                fflush(stdout);
@@ -1539,6 +1555,8 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                {
                   sprintf(errstr, "Area file %s missing or invalid FITS", inarea[ifile]);
                   mAdd_printError(errstr);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
                }
 
                input_area[ifile].isopen = 1;
@@ -1556,7 +1574,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                return returnStruct;
             }
 
-            if(debug >= 3)
+            if(mAdd_debug >= 3)
             {
                printf("Input header to wcsinit() [imgWCS]:\n%s\n", inputHeader);
                fflush(stdout);
@@ -1574,12 +1592,16 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
             {
                sprintf(errstr, "Image %s header CTYPE1 does not match template", infile[ifile]);
                mAdd_printError(errstr);
+               strcpy(returnStruct->msg, montage_msgstr);
+               return returnStruct;
             }
 
             if(strcmp(imgWCS->c2type, hdrWCS->c2type) != 0)
             {
                sprintf(errstr, "Image %s header CTYPE2 does not match template", infile[ifile]);
                mAdd_printError(errstr);
+               strcpy(returnStruct->msg, montage_msgstr);
+               return returnStruct;
             }
 
             if(!isCAR)
@@ -1588,12 +1610,16 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                {
                   sprintf(errstr, "Image %s header CRVAL1 does not match template", infile[ifile]);
                   mAdd_printError(errstr);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
                }
 
                if(fabs(imgWCS->yref - hdrWCS->yref) > 1.e-8)
                {
                   sprintf(errstr, "Image %s header CRVAL2 does not match template", infile[ifile]);
                   mAdd_printError(errstr);
+                  strcpy(returnStruct->msg, montage_msgstr);
+                  return returnStruct;
                }
             }
 
@@ -1604,12 +1630,16 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
             {
                sprintf(errstr, "Image %s header CD/CDELT does not match template", infile[ifile]);
                mAdd_printError(errstr);
+               strcpy(returnStruct->msg, montage_msgstr);
+               return returnStruct;
             }
 
             if(imgWCS->equinox != hdrWCS->equinox)
             {
                sprintf(errstr, "Image %s header EQUINOX does not match template", infile[ifile]);
                mAdd_printError(errstr);
+               strcpy(returnStruct->msg, montage_msgstr);
+               return returnStruct;
             }
          } 
 
@@ -1625,7 +1655,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
          nelements = innaxis1[ifile];
 
-         if (debug >= 3)
+         if (mAdd_debug >= 3)
          {
             printf("Reading line from %d:\n", ifile);
             printf("fpixel[1] = %ld\n", fpixel[1]);
@@ -1700,7 +1730,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                {
                   pixdepth += PIXDEPTH;
 
-                  if(debug >= 1)
+                  if(mAdd_debug >= 1)
                   {
                      printf("\nReallocating input data buffers; new depth = %d\n",
                         pixdepth);
@@ -1730,7 +1760,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                      }
                   }
 
-                  if(debug >= 1)
+                  if(mAdd_debug >= 1)
                   {
                      printf("Memory reallocation complete\n");
                      fflush(stdout);
@@ -1745,7 +1775,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
          }
          else
          {
-            if (debug >= 3)
+            if (mAdd_debug >= 3)
             {
                printf("Nothing read: outside image bounds\n");
                fflush(stdout);
@@ -1767,7 +1797,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
          {
             showwarning = 1;
 
-            if(debug >= 1)
+            if(mAdd_debug >= 1)
             {
                printf("\nWARNING: Opening and closing files to avoid too many open FITS\n\n");
                fflush(stdout);
@@ -1784,7 +1814,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
                return returnStruct;
             }
 
-            if(debug >= 2)
+            if(mAdd_debug >= 2)
             {
                printf("Close: %4d\n", ifile); 
                fflush(stdout);
@@ -1844,6 +1874,10 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
             else if (coadd == COUNT)
                avg_status = mAdd_avg_count(dataline[i], arealine[i], 
+                  &outdataline[i], &outarealine[i], datacount[i]);
+
+            else if (coadd == SUM)
+               avg_status = mAdd_avg_sum(dataline[i], arealine[i], 
                   &outdataline[i], &outarealine[i], datacount[i]);
 
             if (avg_status)
@@ -1913,7 +1947,7 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mAdd_debug >= 1)
    {
       printf("FITS images finalized\n"); 
       fflush(stdout);
@@ -1954,7 +1988,10 @@ int mAdd_readTemplate(char *filename)
    fp = fopen(filename, "r");
 
    if(fp == (FILE *)NULL)
+   {
       mAdd_printError("Template file not found.");
+      return 1;
+   }
 
    strcpy(headerStr, "");
 
@@ -1969,7 +2006,7 @@ int mAdd_readTemplate(char *filename)
       if(line[strlen(line)-1] == '\r')
          line[strlen(line)-1]  = '\0';
 
-      if(debug >= 3)
+      if(mAdd_debug >= 3)
       {
          printf("Template line: [%s]\n", line);
          fflush(stdout);
@@ -2044,7 +2081,7 @@ void mAdd_parseLine(char *line)
    
    *end = '\0';
 
-   if(debug >= 2)
+   if(mAdd_debug >= 2)
    {
       printf("keyword [%s] = value [%s]\n", keyword, value);
       fflush(stdout);
@@ -2304,6 +2341,41 @@ int mAdd_avg_count(double data[], double area[], double *outdata, double *outare
   *outdata = value;
 
   return 0;
+}
+
+
+/*************************************/
+/* Find the sum of a stack of pixels */
+/*************************************/
+
+int mAdd_avg_sum(double data[], double area[], double *outdata, double *outarea, int count)
+{
+  int i;
+  int isCovered = 0;
+
+  *outdata = 0.;
+  *outarea = 0.;
+
+  for (i = 0; i < count; ++i)
+  {
+    /* Add up total flux from each file's contribution: */
+    if (area[i] > 0.)
+    {
+      *outdata += data[i];
+      *outarea += area[i];
+      isCovered = 1;
+    }
+  }
+  if (!isCovered)
+  {
+    /* No area actually covered this pixel; */
+    return 1;
+  }      
+  else
+  {
+    /* Normalize pixel using total area */
+    return 0;
+  }
 }
 
 

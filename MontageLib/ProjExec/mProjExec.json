@@ -1,0 +1,34 @@
+{
+   "module":"mProjExec",
+
+   "function":"mProjExec",
+
+   "desc" : "mProjExec loops over a list of images, reprojecting each of them using mProject, mProjectPP or mProjectQL.",
+
+   "arguments":
+   [
+      {"type":"string",                   "name":"path",         "desc":"Path to raw image directory."},
+      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of raw images ."},
+      {"type":"string",                   "name":"template",     "desc":"FITS header file used to define the desired output."},
+      {"type":"string",  "default":"./",  "name":"projdir",      "desc":"Path to output projected image directory."},
+      {"type":"boolean", "default":false, "name":"quickMode",    "desc":"Flag to force use of mProjectQL function."},
+      {"type":"boolean", "default":false, "name":"exact",        "desc":"Flag to force use of mProject over mProjectPP function.  No-op if quickMode is used."},
+      {"type":"boolean", "default":false, "name":"wholeImages",  "desc":"Flag to force reprojection of all of each image, even outside template region."},
+      {"type":"boolean", "default":false, "name":"energyMode",   "desc":"Pixel values are total energy rather than energy density."},
+      {"type":"string",  "default":"",    "name":"border",       "desc":"Optional string that contains either a border width or comma-separated 'x1,y1,x2,y2, ...' pairs defining a pixel region polygon where we keep only the data inside."},
+      {"type":"string",  "default":"",    "name":"scaleCol",     "desc":"Table file can have columns defining scale."},
+      {"type":"string",  "default":"",    "name":"weightCol",    "desc":"and weighting values to be applied to data and 'area' output files."},
+      {"type":"int",     "default":0,     "name":"restart",      "desc":"Bulk reprojection sometimes needs to be restarted part way through the list. This is the record in the table to start with."},
+      {"type":"string",  "default":"",    "name":"stats",        "desc":"The programs keeps statistics on each reprojection in this file."},
+      {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output level."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                      "name":"status",       "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",          "desc":"Return message (for errors)."},
+      {"type":"int",                      "name":"count",        "desc":"Total number of images."},
+      {"type":"int",                      "name":"failed",       "desc":"Number of reprojections that failed."},
+      {"type":"int",                      "name":"nooverlap",    "desc":"Number of images not overlapping the region of interest."}
+   ]
+}

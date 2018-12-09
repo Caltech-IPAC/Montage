@@ -65,7 +65,7 @@ int  imZoom (struct Mviewer *param)
     struct timezone  tzp;
     double           exacttime, exacttime0;
 
-    int      debugfile = 1;
+    int      debugfile = 0;
     int      debugtime = 0;
    
     
@@ -177,7 +177,7 @@ int  imZoom (struct Mviewer *param)
         if ((fabs(xmax-xmin) < 5) && (fabs(ymax-ymin) < 5)) {
    
             strcpy (param->errmsg, 
-	        "Zoom box is less than 5 image pixels in either directions"
+	        "Zoom box is less than 5 real image pixels in either directions"
 	        " -- too small an area for zoom operation."); 
 	    return (-1);
         }
@@ -507,10 +507,10 @@ int  imZoom (struct Mviewer *param)
         }
 
         xmin = param->ss;
-	xmax = xmin + param->ns - 1;
+	xmax = xmin + param->ns-1;
 	
 	ymin = param->sl;
-	ymax = ymin + param->nl - 1;
+	ymax = ymin + param->nl-1;
 
 	if (xmin < 0.)
 	    xmin = 0.;
@@ -611,7 +611,7 @@ int  imZoom (struct Mviewer *param)
    
     diffx = (int)xmin + ns_subset - param->imageWidth;
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-        fprintf (fdebug, "diffx= [%d]= [%d]\n", diffx); 
+        fprintf (fdebug, "diffx= [%d]\n", diffx); 
 	fflush (fdebug);
     }
    
@@ -633,7 +633,7 @@ int  imZoom (struct Mviewer *param)
    
     diffy = (int)ymin + nl_subset - param->imageHeight;
     if ((debugfile) && (fdebug != (FILE *)NULL)) {
-        fprintf (fdebug, "diffy= [%d]= [%d]\n", diffy); 
+        fprintf (fdebug, "diffy= [%d]\n", diffy); 
 	fflush (fdebug);
     }
    
@@ -668,11 +668,25 @@ int  imZoom (struct Mviewer *param)
     if (strcasecmp (param->cmd, "resetzoom") != 0) { 
         
         if (param->iscolor) { 
-   
-            sprintf (redpath, "%s/%s", param->directory, param->redFile);
-            sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
-            sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
+
+/*
+            if ((int)strlen(param->imdatadir) > 0) {
+
+                sprintf (redpath, "%s/%s", param->imdatadir, param->redFile);
+                sprintf (grnpath, "%s/%s", param->imdatadir, param->greenFile);
+                sprintf (bluepath, "%s/%s", param->imdatadir, param->blueFile);
+	    }
+	    else {
+                sprintf (redpath, "%s/%s", param->directory, param->redFile);
+                sprintf (grnpath, "%s/%s", param->directory, param->greenFile);
+                sprintf (bluepath, "%s/%s", param->directory, param->blueFile);
+            }
+*/
             
+	    strcpy (redpath, param->redPath);
+	    strcpy (grnpath, param->greenPath);
+	    strcpy (bluepath, param->bluePath);
+
 	    if ((int)strlen(param->subsetredfile) == 0) {
 		sprintf (param->subsetredfile, "%s_cutout_%s", 
 	            param->imageFile, param->redFile);
@@ -705,7 +719,6 @@ int  imZoom (struct Mviewer *param)
 		fprintf (fdebug, "subsetbluepath= [%s]\n", subsetbluepath);
 		fflush (fdebug);
             }
-	   
 
 
             istatus = subsetImage (redpath, param->imageWidth, 
@@ -754,12 +767,21 @@ int  imZoom (struct Mviewer *param)
             }
         }
         else {
-	    sprintf (graypath, "%s/%s", param->directory, param->grayFile);
+/*
+            if ((int)strlen(param->imdatadir) > 0) {
+	        sprintf (graypath, "%s/%s", param->imdatadir, param->grayFile);
+	    }
+	    else {
+	        sprintf (graypath, "%s/%s", param->directory, param->grayFile);
+            }
+*/
+	        
+	    strcpy (graypath, param->grayPath);
 
 	    if ((int)strlen(param->subsetimfile) == 0) {
-                
-		sprintf (param->subsetimfile, "%s_cutout_%s", 
-	            param->imageFile, param->grayFile);
+		
+		sprintf (param->subsetimfile, "%s_cutout.fits", 
+	            param->imageFile);
 	    }
 
 	    sprintf (subsetimpath, "%s/%s", 

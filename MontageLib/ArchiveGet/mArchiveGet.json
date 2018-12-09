@@ -1,0 +1,22 @@
+{
+   "module":"mArchiveGet",
+
+   "function":"mArchiveGet",
+
+   "desc" : "mArchiveGet retrieves an image file by URL from one of several archives.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"url",           "desc":"Directory containing files to be coadded."},
+      {"type":"string",                    "name":"datafile",      "desc":"Table file list of reprojected files to coadded."},
+      {"type":"int",     "default":300,    "name":"timeout",       "desc":"Timeout in seconds."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+   
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                       "name":"count",         "desc":"Size of file in bytes."}
+   ]
+}

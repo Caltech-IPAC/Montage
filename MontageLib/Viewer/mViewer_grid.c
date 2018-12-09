@@ -21,7 +21,7 @@ void  mViewer_makeGrid       (struct WorldCoor *wcs,
                               int csysimg,  double epochimg, 
                               int csysgrid, double epochgrid,  
                               double red, double green, double blue,
-                              char *fontfile, double fontscale);
+                              char *fontfile, double fontscale, double linewidth);
 
 char *mViewer_longitude_label(double lon, int ishr);
 char *mViewer_latitude_label (double lat);
@@ -35,27 +35,27 @@ void mViewer_great_circle    (struct WorldCoor *wcs, int flipY,
                               int csysimg,  double epochimg, 
                               int csysgrid, double epochgrid,  
                               double lon0,  double lat0, double lon1, double lat1,
-                              double red,   double green, double blue);
+                              double red,   double green, double blue, double linewidth);
 
 void mViewer_symbol          (struct WorldCoor *wcs, int flipY,
                               int csysimg,  double epochimg,
                               int csyssym, double epochsym,   
                               double clon,  double clat, int inpix,
                               double symsize, int symnpnt, int symmax, int symtype, double symang,
-                              double red,   double green, double blue);
+                              double red,   double green, double blue, double linewidth);
 
 void mViewer_curve           (double *xcurve, double *ycurve, int npt,
-                              double red, double green, double blue);
+                              double red, double green, double blue, double linewidth);
 
 void mViewer_latitude_line   (double lat, double lonmin, double lonmax,
                               int csysimg, double epochimg, int csysgrid, double epochgrid,
-                              double red, double green, double blue);
+                              double red, double green, double blue, double linewidth);
 
 void mViewer_longitude_line  (double lon, double latmin, double latmax,
                               int csysimg, double epochimg, int csysgrid, double epochgrid,
-                              double red, double green, double blue);
+                              double red, double green, double blue, double linewidth);
 
-void mViewer_draw_boundary   (double red, double green, double blue);
+void mViewer_draw_boundary   (double red, double green, double blue, double linewidth);
 
 
 struct Pix
@@ -104,7 +104,7 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
                       int csysimg,  double epochimg, 
                       int csysgrid, double epochgrid,  
                       double red, double green, double blue,
-                      char *fontfile, double fontscale)
+                      char *fontfile, double fontscale, double linewidth)
 {
    int    i, side, offscl, use, used_lat, convert;
    int    ilon_label, ishr;
@@ -130,8 +130,6 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
 
    int    nlon, nlat;
    int    nlab_lon, nlab_lat;
-
-   int   *lonlab_index;
 
    double dtr;
 
@@ -631,11 +629,6 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
       fflush(stdout);
    }
 
-   lonlab_index = malloc(nlon * sizeof(int));
-     
-   for (i=0; i<nlon; i++) 
-      lonlab_index[i] = -1;
-
    ilon_label = (nlat+1)/2;
 
    if ((ilon_label % 2 == 1) && (ilon_label > 1)) 
@@ -787,7 +780,7 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
 
       mViewer_longitude_line(lon, latmin, latmax, 
                              csysimg, epochimg, csysgrid, epochgrid,
-                             red, green, blue);
+                             red, green, blue, linewidth);
       
       if(gdebug) {
          printf("mViewer_makeGrid> returned mViewer_longitude_line\n");
@@ -813,7 +806,7 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
 
       mViewer_latitude_line(lat, lonmin, lonmax, 
                             csysimg, epochimg, csysgrid, epochgrid,
-                            red, green, blue);
+                            red, green, blue, linewidth);
       
       if(gdebug) {
          printf("mViewer_makeGrid> returned mViewer_latitude_line\n");
@@ -833,7 +826,7 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
    // ellipse around the area where the map is defined.
 
    if(wcs->prjcode == WCS_AIT)
-      mViewer_draw_boundary(red, green, blue);
+      mViewer_draw_boundary(red, green, blue, linewidth);
 }
 
 
@@ -1056,7 +1049,7 @@ void mViewer_great_circle(struct WorldCoor *wcs, int flipY,
                           int csysimg,  double epochimg, 
                           int csys, double epoch,  
                           double lon0,  double lat0, double lon1, double lat1,
-                          double red,   double green, double blue)
+                          double red,   double green, double blue, double linewidth)
 {
    int     i, n, convert, offscl, ncurve;
    
@@ -1171,7 +1164,7 @@ void mViewer_great_circle(struct WorldCoor *wcs, int flipY,
       }
    }
 
-   mViewer_curve(xcurve, ycurve, ncurve, red, green, blue);
+   mViewer_curve(xcurve, ycurve, ncurve, red, green, blue, linewidth);
 
    free(xcurve);
    free(ycurve);
@@ -1190,7 +1183,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
                     int csyssym, double epochsym,   
                     double inlon,  double inlat, int inpix,
                     double radius, int symnpnt, int symmax, int symtype, double symang,
-                    double red,   double green, double blue)
+                    double red,   double green, double blue, double linewidth)
 {
    int    i, k;
    double cosc, colat, sina, dlon, vang, dvang, vangmax, lat, lon;
@@ -1261,7 +1254,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
          lon = clon + dlon;
 
          if(vang > -180.+symang)
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, lonprev, latprev, lon, lat, red, green, blue);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, lonprev, latprev, lon, lat, red, green, blue, linewidth);
 
          lonprev = lon;
          latprev = lat;
@@ -1302,7 +1295,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
          lon = clon + dlon;
 
          if(vang > -180.+symang)
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, lonprev, latprev, lon, lat, red, green, blue);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, lonprev, latprev, lon, lat, red, green, blue, linewidth);
 
          lonprev = lon;
          latprev = lat;
@@ -1338,7 +1331,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
          lon = clon + dlon;
 
          if(vang > -180.+symang)
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, clon, clat, lon, lat, red, green, blue);
+            mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, clon, clat, lon, lat, red, green, blue, linewidth);
       }
    }
 
@@ -1389,7 +1382,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
 
          lon2 = clon + dlon;
 
-         mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, lon1, lat1, lon2, lat2, red, green, blue);
+         mViewer_great_circle(wcs, flipY, csysimg, epochimg, csyssym, epochsym, lon1, lat1, lon2, lat2, red, green, blue, linewidth);
       }
    }
 }

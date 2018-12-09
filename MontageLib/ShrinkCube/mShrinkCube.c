@@ -117,7 +117,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   returnStruct = mShrinkCube(input_file, hdu, output_file, shrinkFactor, mfactor, fixedSize, debug);
+   returnStruct = mShrinkCube(input_file, output_file, shrinkFactor, mfactor, hdu, fixedSize, debug);
 
    if(returnStruct->status == 1)
    {
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mShrinkCube\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

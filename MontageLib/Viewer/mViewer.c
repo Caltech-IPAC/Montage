@@ -17,7 +17,7 @@
 
 int main(int argc, char **argv)
 {
-   int i, debug;
+   int i, debug, len;
 
    char cmdstr  [MAXSTR];
    char line    [STRLEN];
@@ -25,6 +25,9 @@ int main(int argc, char **argv)
    char outFile [STRLEN];
    char jsonFile[STRLEN];
    char jsonStr [MAXSTR];
+   char fontFile[MAXSTR];
+
+   char *rstat;
 
    FILE *fin;
 
@@ -39,8 +42,12 @@ int main(int argc, char **argv)
    /* the command line as a command string.             */
    /*****************************************************/
 
-   strcpy(outFmt, "png");
-   strcpy(outFile, "");
+   strcpy(outFmt,   "png");
+   strcpy(outFile,  "");
+   strcpy(fontFile, "");
+   strcpy(jsonStr,  "");
+   strcpy(jsonFile, "");
+   strcpy(line,     "");
 
    debug = 0;
 
@@ -54,7 +61,7 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No PNG output file argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
@@ -69,7 +76,7 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No JPEG output file argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
@@ -84,7 +91,7 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No input JSON data argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
@@ -98,12 +105,26 @@ int main(int argc, char **argv)
       {
          if(i > argc-2)
          {
-            printf("[struct stat=\"ERROR\", msg=\"No output file argument.\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"No input JSON file argument.\"]\n");
             fflush(stdout);
             exit(0);
          }
 
          strcpy(jsonFile, argv[i+1]);
+
+         ++i;
+      }
+
+      if(strcmp(argv[i], "-fontfile") == 0)
+      {
+         if(i > argc-2)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"No alternate font file argument.\"]\n");
+            fflush(stdout);
+            exit(0);
+         }
+
+         strcpy(fontFile, argv[i+1]);
 
          ++i;
       }
@@ -116,7 +137,7 @@ int main(int argc, char **argv)
 
    if(strlen(jsonStr) > 0)
    {
-      returnStruct = mViewer(JSONMODE, jsonStr, outFile, outFmt, debug);
+      returnStruct = mViewer(jsonStr, outFile, JSONMODE, outFmt, fontFile, debug);
 
       if(returnStruct->status == 1)
       {
@@ -125,7 +146,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         printf("[struct stat=\"OK\", %s]\n", returnStruct->msg);
+         printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
          exit(0);
       }
    }
@@ -149,27 +170,43 @@ int main(int argc, char **argv)
 
       while(1)
       {
-         if(fgets(line, STRLEN, fin) == (char *)NULL)
+         rstat = fgets(line, STRLEN, fin);
+
+         if(rstat == (char *)NULL)
             break;
 
-         while(line[strlen(line)-1] == '\n'
-            || line[strlen(line)-1] == '\r')
-               line[strlen(line)-1]  = '\0';
+         len = strlen(line) - 1;
+
+         while(1)
+         {
+            if(line[len] == '\n' || line[len] == '\r')
+            {
+               line[len]  = '\0';
+               --len;
+
+               if(len < 0)
+                  break;
+            }
+            else
+               break;
+         }
 
          strcat(jsonStr, line);
          strcat(jsonStr, " ");
       }
 
-      returnStruct = mViewer(JSONMODE, jsonStr, outFile, outFmt, debug);
+      returnStruct = mViewer(jsonStr, outFile, JSONMODE, outFmt, fontFile, debug);
 
       if(returnStruct->status == 1)
       {
          printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
+         fflush(stdout);
          exit(1);
       }
       else
       {
-         printf("[struct stat=\"OK\", %s]\n", returnStruct->msg);
+         printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
+         fflush(stdout);
          exit(0);
       }
    }
@@ -183,9 +220,9 @@ int main(int argc, char **argv)
 
    strcpy(cmdstr, "");
 
-   for(i=0; i<argc; ++i)
+   for(i=1; i<argc; ++i)
    {
-      if(i > 0)
+      if(i > 1)
          strcat(cmdstr, " ");
 
       strcat(cmdstr, "\"");
@@ -198,7 +235,7 @@ int main(int argc, char **argv)
    /* Call the mViewer processing routine */
    /***************************************/
 
-   returnStruct = mViewer(CMDMODE, cmdstr, outFile, outFmt, debug);
+   returnStruct = mViewer(cmdstr, outFile, CMDMODE, outFmt, fontFile, debug);
 
    if(returnStruct->status == 1)
    {
@@ -207,7 +244,7 @@ int main(int argc, char **argv)
    }
    else
    {
-      printf("[struct stat=\"OK\", %s]\n", returnStruct->msg);
+      printf("[struct stat=\"OK\", module=\"mViewer\", %s]\n", returnStruct->msg);
       exit(0);
    }
 }

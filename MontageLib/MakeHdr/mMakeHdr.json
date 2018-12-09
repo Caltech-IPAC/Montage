@@ -3,15 +3,15 @@
 
    "function":"mMakeHdr",
 
-   "desc" : "mMakeHdr subtracts one image from another (both already in the same projection).",
+   "desc" : "mMakeHdr creates a header file bounding a collection of data (image outlines and/or catalog sources).",
 
    "arguments":
    [
-      {"type":"string",                    "name":"tblfile",       "desc":"Input image metadata table."},
+      {"type":"string",                    "name":"tblfile",       "desc":"Input image metadata table or source table or table of tables."},
       {"type":"string",                    "name":"template",      "desc":"Output image header template."},
       {"type":"string",  "default":"EQUJ", "name":"csys",          "desc":"Coordinate system (e.g. 'EquJ', 'Galactic').  Fairly forgiving."},
-      {"type":"double",  "default":1.0,    "name":"equinox",       "desc":"Coordinate system equinox (e.g. 2000.0)."},
-      {"type":"double",  "default":1.0,    "name":"pixelScale",    "desc":"Pixel scale in degrees."},
+      {"type":"double",  "default":2000.0, "name":"equinox",       "desc":"Coordinate system equinox (e.g. 2000.0)."},
+      {"type":"double",  "default":0.0,    "name":"pixelScale",    "desc":"Pixel scale in degrees. If zero the scale will be deduced from the image metadata table."},
       {"type":"int",     "default":0,      "name":"northAligned",  "desc":"Defaults to minimum bounding box around input images.  This forces template to be north-aligned."},
       {"type":"double",  "default":0.0,    "name":"pad",           "desc":"Optional extra padding around output template."},
       {"type":"boolean", "default":false,  "name":"isPercentage",  "desc":"Pad is in pixels by default.  This changes that to a percentage of the image size."},
@@ -21,7 +21,8 @@
 
    "return":
    [
-      {"type":"string",                    "name":"msg",           "desc":"Cautionary message (only there if needed)."},
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"int",                       "name":"count",         "desc":"Number of images in metadata table."},
       {"type":"int",                       "name":"ncube",         "desc":"Number of images that have 3/4 dimensions."},
       {"type":"int",                       "name":"naxis1",        "desc":"X axis pixel count in output template."},

@@ -1,23 +1,31 @@
 #include <stdio.h>
 #include <math.h>
 #include <freetype2/ft2build.h>
-#include <freetype.h>
+#include FT_FREETYPE_H
 
 void  mViewer_labeledCurve (char *face_path, int fontsize, int showLine,
                             double *xcurve, double *ycurve, int npt,  
                             char *text, double offset, 
-                            double red, double green, double blue);
+                            double red, double green, double blue,
+                            double linewidth);
 
 double mViewer_frac        (double x);
 double mViewer_invfrac     (double x);
 
 void   mViewer_smooth_line (double x1, double y1, 
                             double x2, double y2,
-                            double red, double green, double blue);
+                            double red, double green, double blue,
+                            double linewidth);
 
-void   mViewer_draw_bitmap (FT_Bitmap * bitmap, int x, int y, double red, double green, double blue, int fontsize );
+void   mViewer_thick_line  (double x1, double y1, 
+                            double x2, double y2,
+                            double red, double green, double blue,
+                            double width);
 
-int    mViewer_setPixel    (int i, int j, double brightness, double red, double green, double blue, int force);
+void   mViewer_draw_bitmap (FT_Bitmap * bitmap, int x, int y, double red, double green, double blue, int fontsize, double angle);
+
+int    mViewer_setPixel    (int i, int j, double brightness, double red, double green, double blue, int replace);
+int    mViewer_lockPixel   (int i, int j);
 int    mViewer_getPixel    (int i, int j, int color);
 
 double mViewer_label_length(char *face_path, int fontsize, char *text);
@@ -34,7 +42,8 @@ double mViewer_label_length(char *face_path, int fontsize, char *text);
 void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
                            double *xcurve, double *ycurve, int npt,  
                            char *text, double offset, 
-                           double red, double green, double blue)
+                           double red, double green, double blue,
+                           double linewidth)
 {
    FT_Library  library;
    FT_Face     face;
@@ -86,7 +95,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
    {
       if(showLine)
       {
-         mViewer_smooth_line(x1, y1, x2, y2, red, green, blue);
+         mViewer_smooth_line(x1, y1, x2, y2, red, green, blue, linewidth);
       }
 
       ++npath;
@@ -108,8 +117,8 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
 
    angle = atan2((y2-y1), (x2-x1));
 
-   xoff =  0.4 * (double)fontsize * sin(angle);
-   yoff = -0.4 * (double)fontsize * cos(angle);
+      xoff =  0.4 * (double)fontsize * sin(angle);
+      yoff = -0.4 * (double)fontsize * cos(angle);
 
 
    /* Interpolate the last curve segment before the text and draw a subsegment */
@@ -121,7 +130,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
       
    if(frac > 0 && showLine)
    {
-      mViewer_smooth_line(x1, y1, xchar, ychar, red, green, blue);
+      mViewer_smooth_line(x1, y1, xchar, ychar, red, green, blue, linewidth);
    }
 
    xpix = floor(xchar + xoff);
@@ -397,7 +406,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
       mViewer_draw_bitmap(&face->glyph->bitmap,
                            xpix + face->glyph->bitmap_left,
                            ypix + face->glyph->bitmap_top,
-                           red, green, blue, fontsize);
+                           red, green, blue, fontsize, angle);
 
 
       /* Advance to the next position */
@@ -444,7 +453,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
 
       for(ii=xpix-1; ii<=xpix+1; ++ii)
          for(jj=ypix-1; jj<=ypix+1; ++jj)
-            mViewer_setPixel(ii, jj, 1., 0., 0., 1., 1);
+            mViewer_setPixel(ii, jj, 1., 0., 0., 1.);
 
       ***/
 
@@ -474,7 +483,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
 
    if(showLine && npath < npt)
    {
-      mViewer_smooth_line(xchar, ychar, x2, y2, red, green, blue);
+      mViewer_smooth_line(xchar, ychar, x2, y2, red, green, blue, linewidth);
    }
 
 
@@ -484,7 +493,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
    {
       if(showLine)
       {
-         mViewer_smooth_line(x1, y1, x2, y2, red, green, blue);
+         mViewer_smooth_line(x1, y1, x2, y2, red, green, blue, linewidth);
       }
 
       ++npath;
@@ -509,7 +518,7 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
 /***************************************************/
 
 void mViewer_curve(double *xcurve, double *ycurve, int npt,  
-                   double red, double green, double blue)
+                   double red, double green, double blue, double linewidth)
 {
    int    i;
 
@@ -521,7 +530,7 @@ void mViewer_curve(double *xcurve, double *ycurve, int npt,
    while(1)
    {
       if(fabs(xcurve[i]-xcurve[i-1]) < 10.)
-         mViewer_smooth_line(xcurve[i-1], ycurve[i-1], xcurve[i], ycurve[i], red, green, blue);
+         mViewer_smooth_line(xcurve[i-1], ycurve[i-1], xcurve[i], ycurve[i], red, green, blue, linewidth);
 
       ++i;
       if(i >= npt)
@@ -537,34 +546,75 @@ void mViewer_curve(double *xcurve, double *ycurve, int npt,
 /*                                                      */
 /********************************************************/
 
-void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double green, double blue, int fontsize)
+void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double green, double blue, int fontsize, double angle)
 {
-   int    i, j;
-   double temp;
+   int    i, j, size;
+   double temp, radius2, size2, xr, yr;
+   // double radius;
 
-   for(j=-2; j<fontsize+3; j++)
-   {
-      for(i=-2; i<bitmap->width+3; i++)
-      {
-         mViewer_setPixel(x + i, y - j, 0., 0., 0., 0., 0);
-      }
-   }
+   size = fontsize;
+
+   if(bitmap->width > size) 
+      size = bitmap->width;
+
+   if(bitmap->rows > size) 
+      size = bitmap->rows;
+
+   size = (double)size * 1.415/2.;
+
+   size2 = size*size;
+
+
+   // Turn on the pixels in the image covered by the (non-zero) bitmap locations
 
    for(j=1; j<bitmap->rows+1; j++)
    {
-      for(i=1; i< bitmap->width+1; i++)
+      for(i=1; i<bitmap->width+1; i++)
       {
          temp = (double)(bitmap->buffer[(j-1)*bitmap->width + (i-1)] )/255.0;
 
          if(temp)
-              mViewer_setPixel(x + i, y - j, temp, red, green, blue, 1);
-         else
-            mViewer_setPixel(x + i, y - j, 0., 0., 0., 0., 0);
+         {
+            mViewer_setPixel(x + i, y - j, temp, red, green, blue, 1);
+         }
       }
    }
 
-   /* Draw character bounding box (for debugging purposes **
 
+   // Lock the area covered by the bitmap so that
+   // other drawings (mainly the coordinated grid lines)
+   // do not overwrite them.
+   
+   for(j=0; j<bitmap->rows+5; j++)
+   {
+      for(i=0; i<bitmap->width+5; i++)
+         mViewer_lockPixel(x+i-2, y-j-2);
+   }
+
+   
+   // Lock a circular area centered on the character box
+   
+   for(i=0; i<2*size; i++)
+   {
+      for(j=0; j<2*size; j++)
+      {
+         radius2 = (double)(i-size)*(i-size) + (double)(j-size)*(j-size);
+
+         if(radius2 < size2)
+         {
+            xr = x + bitmap->width/2 + (i - size);
+            yr = y - bitmap->width/2 - (j - size);
+
+            mViewer_lockPixel(xr, yr);
+         }
+      }
+   }
+
+
+   // Draw character bounding box (for debugging purposes 
+   // and the character bounding circle                  
+
+   /*
    for(j=0; j<bitmap->rows+2; j++)
    {
       mViewer_setPixel(x,                     y - j, 1., 1., 1., 1., 1);
@@ -577,26 +627,44 @@ void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double g
       mViewer_setPixel(x + i, y - bitmap->rows - 1, 1., 1., 1., 1., 1);
    }
 
-   ***/
-}
+   for(i=0; i<2*size; i++)
+   {
+      for(j=0; j<2*size; j++)
+      {
+         radius = sqrt((double)(i-size)*(i-size) + (double)(j-size)*(j-size));
 
+         if(fabs(radius - size) < 1.0)
+         {
+            xr = x + bitmap->width/2 + (i - size);
+            yr = y - bitmap->width/2 - (j - size);
+
+            mViewer_setPixel(xr, yr, 1., 1., 1., 0., 1);
+         }
+      }
+   }
+   */
+}
 
 
 /**************************************************/
 /*                                                */
-/* Anti-aliased line drawing routine              */
+/* Anti-aliased thin line drawing routine         */
 /*                                                */
 /**************************************************/
 
 void mViewer_smooth_line(double x1, double y1, 
                          double x2, double y2,
-                         double red, double green, double blue)
+                         double red, double green, double blue,
+                         double linewidth)
 {
    int    x, y, ix1, ix2, iy1, iy2;
 
    double grad, xd, yd, temp;
    double xend, yend, xf, yf;
    double brightness1, brightness2;
+
+   if(linewidth != 1.)
+      mViewer_thick_line(x1, y1, x2, y2, red, green, blue, 5.);
 
 
    /* Extent of line in X and Y */
@@ -733,6 +801,300 @@ void mViewer_smooth_line(double x1, double y1,
          xf += grad; 
       }
    }
+}
+
+
+
+/*************************************************/
+/*                                               */
+/* Thick anti-aliased line drawing routine       */
+/*                                               */
+/* We are going to use a full analytic solution  */
+/* based on a filled polygon algorithm.          */
+/*                                               */
+/*************************************************/
+
+void mViewer_thick_line(double x1, double y1, 
+                        double x2, double y2,
+                        double red, double green, double blue,
+                        double width)
+{
+   int    isub, jsub;
+   int    i, j, jstart, jend, istart, iend;
+   int    horizontal, ncrossing, is, ie;
+
+   double grad, xd, yd, temp, fs, fe;
+   double theta, deltax, deltay;
+
+   double x1off1, y1off1, y2off1;
+   double x1off2, y1off2, y2off2;
+
+   double dy, dx2, jy;
+
+   double xcrossing[8];
+
+   char   **array;
+   double **farray;
+
+   int    nxorig, nyorig;
+   int    nxfine, nyfine;
+
+   int    nsamp, narray;
+
+   nsamp = 3;
+
+   narray = nsamp * nsamp;
+
+
+   if(x1 == x2 && y1 == y2)
+      return;
+
+
+   /* Make sure X is increasing */
+
+   if(x1 > x2)
+   {
+      temp = x1; x1 = x2; x2 = temp;
+      temp = y1; y1 = y2; y2 = temp;
+   }
+
+
+   /* Our thick line is a box of the given width with the          */
+   /* points (x1,y1) and (x2,y2) at the mid-points of the          */
+   /* "short" (width length) sides and two circles of diameter     */
+   /* 'width' centered on these two points.  In reality, it        */
+   /* is possible that the length of the segment is smaller        */
+   /* than the width but this has no operational effect.           */
+   /* We only worry about the half circles extending beyond        */
+   /* the box and the two sides of the box running the             */
+   /* 'length' of the segment (the other parts are interior        */
+   /* to the segment and don't represent region edge crossings.    */
+
+   /* The 'region of interest' (set of horizontal lines that might */
+   /* intersect with the segment) are y-values between y1-width/2. */
+   /* and y2+witdh/2. (or the same with opposite sign depending    */
+   /* on the slope of the line).                                   */
+
+   istart = (int)(x1 - width/2.)-2;
+   iend   = (int)(x2 + width/2.)+2;
+
+   if(istart < 0)
+      istart = 0;
+
+   if(y1 >= y2)
+   { 
+      jstart = (int)(y2 - width/2.)-2;
+      jend   = (int)(y1 + width/2.)+2;
+   }
+   else
+   { 
+      jstart = (int)(y1 - width/2.)-2;
+      jend   = (int)(y2 + width/2.)+2;
+   }
+
+   if(jstart < 0)
+      jstart = 0;
+
+   nxorig = abs(iend - istart + 2);
+   nyorig = abs(jend - jstart + 2);
+
+   nxfine = nsamp * abs(iend - istart + 2);
+   nyfine = nsamp * abs(jend - jstart + 2);
+
+   array = (char **)malloc(nyfine * sizeof(char *));
+
+   for(j=0; j<nyfine; ++j)
+   {
+      array[j] = (char *)malloc((nxfine+1)*sizeof(char));
+
+      for(i=0; i<nxfine; ++i)
+         array[j][i] = '.';
+
+      array[j][nxfine] = '\n';
+   }
+
+
+   farray = (double **)malloc(nyorig * sizeof(double *));
+
+   for(j=0; j<nyorig; ++j)
+   {
+      farray[j] = (double *)malloc((nxorig+1)*sizeof(double));
+
+      for(i=0; i<nxorig; ++i)
+         farray[j][i] = 0.;
+   }
+
+
+   // Direction angle for width offset
+
+   xd = x2 - x1;
+   yd = y2 - y1;
+
+   theta = atan2(yd, xd);
+
+   deltax = -width/2. * sin(theta);
+   deltay =  width/2. * cos(theta);
+
+
+   // Line segments along two box edges
+
+   x1off1 = x1 + deltax;
+   y1off1 = y1 + deltay;
+
+   y2off1 = y2 + deltay;
+
+   x1off2 = x1 - deltax;
+   y1off2 = y1 - deltay;
+
+   y2off2 = y2 - deltay;
+
+
+   // Seee if the segment is more 'horizontal' or 'vertical'
+
+   horizontal = 0;
+
+   if(fabs(x2-x1) > fabs(y2-y1))
+      horizontal = 1;
+
+   if(horizontal)
+      grad = yd / xd;
+   else
+      grad = xd / yd;
+
+
+   /* For each horizontal line ... */
+
+   for(j=0; j<nyfine; ++j)
+   {
+      /* Check the "left" circle.  We keep both crossings though the second will */
+      /* often be deleted later if there are crossings of the box.               */
+
+      jy = (j + 0.5)/(double)nsamp + jstart - 0.5;
+
+      ncrossing = 0;
+
+      if(jy >= y1-width/2. && jy <= y1+width/2.)
+      {
+         dy = jy - y1;
+
+         dx2 = width*width/4.- dy*dy;
+
+         if(dx2 > 0.)
+         {
+            xcrossing[0] = x1 - sqrt(dx2);
+            xcrossing[1] = x1 + sqrt(dx2);
+
+            ncrossing = 2;
+         }
+      }
+
+
+      /* Check the box, but just the "length" edges.  If either of the other */
+      /* two edges were crossed, the corresponding circle would be as well.  */
+
+      if((y1off1 > y2off1 && jy <= y1off1 && jy >= y2off1)
+      || (y1off1 < y2off1 && jy >= y1off1 && jy <= y2off1))
+      {
+         if(horizontal)
+            xcrossing[ncrossing] = (jy - y1off1) / grad + x1off1;
+         else
+            xcrossing[ncrossing] = (jy - y1off1) * grad + x1off1;
+
+         ++ncrossing; 
+      }
+
+      if((y1off2 > y2off2 && jy <= y1off2 && jy >= y2off2)
+      || (y1off2 < y2off2 && jy >= y1off2 && jy <= y2off2))
+      {
+         if(horizontal)
+            xcrossing[ncrossing] = (jy - y1off2) / grad + x1off2;
+         else
+            xcrossing[ncrossing] = (jy - y1off2) * grad + x1off2;
+
+         ++ncrossing;
+      }
+
+
+      /* Check the "right" circle.  We keep both crossings though the second will */
+      /* often be deleted later if there are crossings of the box.               */
+
+      if(jy >= y2-width/2. && jy <= y2+width/2.)
+      {
+         dy = jy - y2;
+
+         dx2 = width*width/4. - dy*dy;
+
+         if(dx2 > 0.)
+         {
+            xcrossing[ncrossing] = x2 - sqrt(dx2);
+            ++ncrossing;
+
+            xcrossing[ncrossing] = x2 + sqrt(dx2);
+            ++ncrossing;
+         }
+      }
+
+      if(ncrossing < 2)
+         continue;
+   
+      fs = xcrossing[0];
+      fe = xcrossing[0];
+
+      for(i=0; i<ncrossing; ++i)
+      {
+         if(xcrossing[i] < fs) fs = xcrossing[i];
+         if(xcrossing[i] > fe) fe = xcrossing[i];
+      }
+
+      is = nsamp * (fs - istart + 0.5) - 0.5;
+      ie = nsamp * (fe - istart + 0.5) - 0.5;
+
+      if(is < 0) is = 0;
+      if(ie < 0) ie = 0;
+
+      if(is >= nxfine) is = nxfine;
+      if(ie >= nxfine) ie = nxfine;
+
+      for(i=is; i<=ie; ++i)
+         array[j][i] = '+';
+   }
+
+
+   for(i=0; i<nxorig; ++i)
+   {
+      for(j=0; j<nyorig; ++j)
+      {
+         for(isub=0; isub<nsamp; ++isub)
+         {
+            for(jsub=0; jsub<nsamp; ++jsub)
+            {
+               if(array[j*nsamp+jsub][i*nsamp+isub] == '+')
+                  farray[j][i] = farray[j][i] + 1./narray;
+            }
+         }
+      }
+   }
+
+   for(j=0; j<nyfine; ++j)
+      free(array[j]);
+
+   free(array);
+
+   for(j=nyorig-1; j>=0; --j)
+   {
+      for(i=0; i<nxorig; ++i)
+      {
+         if(farray[j][i] > 0.)
+         {
+            mViewer_setPixel(i+istart, j+jstart, farray[j][i], red, green, blue, 0);
+         }
+      }
+   }
+
+   for(j=0; j<nyorig; ++j)
+      free(farray[j]);
+
+   free(farray);
 }
 
 

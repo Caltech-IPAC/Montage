@@ -118,39 +118,40 @@ int main(int argc, char **argv)
 
    if(fout == (FILE *)NULL)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Can't open output file %s\"]\n", 
-         argv[6]);
+      printf("[struct stat=\"ERROR\", msg=\"Can't open output file %s\"]\n", argv[6]);
       exit(0);
    }
 
 
    /* Connect to the port on the host we want */
    proxy = getenv("http_proxy");
-   
-   if(proxy) {
-     parseUrl(proxy, pserver, &pport);
 
-     if(debug)
-       {
+   if(proxy) 
+   {
+      parseUrl(proxy, pserver, &pport);
+
+      if(debug)
+      {
          printf("DEBUG> proxy = [%s]\n", proxy);
          printf("DEBUG> pserver = [%s]\n", pserver);
          printf("DEBUG> pport = [%d]\n", pport);
          fflush(stdout);
-       }
-     socket = tcp_connect(pserver, pport);
-   } else {
-     socket = tcp_connect(server, port);
+      }
+
+      socket = tcp_connect(pserver, pport);
    }
-  
+   else
+      socket = tcp_connect(server, port);
+
 
    /* Send a request for the file we want */
 
    if(proxy) {
-     sprintf(request, "GET http://%s:%d%s%s HTTP/1.0\r\n\r\n",
-             server, port, base, constraint);
+      sprintf(request, "GET http://%s:%d%s%s HTTP/1.0\r\n\r\n",
+            server, port, base, constraint);
    } else {
-     sprintf(request, "GET %s%s HTTP/1.0\r\nHOST: %s:%d\r\n\r\n",
-             base, constraint, server, port);
+      sprintf(request, "GET %s%s HTTP/1.0\r\nHOST: %s:%d\r\n\r\n",
+            base, constraint, server, port);
    }
 
    if(debug)

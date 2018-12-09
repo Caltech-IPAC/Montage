@@ -52,12 +52,13 @@ static char montage_json  [1024];
 /*                                                                       */
 /*  Outputs these corners plus all the image projection information.     */
 /*                                                                       */
-/*   int    areaMode       We can examine the image in general (0:NONE)  */
+/*   char  *infile         FITS file to examine                          */
+/*                                                                       */
+/*   int    areaMode       We can examine the image in general (0:ALL)   */
 /*                         a specific region with radius (1:AREA) or     */
 /*                         perform aperture photometry out to a fixed    */
 /*                         radius (2:APPHOT)                             */
 /*                                                                       */
-/*   char  *infile         FITS file to examine                          */
 /*   int    hdu            Optional HDU offset for input file            */
 /*                                                                       */
 /*   int    plane3         If datacube, the plane index for dimension 3  */
@@ -74,7 +75,7 @@ static char montage_json  [1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3, int plane4, 
+struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3, int plane4, 
                                  double ra, double dec, double radius, int locinpix, int radinpix, int debug)
 {
    int    i, j, offscl, nullcnt;
@@ -151,7 +152,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
 
    returnStruct = (struct mExamineReturn *)malloc(sizeof(struct mExamineReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -177,7 +178,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -187,16 +188,21 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
 
    /* Process basic command-line arguments */
 
+   if(debug)
+   {
+      printf("DEBUG> areaMode = %d \n", areaMode);
+      printf("DEBUG> infile   = %s \n", infile);
+      printf("DEBUG> ra       = %-g\n", ra);
+      printf("DEBUG> dec      = %-g\n", dec);
+      printf("DEBUG> radius   = %-g\n", radius);
+      fflush(stdout);
+   }
+
    rpix = 0.;
 
    if(areaMode == APPHOT)
       ap = (struct apPhoto *)malloc(maxflux * sizeof(struct apPhoto));
 
-   if(debug)
-   {
-      printf("DEBUG> infile = %s\n", infile);
-      fflush(stdout);
-   }
 
    /* Open the FITS file and initialize the WCS transform */
 
@@ -210,6 +216,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
 
    if(hdu > 0)
    {
+      status = 0;
       if(fits_movabs_hdu(fptr, hdu+1, NULL, &status))
       {
          if(ap) free(ap);
@@ -251,6 +258,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(returnStruct->msg, "WCS initialization failed.");
       return returnStruct;
    }
+
 
 
    /* A bunch of the parameters we want are in the WCS structure */
@@ -419,68 +427,80 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
    }
 
 
-   /* If a location was given, get region statistics */
+   // Treat the default region (ALL) as a circle 
+   // containing the whole image
 
-   // First find the pixel center/radius
+   if(areaMode == ALL)
+   {
+      locinpix = 1;
+      radinpix = 1;
+
+      ra  = wcs->nxpix / 2.;
+      dec = wcs->nypix / 2.;
+
+      radius = sqrt(wcs->nxpix*wcs->nxpix + wcs->nypix*wcs->nypix)/2.;
+   }
+
+
+   /* Get region statistics */
 
    ixpix = 1;
    iypix = 1;
 
-   if(radius > 0.)
+   if(radinpix) 
    {
-      if(radinpix) 
+      rpix   = radius;
+      radius = rpix * fabs(cdelt2);
+   }
+   else
+      rpix = radius / fabs(cdelt2);
+
+   if(locinpix)
+   {
+      xpix = ra;
+      ypix = dec;
+
+      pix2wcs(wcs, xpix, ypix, &lon, &lat);
+
+      if(wcs->offscl)
       {
-         rpix   = radius;
-         radius = rpix * fabs(cdelt2);
-      }
-      else
-         rpix = radius / fabs(cdelt2);
-
-      if(locinpix)
-      {
-         xpix = ra;
-         ypix = dec;
-
-         pix2wcs(wcs, xpix, ypix, &lon, &lat);
-
-         if(wcs->offscl)
-         {
-            if(ap) free(ap);
-            sprintf(returnStruct->msg, "Location off the image.");
-            return returnStruct;
-         }
-
-         convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0);
-      }
-      else
-      {
-         convertCoordinates (EQUJ, 2000., ra, dec,  
-                             csys, equinox, &lon, &lat, 0.);
-
-         wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
-
-         if(offscl)
-         {
-            if(ap) free(ap);
-            sprintf(returnStruct->msg, "Location off the image.");
-            return returnStruct;
-         }
+         if(ap) free(ap);
+         sprintf(returnStruct->msg, "Location off the image.");
+         return returnStruct;
       }
 
-      x0 = cos(ra*dtr) * cos(dec*dtr);
-      y0 = sin(ra*dtr) * cos(dec*dtr);
-      z0 = sin(dec*dtr);
+      convertCoordinates (csys, equinox, lon, lat,
+            EQUJ, 2000., &ra, &dec, 0);
+   }
+   else
+   {
+      convertCoordinates (EQUJ, 2000., ra, dec,  
+            csys, equinox, &lon, &lat, 0.);
 
-      ixpix = (int)(xpix+0.5);
-      iypix = (int)(ypix+0.5);
+      wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
 
-      if(debug)
+      if(offscl)
       {
-         printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d] [Equatorial (%-g, %-g)\n",
+         if(ap) free(ap);
+         sprintf(returnStruct->msg, "Location off the image.");
+         return returnStruct;
+      }
+   }
+
+
+
+   x0 = cos(ra*dtr) * cos(dec*dtr);
+   y0 = sin(ra*dtr) * cos(dec*dtr);
+   z0 = sin(dec*dtr);
+
+   ixpix = (int)(xpix+0.5);
+   iypix = (int)(ypix+0.5);
+
+   if(debug)
+   {
+      printf("DEBUG> Region statististics for %-g pixels around (%-g,%-g) [%d,%d] [Equatorial (%-g, %-g)\n",
             rpix, xpix, ypix, ixpix, iypix, ra, dec);
-         fflush(stdout);
-      }
+      fflush(stdout);
    }
 
 
@@ -552,7 +572,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       {
          status = 0;
          if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan,
-                          (void *)data, &nullcnt, &status))
+                  (void *)data, &nullcnt, &status))
          {
             ++fpixel[1];
 
@@ -611,7 +631,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
                valx = x;
                valy = y;
             }
-            
+
             if(first)
             {
                first = 0;
@@ -629,7 +649,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
                maxi = i+ibegin;
                maxj = j;
             }
-            
+
             if(data[i] > max)
             {
                max = data[i];
@@ -640,7 +660,7 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
                maxi = i+ibegin;
                maxj = j;
             }
-            
+
             if(data[i] < min)
             {
                min = data[i];
@@ -688,83 +708,8 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
    strcpy(montage_json,  "{");
    strcpy(montage_msgstr,  "");
 
-   if(areaMode == REGION && radius == 0)
-   {
-      sprintf(tmpstr, "\"proj\":\"%s\",",     proj);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"csys\":\"%s\",",    csys_str);             strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"equinox\":%.1f,",   equinox);              strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"naxis\":%ld,",      naxis);                strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"naxis1\":%d,",      (int)naxis1);          strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"naxis2\":%d,",      (int)naxis2);          strcat(montage_json, tmpstr);
 
-      if(naxis > 2)
-         sprintf(tmpstr, " \"naxis3\":%ld,",   naxes[2]);            strcat(montage_json, tmpstr);
-
-      if(naxis > 3)
-         sprintf(tmpstr, " \"naxis4\":%ld,",   naxes[3]);            strcat(montage_json, tmpstr);
-
-      sprintf(tmpstr, " \"crval1\":%.7f,",    crval1);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crval2\":%.7f,",    crval2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crpix1\":%-g,",     crpix1);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crpix2\":%-g,",     crpix2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt1\":%.7f,",    fabs(cdelt1));         strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt2\":%.7f,",    fabs(cdelt2));         strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"crota2\":%.4f,",    crota2);               strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"lonc\":%.7f,",      lonc);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"latc\":%.7f,",      latc);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ximgsize\":%.6f,",  fabs(naxis1*cdelt1));  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"yimgsize\":%.6f,",  fabs(naxis1*cdelt2));  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"rotequ\":%.4f,",    rot);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"rac\":%.7f,",       rac);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"decc\":%.7f,",      decc);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra1\":%.7f,",       ra1);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec1\":%.7f,",      dec1);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra2\":%.7f,",       ra2);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec2\":%.7f,",      dec2);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra3\":%.7f,",       ra3);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec3\":%.7f,",      dec3);                 strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"ra4\":%.7f,",       ra4);                  strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"dec4\":%.7f",       dec4);                 strcat(montage_json, tmpstr);
-
-
-      sprintf(tmpstr, "proj=\"%s\",",     proj);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " csys=\"%s\",",    csys_str);             strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " equinox=%.1f,",   equinox);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis=%ld,",      naxis);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis1=%d,",      (int)naxis1);          strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis2=%d,",      (int)naxis2);          strcat(montage_msgstr, tmpstr);
-
-      if(naxis > 2)
-         sprintf(tmpstr, " naxis3=%ld,",   naxes[2]);            strcat(montage_msgstr, tmpstr);
-
-      if(naxis > 3)
-         sprintf(tmpstr, " naxis4=%ld,",   naxes[3]);            strcat(montage_msgstr, tmpstr);
-
-      sprintf(tmpstr, " crval1=%.7f,",    crval1);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crval2=%.7f,",    crval2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix1=%-g,",     crpix1);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix2=%-g,",     crpix2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt1=%.7f,",    fabs(cdelt1));         strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt2=%.7f,",    fabs(cdelt2));         strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crota2=%.4f,",    crota2);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " lonc=%.7f,",      lonc);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " latc=%.7f,",      latc);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ximgsize=%.6f,",  fabs(naxis1*cdelt1));  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " yimgsize=%.6f,",  fabs(naxis1*cdelt2));  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rotequ=%.4f,",    rot);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rac=%.7f,",       rac);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " decc=%.7f,",      decc);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra1=%.7f,",       ra1);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec1=%.7f,",      dec1);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra2=%.7f,",       ra2);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec2=%.7f,",      dec2);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra3=%.7f,",       ra3);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec3=%.7f,",      dec3);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra4=%.7f,",       ra4);                  strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec4=%.7f",       dec4);                 strcat(montage_msgstr, tmpstr);
-   }
-
-   else if(areaMode == REGION && radius > 0)
+   if(areaMode == ALL || areaMode == REGION)
    {
       sprintf(tmpstr, "\"proj\":\"%s\",",   proj);                   strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"csys\":\"%s\",",   csys_str);              strcat(montage_json, tmpstr);
@@ -774,17 +719,21 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(tmpstr, " \"naxis2\":%d,",     (int)naxis2);           strcat(montage_json, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " \"naxis3\":%ld,", naxes[2]);              strcat(montage_json, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " \"naxis4\":%ld,", naxes[3]);              strcat(montage_json, tmpstr);
+      }
 
       sprintf(tmpstr, " \"crval1\":%.7f,",   crval1);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crval2\":%.7f,",   crval2);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crpix1\":%-g,",    crpix1);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crpix2\":%-g,",    crpix2);                strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt1\":%.7f,",   fabs(cdelt1));          strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt2\":%.7f,",   fabs(cdelt2));          strcat(montage_json, tmpstr);
+      sprintf(tmpstr, " \"cdelt1\":%.7f,",   cdelt1);                strcat(montage_json, tmpstr);
+      sprintf(tmpstr, " \"cdelt2\":%.7f,",   cdelt2);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crota2\":%.4f,",   crota2);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"lonc\":%.7f,",     lonc);                  strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"latc\":%.7f,",     latc);                  strcat(montage_json, tmpstr);
@@ -835,17 +784,21 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(tmpstr, " naxis2=%d,",     (int)naxis2);           strcat(montage_msgstr, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " naxis3=%ld,", naxes[2]);              strcat(montage_msgstr, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " naxis4=%ld,", naxes[3]);              strcat(montage_msgstr, tmpstr);
+      }
 
       sprintf(tmpstr, " crval1=%.7f,",   crval1);                strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " crval2=%.7f,",   crval2);                strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " crpix1=%-g,",    crpix1);                strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " crpix2=%-g,",    crpix2);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt1=%.7f,",   fabs(cdelt1));          strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt2=%.7f,",   fabs(cdelt2));          strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " cdelt1=%.7f,",   cdelt1);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " cdelt2=%.7f,",   cdelt2);                strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " crota2=%.4f,",   crota2);                strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " lonc=%.7f,",     lonc);                  strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " latc=%.7f,",     latc);                  strcat(montage_msgstr, tmpstr);
@@ -887,13 +840,12 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(tmpstr, " ramax=%.7f,",    maxra);                 strcat(montage_msgstr, tmpstr);
       sprintf(tmpstr, " decmax=%.7f",    maxdec);                strcat(montage_msgstr, tmpstr);
    }
-
-
-   // Now we process the flux vs. radius data to get
-   // the integrated source flux. 
    
    else if(areaMode == APPHOT)
    {
+      // For aperture photometry mode we process the flux vs. radius data
+      // to get the integrated source flux. 
+
       rap = radius;
 
       jbegin = maxj - rap - 1;
@@ -1046,17 +998,21 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(tmpstr, " \"naxis2\":%d,",      (int)naxis2);         strcat(montage_json, tmpstr);
 
       if(naxis > 2)
+      {
          sprintf(tmpstr, " \"naxis3\":%ld,",   naxes[2]);           strcat(montage_json, tmpstr);
+      }
 
       if(naxis > 3)
+      {
          sprintf(tmpstr, " \"naxis4\":%ld,",   naxes[3]);           strcat(montage_json, tmpstr);
+      }
 
       sprintf(tmpstr, " \"crval1\":%.7f,",    crval1);              strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crval2\":%.7f,",    crval2);              strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crpix1\":%-g,",     crpix1);              strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crpix2\":%-g,",     crpix2);              strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt1\":%.7f,",    fabs(cdelt1));        strcat(montage_json, tmpstr);
-      sprintf(tmpstr, " \"cdelt2\":%.7f,",    fabs(cdelt2));        strcat(montage_json, tmpstr);
+      sprintf(tmpstr, " \"cdelt1\":%.7f,",    cdelt1);              strcat(montage_json, tmpstr);
+      sprintf(tmpstr, " \"cdelt2\":%.7f,",    cdelt2);              strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"crota2\":%.4f,",    crota2);              strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"lonc\":%.7f,",      lonc);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"latc\":%.7f,",      latc);                strcat(montage_json, tmpstr);
@@ -1075,43 +1031,46 @@ struct mExamineReturn * mExamine(int areaMode, char *infile, int hdu, int plane3
       sprintf(tmpstr, " \"dec4\":%.7f,",      dec4);                strcat(montage_json, tmpstr);
       sprintf(tmpstr, " \"totalflux\":%.7e",  ap[nflux/2].sum);     strcat(montage_json, tmpstr);
 
-
-      sprintf(tmpstr, "proj:\"%s\",",    proj);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " csys:\"%s\",",    csys_str);            strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " equinox:%.1f,",   equinox);             strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis:%ld,",      naxis);               strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis1:%d,",      (int)naxis1);         strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " naxis2:%d,",      (int)naxis2);         strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, "proj=\"%s\",",    proj);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " csys=\"%s\",",    csys_str);            strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " equinox=%.1f,",   equinox);             strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " naxis=%ld,",      naxis);               strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " naxis1=%d,",      (int)naxis1);         strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " naxis2=%d,",      (int)naxis2);         strcat(montage_msgstr, tmpstr);
 
       if(naxis > 2)
-         sprintf(tmpstr, " naxis3:%ld,",   naxes[2]);           strcat(montage_msgstr, tmpstr);
+      {
+         sprintf(tmpstr, " naxis3=%ld,",   naxes[2]);           strcat(montage_msgstr, tmpstr);
+      }
 
       if(naxis > 3)
-         sprintf(tmpstr, " naxis4:%ld,",   naxes[3]);           strcat(montage_msgstr, tmpstr);
+      {
+         sprintf(tmpstr, " naxis4=%ld,",   naxes[3]);           strcat(montage_msgstr, tmpstr);
+      }
 
-      sprintf(tmpstr, " crval1:%.7f,",    crval1);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crval2:%.7f,",    crval2);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix1:%-g,",     crpix1);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crpix2:%-g,",     crpix2);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt1:%.7f,",    fabs(cdelt1));        strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " cdelt2:%.7f,",    fabs(cdelt2));        strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " crota2:%.4f,",    crota2);              strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " lonc:%.7f,",      lonc);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " latc:%.7f,",      latc);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ximgsize:%.6f,",  fabs(naxis1*cdelt1)); strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " yimgsize:%.6f,",  fabs(naxis1*cdelt2)); strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rotequ:%.4f,",    rot);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " rac:%.7f,",       rac);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " decc:%.7f,",      decc);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra1:%.7f,",       ra1);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec1:%.7f,",      dec1);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra2:%.7f,",       ra2);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec2:%.7f,",      dec2);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra3:%.7f,",       ra3);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec3:%.7f,",      dec3);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " ra4:%.7f,",       ra4);                 strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " dec4:%.7f,",      dec4);                strcat(montage_msgstr, tmpstr);
-      sprintf(tmpstr, " totalflux:%.7e",  ap[nflux/2].sum);     strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crval1=%.7f,",    crval1);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crval2=%.7f,",    crval2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crpix1=%-g,",     crpix1);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crpix2=%-g,",     crpix2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " cdelt1=%.7f,",    cdelt1);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " cdelt2=%.7f,",    cdelt2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " crota2=%.4f,",    crota2);              strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " lonc=%.7f,",      lonc);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " latc=%.7f,",      latc);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ximgsize=%.6f,",  fabs(naxis1*cdelt1)); strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " yimgsize=%.6f,",  fabs(naxis1*cdelt2)); strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " rotequ=%.4f,",    rot);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " rac=%.7f,",       rac);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " decc=%.7f,",      decc);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra1=%.7f,",       ra1);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec1=%.7f,",      dec1);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra2=%.7f,",       ra2);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec2=%.7f,",      dec2);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra3=%.7f,",       ra3);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec3=%.7f,",      dec3);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " ra4=%.7f,",       ra4);                 strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " dec4=%.7f,",      dec4);                strcat(montage_msgstr, tmpstr);
+      sprintf(tmpstr, " totalflux=%.7e",  ap[nflux/2].sum);     strcat(montage_msgstr, tmpstr);
    }
 
    strcat(montage_json, "}");

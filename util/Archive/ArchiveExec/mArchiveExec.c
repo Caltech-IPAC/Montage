@@ -4,7 +4,6 @@
 #include <string.h>
 #include <math.h>
 #include <mtbl.h>
-#include <svc.h>
 
 #define MAXSTR  4096
 #define NPIX   23552
@@ -13,8 +12,6 @@ extern char *optarg;
 extern int optind, opterr;
 
 extern int getopt(int argc, char *const *argv, const char *options);
-
-char *svc_value();
 
 int   debug;
 FILE *fdebug;

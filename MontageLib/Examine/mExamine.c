@@ -10,7 +10,7 @@
 #define STRLEN  1024
 #define MAXFLUX 1024
 
-#define NONE    0
+#define ALL     0
 #define REGION  1
 #define APPHOT  2
 
@@ -37,13 +37,15 @@ int main(int argc, char **argv)
 
    /* Process basic command-line arguments */
 
+   ra     = 0.;
+   dec    = 0.;
    radius = 0.;
    debug  = 0;
 
    locinpix = 0;
    radinpix = 0;
 
-   areaMode = REGION;
+   areaMode = ALL;
 
    montage_status = stdout;
 
@@ -166,7 +168,7 @@ int main(int argc, char **argv)
       plane4 = planes[2];
 
 
-   returnStruct = mExamine(areaMode, infile, hdu, plane3, plane4, ra, dec, radius, locinpix, radinpix, debug);
+   returnStruct = mExamine(infile, areaMode, hdu, plane3, plane4, ra, dec, radius, locinpix, radinpix, debug);
 
 
    if(returnStruct->status == 1)
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mExamine\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }

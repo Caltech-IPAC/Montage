@@ -1,0 +1,24 @@
+{
+   "module":"mArchiveExec",
+
+   "function":"mArchiveExec",
+
+   "desc" : "mArchiveExec loops over a list of images (with URLs), downloading them all.",
+
+   "arguments":
+   [
+      {"type":"string",                   "name":"tblfile",      "desc":"Table file list of input images."},
+      {"type":"string",  "default":".",   "name":"path",         "desc":"Directory to write retrieved files."},
+      {"type":"int",     "default":0,     "name":"restart",      "desc":"Restart record, if download interupted."},
+      {"type":"int",     "default":300,   "name":"timeout",      "desc":"Download timeout (sec) per image."},
+      {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                      "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                   "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                      "name":"count",        "desc":"Total number of images."},
+      {"type":"int",                      "name":"failed",       "desc":"Count where download failed."}
+   ]
+}

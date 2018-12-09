@@ -1,0 +1,23 @@
+.SUFFIXES:
+.SUFFIXES: .c .o
+
+DATA_DIR = $(shell cd ../../data; pwd)
+
+CC     = gcc -Wl,--stack,5000000 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 -fPIC \
+         -DFONT_DIR='"C:\\Program Files (x86)\\Montage\\"' -Wall
+CFLAGS =	-g -I. -I.. -I../../lib/include -I../../lib/freetype/include \
+		   -I../../lib/freetype/include/freetype2 -I../../Montage
+LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -llodepng -lmtbl -ljson -lcmd \
+		   -L../../lib/freetype/lib -lfreetype -lz -lm
+
+.c.o:
+		   $(CC) $(CFLAGS)  -c  $*.c
+
+mViewer:	mViewer.o montageViewer.o mViewer_graphics.o mViewer_grid.o
+		   $(CC) -o mViewer mViewer.o montageViewer.o mViewer_graphics.o mViewer_grid.o \
+		   ../util/checkHdr.o   \
+		   ../util/checkWCS.o   \
+		   $(LIBS)
+
+clean:
+		   rm -f mViewer *.o

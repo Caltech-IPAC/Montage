@@ -48,7 +48,7 @@ static char   area_file[MAXSTR];
 
 static double dtr;
 
-static int  debug;
+static int  mProjectQL_debug;
 
 
 /* Optional border polygon data */
@@ -123,11 +123,11 @@ static char montage_msgstr[1024];
 /*  not required (leading to some interesting combinations).             */
 /*                                                                       */
 /*   char  *input_file     FITS file to reproject                        */
-/*   int    hdu            Optional HDU offset for input file            */
 /*   char  *output_file    Reprojected FITS file                         */
 /*   char  *template_file  FITS header file used to define the desired   */
 /*                         output                                        */
 /*                                                                       */
+/*   int    hdu            Optional HDU offset for input file            */
 /*   int    interp         Interpolation scheme for value lookup.        */
 /*                         Currently NEAREST of LANCZOS.                 */
 /*                                                                       */
@@ -139,7 +139,7 @@ static char montage_msgstr[1024];
 /*                         as blank                                      */
 /*                                                                       */
 /*   char  *borderstr      Optional string that contains either a border */
-/*                         width or comma-separated "x1,y1,x2,y2, ..."   */
+/*                         width or comma-separated 'x1,y1,x2,y2, ...'   */
 /*                         pairs defining a pixel region polygon where   */
 /*                         we keep only the data inside.                 */
 /*                                                                       */
@@ -148,7 +148,7 @@ static char montage_msgstr[1024];
 /*   int    expand         Expand output image area to include all of    */
 /*                         the input pixels                              */
 /*                                                                       */
-/*   int    fullRegion     Do not "shrink-wrap" output area to non-blank */
+/*   int    fullRegion     Do not 'shrink-wrap' output area to non-blank */
 /*   int    noAreas        In the interest of speed, generation of area  */
 /*                         images is turned off.  This turns it back on. */
 /*                         pixels                                        */
@@ -157,7 +157,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, char *template_file, int interp,
+struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *template_file, int hduin, int interp,
                                     char *weight_file, double fixedWeight, double threshold, char *borderstr,
                                     double fluxScale, int expand, int fullRegion, int noAreas, int debugin)
 {
@@ -175,10 +175,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    double    oxpixMax, oypixMax;
    double    xoff, yoff;
    int       imin, imax, jmin, jmax;
+   int       ibmin, ibmax, ibfound;
    int       istart, ilength;
    int       jstart, jlength;
    double    xpos, ypos;
-   int       offscl, border;
+   int       offscl, border, bordertype;
    double    *buffer;
    double    *area;
 
@@ -237,7 +238,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
 
    returnStruct = (struct mProjectQLReturn *)malloc(sizeof(struct mProjectQLReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -283,8 +284,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    /* Process the command-line parameters */
    /***************************************/
 
-   debug = debugin;
-   hdu   = hduin;
+   mProjectQL_debug = debugin;
+
+   hdu = hduin;
 
    strcpy(output_file, ofile);
 
@@ -299,6 +301,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    time(&currtime);
    start = currtime;
 
+   border     = 0;
+   bordertype = FIXEDBORDER;
+
    border = strtol(borderstr, &end, 10);
 
    if(end < borderstr + strlen(borderstr))
@@ -310,7 +315,10 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
          return returnStruct;
       }
       else
+      {
          border = 0;
+         bordertype = POLYBORDER;
+      }
    }
 
    if(border < 0)
@@ -359,7 +367,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    strcat(output_file,  ".fits");
    strcat(area_file,    "_area.fits");
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("\ninput_file    = [%s]\n", input_file);
 
@@ -378,7 +386,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    /* Read the input image header */
    /*******************************/
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       time(&currtime);
       printf("\nStarting to process pixels (time %.0f)\n\n", 
@@ -392,7 +400,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("input.naxes[0]   =  %ld\n",  input.naxes[0]);
       printf("input.naxes[1]   =  %ld\n",  input.naxes[1]);
@@ -414,7 +422,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
 
    mProjectQL_readTemplate(template_file);
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("\nOriginal template\n");
       printf("\noutput.naxes[0]  =  %ld\n", output.naxes[0]);
@@ -435,7 +443,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       offset = (sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
                    + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc));
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("\nexpand output template by %-g degrees on all sides\n\n", offset);
          fflush(stdout);
@@ -443,7 +451,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
 
       offset = offset / sqrt(output.wcs->xinc * output.wcs->xinc + output.wcs->yinc * output.wcs->yinc);
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("\nexpand output template by %-g pixels on all sides\n\n", offset);
          fflush(stdout);
@@ -451,7 +459,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
 
       mProjectQL_readTemplate(template_file);
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("\nExpanded template\n");
          printf("\noutput.naxes[0]  =  %ld\n", output.naxes[0]);
@@ -642,7 +650,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    if(jlength > output.naxes[1])
       jlength = output.naxes[1];
 
-   if(debug >= 2)
+   if(mProjectQL_debug >= 2)
    {
       printf("\nOutput range:\n");
       printf(" oxpixMin = %-g\n", oxpixMin);
@@ -703,7 +711,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       }
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("\n%lu bytes allocated for image pixel values\n", input.naxes[0] * input.naxes[1] * sizeof(double));
       fflush(stdout);
@@ -735,7 +743,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
          }
       }
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("%lu bytes allocated for pixel weights\n", ilength * jlength * sizeof(double));
          fflush(stdout);
@@ -758,12 +766,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
 
    for (j=0; j<input.naxes[1]; ++j)
    {
-      if(debug == 2)
+      if(mProjectQL_debug == 2)
       {
          printf("\rReading input row %5d  ", j);
          fflush(stdout);
       }
-      else if(debug)
+      else if(mProjectQL_debug)
       {
          printf("Reading input row %5d\n", j);
          fflush(stdout);
@@ -807,6 +815,38 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
          return returnStruct;
       }
    }
+
+
+   /*****************************************************/
+   /* If we have a border, change border values to NaNs */
+   /*****************************************************/
+
+   if(bordertype == FIXEDBORDER && border > 0)
+   {
+      for(j=0; j<input.naxes[1]; ++j)
+      {
+         for(i=0; i<input.naxes[0]; ++i)
+         {
+            if(j<border || j>input.naxes[1]-border
+            || i<border || i>input.naxes[0]-border)
+               data[j][i] = nan;
+         }
+      }
+   }
+
+   else if(bordertype == POLYBORDER)
+   {
+      for(j=0; j<input.naxes[1]; ++j)
+      {
+         ibfound = mProjectQL_BorderRange(j, input.naxes[0]-1, &ibmin, &ibmax);
+
+         for(i=0; i<input.naxes[0]; ++i)
+         {
+            if(ibfound == 0 || (i >= ibmin && i <= ibmax))
+               data[j][i] = nan;
+         }
+      }
+   }
       
 
    /********************************/
@@ -847,7 +887,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("\nFITS data image created (not yet populated)\n"); 
       fflush(stdout);
@@ -862,7 +902,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
          return returnStruct;
       }
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("FITS area image created (not yet populated)\n"); 
          fflush(stdout);
@@ -881,7 +921,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("Template keywords written to FITS data image\n"); 
       fflush(stdout);
@@ -896,7 +936,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
          return returnStruct;
       }
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("Template keywords written to FITS area image\n\n"); 
          fflush(stdout);
@@ -1059,7 +1099,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
    }
 
 
-   if(debug)
+   if(mProjectQL_debug)
    {
       printf("Template keywords BITPIX, CRPIX, and NAXIS updated\n");
       fflush(stdout);
@@ -1234,13 +1274,13 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       ++fpixel[1];
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("Data written to FITS data (and area) images\n\n"); 
       fflush(stdout);
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       time(&currtime);
       printf("\n\nDone processing pixels (%.0f seconds)\n\n",
@@ -1260,7 +1300,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
       return returnStruct;
    }
 
-   if(debug >= 1)
+   if(mProjectQL_debug >= 1)
    {
       printf("FITS data image finalized\n"); 
       fflush(stdout);
@@ -1275,7 +1315,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, int hduin, char *ofile, ch
          return returnStruct;
       }
 
-      if(debug >= 1)
+      if(mProjectQL_debug >= 1)
       {
          printf("FITS area image finalized\n\n"); 
          fflush(stdout);
@@ -1370,7 +1410,7 @@ int mProjectQL_readTemplate(char *filename)
       if(line[strlen(line)-1] == '\r')
          line[strlen(line)-1]  = '\0';
 
-      if(debug >= 3)
+      if(mProjectQL_debug >= 3)
       {
          printf("Template line: [%s]\n", line);
          fflush(stdout);
@@ -1381,12 +1421,14 @@ int mProjectQL_readTemplate(char *filename)
       mProjectQL_stradd(header, line);
    }
 
+   fclose(fp);
+
 
    /****************************************/
    /* Initialize the WCS transform library */
    /****************************************/
 
-   if(debug >= 3)
+   if(mProjectQL_debug >= 3)
    {
       printf("Output Header to wcsinit():\n%s\n", header);
       fflush(stdout);
@@ -1425,7 +1467,7 @@ int mProjectQL_readTemplate(char *filename)
       ycorrection = y-iy;
    }
 
-   if(debug)
+   if(mProjectQL_debug)
    {
       printf("xcorrection = %.2f\n", xcorrection);
       printf(" ycorrection = %.2f\n\n", ycorrection);
@@ -1496,7 +1538,7 @@ int mProjectQL_readTemplate(char *filename)
    || output.wcs->c1type[strlen(output.wcs->c1type)-1] == 'T')
       output.clockwise = !output.clockwise;
 
-   if(debug >= 3)
+   if(mProjectQL_debug >= 3)
    {
       if(output.clockwise)
          printf("Output pixels are clockwise.\n");
@@ -1506,7 +1548,6 @@ int mProjectQL_readTemplate(char *filename)
 
    return 0;
 }
-
 
 
 /**********************************************/
@@ -1557,7 +1598,7 @@ int mProjectQL_parseLine(char *linein)
    
    *end = '\0';
 
-   if(debug >= 2)
+   if(mProjectQL_debug >= 2)
    {
       printf("keyword [%s] = value [%s]\n", keyword, value);
       fflush(stdout);
@@ -1713,7 +1754,7 @@ int mProjectQL_readFits(char *filename, char *weightfile)
       ycorrectionIn = y-iy;
    }
 
-   if(debug)
+   if(mProjectQL_debug)
    {
       printf("xcorrectionIn = %.2f\n", xcorrectionIn);
       printf(" ycorrectionIn = %.2f\n\n", ycorrectionIn);
@@ -1738,7 +1779,7 @@ int mProjectQL_readFits(char *filename, char *weightfile)
    if(isDSS)
       input.clockwise = 0;
 
-   if(debug >= 3)
+   if(mProjectQL_debug >= 3)
    {
       if(input.clockwise)
          printf("Input pixels are clockwise.\n");
@@ -1920,7 +1961,7 @@ int mProjectQL_BorderSetup(char *strin)
 
    strcpy(str, strin);
 
-   if(debug >= 3)
+   if(mProjectQL_debug >= 3)
    {
       printf("Polygon string: [%s]\n", str);
 
@@ -1972,7 +2013,7 @@ int mProjectQL_BorderSetup(char *strin)
 
       polygon[nborder].y = atoi(ptr);
 
-      if(debug)
+      if(mProjectQL_debug)
       {
          printf("Polygon border  %3d: %6d %6d\n",
             nborder,

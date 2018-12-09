@@ -7,14 +7,14 @@
 
    "arguments":
    [
-      {"type":"int",     "default":0,      "name":"areaMode",      "desc":"Examine the image in general (0:NONE) a specific region with radius (1:AREA) or  perform aperture photometry out to a fixed radius (2:APPHOT)."},
       {"type":"string",                    "name":"infile",        "desc":"FITS file to examine."},
+      {"type":"int",     "default":0,      "name":"areaMode",      "desc":"Examine the image in general (0:NONE) a specific region with radius (1:AREA) or  perform aperture photometry out to a fixed radius (2:APPHOT)."},
       {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"int",     "default":1,      "name":"plane3",        "desc":"If datacube, the plane index for dimension 3."},
       {"type":"int",     "default":1,      "name":"plane4",        "desc":"If datacube, the plane index for dimension 4."},
-      {"type":"double",                    "name":"ra",            "desc":"RA for region statistics."},
-      {"type":"double",                    "name":"dec",           "desc":"Dec for region statistics."},
-      {"type":"double",                    "name":"radius",        "desc":"Radius for region statistics."},
+      {"type":"double",  "default":0,      "name":"ra",            "desc":"RA for region statistics."},
+      {"type":"double",  "default":0,      "name":"dec",           "desc":"Dec for region statistics."},
+      {"type":"double",  "default":1,      "name":"radius",        "desc":"Radius for region statistics."},
       {"type":"boolean", "default":false,  "name":"locinpix",      "desc":"The coordinates are actually in pixels."},
       {"type":"boolean", "default":false,  "name":"radinpix",      "desc":"The radius is actually in pixels."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
@@ -22,6 +22,8 @@
 
    "return":
    [
+      {"type":"int",                        "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                     "name":"msg",           "desc":"Return message (for errors)."},
       {"type":"string",                     "name":"proj",          "desc":"Image projection."},
       {"type":"string",                     "name":"csys",          "desc":"Coordinate system."},
       {"type":"double",                     "name":"equinox",       "desc":"Coordinate system equinox."},

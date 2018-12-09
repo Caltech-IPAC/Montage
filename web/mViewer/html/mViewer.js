@@ -1,43 +1,55 @@
-// mVIEWER Javascript library.  
-//
-// This code defines an mViewer Javascript "object".  Any
-// GUI can have as many of this in a single browser window
-// as we like.  Each object is tied to a specific set of
-// files in a disk "workspace" area and to specific browser 
-// window <div> so the required creation parameters are a 
-// (relative) pointer to the workspace, an initial display
-// JSON file in that directory, and the ID of the <div> in
-// in the current window that mViewer will use.
+/*
+Theme: mViewer Javascript library.  
 
-function mViewer(workspace, jsonFile, imgDivID)
+This code defines an mViewer Javascript "object".  Any GUI can have 
+as many of this in a single browser window as needed.  Each object is 
+tied to a specific set of files in a disk "workspace" area and to 
+specific <div> so the required creation parameters are a (relative) 
+pointer to the workspace, the ID of the <div> in in the current window.
+
+mViewer can be initialized by a JSON disk file or a plan JSON structure
+string. 
+
+Modified: August 3, 2017 (Mihseh Kong)
+
+Project related functionality such as re-arranging data cube and
+extracting project keywords from FITS header have been removed. 
+This code is strictly project independent.
+*/
+
+function mViewer(workspace, imgDivID)
 {
     var me = this;
 
-    me.debug = false;
+    me.debug = 0;
 
     if (me.debug) {
 	console.log ("Enter mViewer: workspace= " + workspace);
-	console.log ("jsonFile= " + jsonFile);
         console.log ("imgDivID= " + imgDivID);
     }
     
     me.cmd;
 
     me.workspace  = workspace;
-    me.jsonFile   = jsonFile;
     me.imgDivID   = imgDivID;
 
     me.imgDiv = document.getElementById(imgDivID);
 
-    me.plotjsonFile;
-    me.plotDivID;
-    
+    me.dnloadurl = "/cgi-bin/FileDownload/nph-download";;
+    me.cgiurl = "/cgi-bin/mViewer/nph-mViewer";
+
+    me.jsonfile;
+    me.jsonstr;
+
+    me.getjsonHandle;
+    me.iceajaxHandle;
+
     me.showButtons = true;
 
     me.timeoutValue = 150; // milliseconds
-
-    me.updateInProcess = false;
     
+    me.updateInProgress = false;
+
     me.initJSON   = {};
     me.updateJSON = {};
     me.imgData    = {};
@@ -45,93 +57,117 @@ function mViewer(workspace, jsonFile, imgDivID)
     me.updateCallbacks = [];
     me.clickCallbacks  = [];
     me.boxCallbacks  = [];
-    me.waveplotCallbacks  = [];
 
     me.display;
     me.gc;
 
-    me.xminImg;
-    me.xmaxImg;
-    me.yminImg;
-    me.ymaxImg;
+    me.xminImg = 0;
+    me.xmaxImg = 1;
+    me.yminImg = 0;
+    me.ymaxImg = 1;
 
     me.scale;
-    me.downloadMode = false;
 
     me.colorPlane;
 
+    me.iceBlock;
+    me.noBlocker = true;
 
     me.hdrWin;
 
 
-   // MAIN SETUP Function.  The parameters above are 
-   // essentially "instance variables" and the functions
-   // defined below are class methods, tied to the current
-   // object ("this" above) by use of the "me" convention
-   // that keeps everything instance-specific.
+/*
+    Initialize mViewer with either 'initJsonfile' or 'initJsondata';
+    when jsondata (updateJSON) is downloaded, the callback routine 
+    'getjsonCallback' will construct paramurl and send the ajax call via
+	    
+	me.iceajaxHandle.sendCmd (paramurl, "json");
 
-   // The initialization proceeds in three steps:  First
-   // we create any GUI objects needed inside the display
-   // <div> specific to this instance (e.g. image display
-   // and drawing overlay canvases, optional control buttons,
-   // etc.)  Then, we asynchronously retrieve the initial
-   // display JSON file and use this to request the intial
-   // plot (after updating the size in it to match the 
-   // current window).  Finally, we retrieve the generated
-   // JPEG/PNG and paint it into the display window.
+    to display the initial image. 
+*/
+    me.initJsonfile = function (jsonfile)
+    {
+        me.cmd = "initjsonfile";
 
-   // Since the above involves two asynchronous requests
-   // to a server, we have to break the processing into
-   // separate steps with callbacks at each stage to carry
-   // the processing forward.
+	if (me.debug) {
+            console.log("mViewer.initJsonfile(): cmd= " + me.cmd);
+        }
+        
+	me.init();
 
-   // The sequence is 
-   //
-   //   init() -> getJSONFile() -> submitUpdateRequest() -> processUpdate()
-   //                                   (callback)            (callback)
-   //
-   // The "submitUpdateRequest() -> processUpdate()" pair
-   // will also be used whenever we decide to update the
-   // display (e.g. with a new color stretch).
+        if (jsonfile != undefined) {
+            
+            if (me.getjsonHandle == undefined) {
+        
+	        me.getjsonHandle = new getJSON (me.workspace, me.dnloadurl);
+	        me.getjsonHandle.addCallback (me.getjsonCallback);
+	        
+		if (me.debug) {
+	            console.log ("getjsonHandle created");
+                }
+            }
 
-    me.init = function()
+	    me.getjsonHandle.submit(jsonfile);
+	    
+	    if (me.debug) {
+                console.log("mViewer.getjsonHandle.submit called");
+            }
+        
+        }
+
+    }
+   
+    me.initJsondata = function(data)
+    {
+        me.cmd = "initjsondata";
+        
+	if (me.debug) {
+            console.log("mViewer.initJsondata()");
+        }
+
+        if ((data == undefined) ||
+            (data == null)) {
+	    return;
+	}
+
+	me.init();
+
+	me.initJSON = data;
+        me.updateJSON = data;
+
+        if (!me.noBlocker) {
+            me.iceBlock.show(); 
+        }
+
+        if (me.debug) {
+	    console.log ("submit a ajax request");
+        }
+
+        var paramurl = "&cmd=" + me.cmd + "&json="
+	    + encodeURIComponent(JSON.stringify(me.updateJSON));
+				                
+        if (me.debug) {
+	    console.log ("query URL = " + me.cgiurl + "?workspace="
+            + me.workspace + "&" + paramurl);
+        }
+
+            
+	me.iceajaxHandle.sendCmd (paramurl, "json");
+    }
+
+
+    me.init = function ()
     {
         if (me.debug) {
             console.log("DEBUG> mViewer.init()");
         }
-    
+  
+	me.updateInProgress = false;
+
         me.initJSON   = {};
         me.updateJSON = {};
-
-        me.display = null;
-        me.cmd = "init";
-        me.updateInProgress = false;
-
-
-/*
-    Initialize graphic canvas
-*/   
-/*
-        if (me.gc == undefined)  {
-	
-            if (me.debug) {
-                console.log ("call iceGraphics");
-            }     
-
-	    me.gc = new iceGraphics(me.imgDivID);
-	
-	    if (me.debug) {
-	        console.log ("returned iceGraphics");
-	    }
-        }	
-
-        me.gc.boxCallback        = me.zoomCallback;
-        me.gc.clickCallback      = me.clickCallback;
-        me.gc.rightClickCallback = me.rightClickCallback;
-*/
-
-
-        me.xminImg = 0;
+        
+	me.xminImg = 0;
         me.xmaxImg = 1;
         me.yminImg = 0;
         me.ymaxImg = 1;
@@ -139,59 +175,83 @@ function mViewer(workspace, jsonFile, imgDivID)
         me.scale   = 1;
 
 /*
-    Ask John about this
+    Create the internals mViewer needs inside the display <div>
+    This consists of a canvas for the image itself and another
+    one overlaying it for graphics.
 */
-        jQuery('body').on('contextmenu', 'img',    
-	    function(e){ return false; });
-        jQuery('body').on('contextmenu', 'canvas', 
-	    function(e){ return false; });
+        if (me.display == undefined) {
+        
+	    if (me.debug) {
+	        console.log ("create display canvas area");
+	    } 
+	    
+	    me.display = jQuery('<div/>').appendTo(me.imgDiv);
+            me.display = jQuery(me.display).get(0);
+        
+            var rect = me.display.getBoundingClientRect();
 
-
-      // We prevent colliding and redundant remote requests in two ways
-      // First, resize events are handled with a short timeout to prevent
-      // them firing in rapid succession as you resize the container 
-      // (i.e., we try to act only on the final resized value).  Second,
-      // once an remote update request is made, further updates are ignored.
-      // This also mainly affects resizing since we try to disable (gray out)
-      // all controls during the update processing.
-
-        me.updateInProcess = false;
-
-
-      // Sync the image div size up with it's container
-      // The resize function usually does an automatic 
-      // update request but at this point the canvas 
-      // graphics context doesn't exist yet, so it won't
-      // (which is a good thing since we don't have the 
-      // JSON info yet).
-
-//        me.resize();
-
-
-      // Create the internals mViewer needs inside the display <div>
-      // This consists of a canvas for the image itself and another
-      // one overlaying it for graphics.
-
-        me.display = jQuery('<div/>').appendTo(me.imgDiv);
-
-        me.display = jQuery(me.display).get(0);
-
-        var rect = me.display.getBoundingClientRect();
-
-	if (me.debug) {
-
-            if (rect != null) {
-	        console.log ("rect.left= " + rect.left);
-	        console.log ("rect.top= " + rect.top);
-	        console.log ("rect.right= " + rect.right);
-	        console.log ("rect.bottom= " + rect.bottom);
-	    }
-
-	    console.log ("init.call getJSONFile");
+	    if (me.debug) {
+                if (rect != null) {
+	            console.log ("rect.left= " + rect.left);
+	            console.log ("rect.top= " + rect.top);
+	            console.log ("rect.right= " + rect.right);
+	            console.log ("rect.bottom= " + rect.bottom);
+	        }
+            }
         }
 
-        me.getJSONFile();
+/*
+        if (me.getjsonHandle == undefined) {
+        
+	    me.getjsonHandle = new getJSON (me.workspace, me.dnloadurl);
+	    me.getjsonHandle.addCallback (me.getjsonCallback);
+
+	    if (me.debug) {
+	        console.log ("getjsonHandle created");
+            }
+        }
+*/
+
+        if (me.iceajaxHandle == undefined) {
+        
+	    me.iceajaxHandle = new iceAjax (me.workspace, me.cgiurl);
+	    me.iceajaxHandle.addCallback (me.iceajaxCallback);
+
+	    if (me.debug) {
+	        console.log ("iceajaxHandle created");
+            }
+        }
+
+/*
+    Initialize graphic canvas
+    
+    Do this only once in init to avoid multiple gc which shows 
+    when window resizes.
+
+    mViewer only passes along the click/box coordinates to the
+    applicaiton program, not taking any custom action internally.
+
+    When the image click event occurs, me.clickCalback is executed;
+    me.clickCallback calls the me.clickCallbacks[] which is defined
+    by the custom code in the application program, and registered
+    at the time when mViewer is initialized.
+*/
+        if (me.gc == undefined)  {
 	
+            if (me.debug) {
+                console.log ("call iceGraphics");
+            }     
+
+            me.gc = new iceGraphics(me.imgDivID);
+            me.gc.boxCallback        = me.boxCallback;
+            me.gc.clickCallback      = me.clickCallback;
+            me.gc.rightClickCallback = me.rightClickCallback;
+        }	
+
+        if ((!me.noBlocker) && (me.iceBlock == undefined))  {
+            me.iceBlock = new IceBlock(me.imgDivID);
+        }
+
     }
 
 
@@ -199,528 +259,286 @@ function mViewer(workspace, jsonFile, imgDivID)
    // workspace and will be used both to generate the intial
    // display and to configure various controls.
 
-    me.getJSONFile = function()
+    me.getJSONFile = function(jsonfile)
     {
-        var xmlhttp;
-        var paramURL;
+        var debugflag = 0;
 
+        me.jsonfile = jsonfile;
+
+        me.getjsonHandle.submit (me.jsonfile);
+    
+	if (debugflag) {
+	    console.log ("From mViewer.getJSONFile: jsonfile= " + jsonfile);
+        }
+
+        me.getjsonHandle.submit (me.jsonfile);
+    }
+
+
+    me.getjsonCallback = function() 
+    {
+        var debug = 0;
+
+	if (debug) {
+            console.log ("From mViewer.getjsonCallback");
+        }	
+
+	me.initJSON = me.getjsonHandle.jsonData;
+        me.updateJSON = me.initJSON;
 /*
-        me.grayOut(true, {'opacity':'50'});
-        me.grayOutMessage(true);
-*/
-
-        paramURL = "/cgi-bin/FileDownload/nph-download"
-                 + "?url=" + me.workspace + "/" + me.jsonFile;
-
-        if (me.debug) {
-	    console.log ("mViewer.getJSONFile: paramURL= " + paramURL);
-        }
-
-        try {
-            xmlhttp = new XMLHttpRequest();
-        }
-        catch (e) {
-            xmlhttp=false;
-        }
-
-        if (!xmlhttp && window.createRequest)
-        {
-            try {
-                xmlhttp = window.createRequest();
-            }
-            catch (e) {
-                xmlhttp=false;
-            }
-        }
-
-        xmlhttp.open("GET", paramURL);
-
-        xmlhttp.send(null);
-
-        xmlhttp.onreadystatechange = function()
-        {
-            if (xmlhttp.readyState==4 && xmlhttp.status==200)
-            {
-                var xml = xmlhttp.responseXML;
-
-                if(xml && xml.getElementsByTagName("error").length > 0)
-                {
-                    var obj = xml.getElementsByTagName("error")[0];
-                    var error = obj.childNodes[0].nodeValue;
-
-                    me.grayOutMessage(false);
-                    me.grayOut(false);
-
-                    alert("Server Error: " + error);
-                }
-                else
-                {
-                    me.paramText = xmlhttp.responseText;
-                    
-		    me.initJSON = jQuery.parseJSON(xmlhttp.responseText);
-                    
-		    me.updateJSON = me.initJSON;
-
-/*
-	            if (me.debug) {
-	                console.log ("imageFile= " + me.initJSON.imageFile);
-	                console.log ("imageType= " + me.initJSON.imageType);
-	                console.log ("canvasWidth= " + me.initJSON.canvasWidth);
-	                console.log ("canvasHeight= " 
-			    + me.initJSON.canvasHeight);
-	               
-		        console.log ("fitsFile= " 
-		            + me.initJSON.grayFile.fitsFile);
-                        console.log ("me.initJSON.grayFile.colorTable= " 
-	                    + me.initJSON.grayFile.colorTable);
-                        console.log ("me.initJSON.grayFile.stretchMin= " 
-	                    + me.initJSON.grayFile.stretchMin);
-                        console.log ("me.initJSON.grayFile.stretchMax= " 
-	                    + me.initJSON.grayFile.stretchMax);
-                        console.log ("me.initJSON.grayFile.stretchMode= " 
-	                    + me.initJSON.grayFile.stretchMode);
+	if (debug) {
+	    console.log ("imagefile= " 
+	        + me.initJSON.image.imagefile);
+	    console.log ("imagetype= " 
+	        + me.initJSON.image.imagetype);
+	    console.log ("fitsfile= " 
+	        + me.initJSON.image.grayfile.fitsfile);
+            console.log ("me.initJSON.image.grayfile.colortable= " 
+                + me.initJSON.image.grayfile.colorTable);
+            console.log ("me.initJSON.image.grayfile.stretchmin= " 
+                + me.initJSON.image.grayfile.stretchmin);
+            console.log ("me.initJSON.image.grayfile.stretchmax= " 
+                + me.initJSON.image.grayfile.stretchmax);
+            console.log ("me.initJSON.image.grayfile.stretchmode= " 
+                + me.initJSON.image.grayfile.stretchmode);
 	            
-		        var noverlay = me.initJSON.overlay.length;
+            var noverlay = me.initJSON.overlay.length;
 	                
-			console.log ("noverlay= " + noverlay);
-
-	                for (var l=0; l<noverlay; l++) {
-	    
-	                    console.log ("me.initJSON.overlay[l].type= " 
-	                        + me.initJSON.overlay[l].type);
-                            console.log ("me.initJSON.overlay[l].color= " 
-	                        + me.initJSON.overlay[l].color);
-                            console.log ("me.initJSON.overlay[l].visible= " 
-	                        + me.initJSON.overlay[l].visible);
-           
-	                    if (me.initJSON.overlay[l].type == "grid") {
-
-	                        console.log ("me.initJSON.overlay[l].coordSys= " 
-	                            + me.initJSON.overlay[l].coordSys);
-	                    }
-	                    else if (me.initJSON.overlay[l].type == "marker") {
-	
-                                console.log ("me.initJSON.overlay[l].symType= "
-	                            + me.initJSON.overlay[l].symType);
-                                console.log ("me.initJSON.overlay[l].symSize= "
-	                            + imgDme.initJSON.overlay[l].symSize);
-                                console.log ("me.initJSON.overlay[l].location= "
-	                            + me.initJSON.overlay[l].location);
-                            } 
-	                }
-	            }
-		  
-*/
-
-/*
-    Initialize graphic canvas
-    
-    Do this only once in init to avoid multiple gc which shows 
-    when window resizes.
-*/
-                    if (me.gc == undefined)  {
-	
-                        if (me.debug) {
-                            console.log ("call iceGraphics");
-                        }     
-
-	                me.gc = new iceGraphics(me.imgDivID);
-                        me.gc.boxCallback        = me.boxCallback;
-                        me.gc.clickCallback      = me.clickCallback;
-                        me.gc.rightClickCallback = me.rightClickCallback;
-                    }	
-
-                    me.grayOutMessage(false);
-                    me.grayOut(false);
-
-	           if (me.debug) {
-	               console.log ("call submitUpdateRequest");
-                   }
-
-                    me.submitUpdateRequest("init");
-	        }
-            }
-            else if(xmlhttp.status != 200)
-            {
-                me.grayOutMessage(false);
-                me.grayOut(false);
-
-                alert("Remote service error [retrieving initial JSON].");
-            } 
-	}
-    }
-
-
-
-   // Change to a new JSON structure 
-   // (set by an outside application)
-
-   me.replaceJSON = function(json)
-   {
-      if (me.debug)
-         console.log("DEBUG> mViewer.replaceJSON()");
-
-      me.updateJSON = json;
-
-      me.submitUpdateRequest();
-   }
-
-
-
-   // Send a request off for an updated display JPEG
-   // The POST call names "processUpdate()" as its 
-   // callback.
-
-   me.submitUpdateRequest = function(cmd)
-   {
-        me.cmd = cmd;
-
-        if ((me.cmd != "init") && (me.updateInProgress))
-            return;
-
-
-        if(me.debug) {
-            console.log("DEBUG> mViewer.submitUpdateRequest()");
-            console.log ("DEBUG> me.cmd= " + me.cmd);
-        }
-    
-/*
-        me.grayOut(true, {'opacity':'50'});
-        me.grayOutMessage(true);
-*/
-
-        me.updateInProgress = true;
-
-	if (me.debug) {
-            console.log ("canvasWidth= " + me.imgDiv.style.width);
-            console.log ("canvasHeight= " + me.imgDiv.style.height);
-            
-	    console.log ("canvasWidth(jquery)= " 
-	        + jQuery("#imgDivID").width());
-            console.log ("canvasHeight(jquery)= " 
-	        + jQuery("#imgDivID").height());
-            
-	    console.log ("canvasWidth= " + me.updateJSON.canvasWidth);
-            console.log ("canvasHeight= " + me.updateJSON.canvasHeight);
-            
-            var overlay = me.updateJSON.overlay;
-            var noverlay;
-
-	    if (overlay != null) {
-	        noverlay = overlay.length;
-	        for (var l=0; l<noverlay; l++) { 
-
-	            console.log ("l= " + l + " type= " + overlay[l].type);
-	            console.log ("visible= " + overlay[l].visible);
-	        }
-	    }
-	}
-
-
-        if (me.cmd != null) 
-        {
-	    if (me.debug) {
-                console.log ("here1");
-            }
-
-            jQuery.post("/cgi-bin/mViewer/nph-mViewer", "workspace=" 
-                + me.workspace + "&cmd=" + me.cmd + "&json=" 
-	        + encodeURIComponent(JSON.stringify(me.updateJSON)), 
-	        me.processUpdate, "json");
-
-            if (me.debug) {
-	        console.log ("query URL = " 
-                    + "/cgi-bin/mViewer/nph-mViewer?workspace=" 
-                    + me.workspace + "&cmd=" + me.cmd + "&json=" 
-	            + encodeURIComponent(JSON.stringify(me.updateJSON))); 
-	    }
-	}
-	else {
-	    if (me.debug) {
-                console.log ("here2");
-            }
- 
-	    jQuery.post("/cgi-bin/mViewer/nph-mViewer", "workspace=" 
-                + me.workspace + "&json=" 
-	        + encodeURIComponent(JSON.stringify(me.updateJSON)), 
-	        me.processUpdate, "json");
-	    
-            if (me.debug) {
-	        console.log ("query URL = " 
-                    + "/cgi-bin/mViewer/nph-mViewer?workspace=" 
-                    + me.workspace + "&json=" 
-	            + encodeURIComponent(JSON.stringify(me.updateJSON))); 
-	    }
-     
-        }
-   
-    }
-
-
-
-    me.processUpdate = function(data, stat, jqXHR)
-    {
-	if (me.debug) {
-            console.log ("From mViewer.processUpdate");
-            console.log ("stat= " + stat);
-
-	    if (jqXHR != undefined) {
-                console.log ("jqXHR.statusText= " + jqXHR.statusText);
-                console.log ("jqXHR.readyState= " + jqXHR.readyState);
-                console.log ("jqXHR.status= " + jqXHR.status);
-                console.log ("jqXHR.responseJSON= " + jqXHR.responseJSON);
-            }	
-	}
-        
-        if (jqXHR == undefined) 
-	    return;
-
-        if (jqXHR.status != 200) {
-
-            me.grayOutMessage(false);
-            me.grayOut(false);
-
-            alert ("Remote service error");
-      
-/*
-    Execute callbacks (at least for the parent window to turn off its 
-    blocker.
-*/
-	    for(i=0; i<me.updateCallbacks.length; ++i)
-            {
-                me.updateCallbacks[i]();
-            }
-
-            me.grayOutMessage(false);
-            me.grayOut(false);
-            me.updateInProgress = false;
-	}
-
-
-	if (me.debug) {
-            console.log ("here1");
-            console.log ("typeof(data.error)= " 
-	        + typeof(data.error));
-            console.log ("typeof(data.status)= " 
-	        + typeof(data.status));
-            console.log ("data.status= " + data.status);
-            console.log ("data.error= " + data.error);
-        }    
-	    
-        
-	if (typeof(data.error) != "undefined")
-        {
-            me.requestSubmitted = false;
-
-            me.grayOutMessage(false);
-            me.grayOut(false);
-
-            alert(data.error);
-
-            me.updateInProgress = false;
-
-/*
-    Execute callbacks (at least for the parent window to turn off its 
-    blocker.
-*/
-	    for(i=0; i<me.updateCallbacks.length; ++i)
-            {
-                me.updateCallbacks[i]();
-            }
-
-            return;
-        }
-        
-
-/*
-    Successful: update JSON
-*/
-	me.imgData = data;
-	me.updateJSON = jqXHR.responseJSON;
-
-	if (me.updateJSON === jqXHR.responseJSON) {
-
-	    if (me.debug) {
-                console.log ("updateJSON = responseJSON");
-            }
-	}
-        
-	var noverlay = 0;
-        if (me.imgData.overlay != null) {	
-	    noverlay = me.imgData.overlay.length;
-        }
-
-	if (me.debug) {
-	    console.log ("me.imgData.file= " 
-	        + me.imgData.file);
-	    console.log ("me.imgData.imageName= " 
-	        + me.imgData.imageName);
-            console.log ("me.imgData.imageType= " 
-	        + me.imgData.imageType);
-            console.log ("me.imgData.canvasWidth= " 
-	        + me.imgData.canvasWidth);
-            console.log ("me.imgData.canvasHeight= " 
-	        + me.imgData.canvasHeight);
-            
-	    if (me.imgData.grayFile != null) {
-                console.log ("me.imgData.grayFile.fitsFile= " 
-	            + me.imgData.grayFile.fitsFile);
-                console.log ("me.imgData.grayFile.cutoutFile= " 
-	            + me.imgData.grayFile.cutoutFile);
-                console.log ("me.imgData.grayFile.shrunkFile= " 
-	            + me.imgData.grayFile.shrunkFile);
-	        console.log ("me.imgData.grayFile.colorTable= " 
-	            + me.imgData.grayFile.colorTable);
-                console.log ("me.imgData.grayFile.stretchMin= " 
-	            + me.imgData.grayFile.stretchMin);
-                console.log ("me.imgData.grayFile.stretchMax= " 
-	            + me.imgData.grayFile.stretchMax);
-                console.log ("me.imgData.grayFile.stretchMode= " 
-	            + me.imgData.grayFile.stretchMode);
-            }
-	    else if (me.imgData.redFile != null) {
-                console.log ("me.imgData.redFile.fitsFile= " 
-	            + me.imgData.redFile.fitsFile);
-                console.log ("me.imgData.redFile.cutoutFile= " 
-	            + me.imgData.redFile.cutoutFile);
-                console.log ("me.imgData.redFile.shrunkFile= " 
-	            + me.imgData.redFile.shrunkFile);
-	        console.log ("me.imgData.redFile.colorTable= " 
-	            + me.imgData.redFile.colorTable);
-                console.log ("me.imgData.redFile.stretchMin= " 
-	            + me.imgData.redFile.stretchMin);
-                console.log ("me.imgData.redFile.stretchMax= " 
-	            + me.imgData.redFile.stretchMax);
-                console.log ("me.imgData.redFile.stretchMode= " 
-	            + me.imgData.redFile.stretchMode);
-            }
-
-
-	    console.log ("noverlay= " + noverlay);
+            console.log ("noverlay= " + noverlay);
 
 	    for (var l=0; l<noverlay; l++) {
 	    
-	        console.log ("me.imgData.overlay[l].type= " 
-	            + me.imgData.overlay[l].type);
-                console.log ("me.imgData.overlay[l].color= " 
-	            + me.imgData.overlay[l].color);
-                console.log ("me.imgData.overlay[l].visible= " 
-	            + me.imgData.overlay[l].visible);
+	        console.log ("me.initJSON.overlay[l].type= " 
+	            + me.initJSON.overlay[l].type);
+                console.log ("me.initJSON.overlay[l].color= " 
+	            + me.initJSON.overlay[l].color);
+                console.log ("me.initJSON.overlay[l].visible= " 
+	            + me.initJSON.overlay[l].visible);
            
-	        if (me.imgData.overlay[l].type == "grid") {
+	        if (me.initJSON.overlay[l].type == "grid") {
 
-	            console.log ("me.imgData.overlay[l].coordSys= " 
-	                + me.imgData.overlay[l].coordSys);
+	            console.log ("me.initJSON.overlay[l].coordsys= "
+	                + me.initJSON.overlay[l].coordsys);
 	        }
-	        else if (me.imgData.overlay[l].type == "marker") {
+	        if (me.initJSON.overlay[l].type == "catalog") {
+
+                    console.log ("me.initJSON.overlay[l].datafile= "
+	                + me.initJSON.overlay[l].datafile);
+                    
+		    console.log ("me.initJSON.overlay[l].symtype= "
+	                + me.initJSON.overlay[l].symtype);
+                    console.log ("me.initJSON.overlay[l].symsize= "
+	                + me.initJSON.overlay[l].symsize);
+	        }
+	        if (me.initJSON.overlay[l].type == "iminfo") {
+
+                    console.log ("me.initJSON.overlay[l].datafile= "
+	                + me.initJSON.overlay[l].datafile);
+	        }
+	        else if (me.initJSON.overlay[l].type == "marker") {
 	
-                    console.log ("me.imgData.overlay[l].symType= "
-	                + me.imgData.overlay[l].symType);
-                    console.log ("me.imgData.overlay[l].symSize= "
-	                + imgDme.imgData.overlay[l].symSize);
-                    console.log ("me.imgData.overlay[l].location= "
-	                + me.imgData.overlay[l].location);
+                    console.log ("me.initJSON.overlay[l].symtype= "
+	                + me.initJSON.overlay[l].symtype);
+                    console.log ("me.initJSON.overlay[l].symsize= "
+	                + me.initJSON.overlay[l].symsize);
+                    console.log ("me.initJSON.overlay[l].location= "
+	                + me.initJSON.overlay[l].location);
                 } 
-	    }
-	    
-	    console.log ("me.downloadMode= " + me.downloadMode);
+            }
+	}
+*/
+
+	if (debug) {
+	    console.log ("mViewer.cmd= " + me.cmd);
+	    console.log ("mViewer.updateInProgress= " + me.updateInProgress);
 	}
 
 
-        if (me.downloadMode)
-        {
-            me.downloadMode = false;
+	if (!me.updateInProgress) {
 
-            if (!window.location.origin)
-                window.location.origin 
-	            = window.location.protocol+"//"+window.location.host;
-
-            var url = window.location.origin 
-	         + "/cgi-bin/FileDownload/nph-download?forceDownload=1&url=" 
-	             + me.imgData.file;
-
-            window.open(url, "_self");
-        }
-        else
-        {
-	    if ((me.cmd != "waveplot") &&
-	        (me.cmd != "impick")) {
-                
-	        if (me.debug) {
-	            console.log ("get new JPEG url");
-                }
-
-                me.gc.clear();
-
-                me.gc.refitCanvas();
-
-                if(me.debug)
-                    console.log("DEBUG> Retrieving new JPEG.");
-
-                me.xminImg = me.imgData.xmin;
-                me.xmaxImg = me.imgData.xmax;
-                me.yminImg = me.imgData.ymin;
-                me.ymaxImg = me.imgData.ymax;
-                me.scale = me.imgData.scale;
-
-                if(me.debug) {
-                    console.log("DEBUG> xminImg= " + me.xminImg);
-                    console.log("DEBUG> xmaxImg= " + me.xmaxImg);
-                    console.log("DEBUG> yminImg= " + me.yminImg);
-                    console.log("DEBUG> ymaxImg= " + me.ymaxImg);
-                    console.log("DEBUG> scale= " + me.scale);
-                }
-
-	        var newjpg = me.imgData.file;
-	        me.gc.setImage(newjpg + "?seed=" + (new Date()).valueOf());
-                
-		if(me.debug) {
-                    console.log("DEBUG> newjpg= " + newjpg);
-                }
-            
+            if (!me.noBlocker) {
+                me.iceBlock.show(); 
             }
-        }
 
-      
-      // If there are any registered update callbacks, 
-      // call them now.
+            if (debug) {
+	        console.log ("submit a ajax request");
+            }
 
-        if(me.debug) {
-            console.log("DEBUG> cmd= " + me.cmd);
-        }
+            var paramurl = "&cmd=" + me.cmd + "&json="
+		    + encodeURIComponent(JSON.stringify(me.updateJSON));
+				                
+	   if (debug) {
+	       console.log ("query URL = " + me.cgiurl + "?workspace="
+               + me.workspace + "&" + paramurl);
+            }
 
-        for(i=0; i<me.updateCallbacks.length; ++i)
-        {
-            me.updateCallbacks[i]();
-        }
+            me.updateInProgress = true;
+            
+	    me.iceajaxHandle.sendCmd (paramurl, "json");
+	
+	}
+    }
 
-        me.grayOutMessage(false);
-        me.grayOut(false);
+/*
+    Change to a new JSON structure (set by an outside application)
+    e.g.  replaceim operation
+*/
+    me.replaceJSON = function(cmd, jsondata)
+    {
+        if (me.debug)
+            console.log("DEBUG> mViewer.replaceJSON()");
 
-        me.updateInProgress = false;
-    
-	if (me.debug) {
-	    console.log ("processUpdate done");
-        }
-       
+        me.cmd = cmd;
+        me.initJSON = jsondata;
+        me.updateJSON = jsondata;
+
+        if (!me.updateInProgress) {
+
+            if (!me.noBlocker) {
+                me.iceBlock.show(); 
+            }
+
+
+            if (me.debug) {
+	        console.log ("submit a ajax request");
+            }
+
+            var paramurl = "&cmd=" + me.cmd + "&json="
+		    + encodeURIComponent(JSON.stringify(me.updateJSON));
+				                
+	   if (me.debug) {
+	       console.log ("query URL = " + me.cgiurl + "?workspace="
+               + me.workspace + "&" + paramurl);
+            }
+
+            me.updateInProgress = true;
+            
+	    me.iceajaxHandle.sendCmd (paramurl, "json");
+        }	
     }
 
 
-   // Other objects (mostly controls but we'll leave it open)
-   // want to be notified when an image display update occurs.
-   // Here we manage a list of these object.methods.
+    me.iceajaxCallback = function()
+    {
+//        alert ("From mViewer.iceajaxCallback");
+        
+	var debugflag = 0;
 
+	if (debugflag) {
+            console.log ("From mViewer.iceajaxCallback");
+            console.log ("retstatus= " + me.iceajaxHandle.retstatus);
+	}
+        
+        if (me.iceajaxHandle.retstatus != "success") {
+            me.updateInProgress = false;
+            return;	
+	}
+
+/*
+    Successful: save data and update JSON
+*/
+	me.imgData = me.iceajaxHandle.data;
+	me.updateJSON = me.imgData;
+        me.cmd = me.updateJSON.cmd;
+
+	if (debugflag) {
+            console.log ("me.cmd= " + me.cmd);
+	}
+
+        if ((me.cmd != "pick") && 
+            (me.cmd != "impick")) { 
+                
+	    if (debugflag) {
+	        console.log ("get new JPEG url");
+            }
+
+            me.gc.clear();
+
+            me.gc.refitCanvas();
+
+            if (debugflag) {
+                console.log("mViewer.iceajaxCallback: Retrieving new JPEG.");
+            }
+            
+	    me.xminImg = me.imgData.subimage.xmin;
+            me.xmaxImg = me.imgData.subimage.xmax;
+            me.yminImg = me.imgData.subimage.ymin;
+            me.ymaxImg = me.imgData.subimage.ymax;
+            me.scale = me.imgData.image.factor;
+
+            if(debugflag) {
+                console.log("DEBUG> xminImg= " + me.xminImg);
+                console.log("DEBUG> xmaxImg= " + me.xmaxImg);
+                console.log("DEBUG> yminImg= " + me.yminImg);
+                console.log("DEBUG> ymaxImg= " + me.ymaxImg);
+                console.log("DEBUG> scale= " + me.scale);
+                console.log("DEBUG> baseurl= " + me.imgData.baseurl);
+                console.log("DEBUG> jpgfile= " + me.imgData.image.file);
+            }
+
+	    var newjpg = me.imgData.baseurl + "/" + me.imgData.image.file;
+	    me.gc.setImage(newjpg + "?seed=" + (new Date()).valueOf());
+                
+	    if(debugflag) {
+                console.log("DEBUG> newjpg= " + newjpg);
+            }
+            
+        }
+
+/*
+    If there are any registered update callbacks,  call them now.
+*/
+        if(debugflag) {
+            console.log("DEBUG> cmd= " + me.cmd);
+            console.log("DEBUG> mviewer.updateCallbacks.length= " 
+	        + me.updateCallbacks.length);
+        }
+
+        me.updateInProgress = false;
+    
+        if (!me.noBlocker) {
+            me.iceBlock.hide();
+	}
+	
+	if (debugflag) {
+	    console.log ("iceajaxCallback done: execute callbacks");
+        }
+        
+	for(i=0; i<me.updateCallbacks.length; i++)
+        {
+            if(debugflag) {
+                console.log("DEBUG> i= " + i + " call updateCallbacks");
+	    }
+
+            me.updateCallbacks[i]();
+        }
+
+    }
+
+
+/*
+    Other objects (mostly controls but we'll leave it open)
+    want to be notified when an image display update occurs.
+    Here we manage a list of these object.methods.
+*/
    me.addUpdateCallback = function(method)
    {
       me.updateCallbacks.push(method);
+	
+        if (me.debug) {
+	    console.log ("From mViewer.addUpdateCallback: ncallbacksd= "
+	        + me.updateCallbacks.length);
+	    console.log ("method= ");
+	    console.log (method);
+        }
    }
 
-
-   // Display area resize event callback.  This is a pair
-   // of functions:  The first one (the entry point) starts
-   // a timer and eventually calls the second (used by
-   // no one else) to do the real work.
-
+/*
+    Display area resize event callback.  This is a pair
+    of functions:  The first one (the entry point) starts
+    a timer and eventually calls the second (used by
+    no one else) to do the real work.
+*/
    me.resizeTimeout = 0;
 
    me.resize = function()
@@ -734,7 +552,7 @@ function mViewer(workspace, jsonFile, imgDivID)
       me.resizeTimeout = setTimeout(me.resizeImageRequest, me.timeoutValue);
    }
 
-
+/*
    me.resizeImageRequest = function()
    {
       if(me.debug)
@@ -766,6 +584,7 @@ function mViewer(workspace, jsonFile, imgDivID)
          me.submitUpdateRequest();
       }
    }
+*/
 
 
    me.getWorkspace = function()
@@ -789,13 +608,22 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log ("mViewer.showFitshdr");
 
         var datastr;
+        var datadir = me.imgData.image.grayfile.datadir;
         
 	var cubedata = me.imgData.imcubeFile;
 	if (cubedata == null) {
-        
-            datastr = "workspace=" + me.workspace + "&file=" 
-	        + me.imgData.grayFile.fitsFile;
-        }
+           
+
+	    if (datadir.length > 0) {
+                datastr = "workspace=" + me.workspace + "&file=" 
+	            + datadir + "/" + me.imgData.image.grayfile.fitsfile;
+	    }
+	    else {
+                datastr = "workspace=" + me.workspace + "&file=" 
+	            + me.imgData.image.grayfile.fitsfile;
+	    }
+	    
+	}
 	else {
             if (me.debug)
                 console.log ("mViewer.showFitshdr: cube data");
@@ -803,12 +631,26 @@ function mViewer(workspace, jsonFile, imgDivID)
             var cubeOrig = me.imgData.imcubeFile.fitsFileOrig;
 
 	    if (cubeOrig == null) {
-                datastr = "workspace=" + me.workspace + "&file=" 
-	            + me.imgData.imcubeFile.fitsFile;
+	    
+	        if (datadir.length > 0) {
+                    datastr = "workspace=" + me.workspace + "&file=" 
+	                + datadir + "/" + me.imgData.imcubeFile.fitsFile;
+                }
+		else {
+		    datastr = "workspace=" + me.workspace + "&file=" 
+	                + me.imgData.imcubeFile.fitsFile;
+		}
 	    }
 	    else {
-                datastr = "workspace=" + me.workspace + "&file=" 
-	            + me.imgData.imcubeFile.fitsFileOrig;
+	        if (datadir.length > 0) {
+                    datastr = "workspace=" + me.workspace + "&file=" 
+	                + datadir + "/" + me.imgData.imcubeFile.fitsFileOrig;
+                }
+		else {
+                    datastr = "workspace=" + me.workspace + "&file=" 
+	                + me.imgData.imcubeFile.fitsFileOrig;
+		}
+
 	    }
 	}
 
@@ -817,11 +659,6 @@ function mViewer(workspace, jsonFile, imgDivID)
         
 	jQuery.post ("/cgi-bin/mViewer/nph-mViewerHdr", datastr,
 	    me.showFitshdrCallback, "json");
-
-/*
-	jQuery.get("/cgi-bin/mViewer/nph-mViewerHdr", datastr,
-	    me.showFitshdrCallback, "json");
-*/
 
     }
 
@@ -872,76 +709,115 @@ function mViewer(workspace, jsonFile, imgDivID)
 	}
 
     }
-
-
    
    
    // Zoom in
 
-   me.zoomIn = function()
-   {
-      if(me.debug)
-         console.log("DEBUG> mViewer.zoomIn()");
+    me.zoomIn = function()
+    {
+        if (me.debug) {
+            console.log("DEBUG> mViewer.zoomIn()");
+            console.log("DEBUG> updateJSON.xmin: " + me.updateJSON.xmin);
+            console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+            console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+            console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
+        }
 
-/*
-      me.grayOutMessage(true);
-      me.grayOut(true);
-*/
+	me.cmd = "zoomin";
 
-      if(me.debug)
-      {
-         console.log("DEBUG> xxx: updateJSON.xmin: " + me.updateJSON.xmin);
-         console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
-         console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
-         console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
-      }
+        var paramurl = "&cmd=zoomin&json="
+	    + encodeURIComponent(JSON.stringify(me.updateJSON));
 
-      me.submitUpdateRequest("zoomin");
-   }
+        if (me.debug)
+            console.log("paramurl= " + paramurl);
+
+	if (!me.noBlocker) {
+            me.iceBlock.show(); 
+        }
+
+        me.iceajaxHandle.sendCmd (paramurl, "json"); 
+        
+	if (me.debug) {
+            console.log("zoomout ajax call sent:");
+            console.log("DEBUG> updateJSON.xmin: " + me.updateJSON.xmin);
+            console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+            console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+            console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
+	}
+    }
 
 
    // Zoom out
 
-   me.zoomOut = function()
-   {
-      if(me.debug)
-         console.log("DEBUG> mViewer.zoomOut()");
+    me.zoomOut = function()
+    {
+        if(me.debug)
+            console.log("DEBUG> mViewer.zoomOut()");
 
-/*
-      me.grayOutMessage(true);
-      me.grayOut(true);
-*/
+        if(me.debug) {
+            console.log("DEBUG> updateJSON.xmin: " + me.updateJSON.xmin);
+            console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+            console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+            console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
+        }
 
-      if(me.debug)
-      {
-         console.log("DEBUG> xxx: updateJSON.xmin: " + me.updateJSON.xmin);
-         console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
-         console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
-         console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
-      }
+	me.cmd = "zoomout";
 
-      me.submitUpdateRequest("zoomout");
-   }
+        var paramurl = "&cmd=zoomout&json="
+	    + encodeURIComponent(JSON.stringify(me.updateJSON));
+
+        if (me.debug)
+            console.log("paramurl= " + paramurl);
+
+	if (!me.noBlocker) {
+            me.iceBlock.show(); 
+        }
+
+        me.iceajaxHandle.sendCmd (paramurl, "json"); 
+        
+        if (me.debug) {
+            console.log("zoomout ajax call sent:");
+            console.log("DEBUG> updateJSON.xmin: " + me.updateJSON.xmin);
+            console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+            console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+            console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
+        }
+    }
 
 
    // Zoom reset
 
-   me.zoomReset = function()
-   {
-      if(me.debug)
-         console.log("DEBUG> mViewer.zoomReset()");
+    me.zoomReset = function()
+    {
+        if (me.debug)
+            console.log("DEBUG> mViewer.zoomReset()");
 
-/*
-      me.grayOutMessage(true);
-      me.grayOut(true);
-*/
+        me.updateJSON.xmin = 0.;
+        me.updateJSON.xmax = me.updateJSON.imageWidth;
+        me.updateJSON.ymin = 0.;
+        me.updateJSON.ymax = me.updateJSON.imageHeight;
+        
+	me.cmd = "resetzoom";
 
-      me.updateJSON.xmin = 0.;
-      me.updateJSON.xmax = me.updateJSON.imageWidth;
-      me.updateJSON.ymin = 0.;
-      me.updateJSON.ymax = me.updateJSON.imageHeight;
+        var paramurl = "&cmd=resetzoom&json="
+	    + encodeURIComponent(JSON.stringify(me.updateJSON));
 
-      me.submitUpdateRequest("resetzoom");
+        if (me.debug)
+            console.log("paramurl= " + paramurl);
+
+	if (!me.noBlocker) {
+            me.iceBlock.show(); 
+        }
+
+        me.iceajaxHandle.sendCmd (paramurl, "json"); 
+        
+        if (me.debug) {
+            console.log("resetzoom ajax call sent:");
+            console.log("DEBUG> updateJSON.xmin: " + me.updateJSON.xmin);
+            console.log("DEBUG> updateJSON.xmax: " + me.updateJSON.xmax);
+            console.log("DEBUG> updateJSON.ymin: " + me.updateJSON.ymin);
+            console.log("DEBUG> updateJSON.ymax: " + me.updateJSON.ymax);
+        }
    }
 
 
@@ -953,12 +829,29 @@ function mViewer(workspace, jsonFile, imgDivID)
       if(me.debug)
          console.log("DEBUG> mViewer.stretchReset()");
 
-	me.updateJSON.grayFile.stretchMin = me.initJSON.grayFile.stretchMin;
-        me.updateJSON.grayFile.stretchMax = me.initJSON.grayFile.stretchMax;
-        me.updateJSON.grayFile.stretchMode = me.initJSON.grayFile.stretchMode;
-        me.updateJSON.grayFile.colorTable = me.initJSON.grayFile.colorTable;
+	me.updateJSON.image.grayfile.stretchmin 
+	    = me.initJSON.image.grayfile.stretchmin;
+	me.updateJSON.image.grayfile.stretchmax 
+	    = me.initJSON.image.grayfile.stretchmax;
+	me.updateJSON.image.grayfile.stretchmode 
+	    = me.initJSON.image.grayfile.stretchmode;
+	me.updateJSON.image.grayfile.colortable 
+	    = me.initJSON.image.grayfile.colortable;
+        
+	me.cmd = "resetstretch";
 
-        me.submitUpdateRequest();
+        var paramurl = "&cmd=resetstretch&json="
+	    + encodeURIComponent(JSON.stringify(me.updateJSON));
+
+        if (me.debug)
+            console.log("paramurl= " + paramurl);
+
+	if (!me.noBlocker) {
+            me.iceBlock.show(); 
+        }
+
+        me.iceajaxHandle.sendCmd (paramurl, "json"); 
+   
    }
 
    
@@ -969,19 +862,19 @@ function mViewer(workspace, jsonFile, imgDivID)
     {
         if(me.debug) {
             console.log("DEBUG> mViewer.downloadImage()");
-            console.log ("me.imgData.file= " + me.imgData.file);
+            console.log ("me.imgData.image.file= " + me.imgData.image.file);
             console.log ("fileurl= " + fileurl);
         }
         
 	var imurl;
 	if (fileurl == null) 
-	    imurl = me.imgData.file;
+	    imurl = me.imgData.baseurl + "/" + me.imgData.image.file;
         else
 	    imurl = fileurl;
 
         if (!window.location.origin)
             window.location.origin 
-	        = window.location.protocol+"//"+window.location.host;
+	        = window.location.protocol+"/"+window.location.host;
 
         var url = window.location.origin 
             + "/cgi-bin/FileDownload/nph-download?forceDownload=1&url=" 
@@ -991,90 +884,12 @@ function mViewer(workspace, jsonFile, imgDivID)
     }
 
 
-   // GRAPHICS CALLBACKS
-
-   me.zoomCallback = function(xmin, ymin, xmax, ymax)
-   {
-      var tmp;
-
-      if(me.debug)
-         console.log("DEBUG> mViewer.zoomCallback()");
-
-      me.grayOutMessage(true);
-      me.grayOut(true);
-
-      if(xmin > xmax)
-      {
-         tmp  = xmin;
-         xmin = xmax;
-         xmax = tmp;
-      }
-
-      if(xmin == xmax)
-         xmax = xmin + 1.e-9;
-
 /*
-      ymin = (me.updateJSON.canvasHeight - ymin);
-      ymax = (me.updateJSON.canvasHeight - ymax);
+GRAPHICS CALLBACKS:
+
+Image click/box event are defined by the application;
+if there are any registered update callbacks, we call them here.
 */
-
-      if(ymin > ymax)
-      {
-         tmp  = ymin;
-         ymin = ymax;
-         ymax = tmp;
-      }
-
-      if(ymin == ymax)
-         ymax = ymin + 1.e-9;
-
-
-      if(me.debug)
-      {
-         console.log("DEBUG> min (screen): " + xmin + ", " + ymin);
-         console.log("DEBUG> max (screen): " + xmax + ", " + ymax);
-      }
-
-/*
-
-      xminOrig = xmin * me.scale + me.xminImg;
-      xmaxOrig = xmax * me.scale + me.xminImg;
-
-      yminOrig = ymin * me.scale + me.yminImg;
-      ymaxOrig = ymax * me.scale + me.yminImg;
-
-      if(me.debug)
-      {
-         console.log("DEBUG> min (FITS image): " + xminOrig + ", " + yminOrig);
-         console.log("DEBUG> max (FITS image): " + xmaxOrig + ", " + ymaxOrig);
-      }
-      if(debug)
-      {
-         console.log("DEBUG> min (FITS image): " + xminOrig + ", " + yminOrig);
-         console.log("DEBUG> max (FITS image): " + xmaxOrig + ", " + ymaxOrig);
-      }
-
-
-      me.updateJSON.xmin = xminOrig;
-      me.updateJSON.xmax = xmaxOrig;
-      me.updateJSON.ymin = yminOrig;
-      me.updateJSON.ymax = ymaxOrig;
-*/
-      
-      me.updateJSON.xmin = xmin;
-      me.updateJSON.xmax = xmax;
-      me.updateJSON.ymin = ymin;
-      me.updateJSON.ymax = ymax;
-
-      me.submitUpdateRequest("zoombox");
-       
-   }
-
-
-
-   // If there are any registered update callbacks, 
-   // we call them here.
-
     me.clickCallback = function(x, y)
     {
         if(me.debug)
@@ -1082,10 +897,10 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log("DEBUG> me.clickCallback: x= " + x + " y= " + y);
         }
         
-	me.updateJSON.xs = x;
-	me.updateJSON.ys = y;
-	me.updateJSON.xe = x;
-	me.updateJSON.ye = y;
+	me.updateJSON.cursor.xs = x;
+	me.updateJSON.cursor.ys = y;
+	me.updateJSON.cursor.xe = x;
+	me.updateJSON.cursor.ye = y;
         
         for(i=0; i<me.clickCallbacks.length; ++i) {
          
@@ -1099,6 +914,7 @@ function mViewer(workspace, jsonFile, imgDivID)
         {
             console.log("DEBUG> me.boxCallback: xs= " + xs + " ys= " + ys);
             console.log("DEBUG> xe= " + xe + " ye= " + ye);
+            console.log("DEBUG> div= " + div);
         }
 
         if (xs > xe)
@@ -1128,10 +944,19 @@ function mViewer(workspace, jsonFile, imgDivID)
             console.log("DEBUG>  (screen): " + xe + ", " + ye);
         }
 
-	me.updateJSON.xs = xs;
-	me.updateJSON.ys = ys;
-	me.updateJSON.xe = xe;
-	me.updateJSON.ye = ye;
+	me.updateJSON.cursor.xs = xs;
+	me.updateJSON.cursor.ys = ys;
+	me.updateJSON.cursor.xe = xe;
+	me.updateJSON.cursor.ye = ye;
+        
+	if(me.debug)
+        {
+            console.log("DEBUG>  (screen): " + me.updateJSON.cursor.xs + ", " 
+	        + me.updateJSON.cursor.ys);
+            console.log("DEBUG>  (screen): " + me.updateJSON.cursor.xe + ", " 
+	        + me.updateJSON.cursor.ye);
+        }
+
         
         for(i=0; i<me.boxCallbacks.length; ++i) {
          
@@ -1164,143 +989,5 @@ function mViewer(workspace, jsonFile, imgDivID)
    {
       me.downloadImage();
    }
-
-
-
-   /* Gray-Out Functions */
-
-   me.grayOut = function(vis, options)
-   {
-      // Pass true to gray out screen, false to ungray.  Options are optional.
-      // This is a JSON object with the following (optional) properties:
-      //
-      //    opacity:0-100         // Lower number = less grayout higher = more of a blackout
-      //    zindex: #             // HTML elements with a higher zindex appear on top of the gray out
-      //    bgcolor: (#xxxxxx)    // Standard RGB Hex color code
-      //
-      // e.g.,  me.grayOut(true, {'zindex':'50', 'bgcolor':'#0000FF', 'opacity':'70'});
-      //
-      // Because 'options' is JSON, opacity/zindex/bgcolor are all optional and can appear
-      // in any order.  Pass only the properties you need to set.
-
-      var options = options || {};
-      var zindex  = options.zindex || 5000;
-//      var opacity = options.opacity || 70;
-      
-      var opacity = options.opacity || 30;
-      
-      
-      var opaque  = (opacity / 100);
-      var bgcolor = options.bgcolor || '#000000';
-
-      var dark = document.getElementById('darkenScreenObject');
-
-      if(!dark)
-      {
-         // The dark layer doesn't exist, it's never been created.  So we'll
-         // create it here and apply some basic me.styles.
-
-         var tbody = document.getElementsByTagName("body")[0];
-
-         var tnode = document.createElement('div');
-
-         tnode.style.position ='absolute';             // Position absolutely
-         tnode.style.top      ='0px';                  // In the top
-         tnode.style.left     ='0px';                  // Left corner of the page
-         tnode.style.overflow ='hidden';               // Try to avoid making scroll bars
-         tnode.style.display  ='none';                 // Start out Hidden
-         tnode.id             ='darkenScreenObject';   // Name it so we can find it later
-
-         tbody.appendChild(tnode);                     // Add it to the web page
-
-         dark = document.getElementById('darkenScreenObject');  // Get the object.
-      }
-
-      if(vis)
-      {
-         // Calculate the page width and height
-
-         if( document.body && ( document.body.scrollWidth || document.body.scrollHeight ) )
-         {
-            var pageWidth  =  document.body.scrollWidth+'px';
-            var pageHeight = (document.body.scrollHeight+1000)+'px';
-         }
-         else if( document.body.offsetWidth )
-         {
-            var pageWidth  =  document.body.offsetWidth+'px';
-            var pageHeight = (document.body.offsetHeight+1000)+'px';
-         }
-         else
-         {
-            var pageWidth  = '100%';
-            var pageHeight = '100%';
-         }
-
-
-         // Set the shader to cover the entire page and make it visible.
-
-         dark.style.opacity         = opaque;
-         dark.style.MozOpacity      = opaque;
-         dark.style.filter          = 'alpha(opacity='+opacity+')';
-         dark.style.zIndex          = zindex;
-         dark.style.backgroundColor = bgcolor;
-         dark.style.width           = pageWidth;
-         dark.style.height          = pageHeight;
-         dark.style.display         = 'block';
-      }
-
-      else
-         dark.style.display='none';
-   }
-
-
-
-   /* "Please Wait" message with clock */
-
-   me.grayOutMessage =function(vis)
-   {
-      var msg = document.getElementById('messageScreenObject');
-
-      if(!msg)
-      {
-         var tbody = document.getElementsByTagName("body")[0];
-
-         var tnode = document.createElement('div');
-
-         tnode.style.width           = '230px';
-         tnode.style.height          = '40px';
-         tnode.style.position        = 'absolute';
-         tnode.style.top             = '50%';
-         tnode.style.left            = '50%';
-//         tnode.style.zIndex          = '5500';
-         
-	 tnode.style.zIndex          = '100';
-	 
-	 tnode.style.margin          = '-50px 0 0 -100px';
-         tnode.style.backgroundColor = '#ffffff';
-         tnode.style.display         = 'none';
-         tnode.innerHTML             = '<img src="/applications/IceTable/waitClock.gif"/> &nbsp; Loading.  Please wait ... ';
-         tnode.id                    = 'messageScreenObject';
-
-         tbody.appendChild(tnode);
-
-         msg = document.getElementById('messageScreenObject');
-      }
-
-      if(vis)
-         msg.style.display = 'block';
-      else
-         msg.style.display = 'none';
-   }
-
-
-   me.closeChildWin = function () {
-       
-       if ((imDebugWin != null) &&
-           (!imDebugWin.closed)) {
-           imDebugWin.close(); 
-       }
-   }
-
 
 }

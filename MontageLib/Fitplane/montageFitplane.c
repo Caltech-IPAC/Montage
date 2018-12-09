@@ -143,7 +143,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
    returnStruct = (struct mFitplaneReturn *)malloc(sizeof(struct mFitplaneReturn));
 
-   bzero((void *)returnStruct, sizeof(returnStruct));
+   memset((void *)returnStruct, 0, sizeof(returnStruct));
 
 
    returnStruct->status = 1;
@@ -498,7 +498,11 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
          /* Solve */
 
-         mFitplane_gaussj(a, n, b, m);
+         if(mFitplane_gaussj(a, n, b, m))
+         {
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+         }
       }
 
       if(debug >= 2)

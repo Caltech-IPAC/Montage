@@ -8,9 +8,9 @@
    "arguments":
    [
       {"type":"string",                    "name":"input_file",    "desc":"FITS file to reproject."},
-      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"string",                    "name":"output_file",   "desc":"Reprojected FITS file."},
       {"type":"string",                    "name":"template_file", "desc":"FITS header file used to define the desired output."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"int",     "default":0,      "name":"interp",        "desc":"Flux interpolation mode: 0 (nearest neighbor), 1 (Lanczos)."},
       {"type":"string",  "default":"",     "name":"weight_file",   "desc":"Optional pixel weight FITS file (must match input)."},
       {"type":"double",  "default":1.0,    "name":"fixedWeight",   "desc":"A weight value used for all pixels."},
@@ -25,6 +25,8 @@
    
    "return":
    [
+      {"type":"int",                       "name":"status",       "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",          "desc":"Return message (for errors)."},
       {"type":"double",                    "name":"time",         "desc":"Total processing time (sec)."}
    ]
 }

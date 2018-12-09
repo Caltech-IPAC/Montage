@@ -92,6 +92,7 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
 
     
     int    debugfile = 1;
+    int    debugfile1 = 0;
 
 
 /*
@@ -423,7 +424,7 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
        
         indx2 = hdr.nl*hdr.ns*(l-splane); 
 
-        if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+        if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
             fprintf (fp_debug, "l= [%d]\n", l);
             fflush (fp_debug);
         }
@@ -445,7 +446,7 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
                 
                 fitscubebuf[indx2+indx1+i] = fitsbuf1d[i];
                 
-                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+                if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
                     
                     if ((i == 30) && (j == 25)) {
                         fprintf (fp_debug, "i=[%d] j=[%d] l=[%d] pixel=[%lf]\n",
@@ -492,7 +493,7 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
 
                 wavebuf[l] = fitscubebuf[indx];
                     
-                if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+                if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
                     
                     if ((i == 30) && (j == 25)) {
                         fprintf (fp_debug, "i=[%d] j=[%d] l=[%d] pixel=[%lf]\n",
@@ -504,11 +505,9 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
 
             sort (wavebuf, nplane);
                 
-            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
-                    
+            if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
                 
                 if ((i == 30) && (j == 25)) {
-                    
                     fprintf (fp_debug, "after qsort\n");
                     for (l=0; l<nplane; l++) {
                         fprintf (fp_debug, "l=[%d] pixel=[%lf]\n", 
@@ -520,7 +519,7 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
 
             outbuf[indx1+i] = wavebuf[midpoint];
             
-            if ((debugfile) && (fp_debug != (FILE *)NULL)) {
+            if ((debugfile1) && (fp_debug != (FILE *)NULL)) {
                 if ((i == 30) && (j == 25)) {
                     fprintf (fp_debug, "outbuf= [%lf]\n", outbuf[indx1+i]);
                     fflush (fp_debug);

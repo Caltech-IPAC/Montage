@@ -45,7 +45,7 @@ int main(int argc, char **argv)
    /* Process the command-line parameters */
    /***************************************/
 
-   strcpy(path, "");
+   strcpy(path, ".");
 
    montage_status = stdout;
 
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", %s]\n", returnStruct->msg);
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mAddCube\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }
