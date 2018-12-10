@@ -51,8 +51,8 @@ pgm:
 		(cd ProjExec      &&                   make && make install)
 
 lib:
-		-rm -f libmontage.a libmontage.so libmontagepy.so
-		-ar q  libmontage.a \
+		rm -f libmontage.a libmontage.so libmontagepy.so
+		ar q  libmontage.a \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
@@ -94,7 +94,7 @@ lib:
 			FitExec/montageFitExec.o \
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o 
-		-gcc -shared $(SO_FLAG) -o libmontage.so \
+		gcc -shared $(SO_FLAG) -o libmontage.so \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
@@ -138,8 +138,9 @@ lib:
 			ProjExec/montageProjExec.o 
 
 pythonlibs:
-		-rm -f ../python/MontagePy/lib/*.o
-		-cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
+		rm -f ../python/MontagePy/lib/*.o
+		mkdir -p ../python/MontagePy/lib
+		cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
@@ -382,10 +383,10 @@ pythonlibs:
 			../lib/src/bzip2-1.0.6/decompress.o \
 			../lib/src/bzip2-1.0.6/bzlib.o \
          ../python/MontagePy/lib
-		-cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
-		-cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
-		-cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
-		-cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
+		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
+		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
+		cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
+		cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
 # The last four lines are needed because we have .o file name conflicts
 
 doc:
@@ -470,39 +471,39 @@ jupyter:
 
 clean:
 		(cd util          && make clean)
-		(cd Add           && make clean)
-		(cd AddCube       && make clean)
-		(cd ArchiveList   && make clean)
+		(cd Add           && test ! -e Makefile || make clean)
+		(cd AddCube       && test ! -e Makefile || make clean)
+		(cd ArchiveList   && test ! -e Makefile || make clean)
 		(cd ArchiveGet    && make clean)
 		(cd ArchiveExec   && make clean)
-		(cd Background    && make clean)
+		(cd Background    && test ! -e Makefile || make clean)
 		(cd BestImage     && make clean)
 		(cd BgModel       && make clean)
-		(cd CoverageCheck && make clean)
-		(cd Diff          && make clean)
-		(cd Examine       && make clean)
+		(cd CoverageCheck && test ! -e Makefile || make clean)
+		(cd Diff          && test ! -e Makefile || make clean)
+		(cd Examine       && test ! -e Makefile || make clean)
 		(cd Fitplane      && make clean)
-		(cd FixNaN        && make clean)
+		(cd FixNaN        && test ! -e Makefile || make clean)
 		(cd GetHdr        && make clean)
-		(cd Hdr           && make clean)
+		(cd Hdr           && test ! -e Makefile || make clean)
 		(cd Histogram     && make clean)
-		(cd Imgtbl        && make clean)
-		(cd MakeHdr       && make clean)
-		(cd MakeImg       && make clean)
-		(cd Overlaps      && make clean)
-		(cd ProjectCube   && make clean)
-		(cd Project       && make clean)
-		(cd ProjectPP     && make clean)
-		(cd ProjectQL     && make clean)
+		(cd Imgtbl        && test ! -e Makefile || make clean)
+		(cd MakeHdr       && test ! -e Makefile || make clean)
+		(cd MakeImg       && test ! -e Makefile || make clean)
+		(cd Overlaps      && test ! -e Makefile || make clean)
+		(cd ProjectCube   && test ! -e Makefile || make clean)
+		(cd Project       && test ! -e Makefile || make clean)
+		(cd ProjectPP     && test ! -e Makefile || make clean)
+		(cd ProjectQL     && test ! -e Makefile || make clean)
 		(cd PutHdr        && make clean)
 		(cd ShrinkCube    && make clean)
 		(cd Shrink        && make clean)
-		(cd SubCube       && make clean)
-		(cd Subimage      && make clean)
+		(cd SubCube       && test ! -e Makefile || make clean)
+		(cd Subimage      && test ! -e Makefile || make clean)
 		(cd TANHdr        && make clean)
-		(cd Transpose     && make clean)
-		(cd WWT           && make clean)
-		(cd Viewer        && make clean)
+		(cd Transpose     && test ! -e Makefile || make clean)
+		(cd WWT           && test ! -e Makefile || make clean)
+		(cd Viewer        && test ! -e Makefile || make clean)
 		(cd DiffExec      && make clean)
 		(cd BgExec        && make clean)
 		(cd DiffFitExec   && make clean)

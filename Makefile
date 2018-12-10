@@ -1,20 +1,20 @@
 all:
 	mkdir -p bin
 	mkdir -p lib/include
-	if test -d lib/src;    then (cd lib/src;    make); fi
-	if test -d Montage;    then (cd Montage;  ./Configure.sh; make; make install); fi
-	if test -d util;       then (cd util;       make); fi
-	if test -d grid;       then (cd grid;       make); fi
-	if test -d MontageLib; then (cd MontageLib; make); fi
-	if test -d ancillary;  then (cd ancillary;  make; make install); fi
+	test ! -d lib/src    || (cd lib/src                   && make)
+	test ! -d Montage    || (cd Montage && ./Configure.sh && make && make install)
+	test ! -d util       || (cd util                      && make)
+	test ! -d grid       || (cd grid                      && make)
+	test ! -d MontageLib || (cd MontageLib                && make)
+	test ! -d ancillary  || (cd ancillary                 && make && make install)
 
 clean:
 	mkdir -p bin
 	mkdir -p lib/include
 	rm -rf bin/*
-	if test -d lib/src;    then (cd lib/src;    make clean); fi
-	if test -d Montage;    then (cd Montage;    make clean); fi
-	if test -d util;       then (cd util;       make clean); fi
-	if test -d grid;       then (cd grid;       make clean); fi
-	if test -d MontageLib; then (cd MontageLib; make clean); fi
-	if test -d ancillary;  then (cd ancillary;  make clean); fi
+	test ! -d lib/src          || (cd lib/src &&    make clean)
+	test ! -e Montage/Makefile || (cd Montage &&    make clean)
+	test ! -d util             || (cd util &&       make clean)
+	test ! -d grid             || (cd grid &&       make clean)
+	test ! -d MontageLib       || (cd MontageLib && make clean)
+	test ! -d ancillary        || (cd ancillary &&  make clean)
