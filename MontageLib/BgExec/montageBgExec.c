@@ -80,7 +80,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
    int    ib;
    int    ic;
 
-   int    cntr, maxcntr;
+   int    cntr, maxcntr = 0;
    double *a;
    double *b;
    double *c;
