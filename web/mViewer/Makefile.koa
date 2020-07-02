@@ -130,7 +130,7 @@ endif
 # ================================================================
 # External library dependencies
 # ================================================================
-sys_libs = -lexpat -lm
+sys_libs = -lexpat -lm -lcrypto
 ifeq (SunOS,$(os))
     sys_libs += -lsocket -lnsl
 endif
@@ -139,7 +139,6 @@ base_libs = $(addprefix $(CM_BASE_DIR)/lib/, \
 	libconfig.a libvarcmd.a libmtbl.a libsvc.a libjson.a)
 tps_libs = $(addprefix $(CM_TPS_DIR)/lib/, \
 	libcfitsio.a libwcs.a libnedcli.a libsimcli.a)
-env_libs =  $(addprefix $(CM_ENV_DIR)/misc/lib/, libscew.a) $(addprefix $(CM_ENV_DIR)/core/lib64/, libcrypto.a)
 
 
 
@@ -180,8 +179,7 @@ endif
 
 
 # Compiles executables
-nph-mViewer :	$(srcmviewer:.c=.o) $(base_libs) $(tps_libs) \
-		$(env_libs)
+nph-mViewer :	$(srcmviewer:.c=.o) $(base_libs) $(tps_libs) 
 		$(CC) $(CFLAGS) -o $@ $^ $(sys_libs)
 
 nph-mViewerHdr :	$(srcmviewerhdr:.c=.o) $(base_libs)

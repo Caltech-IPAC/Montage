@@ -115,6 +115,8 @@ double ycorrection;
 double pcdelt1, pcdelt2;
 double dtr;
 
+FILE *fstatus;
+
 int debug;
 
 

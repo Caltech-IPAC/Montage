@@ -67,7 +67,7 @@ int readPixelValue (char *fname, int ixpix, int iypix, int w, int h,
     
     double           *data;
 
-    int              debugfile = 1;
+    int              debugfile = 0;
 
 
 /*
@@ -227,7 +227,7 @@ int pick (struct Mviewer *param)
     double           ramin, decmin, distmin;
     double           xmin, ymin;
 
-    int              debugfile = 1;
+    int              debugfile = 0;
 
     
     if ((debugfile) && (fp_debug != (FILE *)NULL)) {

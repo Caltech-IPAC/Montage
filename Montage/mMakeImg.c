@@ -72,6 +72,8 @@ double  Dot      (Vec *a, Vec *b);
 double  Normalize(Vec *a);
 void    Reverse  (Vec *a);
 
+FILE *fstatus;
+
 
 /******************************************************************/
 /*                                                                */

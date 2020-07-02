@@ -111,6 +111,8 @@ struct outfile
 }
 output;
 
+FILE *fstatus;
+
 
 /***************************/
 /*  mAddExec main routine  */

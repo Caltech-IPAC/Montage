@@ -38,6 +38,8 @@ extern int getopt(int argc, char *const *argv, const char *options);
 
 int checkFile(char *filename);
 
+FILE *fstatus;
+
 int debug;
 
 

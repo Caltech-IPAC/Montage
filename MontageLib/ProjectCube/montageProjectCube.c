@@ -1720,7 +1720,7 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
          {
             for (i=0; i<ilength; ++i)
             {
-               if(outarea[j][i] > 0.)
+               if(outarea[j][i] > 0. && !mNaN(outdata[j3][j2][j][i]))
                {
                   outdata[j3][j2][j][i] 
                      = outdata[j3][j2][j][i] / outarea[j][i];
@@ -2016,6 +2016,7 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
    fpixel[0] = 1;
    fpixel[1] = 1;
    fpixel[2] = 1;
+   fpixel[3] = 1;
 
    nelements = imax - imin + 1;
 

@@ -1,4 +1,4 @@
-libmtbl.a:  fakec.c
+libc.a:     fakec.c
 				$(CC) -I. -c fakec.c
 				ar rv libc.a fakec.o
 

@@ -327,6 +327,13 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    struct mProjectReturn *returnStruct;
 
+   input.fptr       = (fitsfile *)NULL; 
+   weight.fptr      = (fitsfile *)NULL; 
+   output.fptr      = (fitsfile *)NULL; 
+   output_area.fptr = (fitsfile *)NULL;
+
+   haveTop = 0;
+
 
    /*******************************/
    /* Initialize return structure */
@@ -382,7 +389,6 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    xrefout   = 0;
    yrefout   = 0;
 
-   /**************************************************************/
 
 
    /********************************/
@@ -506,6 +512,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(mProject_readFits(input_file, weight_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -535,6 +542,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       || yrefin < 0 || yrefin >= input.naxes[1])
       {
          sprintf(returnStruct->msg, "Debug input pixel coordinates out of range");
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -550,6 +558,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(mProject_readTemplate(template_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -608,6 +617,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       if(mProject_readTemplate(template_file) > 0)
       {
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -631,6 +641,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       || yrefout < 0 || yrefout >= output.naxes[1])
       {
          sprintf(returnStruct->msg, "Debug output pixel coordinates out of range");
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -856,6 +867,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(oxpixMin > oxpixMax || oypixMin > oypixMax)
    {
       sprintf(returnStruct->msg, "No overlap");
+      mProject_closeFiles();
       return returnStruct;
    }
     
@@ -869,6 +881,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(data == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for output data image array");
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -879,6 +892,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       if(data[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for output data image array");
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -913,6 +927,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(area == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for output area image array");
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -923,6 +938,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       if(area[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for output area image array");
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -998,6 +1014,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                        buffer, &nullcnt, &status))
       {
          mProject_printFitsError(status);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -1007,6 +1024,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                           weights, &nullcnt, &status))
          {
             mProject_printFitsError(status);
+            mProject_closeFiles();
             return returnStruct;
          }
       }
@@ -1654,12 +1672,16 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
+
+   input.fptr = (fitsfile *)NULL;
 
    if(haveIn)
    {
       strcpy(returnStruct->msg, "Debug output done.");
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1747,6 +1769,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printError("All pixels are blank. Check for overlap of output template with image file.");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1780,6 +1803,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1787,6 +1811,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1800,6 +1825,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1813,6 +1839,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1831,6 +1858,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1844,6 +1872,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1863,6 +1892,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1871,6 +1901,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1885,6 +1916,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1893,6 +1925,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1901,6 +1934,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1911,6 +1945,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -1919,6 +1954,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -1929,6 +1965,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -1937,6 +1974,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -1948,6 +1986,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1956,6 +1995,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1964,6 +2004,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
 
@@ -1974,6 +2015,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -1982,6 +2024,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -1992,6 +2035,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -2000,6 +2044,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
    }
@@ -2027,6 +2072,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -2057,6 +2103,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_closeFiles();
          return returnStruct;
       }
 
@@ -2080,8 +2127,11 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
+
+   output.fptr = (fitsfile *)NULL;
 
    if(mProject_debug >= 1)
    {
@@ -2093,8 +2143,11 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_closeFiles();
       return returnStruct;
    }
+
+   output_area.fptr = (fitsfile *)NULL;
 
    if(mProject_debug >= 1)
    {
@@ -2111,6 +2164,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    returnStruct->time = (double)(currtime - start);
 
+   mProject_closeFiles();
    return returnStruct;
 }
 
@@ -2621,6 +2675,38 @@ int mProject_readFits(char *filename, char *weightfile)
    free(header);
 
    return 0;
+}
+
+
+
+/************************************/
+/*                                  */
+/*  Make sure FITS files are closed */
+/*                                  */
+/************************************/
+
+void mProject_closeFiles()
+{
+   int status;
+
+   if(input.fptr != (fitsfile *)NULL)
+      fits_close_file(input.fptr, &status);
+
+   if(weight.fptr != (fitsfile *)NULL)
+      fits_close_file(weight.fptr, &status);
+
+   if(output.fptr != (fitsfile *)NULL)
+      fits_close_file(output.fptr, &status);
+
+   if(output_area.fptr != (fitsfile *)NULL)
+      fits_close_file(output_area.fptr, &status);
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   return;
 }
 
 

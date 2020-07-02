@@ -116,6 +116,8 @@ static time_t currtime, start;
 
 static int hdu;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

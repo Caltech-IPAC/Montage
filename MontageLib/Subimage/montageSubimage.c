@@ -122,13 +122,21 @@ static char montage_msgstr[1024];
 /*   double ysize          Y size in degrees (SKY mode) or pixels        */
 /*                         (PIX mode)                                    */
 /*                                                                       */
+/*                         In IMGPIX mode (relative to CRPIX), the ra,   */
+/*                         dec parameters are the offset of the          */
+/*                         beginning pixel and xsize,ysize are the       */
+/*                         offset of the end pixel.                      */
+/*                                                                       */
 /*   int    mode           Processing mode. The two main modes are       */
 /*                         0 (SKY) and 1 (PIX), corresponding to cutouts */
 /*                         are in sky coordinate or pixel space. The two */
-/*                         other modes are 3 (HDU) and 4 (SHRINK), where */
+/*                         other modes are 2 (HDU) and 3 (SHRINK), where */
 /*                         the region parameters are ignored and you get */
 /*                         back either a single HDU or an image that has */
-/*                         had all the blank border pixels removed.      */
+/*                         had all the blank border pixels removed. Mode */
+/*                         4 (IMGPIX) was added later as a variant of    */
+/*                         PIX, where the coordinates are relative to    */
+/*                         CRPIX1,CRPIX2.                                */
 /*                                                                       */
 /*   int    hdu            Optional HDU offset for input file            */
 /*   int    nowcs          Indicates that the image has no WCS info      */
@@ -178,6 +186,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
    shrinkWrap = 0;
    
    if(mode == PIX)    pixMode    = 1;
+   if(mode == IMGPIX) pixMode    = 2;
    if(mode == SHRINK) shrinkWrap = 1;
 
 
@@ -269,6 +278,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       }
    }
 
+   wcs = mSubimage_getFileInfo(infptr, header, &params);
 
    if (!nowcs) 
    {
@@ -277,8 +287,6 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
          printf("WCS handling\n");
          fflush(stdout);
       }
-  
-      wcs = mSubimage_getFileInfo(infptr, header, &params);
 
       if(wcs == (struct WorldCoor *)NULL)
       {
@@ -420,11 +428,38 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       }
  
       
-      params.ibegin = (int)ra;
-      params.iend   = (int)(ra + xsize + 0.5);
+      if(pixMode == 1)
+      {
+         params.ibegin = (int)ra;
+         params.iend   = (int)(ra + xsize + 0.5);
 
-      params.jbegin = (int)dec;
-      params.jend   = (int)(dec + ysize + 0.5);
+         params.jbegin = (int)dec;
+         params.jend   = (int)(dec + ysize + 0.5);
+      }
+      else  // pixMode = 2
+      {
+         params.ibegin = params.crpix[0] + ra;
+         params.jbegin = params.crpix[1] + dec;
+
+         params.iend   = params.crpix[0] + xsize + 0.5;
+         params.jend   = params.crpix[1] + ysize + 0.5;
+      }
+
+      if(mSubimage_debug)
+      {
+         printf("\npixMode = %d\n", pixMode);
+         printf("'ra'    = %-g\n", ra);
+         printf("'dec'   = %-g\n", dec);
+         printf("'xsize' = %-g\n", xsize);
+         printf("'ysize' = %-g\n", ysize);
+         printf("crpix1  = %-g\n", params.crpix[0]);
+         printf("crpix2  = %-g\n", params.crpix[1]);
+         printf("ibegin  = %d\n",  params.ibegin);
+         printf("iend    = %d\n",  params.iend);
+         printf("jbegin  = %d\n",  params.jbegin);
+         printf("jend    = %d\n",  params.jend);
+         fflush(stdout);
+      }
 
       if(params.ibegin < 1              ) params.ibegin = 1;
       if(params.ibegin > params.naxes[0]) params.ibegin = params.naxes[0];
@@ -438,11 +473,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
 
       if(mSubimage_debug)
       {
-         printf("\npixMode = TRUE\n");
-         printf("'ra'    = %-g\n", ra);
-         printf("'dec'   = %-g\n", dec);
-         printf("xsize   = %-g\n", xsize);
-         printf("ysize   = %-g\n", ysize);
+         printf("\nclipped:\n");
          printf("ibegin  = %d\n",  params.ibegin);
          printf("iend    = %d\n",  params.iend);
          printf("jbegin  = %d\n",  params.jbegin);
@@ -693,6 +724,7 @@ struct WorldCoor *mSubimage_getFileInfo(fitsfile *infptr, char *header[], struct
 
       fflush(stdout);
    }
+
 
    /****************************************/
    /* Initialize the WCS transform library */

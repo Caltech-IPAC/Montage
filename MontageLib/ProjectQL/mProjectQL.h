@@ -14,6 +14,7 @@ void  mProjectQL_UpdateBounds (double oxpix, double oypix,
                                double *oypixMin, double *oypixMax);
 
 int   mProjectQL_readFits     (char *filename, char *weightfile);
+void  mProjectQL_closeFiles   ();
 void  mProjectQL_fixxy        (double *x, double *y, int *offscl);
 
 int  mProjectQL_parseLine     (char *linein);

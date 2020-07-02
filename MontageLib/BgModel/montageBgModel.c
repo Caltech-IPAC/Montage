@@ -89,7 +89,7 @@ static int nimages, maximages;
 
 
 /* This structure contains the information describing the */
-/* plan to be subtracted from each image to "correct" it  */
+/* plane to be subtracted from each image to "correct" it */
 /* to its neighbors.                                      */
 
 static struct FitInfo
@@ -211,6 +211,9 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    int     ins;
 
    int     fittype;
+
+   int     nrms;
+   char    rms_str[128];
 
    double  boxx, boxy;
    double  width, height;
@@ -489,6 +492,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    /*****************/ 
 
    nfits   =      0;
+   nrms    =      0;
    maxfits = MAXCNT;
 
    if(debug >= 2)
@@ -530,6 +534,12 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       fits[nfits].npix      = atof(tval(inpix));
       fits[nfits].rms       = atof(tval(irms));
 
+      strcpy(rms_str, tval(irms));
+      if(strcmp(rms_str, "Inf" ) == 0
+      || strcmp(rms_str, "-Inf") == 0
+      || strcmp(rms_str, "NaN" ) == 0)
+         fits[nfits].rms = 1.e99;
+
       boxx   = atof(tval(iboxx));
       boxy   = atof(tval(iboxy));
       width  = atof(tval(iboxwidth ));
@@ -547,7 +557,11 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       fits[nfits].boxangle  = angle/dtr;
       fits[nfits].compl     = nfits+1;
 
-      averms += fits[nfits].rms;
+      if(fits[nfits].rms < 1.e99)
+      {
+         averms += fits[nfits].rms;
+         ++nrms;
+      }
 
       ++nfits;
 
@@ -619,7 +633,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       }
    }
 
-   averms = averms / nfits;
+   averms = averms / nrms;
 
 
    /********************************************/
@@ -856,6 +870,13 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    {
       for(k=0; k<nfits; ++k)
       {
+         if(fits[k].rms >= 1.e99)
+         {
+            fits[k].use = 0;
+
+            continue;
+         }
+
          if(fits[k].npix < areaLimit * avearea)
          {
             if(debug >= 2)

@@ -3,13 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
+#include <cmd.h>
 #include <mNaN.h>
 
 #include "fitsio.h"
 #include "coord.h"
 #include "wcs.h"
 
-#define MAXSTR   256
+#define MAXSTR  1024
 #define MAXHDR 80000
 
 #define NEITHER 0
@@ -44,6 +45,13 @@ void mViewer_symbol          (struct WorldCoor *wcs, int flipY,
                               double symsize, int symnpnt, int symmax, int symtype, double symang,
                               double red,   double green, double blue, double linewidth);
 
+void mViewer_drawing         (char *filename);
+
+void mViewer_smooth_line     (double x1, double y1, 
+                              double x2, double y2,
+                              double red, double green, double blue,
+                              double linewidth);
+
 void mViewer_curve           (double *xcurve, double *ycurve, int npt,
                               double red, double green, double blue, double linewidth);
 
@@ -56,6 +64,8 @@ void mViewer_longitude_line  (double lon, double latmin, double latmax,
                               double red, double green, double blue, double linewidth);
 
 void mViewer_draw_boundary   (double red, double green, double blue, double linewidth);
+
+void mViewer_hpxCheck        (int *offscl, double *x, double *y);
 
 
 struct Pix
@@ -89,6 +99,8 @@ double compass_segments[9][4] = {{ 0.0,  0.0,  0.0,  8.0},
                                  {-0.7,  9.0, -0.7, 11.0},
                                  {-0.7, 11.0,  0.7,  9.0},
                                  { 0.7,  9.0,  0.7, 11.0}};
+
+extern int hpx;
 
 int gdebug = 0;
 
@@ -471,6 +483,8 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
 
    wcs2pix(wcs, reflon, reflat, &xpix, &ypix, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
+
    if(!offscl && !mNaN(xpix) && !mNaN(ypix))
    {
       lonmin =   0.;
@@ -488,6 +502,8 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
                          csysimg,  epochimg, &reflon, &reflat, 0.0);
 
    wcs2pix(wcs, reflon, reflat, &xpix, &ypix, &offscl);
+
+   if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
 
    if(!offscl && !mNaN(xpix) && !mNaN(ypix))
    {
@@ -1147,6 +1163,8 @@ void mViewer_great_circle(struct WorldCoor *wcs, int flipY,
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xpix, &ypix, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
+
       if(!offscl && !mNaN(xpix) && !mNaN(ypix))
       {
          if(!flipY || wcs->imflip)
@@ -1386,3 +1404,99 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
       }
    }
 }
+
+
+
+/*****************************************************/
+/*                                                   */
+/* A drawing defined in a file.                      */
+/*                                                   */
+/*****************************************************/
+
+void mViewer_drawing(char *filename)
+{
+   int    cmdc;
+   char   line[MAXSTR];
+   char  *cmdv[256];
+
+   FILE  *fdraw;
+
+   static double xprev = 0.;
+   static double yprev = 0.;
+
+   static double red   = 255.;
+   static double green = 255.;
+   static double blue  = 255.;
+   
+   static double linewidth = 3.;
+
+   double xpix, ypix;
+
+   // double clon, clat;
+
+   // pix2wcs(wcs, xpix, ypix, &clon, &clat);
+   //
+
+   fdraw = fopen(filename, "r");
+
+   if(fdraw == (FILE *)NULL)
+      return;
+
+   while(1)
+   {
+      if(fgets(line, MAXSTR, fdraw) == (char *)NULL)
+         break;
+
+      if(line[0] == '#')
+         continue;
+
+      cmdc = parsecmd(line, cmdv);
+
+      if(cmdc <= 0)
+         continue;
+
+      
+      // COLOR command
+
+      if(strcmp(cmdv[0], "color") == 0)
+      {
+         blue  = atof(cmdv[1]);
+         green = atof(cmdv[2]);
+         red   = atof(cmdv[3]);
+      }
+
+      
+      // WIDTH command
+      
+      if(strcmp(cmdv[0], "width") == 0)
+      {
+         linewidth = atof(cmdv[1]);
+      }
+
+
+      // MOVE command
+      
+      if(strcmp(cmdv[0], "move") == 0)
+      {
+         xprev = atof(cmdv[1]);
+         yprev = atof(cmdv[2]);
+      }
+
+
+      // DRAW command
+      
+      if(strcmp(cmdv[0], "draw") == 0)
+      {
+         xpix = atof(cmdv[1]);
+         ypix = atof(cmdv[2]);
+
+         mViewer_smooth_line(xprev, yprev, xpix, ypix, red, green, blue, linewidth);
+
+         xprev = xpix;
+         yprev = ypix;
+      }
+   }
+
+   fclose(fdraw);
+}
+

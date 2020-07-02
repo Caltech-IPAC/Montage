@@ -2313,11 +2313,11 @@ int lookup(char *mosaicCenter, double *ra, double *dec)
 
    char   result    [4096];
 
-   strcpy(server, "irsa.ipac.caltech.edu");
+   strcpy(server, "montage.ipac.caltech.edu");
 
    port = 80;
 
-   strcpy(base, "/cgi-bin/Oasis/Lookup/nph-lookup?");
+   strcpy(base, "/cgi-bin/Lookup/nph-lookup?");
 
    objStr = url_encode(mosaicCenter);
 
@@ -2336,7 +2336,7 @@ int lookup(char *mosaicCenter, double *ra, double *dec)
 
    if(debug)
    {
-      fprintf(fdebug, "lookup(\"%s\") -> ", mosaicCenter);
+      fprintf(fdebug, "[%s:%d/%s%s] lookup(\"%s\") -> ", server, port, base, constraint, mosaicCenter);
       fflush(fdebug);
    }
 
@@ -2355,6 +2355,9 @@ int lookup(char *mosaicCenter, double *ra, double *dec)
 
       rc = recv(socket, line, 1, 0);
 
+      fprintf(fdebug, "line: [%s]\n", line);
+      fflush(fdebug);
+
       if(rc <= 0)
          break;
 
@@ -2368,6 +2371,9 @@ int lookup(char *mosaicCenter, double *ra, double *dec)
    }
 
    result[j] = '\0';
+
+   fprintf(fdebug, "result: [%s]\n", result);
+   fflush(fdebug);
 
 
    if(count == 0)

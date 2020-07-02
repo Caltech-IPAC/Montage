@@ -67,6 +67,8 @@ Version  Developer        Date     Change
 extern char *optarg;
 extern int optind, opterr;
 
+FILE *fstatus;
+
 int    gaussj(float **, int, float **, int);
 int   *ivector(int);
 void   free_ivector(int *);

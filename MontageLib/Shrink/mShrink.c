@@ -18,7 +18,7 @@ extern int getopt(int argc, char *const *argv, const char *options);
 int main(int argc, char **argv)
 {
    int       c, debug, hdu, fixedSize;
-   double    shrinkFactor;
+   double    shrinkFactor, cdelt;
 
    char      input_file [MAXSTR];
    char      output_file[MAXSTR];
@@ -38,14 +38,26 @@ int main(int argc, char **argv)
    fixedSize = 0;
    hdu       = 0;
 
+   cdelt = 0.;
+
    opterr = 0;
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "d:h:s:f")) != EOF) 
+   while ((c = getopt(argc, argv, "d:p:h:s:f")) != EOF) 
    {
       switch (c) 
       {
+         case 'p':
+            cdelt = atof(optarg);
+
+            if(cdelt <= 0.)
+            {
+                fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"Replacement pixel scale must be positive number.\"]\n");
+                exit(1);
+            }
+            break;
+
          case 'd':
             debug = montage_debugCheck(optarg);
 
@@ -81,7 +93,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-f(ixed-size)] [-d level] [-h hdu] [-s statusfile] in.fits out.fits factor\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-f(ixed-size)] [-p pixel-scale] [-d level] [-h hdu] [-s statusfile] in.fits out.fits factor\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -89,7 +101,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 3) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-f(ixed-size)] [-d level] [-h hdu] [-s statusfile] in.fits out.fits factor\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-f(ixed-size)] [-d level] [-p pixel-scale] [-h hdu] [-s statusfile] in.fits out.fits factor\"]\n", argv[0]);
       exit(1);
    }
   
@@ -105,7 +117,7 @@ int main(int argc, char **argv)
       exit(1);
    }
 
-   returnStruct = mShrink(input_file, output_file, shrinkFactor, hdu, fixedSize, debug);
+   returnStruct = mShrink(input_file, output_file, shrinkFactor, cdelt, hdu, fixedSize, debug);
 
    if(returnStruct->status == 1)
    {

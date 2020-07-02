@@ -93,6 +93,8 @@ int  update_table(char *tblname);
 
 struct Hdr_rec hdr_rec;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

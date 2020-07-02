@@ -28,7 +28,14 @@ int    mViewer_setPixel    (int i, int j, double brightness, double red, double 
 int    mViewer_lockPixel   (int i, int j);
 int    mViewer_getPixel    (int i, int j, int color);
 
+void   mViewer_convexHull  (int n, int *xarray, int *yarray, int *nhull, int *xhull, int *yhull);
+
+void   mViewer_boundingbox (int n, int *x, int *y, double *a, double *b, double *c, double *xbox, double *ybox);
+
+
 double mViewer_label_length(char *face_path, int fontsize, char *text);
+
+int mViewer_drawing_debug = 0;
 
 
 /****************************************************/
@@ -71,11 +78,32 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
    double xadvance;
    double angle, dl, frac, length;
    double xoff, yoff;
+   double xcenter, ycenter, sgn[4];
 
-   int    xpix, ypix;
+   int    xpix, ypix, i, inext, j, k, inside;
+
+   int    ncorner;
+   int    xcorner[32768];
+   int    ycorner[32768];
+
+   int    nhull;
+   int    xhull[1024];
+   int    yhull[1024];
+
+   double a[4], b[4], c[4];
+   double xbox[4], ybox[4];
+   double xmin, ymin, xmax, ymax, val;
+
+
 
    if(npt < 2)
       return;
+   
+   if(mViewer_drawing_debug)
+   {
+      printf("LABEL> [%s]\n", text);
+      fflush(stdout);
+   }
 
 
    /* Draw the curve up to the text starting offset */
@@ -277,6 +305,9 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
    use_kerning = FT_HAS_KERNING( face );
 
    int n;
+
+   ncorner = 0;
+
    for ( n = 0; n < num_chars; n++ )
    {
       /* Convert character code to glyph index */
@@ -401,6 +432,25 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
       }
 
 
+      /* Gather the four corners of the character */
+
+      xcorner[ncorner] = xpix + face->glyph->bitmap_left;
+      ycorner[ncorner] = ypix + face->glyph->bitmap_top;
+      ++ncorner;
+
+      xcorner[ncorner] = xpix + face->glyph->bitmap_left + face->glyph->bitmap.width + 1;
+      ycorner[ncorner] = ypix + face->glyph->bitmap_top;
+      ++ncorner;
+
+      xcorner[ncorner] = xpix + face->glyph->bitmap_left + face->glyph->bitmap.width + 1;
+      ycorner[ncorner] = ypix + face->glyph->bitmap_top - face->glyph->bitmap.rows - 1;
+      ++ncorner;
+
+      xcorner[ncorner] = xpix + face->glyph->bitmap_left;
+      ycorner[ncorner] = ypix + face->glyph->bitmap_top - face->glyph->bitmap.rows - 1;
+      ++ncorner;
+
+
       /* Now, draw to our target surface */
 
       mViewer_draw_bitmap(&face->glyph->bitmap,
@@ -445,18 +495,6 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
       xchar = x1 + frac * (x2 - x1);
       ychar = y1 + frac * (y2 - y1);
 
-      xpix = floor(xchar);
-      ypix = floor(ychar);
-
-
-      /* Draw character reference point (for debugging purposes) **
-
-      for(ii=xpix-1; ii<=xpix+1; ++ii)
-         for(jj=ypix-1; jj<=ypix+1; ++jj)
-            mViewer_setPixel(ii, jj, 1., 0., 0., 1.);
-
-      ***/
-
       xpix = floor(xchar+xoff);
       ypix = floor(ychar+yoff);
 
@@ -470,6 +508,104 @@ void mViewer_labeledCurve( char *face_path, int fontsize, int showLine,
       /* record current glyph index (needed for kerning next glyph) */
 
       previous = glyph_index;
+   }
+
+
+   /* The character corners collected above form a set for which we can determine a convex hull */
+
+   mViewer_convexHull(ncorner, xcorner, ycorner, &nhull, xhull, yhull);
+
+   mViewer_boundingbox(nhull, xhull, yhull, a, b, c, xbox, ybox);
+
+   if(mViewer_drawing_debug)
+   {
+      printf("\n");
+      printf("data = [\n");
+
+      for(i=0; i<ncorner; ++i)
+      {
+         if(i==ncorner-1)
+            printf("[%d, %d]];\n", xcorner[i], ycorner[i]);
+         else
+            printf("[%d, %d],\n", xcorner[i], ycorner[i]);
+      }
+
+      printf("\n");
+      printf("hull = [\n");
+
+      for(i=0; i<nhull; ++i)
+      {
+         if(i==nhull-1)
+            printf("[ %d, %d]];\n", xhull[i], yhull[i]);
+         else
+            printf("[ %d, %d],\n", xhull[i], yhull[i]);
+      }
+
+      printf("\n");
+      printf("box = [\n");
+
+      for(i=0; i<4; ++i)
+      {
+         if(i==3)
+            printf("[ %d, %d]];\n", (int)(xbox[i]+0.5), (int)(ybox[i]+0.5));
+         else
+            printf("[ %d, %d],\n", (int)(xbox[i]+0.5), (int)(ybox[i]+0.5));
+      }
+
+      printf("\n");
+      fflush(stdout);
+   }
+
+
+   if(mViewer_drawing_debug)
+   {
+      for(i=0; i<4; ++i)
+      {
+         inext = (i+1)%4;
+
+         mViewer_smooth_line (xbox[i], ybox[i], xbox[inext], ybox[inext], red, green, blue, 9.);
+      }
+   }
+
+   xmin = xbox[0];
+   ymin = ybox[0];
+   xmax = xbox[0];
+   ymax = ybox[0];
+
+   for(k=0; k<4; ++k)
+   {
+      if(xbox[k] < xmin) xmin = xbox[k];
+      if(ybox[k] < ymin) ymin = ybox[k];
+      if(xbox[k] > xmax) xmax = xbox[k];
+      if(ybox[k] > ymax) ymax = ybox[k];
+   }
+
+   xcenter = (xbox[0] + xbox[1] + xbox[2] + xbox[3])/4.;
+   ycenter = (ybox[0] + ybox[1] + ybox[2] + ybox[3])/4.;
+
+   for(k=0; k<4; ++k)
+      sgn[k] = a[k]*xcenter + b[k]*ycenter + c[k];
+
+   for(j=ymin; j<=ymax; ++j)
+   {
+      for(i=xmin; i<=xmax; ++i)
+      {
+         inside = 1;
+
+         for(k=0; k<4; ++k)
+         {
+            val = a[k]*i + b[k]*j + c[k];
+
+            if(sgn[k] * val <= 0.)
+            {
+               inside = 0;
+               break;
+            }
+         }
+
+         if (inside)
+            mViewer_lockPixel(i, j);
+      }
    }
 
 
@@ -549,8 +685,7 @@ void mViewer_curve(double *xcurve, double *ycurve, int npt,
 void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double green, double blue, int fontsize, double angle)
 {
    int    i, j, size;
-   double temp, radius2, size2, xr, yr;
-   // double radius;
+   double temp;
 
    size = fontsize;
 
@@ -561,8 +696,6 @@ void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double g
       size = bitmap->rows;
 
    size = (double)size * 1.415/2.;
-
-   size2 = size*size;
 
 
    // Turn on the pixels in the image covered by the (non-zero) bitmap locations
@@ -592,57 +725,23 @@ void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double g
    }
 
    
-   // Lock a circular area centered on the character box
-   
-   for(i=0; i<2*size; i++)
-   {
-      for(j=0; j<2*size; j++)
-      {
-         radius2 = (double)(i-size)*(i-size) + (double)(j-size)*(j-size);
-
-         if(radius2 < size2)
-         {
-            xr = x + bitmap->width/2 + (i - size);
-            yr = y - bitmap->width/2 - (j - size);
-
-            mViewer_lockPixel(xr, yr);
-         }
-      }
-   }
-
-
    // Draw character bounding box (for debugging purposes 
    // and the character bounding circle                  
 
-   /*
-   for(j=0; j<bitmap->rows+2; j++)
+   if(mViewer_drawing_debug)
    {
-      mViewer_setPixel(x,                     y - j, 1., 1., 1., 1., 1);
-      mViewer_setPixel(x + bitmap->width + 1, y - j, 1., 1., 1., 1., 1);
-   }
-
-   for(i=0; i<bitmap->width+2; i++)
-   {
-      mViewer_setPixel(x + i, y,                    1., 1., 1., 1., 1);
-      mViewer_setPixel(x + i, y - bitmap->rows - 1, 1., 1., 1., 1., 1);
-   }
-
-   for(i=0; i<2*size; i++)
-   {
-      for(j=0; j<2*size; j++)
+      for(j=0; j<bitmap->rows+2; j++)
       {
-         radius = sqrt((double)(i-size)*(i-size) + (double)(j-size)*(j-size));
+         mViewer_setPixel(x,                     y - j, 1., 1., 1., 1., 1);
+         mViewer_setPixel(x + bitmap->width + 1, y - j, 1., 1., 1., 1., 1);
+      }
 
-         if(fabs(radius - size) < 1.0)
-         {
-            xr = x + bitmap->width/2 + (i - size);
-            yr = y - bitmap->width/2 - (j - size);
-
-            mViewer_setPixel(xr, yr, 1., 1., 1., 0., 1);
-         }
+      for(i=0; i<bitmap->width+2; i++)
+      {
+         mViewer_setPixel(x + i, y,                    1., 1., 1., 1., 1);
+         mViewer_setPixel(x + i, y - bitmap->rows - 1, 1., 1., 1., 1., 1);
       }
    }
-   */
 }
 
 
@@ -664,7 +763,7 @@ void mViewer_smooth_line(double x1, double y1,
    double brightness1, brightness2;
 
    if(linewidth != 1.)
-      mViewer_thick_line(x1, y1, x2, y2, red, green, blue, 5.);
+      mViewer_thick_line(x1, y1, x2, y2, red, green, blue, linewidth);
 
 
    /* Extent of line in X and Y */

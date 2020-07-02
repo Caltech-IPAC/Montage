@@ -9,54 +9,56 @@ endif
 all: pgm lib pythonlibs
 
 pgm: 
-
-		(cd util          &&                   $(MAKE))
-		(cd Add           && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd AddCube       && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd ArchiveList   && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd ArchiveGet    &&                   $(MAKE) && $(MAKE) install)
-		(cd ArchiveExec   &&                   $(MAKE) && $(MAKE) install)
-		(cd Background    && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd BestImage     &&                   $(MAKE) && $(MAKE) install)
-		(cd BgModel       &&                   $(MAKE) && $(MAKE) install)
-		(cd CoverageCheck && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Diff          && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Examine       && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Fitplane      &&                   $(MAKE) && $(MAKE) install)
-		(cd FixNaN        && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd GetHdr        &&                   $(MAKE) && $(MAKE) install)
-		(cd Hdr           && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Histogram     &&                   $(MAKE) && $(MAKE) install)
-		(cd Imgtbl        && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd MakeHdr       && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd MakeImg       && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Overlaps      && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Project       && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd ProjectCube   && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd ProjectPP     && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd ProjectQL     && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd PutHdr        &&                   $(MAKE) && $(MAKE) install)
-		(cd ShrinkCube    &&                   $(MAKE) && $(MAKE) install)
-		(cd Shrink        &&                   $(MAKE) && $(MAKE) install)
-		(cd SubCube       && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Subimage      && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd TANHdr        &&                   $(MAKE) && $(MAKE) install)
-		(cd Transpose     && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd WWT           && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd Viewer        && ./Configure.sh && $(MAKE) && $(MAKE) install)
-		(cd DiffExec      &&                   $(MAKE) && $(MAKE) install)
-		(cd BgExec        &&                   $(MAKE) && $(MAKE) install)
-		(cd DiffFitExec   &&                   $(MAKE) && $(MAKE) install)
-		(cd FitExec       &&                   $(MAKE) && $(MAKE) install)
-		(cd ProjExec      &&                   $(MAKE) && $(MAKE) install)
+		(cd util          &&                   make)
+		(cd Add           && ./Configure.sh && make && make install)
+		(cd AddCube       && ./Configure.sh && make && make install)
+		(cd AddMem        && ./Configure.sh && make && make install)
+		(cd ArchiveList   && ./Configure.sh && make && make install)
+		(cd ArchiveGet    &&                   make && make install)
+		(cd ArchiveExec   &&                   make && make install)
+		(cd Background    && ./Configure.sh && make && make install)
+		(cd BestImage     &&                   make && make install)
+		(cd BgModel       &&                   make && make install)
+		(cd CoverageCheck && ./Configure.sh && make && make install)
+		(cd Diff          && ./Configure.sh && make && make install)
+		(cd Examine       && ./Configure.sh && make && make install)
+		(cd Fitplane      &&                   make && make install)
+		(cd FixNaN        && ./Configure.sh && make && make install)
+		(cd GetHdr        &&                   make && make install)
+		(cd Hdr           && ./Configure.sh && make && make install)
+		(cd Histogram     &&                   make && make install)
+		(cd Imgtbl        && ./Configure.sh && make && make install)
+		(cd MakeHdr       && ./Configure.sh && make && make install)
+		(cd MakeImg       && ./Configure.sh && make && make install)
+		(cd Overlaps      && ./Configure.sh && make && make install)
+		(cd Project       && ./Configure.sh && make && make install)
+		(cd ProjectCube   && ./Configure.sh && make && make install)
+		(cd ProjectPP     && ./Configure.sh && make && make install)
+		(cd ProjectQL     && ./Configure.sh && make && make install)
+		(cd PutHdr        &&                   make && make install)
+		(cd ShrinkCube    &&                   make && make install)
+		(cd Shrink        &&                   make && make install)
+		(cd SubCube       && ./Configure.sh && make && make install)
+		(cd SubHdr        && ./Configure.sh && make && make install)
+		(cd Subimage      && ./Configure.sh && make && make install)
+		(cd TANHdr        &&                   make && make install)
+		(cd Transpose     && ./Configure.sh && make && make install)
+		(cd WWT           && ./Configure.sh && make && make install)
+		(cd Viewer        && ./Configure.sh && make && make install)
+		(cd DiffExec      &&                   make && make install)
+		(cd BgExec        &&                   make && make install)
+		(cd DiffFitExec   &&                   make && make install)
+		(cd FitExec       &&                   make && make install)
+		(cd ProjExec      &&                   make && make install)
 
 lib:
-		rm -f libmontage.a libmontage.so libmontagepy.so
-		ar q  libmontage.a \
+		-rm -f libmontage.a libmontage.so libmontagepy.so
+		-ar q  libmontage.a \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -83,22 +85,25 @@ lib:
 			ShrinkCube/montageShrinkCube.o \
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
+			SubHdr/montageSubHdr.o \
 			Subimage/montageSubimage.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
 			Viewer/mViewer_graphics.o \
 			Viewer/mViewer_grid.o \
+			Viewer/mViewer_boundingbox.o \
 			BgExec/montageBgExec.o \
 			DiffExec/montageDiffExec.o \
 			FitExec/montageFitExec.o \
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o 
-		gcc -shared $(SO_FLAG) -o libmontage.so \
+		-gcc -shared $(SO_FLAG) -o libmontage.so \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -125,12 +130,14 @@ lib:
 			ShrinkCube/montageShrinkCube.o \
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
+			SubHdr/montageSubHdr.o \
 			Subimage/montageSubimage.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
 			Viewer/mViewer_graphics.o \
 			Viewer/mViewer_grid.o \
+			Viewer/mViewer_boundingbox.o \
 			BgExec/montageBgExec.o \
 			DiffExec/montageDiffExec.o \
 			FitExec/montageFitExec.o \
@@ -138,12 +145,12 @@ lib:
 			ProjExec/montageProjExec.o 
 
 pythonlibs:
-		rm -f ../python/MontagePy/lib/*.o
-		mkdir -p ../python/MontagePy/lib
-		cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
+		-rm -f ../python/MontagePy/lib/*.o
+		-cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -170,12 +177,14 @@ pythonlibs:
 			ShrinkCube/montageShrinkCube.o \
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
+			SubHdr/montageSubHdr.o \
 			Subimage/montageSubimage.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
 			Viewer/mViewer_graphics.o \
 			Viewer/mViewer_grid.o \
+			Viewer/mViewer_boundingbox.o \
 			BgExec/montageBgExec.o \
 			DiffExec/montageDiffExec.o \
 			FitExec/montageFitExec.o \
@@ -383,16 +392,17 @@ pythonlibs:
 			../lib/src/bzip2-1.0.6/decompress.o \
 			../lib/src/bzip2-1.0.6/bzlib.o \
          ../python/MontagePy/lib
-		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
-		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
-		cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
-		cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
+		-cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
+		-cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
+		-cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
+		-cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
 # The last four lines are needed because we have .o file name conflicts
 
 doc:
 			gcc -o mLibDoc mLibDoc.c
 			mLibDoc Add
 			mLibDoc AddCube
+			mLibDoc AddMem
 			mLibDoc ArchiveList
 			mLibDoc ArchiveGet
 			mLibDoc ArchiveExec
@@ -419,6 +429,7 @@ doc:
 			mLibDoc ShrinkCube
 			mLibDoc Shrink
 			mLibDoc SubCube
+			mLibDoc SubHdr
 			mLibDoc Subimage
 			mLibDoc TANHdr
 			mLibDoc Transpose
@@ -433,6 +444,7 @@ jupyter:
 			gcc -o mJupyter mJupyter.c -I../lib/include -L ../lib -lsvc
 			mJupyter Add
 			mJupyter AddCube
+			mJupyter AddMem
 			mJupyter ArchiveList
 			mJupyter ArchiveGet
 			mJupyter ArchiveExec
@@ -459,6 +471,7 @@ jupyter:
 			mJupyter ShrinkCube
 			mJupyter Shrink
 			mJupyter SubCube
+			mJupyter SubHdr
 			mJupyter Subimage
 			mJupyter TANHdr
 			mJupyter Transpose
@@ -470,44 +483,46 @@ jupyter:
 			mJupyter ProjExec
 
 clean:
-		(cd util          && $(MAKE) clean)
-		(cd Add           && test ! -e Makefile || $(MAKE) clean)
-		(cd AddCube       && test ! -e Makefile || $(MAKE) clean)
-		(cd ArchiveList   && test ! -e Makefile || $(MAKE) clean)
-		(cd ArchiveGet    && $(MAKE) clean)
-		(cd ArchiveExec   && $(MAKE) clean)
-		(cd Background    && test ! -e Makefile || $(MAKE) clean)
-		(cd BestImage     && $(MAKE) clean)
-		(cd BgModel       && $(MAKE) clean)
-		(cd CoverageCheck && test ! -e Makefile || $(MAKE) clean)
-		(cd Diff          && test ! -e Makefile || $(MAKE) clean)
-		(cd Examine       && test ! -e Makefile || $(MAKE) clean)
-		(cd Fitplane      && $(MAKE) clean)
-		(cd FixNaN        && test ! -e Makefile || $(MAKE) clean)
-		(cd GetHdr        && $(MAKE) clean)
-		(cd Hdr           && test ! -e Makefile || $(MAKE) clean)
-		(cd Histogram     && $(MAKE) clean)
-		(cd Imgtbl        && test ! -e Makefile || $(MAKE) clean)
-		(cd MakeHdr       && test ! -e Makefile || $(MAKE) clean)
-		(cd MakeImg       && test ! -e Makefile || $(MAKE) clean)
-		(cd Overlaps      && test ! -e Makefile || $(MAKE) clean)
-		(cd ProjectCube   && test ! -e Makefile || $(MAKE) clean)
-		(cd Project       && test ! -e Makefile || $(MAKE) clean)
-		(cd ProjectPP     && test ! -e Makefile || $(MAKE) clean)
-		(cd ProjectQL     && test ! -e Makefile || $(MAKE) clean)
-		(cd PutHdr        && $(MAKE) clean)
-		(cd ShrinkCube    && $(MAKE) clean)
-		(cd Shrink        && $(MAKE) clean)
-		(cd SubCube       && test ! -e Makefile || $(MAKE) clean)
-		(cd Subimage      && test ! -e Makefile || $(MAKE) clean)
-		(cd TANHdr        && $(MAKE) clean)
-		(cd Transpose     && test ! -e Makefile || $(MAKE) clean)
-		(cd WWT           && test ! -e Makefile || $(MAKE) clean)
-		(cd Viewer        && test ! -e Makefile || $(MAKE) clean)
-		(cd DiffExec      && $(MAKE) clean)
-		(cd BgExec        && $(MAKE) clean)
-		(cd DiffFitExec   && $(MAKE) clean)
-		(cd FitExec       && $(MAKE) clean)
-		(cd ProjExec      && $(MAKE) clean)
+		(cd util          && make clean)
+		(cd Add           && make clean)
+		(cd AddCube       && make clean)
+		(cd AddMem        && make clean)
+		(cd ArchiveList   && make clean)
+		(cd ArchiveGet    && make clean)
+		(cd ArchiveExec   && make clean)
+		(cd Background    && make clean)
+		(cd BestImage     && make clean)
+		(cd BgModel       && make clean)
+		(cd CoverageCheck && make clean)
+		(cd Diff          && make clean)
+		(cd Examine       && make clean)
+		(cd Fitplane      && make clean)
+		(cd FixNaN        && make clean)
+		(cd GetHdr        && make clean)
+		(cd Hdr           && make clean)
+		(cd Histogram     && make clean)
+		(cd Imgtbl        && make clean)
+		(cd MakeHdr       && make clean)
+		(cd MakeImg       && make clean)
+		(cd Overlaps      && make clean)
+		(cd ProjectCube   && make clean)
+		(cd Project       && make clean)
+		(cd ProjectPP     && make clean)
+		(cd ProjectQL     && make clean)
+		(cd PutHdr        && make clean)
+		(cd ShrinkCube    && make clean)
+		(cd Shrink        && make clean)
+		(cd SubCube       && make clean)
+		(cd SubHdr        && make clean)
+		(cd Subimage      && make clean)
+		(cd TANHdr        && make clean)
+		(cd Transpose     && make clean)
+		(cd WWT           && make clean)
+		(cd Viewer        && make clean)
+		(cd DiffExec      && make clean)
+		(cd BgExec        && make clean)
+		(cd DiffFitExec   && make clean)
+		(cd FitExec       && make clean)
+		(cd ProjExec      && make clean)
 		rm -f libmontage.a libmontage.so
 		rm -f ../python/MontagePy/lib/*.o

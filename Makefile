@@ -1,20 +1,22 @@
 all:
 	mkdir -p bin
 	mkdir -p lib/include
-	test ! -d lib/src    || (cd lib/src                   && $(MAKE))
-	test ! -d Montage    || (cd Montage && ./Configure.sh && $(MAKE) && $(MAKE) install)
-	test ! -d util       || (cd util                      && $(MAKE))
-	test ! -d grid       || (cd grid                      && $(MAKE))
-	test ! -d MontageLib || (cd MontageLib                && $(MAKE))
-	test ! -d ancillary  || (cd ancillary                 && $(MAKE) && $(MAKE) install)
+	if test -d lib/src;    then (cd lib/src;    make); fi
+	if test -d Montage;    then (cd Montage;  ./Configure.sh; make; make install); fi
+	if test -d util;       then (cd util;       make); fi
+	if test -d grid;       then (cd grid;       make); fi
+	if test -d MontageLib; then (cd MontageLib; make); fi
+	if test -d ancillary;  then (cd ancillary;  make; make install); fi
+	if test -d HiPS;       then (cd HiPS;       make); fi
 
 clean:
 	mkdir -p bin
 	mkdir -p lib/include
 	rm -rf bin/*
-	test ! -d lib/src          || (cd lib/src &&    $(MAKE) clean)
-	test ! -e Montage/Makefile || (cd Montage &&    $(MAKE) clean)
-	test ! -d util             || (cd util &&       $(MAKE) clean)
-	test ! -d grid             || (cd grid &&       $(MAKE) clean)
-	test ! -d MontageLib       || (cd MontageLib && $(MAKE) clean)
-	test ! -d ancillary        || (cd ancillary &&  $(MAKE) clean)
+	if test -d lib/src;    then (cd lib/src;    make clean); fi
+	if test -d Montage;    then (cd Montage;    make clean); fi
+	if test -d util;       then (cd util;       make clean); fi
+	if test -d grid;       then (cd grid;       make clean); fi
+	if test -d MontageLib; then (cd MontageLib; make clean); fi
+	if test -d ancillary;  then (cd ancillary;  make clean); fi
+	if test -d HiPS;       then (cd HiPS;       make clean); fi

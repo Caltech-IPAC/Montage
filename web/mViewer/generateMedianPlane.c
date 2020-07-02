@@ -91,7 +91,7 @@ int generateMedianPlane (char *cubepath, char *impath, int iplane,
     fitsfile  *outfptr;
 
     
-    int    debugfile = 1;
+    int    debugfile = 0;
     int    debugfile1 = 0;
 
 

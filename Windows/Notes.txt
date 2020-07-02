@@ -6,12 +6,12 @@ reasonably straightforward to cross-compile the Montage modules (and support
 libraries) to run natively on 64-bit Windows.  It is not quite linear    
 enough to allow us to construct a build script but since the Windows version
 is distributed as executables, it is unlikely that too many people will 
-need to reproduced the build.
+need to reproduce the build.
 
-This document describes the process, with a lot of side notes for future   
-reference.  There are a few parts of Montage that can't be built for Windows
-(a few modules that rely heavily on LINUX network communication do not; we have
- constructed web service alternatives for them).
+
+There are a few parts of Montage that can't be built for Windows (a few modules 
+that rely heavily on LINUX network communication do not; we have constructed
+web service alternatives for them).
 
 All of this has been made infinitely easier by avoiding the rather complex
 installation and configuration of the MinGW suite (which compiles LINUX code
@@ -163,7 +163,7 @@ Here is the code for that library (fakec.c):
 and here is it's Makefile:
 
 
-   libmtbl.a:  fakec.c
+   libc.a:     fakec.c
                $(CC) -I. -c fakec.c
                ar rv libc.a fakec.o
 

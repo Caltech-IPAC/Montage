@@ -36,6 +36,7 @@ Version  Developer        Date     Change
 #define  MAXSTR    1024
 #define  MAXGRID     16
 #define  MAXCAT     128
+#define  MAXDRAW    128
 #define  MAXMARK   1024
 #define  MAXLABEL  1024
 #define  MAXDIM   65500
@@ -86,11 +87,11 @@ static int redPlanes[256];
 static int greenPlanes[256];
 static int bluePlanes[256];
 
-static int    naxis1, naxis2;
-static int    outType;
-static int    noflip;
-static int    flipX;
-static int    flipY;
+static int naxis1, naxis2;
+static int outType;
+static int noflip;
+static int flipX;
+static int flipY;
 
 static double crpix1, crpix2;
 static double crval1, crval2;
@@ -137,6 +138,8 @@ static unsigned int ii, jj;
 static unsigned int nx;
 static unsigned int ny;
 static unsigned int membytes;
+
+int hpx, hpxPix, hpxLevel;
 
 int isRGB;
 
@@ -232,6 +235,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       int    csys;                    // Coordinate system (default EQUJ)
       double epoch;                   // Coordinate epoch (default 2000.)
       double red, green, blue;        // Grid color
+      double alpha;                   // Grid overlay alpha
    };
 
    struct gridInfo grid[MAXGRID];
@@ -252,6 +256,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
       double red, green, blue;        // Global symbol/outline/label color
       char   colorColumn[MAXSTR];     // Override color column (content e.g. 'red' or "ff00a0")
+      double alpha;                   // Global grid overlay alpha
 
       double symSize;                 // Symbol reference size (e.g. 2.5)
       int    symUnits;                // Size units (e.g. arcsec)
@@ -272,6 +277,21 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    };
 
    struct catInfo cat[MAXCAT];
+
+
+
+   // DRAWING LAYERS
+   
+   int ndrawing;
+
+   struct drawingInfo
+   {
+      char file[MAXSTR];
+
+      double alpha;
+   };
+
+   struct drawingInfo drawing[MAXDRAW];
    
 
    // INDIVIDUAL LABEL LAYERS
@@ -286,6 +306,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       double x, y;                    // Label location
       int    inpix;                   // Label location is pixel, not sky, coordinates
       double red, green, blue;        // Label color
+      double alpha;                   // Mark overlay alpha
    };
 
    struct labelInfo label[MAXLABEL];
@@ -311,6 +332,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       double linewidth;               // Line thickness for drawing    
 
       double red, green, blue;        // Mark color
+      double alpha;                   // Mark overlay alpha
    };
 
    struct markInfo mark[MAXMARK];
@@ -322,7 +344,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    int       csys, symUnits, symNPnt, symNMax, symType, scaleType;
    double    epoch, symSize, symRotAngle, scaleVal, fontScale, fontSize;
-   double    lineWidth;
+   double    lineWidth, alpha;
 
    char      symSizeColumn [MAXSTR];
    char      symShapeColumn[MAXSTR];
@@ -364,6 +386,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    struct WorldCoor *im_wcs;
 
    int       nimages;
+
+   long      naxisl;
 
    int       im_sys;
    int       im_equinox;
@@ -603,6 +627,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    header = (char *)NULL;
 
+   hpx    = 0;
+   hpxPix = 0;
+
 
    /*******************************/
    /* Initialize return structure */
@@ -662,6 +689,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    fontScale   = 1.;
    lineWidth   = 1.;
+   alpha       = 1.;
 
    strcpy(symSizeColumn,  "");
    strcpy(symShapeColumn, "");
@@ -694,14 +722,15 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    ovlygreen = 0.5;
    ovlyblue  = 0.5;
 
-   ngrid  = 0;
-   ncat   = 0;
-   nlabel = 0;
-   nmark  = 0;
+   ngrid    = 0;
+   ncat     = 0;
+   ndrawing = 0;
+   nlabel   = 0;
+   nmark    = 0;
 
-   noflip = 0;
-   flipX  = 0;
-   flipY  = 0;
+   noflip   = 0;
+   flipX    = 0;
+   flipY    = 0;
 
    if(strcmp(outFmt, "png") == 0)
       strcpy(pngfile, outFile);
@@ -814,6 +843,20 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(lineWidth <= 0.  || end < valstr+strlen(valstr))
          {
             strcpy(returnStruct->msg, "Line width`parameter must a number greater than zero.");
+            return returnStruct;
+         }
+      }
+
+
+      /* ALPHA */
+
+      if(json_val(layout, "alpha", valstr))
+      {
+         alpha = strtod(valstr, &end);
+
+         if(alpha < 0. || alpha > 1. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Alpha parameter must a number between zero and one.");
             return returnStruct;
          }
       }
@@ -1341,6 +1384,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                grid[ngrid].linewidth = lineWidth;
 
 
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                grid[ngrid].alpha = strtod(valstr, &end);
+
+               if(grid[ngrid].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               grid[ngrid].alpha = alpha;
+
+
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Require coordinate system (don't use default)
 
             if(json_val(layout, keystr, valstr) == (char *)NULL)
@@ -1484,7 +1543,39 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
 
 
-            // Columns can be used instead of the fixed values above, mixing both 
+            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].linewidth = strtod(valstr, &end);
+
+               if(cat[ncat].linewidth <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].linewidth = lineWidth;
+
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].alpha = strtod(valstr, &end);
+
+               if(cat[ncat].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].alpha = alpha;
+
+
+            // Columns can be used instead of some fixed values, mixing both 
             // for the same table would result in indeterminant behavior, so be careful
 
             sprintf(keystr, "overlays[%d].size_column", noverlay);  // Check for explicit size column
@@ -1514,21 +1605,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].colorColumn, valstr);
 
-
-            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
-
-            if(json_val(layout, keystr, valstr))
-            {
-                cat[ncat].linewidth = strtod(valstr, &end);
-
-               if(cat[ncat].linewidth <= 0.  || end < valstr+strlen(valstr))
-               {
-                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
-                  return returnStruct;
-               }
-            }
-            else
-               cat[ncat].linewidth = lineWidth;
 
             ++ncat;
          }
@@ -1595,6 +1671,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
             else
                cat[ncat].linewidth = lineWidth;
+
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].alpha = strtod(valstr, &end);
+
+               if(cat[ncat].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].alpha = alpha;
 
 
             ++ncat;
@@ -1735,6 +1827,23 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             else
                mark[nmark].linewidth = lineWidth;
 
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                mark[nmark].alpha = strtod(valstr, &end);
+
+               if(mark[nmark].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               mark[nmark].alpha = alpha;
+
+
             ++nmark;
          }
 
@@ -1776,6 +1885,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             {
                label[nlabel].fontscale = fontScale;
             }
+
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                label[nlabel].alpha = strtod(valstr, &end);
+
+               if(label[nlabel].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               label[nlabel].alpha = alpha;
 
 
             sprintf(keystr, "overlays[%d].lon", noverlay);  // Require longitude
@@ -1881,6 +2006,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             if(lineWidth <= 0.  || end < argv[i+1]+strlen(argv[i+1]))
             {
                strcpy(returnStruct->msg, "Line width parameter must a number greater than zero.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+         
+
+         /* ALPHA  */
+
+         else if(strcmp(argv[i], "-alpha") == 0)
+         {
+            alpha = strtod(argv[i+1], &end);
+
+            if(alpha < 0. || alpha > 1. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Opacity (alpha) must a number between zero and one.");
                return returnStruct;
             }
 
@@ -2006,6 +2147,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             grid[ngrid].linewidth = lineWidth;
 
+            grid[ngrid].alpha = alpha;
+
             grid[ngrid].csys   = EQUJ;
             grid[ngrid].epoch  = -999.;
 
@@ -2065,6 +2208,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             label[nlabel].red   = ovlyred;
             label[nlabel].green = ovlygreen;
             label[nlabel].blue  = ovlyblue;
+
+            label[nlabel].alpha = alpha;
 
             if(i+3 >= argc)
             {
@@ -2305,7 +2450,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
                if(i+1 < argc && argv[i+1][0] != '-')
                {
-                  strcat(scaleColumn, argv[i+1]);
+                  strcpy(scaleColumn, argv[i+1]);
                   ++i;
 
                   if(i+1 < argc && argv[i+1][0] != '-')
@@ -2439,14 +2584,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].scaleVal  = scaleVal;
             cat[ncat].scaleType = scaleType;
 
-            strcat(cat[ncat].scaleColumn, scaleColumn);
+            strcpy(cat[ncat].scaleColumn, scaleColumn);
 
             strcpy(cat[ncat].file, argv[i+1]);
             ++i;
 
             if(i+1 < argc && argv[i+1][0] != '-')
             {
-               strcat(cat[ncat].scaleColumn, argv[i+1]);
+               strcpy(cat[ncat].scaleColumn, argv[i+1]);
                ++i;
 
                if(i+1 < argc && argv[i+1][0] != '-')
@@ -2488,6 +2633,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].fontscale = fontScale;
             cat[ncat].linewidth = lineWidth;
 
+            cat[ncat].alpha = alpha;
+
             ++ncat;
          }
 
@@ -2527,6 +2674,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             mark[nmark].linewidth = lineWidth;
 
+            mark[nmark].alpha = alpha;
+
             ++nmark;
 
             i += 2;
@@ -2546,7 +2695,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].isImgInfo = 1;
 
             strcpy(cat[ncat].file, argv[i+1]);
-            strcat(cat[ncat].scaleColumn , "");
+            strcpy(cat[ncat].scaleColumn , "");
 
             cat[ncat].scaleVal  = 0.;
             cat[ncat].scaleType = FLUX;
@@ -2566,6 +2715,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             cat[ncat].linewidth = lineWidth;
 
+            cat[ncat].alpha = alpha;
+
             strcpy(cat[ncat].colorColumn,    colorColumn);
             strcpy(cat[ncat].labelColumn,    "");
             strcpy(cat[ncat].symSizeColumn,  "");
@@ -2574,6 +2725,26 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].fontscale = fontScale;
 
             ++ncat;
+
+            ++i;
+         }
+
+
+         /* IMAGE METADATA OVERLAY */
+
+         else if(strcmp(argv[i], "-draw") == 0)
+         {
+            if(i+1 >= argc)
+            {
+               strcpy(returnStruct->msg, "Too few arguments following -drawing flag");
+               return returnStruct;
+            }
+
+            strcpy(drawing[ndrawing].file, argv[i+1]);
+
+            drawing[ndrawing].alpha = alpha;
+
+            ++ndrawing;
 
             ++i;
          }
@@ -3145,6 +3316,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             strcpy(jpegfile, argv[i+1]);
 
+
             jpegfp = fopen(jpegfile, "w+");
 
             if(jpegfp == (FILE *)NULL)
@@ -3168,6 +3340,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          }
       }
    }
+
 
 
    /***************************************************/
@@ -3242,11 +3415,13 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       for(i=0; i<ngrid; ++i)
       {
          printf("DEBUG> grid[%d].fontscale   = [%-g]\n", i, grid[i].fontscale );
+         printf("DEBUG> grid[%d].linewidth   = [%-g]\n", i, grid[i].linewidth);
          printf("DEBUG> grid[%d].csys        = [%d]\n",  i, grid[i].csys );
          printf("DEBUG> grid[%d].epoch       = [%-g]\n", i, grid[i].epoch);
          printf("DEBUG> grid[%d].red         = [%-g]\n", i, grid[i].red  );
          printf("DEBUG> grid[%d].green       = [%-g]\n", i, grid[i].green);
          printf("DEBUG> grid[%d].blue        = [%-g]\n", i, grid[i].blue );
+         printf("DEBUG> grid[%d].alpha       = [%-g]\n", i, grid[i].alpha);
       }
 
       for(i=0; i<ncat; ++i)
@@ -3266,7 +3441,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("DEBUG> cat[%d].red          = [%-g]\n", i, cat[i].red  );
          printf("DEBUG> cat[%d].green        = [%-g]\n", i, cat[i].green);
          printf("DEBUG> cat[%d].blue         = [%-g]\n", i, cat[i].blue );
+         printf("DEBUG> cat[%d].alpha        = [%-g]\n", i, cat[i].alpha);
          printf("DEBUG> cat[%d].linewidth    = [%-g]\n", i, cat[i].linewidth );
+      }
+
+      for(i=0; i<ndrawing; ++i)
+      {
+         printf("DEBUG> drawing[%d].file     = [%s]\n",  i, drawing[i].file);
+         printf("DEBUG> drawing[%d].alpha    = [%-g]\n", i, drawing[i].alpha);
       }
 
       for(i=0; i<nmark; ++i)
@@ -3293,9 +3475,11 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("DEBUG> label[%d].y          = [%-g]\n", i, label[i].y   );
          printf("DEBUG> label[%d].text       = [%s]\n",  i, label[i].text);
          printf("DEBUG> label[%d].fontscale  = [%-g]\n", i, label[i].fontscale );
+         printf("DEBUG> label[%d].alpha      = [%-g]\n", i, label[i].alpha);
       }
 
       printf("\n");
+      printf("DEBUG> outType                 = [%d]\n", outType);
       printf("DEBUG> pngfile                 = [%s]\n", pngfile);
       printf("DEBUG> jpegfile                = [%s]\n", jpegfile);
    }
@@ -3409,12 +3593,16 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(redfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(redfptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
             status = 0;
-            if(fits_read_key(redfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(redfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -3423,6 +3611,19 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             sprintf(returnStruct->msg, "WCS init failed for [%s].", redfile);
             return returnStruct;
          }
+      }
+
+      if(strcmp(wcs->ptype, "HPX") == 0)
+      {
+         hpx = 1;
+
+         hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
+
+         hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+         hpxPix = pow(2., (double)hpxLevel) + 0.5;
+
+         hpxPix = 4 * hpxPix;
       }
 
       if(!nowcs)
@@ -3537,6 +3738,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       if(!offscl)
          wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &x, &y);
+
       xcorrection = x-ix;
       ycorrection = y-iy;
 
@@ -3568,12 +3771,16 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(greenfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(greenfptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
             status = 0;
-            if(fits_read_key(greenfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(greenfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -3659,12 +3866,16 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(bluefptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(bluefptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
             status = 0;
-            if(fits_read_key(bluefptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(bluefptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -4207,7 +4418,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
          for(i=0; i<nx; ++i)
          {
-
             /* RED */
 
             ipix = i + istart - redxoff;
@@ -4553,9 +4763,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          mViewer_printFitsError(status);
 
       status = 0;
-      if(fits_get_hdrpos(grayfptr, &keysexist, &keynum, &status))
-
-      status = 0;
       fits_read_key(grayfptr, TSTRING, "BUNIT", bunit, (char *)NULL, &status);
 
       if(status == KEY_NO_EXIST)
@@ -4574,12 +4781,16 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(grayfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(grayfptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
             status = 0;
-            if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -4590,6 +4801,20 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             return returnStruct;
          }
       }
+
+      if(strcmp(wcs->ptype, "HPX") == 0)
+      {
+         hpx = 1;
+
+         hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
+
+         hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+         hpxPix = pow(2., (double)hpxLevel) + 0.5;
+
+         hpxPix = 4 * hpxPix;
+      }
+
 
       if(!nowcs)
          montage_checkWCS(wcs);
@@ -4687,6 +4912,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       if(!offscl)
          wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &x, &y);
+
       xcorrection = x-ix;
       ycorrection = y-iy;
 
@@ -4753,6 +4980,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
       if(mViewer_debug)
          printf("\n GRAY RANGE:\n");
+
 
       if(strlen(grayhistfile) > 0)
       {
@@ -5097,7 +5325,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                        grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue,  
                        fontfile, grid[i].fontscale, grid[i].linewidth);
 
-      mViewer_addOverlay();
+      mViewer_addOverlay(grid[i].alpha);
    }
 
 
@@ -5428,7 +5656,12 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
                if(strlen(labelstr) > 0)
                {
-                  wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
+                  convertCoordinates(EQUJ, 2000.,  ra, dec,
+                                      csysimg,  epochimg, &xpos, &ypos, 0.0);
+
+                  wcs2pix(wcs, xpos, ypos, &xpix, &ypix, &offscl);
+
+                  if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
 
                   fontSize = (int)(14. * cat[i].fontscale);
 
@@ -5722,7 +5955,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          tclose();
       }
 
-      mViewer_addOverlay();
+      mViewer_addOverlay(cat[i].alpha);
    }
 
 
@@ -5756,7 +5989,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                      mark[i].symNPnt, mark[i].symNMax, mark[i].symType, mark[i].symRotAngle, 
                      mark[i].red, mark[i].green, mark[i].blue, mark[i].linewidth);
 
-      mViewer_addOverlay();
+      mViewer_addOverlay(mark[i].alpha);
    }
 
 
@@ -5773,7 +6006,12 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          ra  = label[i].x;
          dec = label[i].y;
 
-         wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
+         convertCoordinates(EQUJ, 2000.,  ra, dec,
+                             csysimg,  epochimg, &xpos, &ypos, 0.0);
+
+         wcs2pix(wcs, xpos, ypos, &xpix, &ypix, &offscl);
+
+         if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
 
          label[i].x = xpix;
          label[i].y = ypix;
@@ -5794,8 +6032,17 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          fontSize = 1;
 
       mViewer_draw_label(fontfile, fontSize, ix, iy, label[i].text, label[i].red, label[i].green, label[i].blue);
-      mViewer_addOverlay();
+      mViewer_addOverlay(label[i].alpha);
    }
+
+
+   for(i=0; i<ndrawing; ++i)
+   {
+      mViewer_drawing(drawing[i].file);
+
+      mViewer_addOverlay(drawing[i].alpha);
+   }
+
 
    if(mViewer_debug)
    {
@@ -5805,6 +6052,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
 
    /* Write data to JPEG file */
+
+   fflush(stdout);
       
    if(outType == JPEG)
    {
@@ -7836,16 +8085,19 @@ int mViewer_getPixel(int i, int j, int color)
 /*                           */
 /*****************************/
 
-void mViewer_addOverlay()
+void mViewer_addOverlay(double alpha)
 {
    int    i, j, offset;
    double brightness;
+
+   if(alpha < 0.) alpha = 0.;
+   if(alpha > 1.) alpha = 1.;
 
    for(j=0; j<ny; ++j)
    {
       for(i=0; i<nx; ++i)
       {
-         brightness = ovlyweight[j][i];
+         brightness = ovlyweight[j][i] * alpha;
 
          if(outType == JPEG)
          {
@@ -7934,6 +8186,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xprev, &yprev, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xprev, &yprev);
+
    if(offscl || mNaN(xprev) || mNaN(yprev))
       return;
 
@@ -7954,6 +8208,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+   if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
    if(offscl || mNaN(xval) || mNaN(yval))
       return;
@@ -7993,6 +8249,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8045,6 +8303,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8141,6 +8401,8 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
+
    if(!flipY || wcs->imflip)
       yval = wcs->nypix - yval;
 
@@ -8171,6 +8433,8 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8276,6 +8540,8 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
+
    if(!flipY || wcs->imflip)
       yval = wcs->nypix - yval;
 
@@ -8303,6 +8569,8 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8407,6 +8675,8 @@ void mViewer_draw_boundary(double red, double green, double blue, double linewid
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
+
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
 
@@ -8433,6 +8703,8 @@ void mViewer_draw_boundary(double red, double green, double blue, double linewid
 
          offscl = 0;
          wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+         if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
          if(!flipY || wcs->imflip)
             yval = wcs->nypix - yval;
@@ -8598,4 +8870,16 @@ void mViewer_parseCoordStr(char *coordStr, int *csys, double *epoch)
       *epoch = 2000.;
 
    return;
+}
+
+
+void mViewer_hpxCheck(int *offscl, double *x, double *y)
+{
+   *offscl = 0;
+
+   if(*x < -(double)hpxPix/2.) *x += (double)hpxPix;
+   if(*x >  (double)hpxPix/2.) *x -= (double)hpxPix;
+
+   if(*y < -(double)hpxPix/2.) *y += (double)hpxPix;
+   if(*y >  (double)hpxPix/2.) *y -= (double)hpxPix;
 }

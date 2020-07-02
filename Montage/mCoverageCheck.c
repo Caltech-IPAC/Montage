@@ -89,6 +89,8 @@ int     stradd             (char *header, char *card);
 
 
 
+FILE *fstatus;
+
 double dtr;
 
 

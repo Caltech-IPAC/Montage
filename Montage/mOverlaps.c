@@ -123,6 +123,8 @@ char *fileName(char *filename);
 
 int nimages, maximages;
 
+FILE *fstatus;
+
 int debug = 0;
 
 

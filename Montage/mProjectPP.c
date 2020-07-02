@@ -163,6 +163,8 @@ struct Ipos *postmp;
 
 static time_t currtime, start;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

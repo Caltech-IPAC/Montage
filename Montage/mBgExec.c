@@ -81,6 +81,8 @@ char *mktemp(char *template);
 int nextImg();
 int nextCorr();
 
+FILE *fstatus;
+
 int debug;
 
 

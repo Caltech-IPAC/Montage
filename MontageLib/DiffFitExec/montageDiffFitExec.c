@@ -117,7 +117,7 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
    if(fout == (FILE *)NULL)
    {
-      sprintf(returnStruct->msg, "Can't open output file.");
+      sprintf(returnStruct->msg, "Can't open output file.  Does location exist?");
       fclose(fout);
       return returnStruct;
    }
@@ -254,19 +254,16 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
          unlink(rmname);
 
-         if(!noAreas)
+         rmname[strlen(rmname)-5] = '\0';
+         strcat(rmname, "_area.fits");
+
+         if(mDiffFitExec_debug)
          {
-            rmname[strlen(rmname)-5] = '\0';
-            strcat(rmname, "_area.fits");
-
-            if(mDiffFitExec_debug)
-            {
-               printf("Remove [%s]\n", rmname);
-               fflush(stdout);
-            }
-
-            unlink(rmname);
+            printf("Remove [%s]\n", rmname);
+            fflush(stdout);
          }
+
+         unlink(rmname);
       }
    }
 

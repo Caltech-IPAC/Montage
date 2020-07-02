@@ -24,6 +24,7 @@ int     mProject_BorderRange         (int jrow, int maxpix, int *imin, int *imax
 int     mProject_parseLine           (char *linein);
 int     mProject_stradd              (char *header, char *card);
 int     mProject_readTemplate        (char *filename);
+void    mProject_closeFiles          ();
 int     mProject_readFits            (char *filename, char *weightfile);
 void    mProject_fixxy               (double *x, double *y, int *offscl);
 

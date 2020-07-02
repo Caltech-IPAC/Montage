@@ -2,8 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-5.5      Michel Kraemer   05Aug19  Fix memory leak
-5.4      John Good        26Apr17  Added SUM 'averaging' mode (for X-ray observers)
+5.2      John Good        26Apr17  Added SUM 'averaging' mode (for X-ray observers)
 5.3      John Good        08Sep15  fits_read_pix() incorrect null value
 5.2      Daniel S. Katz   16Jul10  Small change for MPI with new fits library
 5.1      John Good        09Jul06  Only show maxopen warning in debug mode
@@ -1642,9 +1641,6 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
                strcpy(returnStruct->msg, montage_msgstr);
                return returnStruct;
             }
-
-            wcsfree(imgWCS);
-            free(inputHeader);
          } 
 
 

@@ -9,6 +9,7 @@ int    mProjectPP_readFits      (char *filename, char *weightfile);
 int    mProjectPP_parseLine     (char *linein, int headerType);
 int    mProjectPP_stradd        (char *header, char *card);
 int    mProjectPP_readTemplate  (char *filename, int headerType);
+void   mProjectPP_closeFiles    ();
 int    mProjectPP_BorderSetup   (char *strin);
 int    mProjectPP_BorderRange   (int jrow, int maxpix, 
                                 int *imin, int *imax);

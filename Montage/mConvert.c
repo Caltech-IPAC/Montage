@@ -41,6 +41,8 @@ int       bitpixi;
 
 static time_t currtime, start;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

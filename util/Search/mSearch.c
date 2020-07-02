@@ -321,6 +321,8 @@ int main(int argc, char **argv)
    char   singleId [MAXSTR];
    char   fmt      [MAXSTR];
 
+   char   colname [1024];
+
    int    ibig;
    char   bigstr   [BIGSTR];
 
@@ -533,20 +535,61 @@ int main(int argc, char **argv)
    /* The "catlist" file may alternatively be the one and only data file. */
    /* We tell the difference by the column set.                           */
 
-   iname = tcol( "identifier");
-   ifile = tcol( "file");
+    if(rdebug)
+    {
+        printf("\n");
+        printf("ncol= %d\n", ncol);
+        fflush(stdout);
+    }
 
-   ira   = tcol( "ra"  );
-   idec  = tcol( "dec" );
+    iname = -1;
+    ifile = -1;
+    ira = -1;
+    idec = -1;
+    ira1 = -1;
+    idec1 = -1;
+    ira2 = -1;
+    idec2 = -1;
+    ira3 = -1;
+    idec3 = -1;
+    ira4 = -1;
+    idec4 = -1;
 
-   ira1  = tcol( "ra1" );
-   idec1 = tcol( "dec1");
-   ira2  = tcol( "ra2" );
-   idec2 = tcol( "dec2");
-   ira3  = tcol( "ra3" );
-   idec3 = tcol( "dec3");
-   ira4  = tcol( "ra4" );
-   idec4 = tcol( "dec4");
+    for (i=0; i<ncol; i++) {
+    
+        strcpy (colname, tbl_rec[i].name);
+        
+	if (strcasecmp (colname, "identifier") == 0) 
+	    iname = i;
+   
+	if (strcasecmp (colname, "file") == 0) 
+	    ifile = i;
+   
+	if (strcasecmp (colname, "ra") == 0) 
+	    ira = i;
+	if (strcasecmp (colname, "dec") == 0) 
+	    idec = i;
+   
+	if (strcasecmp (colname, "ra1") == 0) 
+	    ira1 = i;
+	if (strcasecmp (colname, "dec1") == 0) 
+	    idec1 = i;
+   
+	if (strcasecmp (colname, "ra2") == 0) 
+	    ira2 = i;
+	if (strcasecmp (colname, "dec2") == 0) 
+	    idec2 = i;
+   
+	if (strcasecmp (colname, "ra3") == 0) 
+	    ira3 = i;
+	if (strcasecmp (colname, "dec3") == 0) 
+	    idec3 = i;
+   
+	if (strcasecmp (colname, "ra4") == 0) 
+	    ira4 = i;
+	if (strcasecmp (colname, "dec4") == 0) 
+	    idec4 = i;
+    }
 
    if((iname < 0 || ifile < 0) && (ira  < 0 || idec  < 0)
    && ( ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
@@ -840,10 +883,53 @@ int main(int argc, char **argv)
 
       ncol = topen(infile);
 
+/*
       iname = tcol( "identifier");
       ifile = tcol( "file");
       ira   = tcol( "ra");
       idec  = tcol( "dec");
+
+   ira   = tcol( "ra"  );
+    if (ira == -1) {
+       ira   = tcol( "RA"  );
+    }
+
+   idec  = tcol( "dec" );
+    if (idec == -1) {
+       idec   = tcol( "DEC"  );
+    }
+*/
+
+    iname = -1;
+    ifile = -1;
+    ira = -1;
+    idec = -1;
+
+    for (i=0; i<ncol; i++) {
+    
+        strcpy (colname, tbl_rec[i].name);
+        
+	if (strcasecmp (colname, "identifier") == 0) 
+	    iname = i;
+   
+	if (strcasecmp (colname, "file") == 0) 
+	    ifile = i;
+   
+	if (strcasecmp (colname, "ra") == 0) 
+	    ira = i;
+	if (strcasecmp (colname, "dec") == 0) 
+	    idec = i;
+    }
+
+   if(rdebug)
+   {
+      printf("\n");
+      printf("iname   = %d\n", iname);
+      printf("ifile   = %d\n", ifile);
+      printf("ira   = %d\n", ira);
+      printf("idec   = %d\n", idec);
+      fflush(stdout);
+   }
 
 
       /* There are two cases.  The "normal" one is where the argument is      */
@@ -1263,7 +1349,7 @@ int main(int argc, char **argv)
             exit(0);
          }
 
-
+/*
          ictype1  = tcol( "ctype1");
          ictype2  = tcol( "ctype2");
          iequinox = tcol( "equinox");
@@ -1281,6 +1367,24 @@ int main(int argc, char **argv)
          idec     = tcol( "dec");
 
 
+   ira   = tcol( "ra"  );
+    if (ira == -1) {
+       ira   = tcol( "RA"  );
+    }
+
+   idec  = tcol( "dec" );
+    if (idec == -1) {
+       idec   = tcol( "DEC"  );
+    }
+
+   if(rdebug)
+   {
+      printf("\n");
+      printf("ira   = %d\n", ira);
+      printf("idec   = %d\n", idec);
+      fflush(stdout);
+   }
+
          if(ins < 0)
             ins = tcol("naxis1");
 
@@ -1296,7 +1400,101 @@ int main(int argc, char **argv)
          idec3    = tcol( "dec3");
          ira4     = tcol( "ra4");
          idec4    = tcol( "dec4");
+*/
+         ictype1  = tcol( "ctype1");
+         ictype2  = tcol( "ctype2");
+         iequinox = tcol( "equinox");
+         iepoch   = tcol( "epoch");
+         inl      = tcol( "nl");
+         ins      = tcol( "ns");
+         icrval1  = tcol( "crval1");
+         icrval2  = tcol( "crval2");
+         icrpix1  = tcol( "crpix1");
+         icrpix2  = tcol( "crpix2");
+         icdelt1  = tcol( "cdelt1");
+         icdelt2  = tcol( "cdelt2");
+         icrota2  = tcol( "crota2");
+         ira      = tcol( "ra");
+         idec     = tcol( "dec");
 
+
+        ictype1 = -1;
+        ictype2 = -1;
+        iequinox = -1;
+        iepoch = -1;
+        inl = -1;
+        ins = -1;
+        icrval1 = -1;
+        icrval2 = -1;
+        icrpix1 = -1;
+        icrpix2 = -1;
+        icdelt1 = -1;
+        icdelt2 = -1;
+        icrota2 = -1;
+        ira = -1;
+        idec = -1;
+    
+        for (i=0; i<ncol; i++) {
+    
+            strcpy (colname, tbl_rec[i].name);
+        
+	    if (strcasecmp (colname, "ctype1") == 0) 
+	        ictype1 = i;
+	    if (strcasecmp (colname, "ctype2") == 0) 
+	        ictype2 = i;
+   
+	    if (strcasecmp (colname, "crval1") == 0) 
+	        icrval1 = i;
+	    if (strcasecmp (colname, "crval2") == 0) 
+	        icrval2 = i;
+   
+	    if (strcasecmp (colname, "crpix1") == 0) 
+	        icrpix1 = i;
+	    if (strcasecmp (colname, "crpix2") == 0) 
+	        icrpix2 = i;
+   
+	    if (strcasecmp (colname, "cdelt1") == 0) 
+	        icdelt1 = i;
+	    if (strcasecmp (colname, "cdelt2") == 0) 
+	        icdelt2 = i;
+   
+	    if (strcasecmp (colname, "crota2") == 0) 
+	        icrota2 = i;
+   
+	    if (strcasecmp (colname, "nl") == 0) 
+	        inl = i;
+	    if (strcasecmp (colname, "ns") == 0) 
+	        ins = i;
+	    if (strcasecmp (colname, "equinox") == 0) 
+	        iequinox = i;
+	    if (strcasecmp (colname, "epoch") == 0) 
+	        iepoch = i;
+   
+	    if (strcasecmp (colname, "ra") == 0) 
+	        ira = i;
+	    if (strcasecmp (colname, "dec") == 0) 
+	        idec = i;
+   
+	    if (strcasecmp (colname, "ra1") == 0) 
+	        ira1 = i;
+	    if (strcasecmp (colname, "dec1") == 0) 
+	        idec1 = i;
+   
+	    if (strcasecmp (colname, "ra2") == 0) 
+	        ira2 = i;
+	    if (strcasecmp (colname, "dec2") == 0) 
+	        idec2 = i;
+   
+	    if (strcasecmp (colname, "ra3") == 0) 
+	        ira3 = i;
+	    if (strcasecmp (colname, "dec3") == 0) 
+	        idec3 = i;
+   
+	    if (strcasecmp (colname, "ra4") == 0) 
+	        ira4 = i;
+	    if (strcasecmp (colname, "dec4") == 0) 
+	        idec4 = i;
+        }
 
          if(rdebug > 1)
          {
@@ -1490,22 +1688,38 @@ int main(int argc, char **argv)
 
 
                strcpy(tmpHeader, "");
-               sprintf(temp, "SIMPLE  = T"              ); stradd(tmpHeader, temp);
-               sprintf(temp, "BITPIX  = -64"            ); stradd(tmpHeader, temp);
-               sprintf(temp, "NAXIS   = 2"              ); stradd(tmpHeader, temp);
-               sprintf(temp, "NAXIS1  = %d",     ns     ); stradd(tmpHeader, temp);
-               sprintf(temp, "NAXIS2  = %d",     nl     ); stradd(tmpHeader, temp);
-               sprintf(temp, "CTYPE1  = '%s'",   ctype1 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CTYPE2  = '%s'",   ctype2 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CRVAL1  = %14.9f", crval1 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CRVAL2  = %14.9f", crval2 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CRPIX1  = %14.9f", crpix1 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CRPIX2  = %14.9f", crpix2 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CDELT1  = %14.9f", cdelt1 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CDELT2  = %14.9f", cdelt2 ); stradd(tmpHeader, temp);
-               sprintf(temp, "CROTA2  = %14.9f", crota2 ); stradd(tmpHeader, temp);
-               sprintf(temp, "EQUINOX = %d",     equinox); stradd(tmpHeader, temp);
-               sprintf(temp, "END"                      ); stradd(tmpHeader, temp);
+               sprintf(temp, "SIMPLE  = T"              ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "BITPIX  = -64"            ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "NAXIS   = 2"              ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "NAXIS1  = %d",     ns     ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "NAXIS2  = %d",     nl     ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CTYPE1  = '%s'",   ctype1 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CTYPE2  = '%s'",   ctype2 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CRVAL1  = %14.9f", crval1 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CRVAL2  = %14.9f", crval2 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CRPIX1  = %14.9f", crpix1 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CRPIX2  = %14.9f", crpix2 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CDELT1  = %14.9f", cdelt1 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CDELT2  = %14.9f", cdelt2 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "CROTA2  = %14.9f", crota2 ); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "EQUINOX = %d",     equinox); 
+	       stradd(tmpHeader, temp);
+               sprintf(temp, "END"                      ); 
+	       stradd(tmpHeader, temp);
 
                wcsimg = wcsinit(tmpHeader);
                
@@ -1525,23 +1739,23 @@ int main(int argc, char **argv)
                }
 
                pix2wcs(wcsimg, -0.5, -0.5, &lon, &lat);
-               convertCoordinates (csys, (double)equinox, lon, lat, 
-                                   EQUJ, 2000., &corner_ra[0], &corner_dec[0], 0.);
+               convertCoordinates (csys, (double)equinox, lon, lat, EQUJ, 2000.,
+	           &corner_ra[0], &corner_dec[0], 0.);
 
 
                pix2wcs(wcsimg, wcsimg->nxpix+0.5, -0.5, &lon, &lat);
-               convertCoordinates (csys, (double)equinox, lon, lat, 
-                                   EQUJ, 2000., &corner_ra[1], &corner_dec[1], 0.);
+               convertCoordinates (csys, (double)equinox, lon, lat, EQUJ, 2000.,
+	           &corner_ra[1], &corner_dec[1], 0.);
 
 
                pix2wcs(wcsimg, wcsimg->nxpix+0.5, wcsimg->nypix+0.5, &lon, &lat);
-               convertCoordinates (csys, (double)equinox, lon, lat, 
-                                   EQUJ, 2000., &corner_ra[2], &corner_dec[2], 0.);
+               convertCoordinates (csys, (double)equinox, lon, lat, EQUJ, 2000.,
+	           &corner_ra[2], &corner_dec[2], 0.);
 
 
                pix2wcs(wcsimg, -0.5, wcsimg->nypix+0.5, &lon, &lat);
-               convertCoordinates (csys, (double)equinox, lon, lat, 
-                                   EQUJ, 2000., &corner_ra[3], &corner_dec[3], 0.);
+               convertCoordinates (csys, (double)equinox, lon, lat, EQUJ, 2000.,
+	           &corner_ra[3], &corner_dec[3], 0.);
 
                wcsfree(wcsimg);
             }
@@ -2342,48 +2556,106 @@ int main(int argc, char **argv)
          }
          else
          {
-            ira  = tcol("ra");
-            idec = tcol("dec");
+            ira = -1;
+            idec = -1;
+            ira1 = -1;
+            idec1 = -1;
+            ira2 = -1;
+            idec2 = -1;
+            ira3 = -1;
+            idec3 = -1;
+            ira4 = -1;
+            idec4 = -1;
+            iradius = -1;
 
-            if(ira < 0)
-               ira  = tcol("ra_user");
+            for (i=0; i<ncol; i++) {
+    
+                strcpy (colname, tbl_rec[i].name);
+        
+	        if (strcasecmp (colname, "radius") == 0) 
+	            iradius = i;
 
-            if(idec < 0)
-               idec  = tcol("dec_user");
+	        if (strcasecmp (colname, "ra") == 0) 
+	            ira = i;
+        
+	        if (ira < 0) {
+	            if (strcasecmp (colname, "ra_user") == 0) 
+	                ira = i;
+                }
+	
+	        if (strcasecmp (colname, "dec") == 0) 
+	            idec = i;
+  
+	        if (idec < 0) {
+	            if (strcasecmp (colname, "dec_user") == 0) 
+	                idec = i;
+                }
 
-            
-            ira1     = tcol( "ra1");
-            idec1    = tcol( "dec1");
-            ira2     = tcol( "ra2");
-            idec2    = tcol( "dec2");
-            ira3     = tcol( "ra3");
-            idec3    = tcol( "dec3");
-            ira4     = tcol( "ra4");
-            idec4    = tcol( "dec4");
+	        if (strcasecmp (colname, "ra1") == 0) 
+	            ira1 = i;
+	
+	        if (ira1 < 0) {
+	            if (strcasecmp (colname, "ra1_user") == 0) 
+	                ira1 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec1") == 0) 
+	            idec1 = i;
+	
+	        if (idec1 < 0) {
+	            if (strcasecmp (colname, "dec1_user") == 0) 
+	                idec1 = i;
+                }
 
-            if(ira1 < 0)
-               ira1 = tcol("ra1_user");
+	        if (strcasecmp (colname, "ra2") == 0) 
+	            ira2 = i;
+	
+	        if (ira2 < 0) {
+	            if (strcasecmp (colname, "ra2_user") == 0) 
+	                ira2 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec2") == 0) 
+	            idec2 = i;
+	
+	        if (idec2 < 0) {
+	            if (strcasecmp (colname, "dec2_user") == 0) 
+	                idec2 = i;
+                }
+   
+	        if (strcasecmp (colname, "ra3") == 0) 
+	            ira3 = i;
+	
+	        if (ira3 < 0) {
+	            if (strcasecmp (colname, "ra3_user") == 0) 
+	                ira3 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec3") == 0) 
+	            idec3 = i;
+	
+	        if (idec3 < 0) {
+	            if (strcasecmp (colname, "dec3_user") == 0) 
+	                idec3 = i;
+                }
+   
+	        if (strcasecmp (colname, "ra4") == 0) 
+	            ira4 = i;
+	
+	        if (ira4 < 0) {
+	            if (strcasecmp (colname, "ra4_user") == 0) 
+	                ira4 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec4") == 0) 
+	            idec4 = i;
+	
+	        if (idec4 < 0) {
+	            if (strcasecmp (colname, "dec4_user") == 0) 
+	                idec4 = i;
+                }
 
-            if(ira2 < 0)
-               ira2 = tcol("ra2_user");
-
-            if(ira3 < 0)
-               ira3 = tcol("ra3_user");
-
-            if(ira4 < 0)
-               ira4 = tcol("ra4_user");
-
-            if(idec1 < 0)
-               idec1 = tcol("dec1_user");
-
-            if(idec2 < 0)
-               idec2 = tcol("dec2_user");
-
-            if(idec3 < 0)
-               idec3 = tcol("dec3_user");
-
-            if(idec4 < 0)
-               idec4 = tcol("dec4_user");
+            }
 
             if((ira  < 0 || idec  < 0)
             && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
@@ -2393,9 +2665,6 @@ int main(int argc, char **argv)
                fflush(stdout);
                continue;
             }
-
-
-            iradius = tcol("radius");
 
             if(rdebug > 1)
             {
@@ -3180,23 +3449,106 @@ int main(int argc, char **argv)
          }
          else
          {
-            ira  = tcol("ra");
-            idec = tcol("dec");
+            ira = -1;
+            idec = -1;
+            ira1 = -1;
+            idec1 = -1;
+            ira2 = -1;
+            idec2 = -1;
+            ira3 = -1;
+            idec3 = -1;
+            ira4 = -1;
+            idec4 = -1;
+            iradius = -1;
 
-            if(ira < 0)
-               ira  = tcol("ra_user");
+            for (i=0; i<ncol; i++) {
+    
+                strcpy (colname, tbl_rec[i].name);
+        
+	        if (strcasecmp (colname, "radius") == 0) 
+	            iradius = i;
 
-            if(idec < 0)
-               idec  = tcol("dec_user");
+	        if (strcasecmp (colname, "ra") == 0) 
+	            ira = i;
+        
+	        if (ira < 0) {
+	            if (strcasecmp (colname, "ra_user") == 0) 
+	                ira = i;
+                }
+	
+	        if (strcasecmp (colname, "dec") == 0) 
+	            idec = i;
+  
+	        if (idec < 0) {
+	            if (strcasecmp (colname, "dec_user") == 0) 
+	                idec = i;
+                }
 
-            ira1     = tcol( "ra1");
-            idec1    = tcol( "dec1");
-            ira2     = tcol( "ra2");
-            idec2    = tcol( "dec2");
-            ira3     = tcol( "ra3");
-            idec3    = tcol( "dec3");
-            ira4     = tcol( "ra4");
-            idec4    = tcol( "dec4");
+	        if (strcasecmp (colname, "ra1") == 0) 
+	            ira1 = i;
+	
+	        if (ira1 < 0) {
+	            if (strcasecmp (colname, "ra1_user") == 0) 
+	                ira1 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec1") == 0) 
+	            idec1 = i;
+	
+	        if (idec1 < 0) {
+	            if (strcasecmp (colname, "dec1_user") == 0) 
+	                idec1 = i;
+                }
+
+	        if (strcasecmp (colname, "ra2") == 0) 
+	            ira2 = i;
+	
+	        if (ira2 < 0) {
+	            if (strcasecmp (colname, "ra2_user") == 0) 
+	                ira2 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec2") == 0) 
+	            idec2 = i;
+	
+	        if (idec2 < 0) {
+	            if (strcasecmp (colname, "dec2_user") == 0) 
+	                idec2 = i;
+                }
+   
+	        if (strcasecmp (colname, "ra3") == 0) 
+	            ira3 = i;
+	
+	        if (ira3 < 0) {
+	            if (strcasecmp (colname, "ra3_user") == 0) 
+	                ira3 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec3") == 0) 
+	            idec3 = i;
+	
+	        if (idec3 < 0) {
+	            if (strcasecmp (colname, "dec3_user") == 0) 
+	                idec3 = i;
+                }
+   
+	        if (strcasecmp (colname, "ra4") == 0) 
+	            ira4 = i;
+	
+	        if (ira4 < 0) {
+	            if (strcasecmp (colname, "ra4_user") == 0) 
+	                ira4 = i;
+                }
+	
+	        if (strcasecmp (colname, "dec4") == 0) 
+	            idec4 = i;
+	
+	        if (idec4 < 0) {
+	            if (strcasecmp (colname, "dec4_user") == 0) 
+	                idec4 = i;
+                }
+
+            }
 
             if((ira  < 0 || idec  < 0)
             && (ira1 < 0 || idec1 < 0  ||  ira2 < 0 || idec2 < 0
@@ -3206,10 +3558,6 @@ int main(int argc, char **argv)
                fflush(stdout);
                continue;
             }
-
-
-            iradius = tcol("radius");
-
 
             if(rdebug > 1)
             {

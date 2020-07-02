@@ -1,17 +1,4 @@
 /*
-
-Version  Developer        Date     Change
--------  ---------------  -------  -----------------------
-4.1      John Good        01Aug15  Add overall weight (e.g. integration time) handling
-4.0      John Good        17Nov14  Cleanup to avoid compiler warnings, in proparation
-                                   for new development cycle.
-3.2      John Good        15Jun05  Added -X option to force reprojection
-                                   of whole image, even if part of it is
-                                   outside region of interest.
-3.1      John Good        31May05  Added option flux rescaling 
-                                   (e.g. magnitude zero point correction)
-3.0      John Good        25Mar05  Added in weight image and HDU functionality
-2.1      John Good        13Oct04  Changed format for printing time
 2.0      John Good        12Sep04  Added polygon border handling
 1.8      John Good        10Sep04  Put in error checks for correct projections
                                    and for input, output in same coordinate system
@@ -26,7 +13,6 @@ Version  Developer        Date     Change
 1.1      John Good        18Mar04  Bug fix: need special code for TwoPlane
                                    projection library initialization.
 1.0      John Good        27Jan04  Baseline code (derived from mProject v1.15)
-
 */
 
 /* Module: overlapAreaPP.c
@@ -258,6 +244,12 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
 
    struct mProjectPPReturn *returnStruct;
 
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+
 
    /*************************************************/
    /* Initialize output FITS basic image parameters */
@@ -324,20 +316,23 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    border     = 0;
    bordertype = FIXEDBORDER;
 
-   border = strtol(borderstr, &end, 10);
-
-   if(end < borderstr + strlen(borderstr))
+   if(borderstr)
    {
-      if(mProjectPP_BorderSetup(borderstr) <= 3)
+      border = strtol(borderstr, &end, 10);
+
+      if(end < borderstr + strlen(borderstr))
       {
-         sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
-            borderstr);
-         return returnStruct;
-      }
-      else
-      {
-         border = 0;
-         bordertype = POLYBORDER;
+         if(mProjectPP_BorderSetup(borderstr) <= 3)
+         {
+            sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
+               borderstr);
+            return returnStruct;
+         }
+         else
+         {
+            border = 0;
+            bordertype = POLYBORDER;
+         }
       }
    }
 
@@ -348,7 +343,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    }
 
    haveWeights = 0;
-   if(strlen(weight_file) > 0)
+   if(weight_file && strlen(weight_file) > 0)
       haveWeights = 1;
 
    checkHdr = montage_checkHdr(input_file, 0, hdu);
@@ -367,7 +362,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       return returnStruct;
    }
 
-   if(altin[0] != '\0')
+   if(altin && altin[0] != '\0')
    {
       checkHdr = montage_checkHdr(altin, 1, 0);
 
@@ -378,7 +373,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       }
    }
 
-   if(altout[0] != '\0')
+   if(altout && altout[0] != '\0')
    {
       checkHdr = montage_checkHdr(altout, 1, 0);
 
@@ -416,10 +411,10 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       printf("area_file     = [%s]\n", area_file);
       printf("template_file = [%s]\n", template_file);
 
-      if(altin[0] != '\0')
+      if(altin && altin[0] != '\0')
          printf("altin         = [%s]\n\n", altin);
 
-      if(altout[0] != '\0')
+      if(altout && altout[0] != '\0')
          printf("altout        = [%s]\n\n", altout);
 
       fflush(stdout);
@@ -444,7 +439,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       return returnStruct;
    }
 
-   if(altin[0] != '\0')
+   if(altin && altin[0] != '\0')
       mProjectPP_readTemplate(altin, ALTERNATE_INPUT);
 
    if(mProjectPP_debug >= 1)
@@ -468,6 +463,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       sprintf(msg, "Input image projection (%s) must be TAN, SIN, ZEA, STG or ARC for fast reprojection", input.wcs->ptype);
       mProjectPP_printError(msg);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -494,7 +491,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
 
    mProjectPP_readTemplate(template_file, NORMAL_TEMPLATE);
 
-   if(altout[0] != '\0')
+   if(altout && altout[0] != '\0')
       mProjectPP_readTemplate(altout, ALTERNATE_OUTPUT);
 
    if(mProjectPP_debug >= 1)
@@ -518,6 +515,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       sprintf(msg, "Output image projection (%s) must be TAN, SIN, ZEA, STG or ARC for fast reprojection", output.wcs->ptype);
       mProjectPP_printError(msg);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -525,6 +524,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printError("Input and output must be in the same coordinate system for fast reprojection");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -533,16 +534,16 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    /* Set up the plane-to-plane transform */
    /***************************************/
 
-   if(altin[0] != '\0')
+   if(altin && altin[0] != '\0')
    {
-      if(altout[0] != '\0')
+      if(altout && altout[0] != '\0')
          status = Initialize_TwoPlane_BothDistort(&two_plane, alt_input_header, alt_output_header);
       else 
          status = Initialize_TwoPlane_BothDistort(&two_plane, alt_input_header, template_header);
    }
    else
    {
-      if(altout[0] != '\0')
+      if(altout && altout[0] != '\0')
          status = Initialize_TwoPlane_BothDistort(&two_plane, input_header, alt_output_header);
       else 
          status = Initialize_TwoPlane_BothDistort(&two_plane, input_header, template_header);
@@ -552,6 +553,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printError("Could not set up plane-to-plane transform.  Check for compliant headers.");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -807,6 +810,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printError("No overlap");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
     
@@ -821,6 +826,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printError("Not enough memory for output data image array");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -832,6 +839,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       {
          mProjectPP_printError("Not enough memory for output data image array");
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectPP_closeFiles();
+
          return returnStruct;
       }
    }
@@ -867,6 +876,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printError("Not enough memory for output area image array");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -878,6 +889,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       {
          mProjectPP_printError("Not enough memory for output area image array");
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectPP_closeFiles();
+
          return returnStruct;
       }
       for(i=0; i<ilength; ++i)
@@ -946,6 +959,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       {
          mProjectPP_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectPP_closeFiles();
+
          return returnStruct;
       }
 
@@ -956,6 +971,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
          {
             mProjectPP_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectPP_closeFiles();
+
             return returnStruct;
          }
       }
@@ -1324,9 +1341,13 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
+   input.fptr = (fitsfile *)NULL;
+   
 
    /*********************************/
    /* Normalize image data based on */
@@ -1411,6 +1432,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printError("All pixels are blank. Check for overlap of output template with image file.");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1444,13 +1467,17 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
-
+   
    if(fits_create_file(&output_area.fptr, area_file, &status)) 
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1464,9 +1491,11 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);          
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
-
+   
    if(mProjectPP_debug >= 1)
    {
       printf("\nFITS data image created (not yet populated)\n"); 
@@ -1477,6 +1506,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);          
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1495,6 +1526,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1508,6 +1541,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1527,6 +1562,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1535,6 +1572,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1549,6 +1588,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1557,6 +1598,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1565,6 +1608,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1573,6 +1618,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1581,6 +1628,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1591,6 +1640,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1599,6 +1650,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1607,6 +1660,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1615,6 +1670,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1623,6 +1680,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
@@ -1649,6 +1708,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       {
          mProjectPP_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectPP_closeFiles();
+
          return returnStruct;
       }
 
@@ -1679,6 +1740,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       {
          mProjectPP_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectPP_closeFiles();
+
          return returnStruct;
       }
 
@@ -1702,9 +1765,13 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
+   output.fptr = (fitsfile *)NULL;
+   
    if(mProjectPP_debug >= 1)
    {
       printf("FITS data image finalized\n"); 
@@ -1715,9 +1782,13 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       mProjectPP_printFitsError(status);           
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectPP_closeFiles();
+
       return returnStruct;
    }
 
+   output_area.fptr = (fitsfile *)NULL;
+   
    if(mProjectPP_debug >= 1)
    {
       printf("FITS area image finalized\n\n"); 
@@ -1733,6 +1804,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
 
    returnStruct->time = (double)(currtime - start);
 
+   mProjectPP_closeFiles();
    return returnStruct;
 }
 
@@ -2158,7 +2230,7 @@ int mProjectPP_readFits(char *filename, char *weightfile)
          mProjectPP_printError(errstr);
          return 1;
       }
-
+      
       if(hdu > 0)
       {
          if(fits_movabs_hdu(weight.fptr, hdu+1, NULL, &status))
@@ -2276,6 +2348,38 @@ int mProjectPP_readFits(char *filename, char *weightfile)
    input.epoch = epoch;
 
    return 0;
+}
+
+
+
+/************************************/
+/*                                  */
+/*  Make sure FITS files are closed */
+/*                                  */
+/************************************/
+
+void mProjectPP_closeFiles()
+{
+   int status;
+
+   if(input.fptr != (fitsfile *)NULL)
+      fits_close_file(input.fptr, &status);
+
+   if(weight.fptr != (fitsfile *)NULL)
+      fits_close_file(weight.fptr, &status);
+
+   if(output.fptr != (fitsfile *)NULL)
+      fits_close_file(output.fptr, &status);
+
+   if(output_area.fptr != (fitsfile *)NULL)
+      fits_close_file(output_area.fptr, &status);
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   return;
 }
 
 

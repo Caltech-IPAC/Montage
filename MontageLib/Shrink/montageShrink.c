@@ -122,6 +122,11 @@ static char montage_msgstr[1024];
 /*   double shrinkFactor   Scale factor for spatial shrinking.  Can be   */
 /*                         any positive real number                      */
 /*                                                                       */
+/*   double cdelt          In case shrink would create round-off errors  */
+/*                         in header CDELT values, this can be used to   */
+/*                         introduce a more accurate number.  Not        */
+/*                         usually needed (0 means no change).           */
+/*                                                                       */
 /*   int    hdu            Optional HDU offset for input file            */
 /*   int    fixedSize      Alternate mode: shrink so the output fits     */
 /*                         in this many pixels                           */
@@ -130,7 +135,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, int hduin, int fixedSize, int debug)
+struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, double cdelt, int hduin, int fixedSize, int debug)
 {
    int       i, j, ii, jj, status, bufrow,  split;
    int       ibuffer, jbuffer, ifactor, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
@@ -163,7 +168,6 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
       value.c[i] = 255;
 
    nan = value.d;
-
 
 
    /*******************************/
@@ -343,6 +347,12 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
    output.pc22     = input.pc22;
    output.epoch    = input.epoch;
    output.equinox  = input.equinox;
+
+   if(cdelt > 0.)
+   {
+      output.cdelt1 = copysign(fabs(cdelt), output.cdelt1);
+      output.cdelt2 = copysign(fabs(cdelt), output.cdelt2);
+   }
 
    strcpy(output.bunit, input.bunit);
 
@@ -642,7 +652,7 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
 
    /*************************************************************************/ 
    /* We could probably come up with logic that would work for both scale   */
-   /* factors of less than one and greater than one but the it would be too */
+   /* factors of less than one and greater than one but it would be too     */
    /* hard to follow.  Instead, we put in a big switch here to deal with    */
    /* the two cases separately.                                             */
    /*************************************************************************/ 
@@ -984,7 +994,8 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
       l = 0;
 
       obegin =  (double)l     * xfactor;
-      oend   = ((double)l+1.) * xfactor;
+
+      oend   = obegin + xfactor - 1;
 
       jmin = floor(obegin);
       jmax = ceil (oend);
@@ -1168,7 +1179,8 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
             ++l;
 
             obegin =  (double)l     * xfactor;
-            oend   = ((double)l+1.) * xfactor;
+
+            oend   = obegin + xfactor - 1;
 
             jmin = floor(obegin);
             jmax = ceil (oend);

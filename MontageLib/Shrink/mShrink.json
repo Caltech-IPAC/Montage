@@ -10,6 +10,7 @@
       {"type":"string",                    "name":"infile",        "desc":"Input FITS file."},
       {"type":"string",                    "name":"output_file",   "desc":"Subimage output FITS file."},
       {"type":"double",                    "name":"shrinkFactor",  "desc":"Scale factor for spatial shrinking.  Can be any positive real number."},
+      {"type":"double",  "default":0.0,    "name":"cdelt",         "desc":"CDELT override for cases where shrinking would produce round-off.  Default 0.0 means no override."},
       {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
       {"type":"boolean", "default":false,  "name":"fixedSize",     "desc":"Alternate mode: shrink so the output fits in this many pixels."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 

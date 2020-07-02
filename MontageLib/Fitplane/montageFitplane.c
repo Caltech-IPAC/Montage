@@ -157,7 +157,8 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
    if(fits_open_file(&fptr, input_file, READONLY, &status))
    {
-      sprintf(returnStruct->msg, "Image file %s missing or invalid FITS\"]\n", input_file);
+      sprintf(returnStruct->msg, "Image file %s missing or invalid FITS", input_file);
+
       return returnStruct;
    }
 
@@ -165,6 +166,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
    {
       mFitplane_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+
       return returnStruct;
    }
 
@@ -172,6 +174,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
    {
       mFitplane_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+
       return returnStruct;
    }
 
@@ -187,6 +190,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
    {
       mFitplane_nrerror("Too few pixels to fit");
       strcpy(returnStruct->msg, montage_msgstr);
+
       return returnStruct;
    }
 
@@ -230,6 +234,15 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
       {
          mFitplane_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+
+         for(i=0; i<naxes[1]; ++i)
+            free(data[i]);
+
+         free(data);
+
+         free(xbound);
+         free(ybound);
+
          return returnStruct;
       }
 
@@ -500,8 +513,27 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
          if(mFitplane_gaussj(a, n, b, m))
          {
-         strcpy(returnStruct->msg, montage_msgstr);
-         return returnStruct;
+            strcpy(returnStruct->msg, montage_msgstr);
+
+            for(i=0; i<naxes[1]; ++i)
+               free(data[i]);
+
+            free(data);
+
+            free(xbound);
+            free(ybound);
+
+            for(i=0; i<n; ++i)
+               free(a[i]);
+
+            free(a);
+
+            for(i=0; i<m; ++i)
+               free(b[i]);
+
+            free(b);
+
+            return returnStruct;
          }
       }
 
@@ -614,6 +646,26 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
    returnStruct->boxheight = boxheight;
    returnStruct->boxang    = boxang;
 
+
+   for(i=0; i<naxes[1]; ++i)
+      free(data[i]);
+
+   free(data);
+
+   free(xbound);
+   free(ybound);
+
+   for(i=0; i<n; ++i)
+      free(a[i]);
+
+   free(a);
+
+   for(i=0; i<m; ++i)
+      free(b[i]);
+
+   free(b);
+
+
    return returnStruct;
 }
 
@@ -682,6 +734,11 @@ int mFitplane_gaussj(double **a, int n, double **b, int m)
                else if (ipiv[k] > 1) 
                {
                   mFitplane_nrerror("Singular Matrix-1");
+
+                  mFitplane_free_ivector(ipiv);
+                  mFitplane_free_ivector(indxr);
+                  mFitplane_free_ivector(indxc);
+
                   return 1;
                }
             }
@@ -702,6 +759,11 @@ int mFitplane_gaussj(double **a, int n, double **b, int m)
       if (a[icol][icol] == 0.0)
       {
          mFitplane_nrerror("Singular Matrix-2");
+
+         mFitplane_free_ivector(ipiv);
+         mFitplane_free_ivector(indxr);
+         mFitplane_free_ivector(indxc);
+
          return 1;
       }
 

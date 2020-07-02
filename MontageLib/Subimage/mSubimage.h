@@ -7,6 +7,7 @@
 #define PIX    1
 #define HDU    2
 #define SHRINK 3
+#define IMGPIX 4
 
 struct mSubimageParams
 {

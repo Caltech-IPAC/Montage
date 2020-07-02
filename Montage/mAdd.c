@@ -2,7 +2,6 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-5.4      Michel Kraemer   05Aug19  Fix memory leak
 5.3      John Good        08Sep15  fits_read_pix() incorrect null value
 5.2      Daniel S. Katz   16Jul10  Small change for MPI with new fits library
 5.1      John Good        09Jul06  Only show maxopen warning in debug mode
@@ -274,6 +273,8 @@ struct outfile
   double    crval1, crval2;
 }
 output, output_area;
+
+FILE *fstatus;
 
 
 
@@ -1669,9 +1670,6 @@ int main(int argc, char **argv)
                sprintf(errstr, "Image %s header EQUINOX does not match template", infile[ifile]);
                printError(errstr);
             }
-
-            wcsfree(imgWCS);
-            free(inputHeader);
          } 
 
 

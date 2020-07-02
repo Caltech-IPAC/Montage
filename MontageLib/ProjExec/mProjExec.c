@@ -43,6 +43,8 @@ int main(int argc, char **argv)
 
    char  *end;
 
+   double drizzle;
+
    struct mProjExecReturn *returnStruct;
 
    FILE *montage_status;
@@ -59,6 +61,8 @@ int main(int argc, char **argv)
    energyMode  = 0;
    expand      = 0;
 
+   drizzle     = 1.;
+
    strcpy(path,      ".");
    strcpy(border,    "");
    strcpy(scaleCol,  "");
@@ -68,7 +72,7 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "p:dqeb:s:r:W:x:Xf")) != EOF) 
+   while ((c = getopt(argc, argv, "p:dqeb:s:r:W:x:Xfz:")) != EOF) 
    {
       switch (c) 
       {
@@ -144,6 +148,18 @@ int main(int argc, char **argv)
             }
             break;
 
+         case 'z':
+            drizzle = strtod(optarg, &end);
+
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Drizzle factor string (%s) cannot be interpreted as a real number\"]\n"    ,
+                  optarg);
+               exit(1);
+            }
+
+            break;
+
          default:
             printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-q(uick-mode)][-p rawdir] [-d] [-e(xact)] [-X(whole image)] [-b border] [-r restartrec] [-s statusfile] [-W weightColumn] [-x scaleColumn] images.tbl template.hdr projdir stats.tbl\"]\n", argv[0]);
             exit(1);
@@ -167,7 +183,7 @@ int main(int argc, char **argv)
    /* Call the mProjExec processing routine */
    /*****************************************/
 
-   returnStruct = mProjExec(path, tblfile, template, projdir, quickMode, exact, expand, energyMode,
+   returnStruct = mProjExec(path, tblfile, template, projdir, quickMode, exact, expand, energyMode, drizzle,
                             border, scaleCol, weightCol, restart, stats, debug);
 
    if(returnStruct->status == 1)

@@ -168,6 +168,8 @@ double ycorrectionIn;
 
 static time_t currtime, start;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

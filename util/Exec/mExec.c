@@ -23,6 +23,7 @@ Version  Developer        Date     Change
 #include <mtbl.h>
 #include <svc.h>
 #include <wcs.h>
+#include <boundaries.h>
 #include <coord.h>
 
 #include <sys/socket.h>
@@ -192,9 +193,11 @@ int main(int argc, char **argv, char **envp)
    int    ncols, ifname, failed, nocorrection, nooverlap, istat;
    int    flag, noverlap, nimages, ntile, mtile;
    int    naxis1, naxis2, naxismax, nxtile, nytile;
+   int    ix, jy, nx, ny;
    int    intan, outtan, iscale, ncell;
    int    keepAll, deleteAll, noSubset, infoMsg, levelOnly;
    int    ftmp, userRaw, showMarker, quickMode;
+   int    iurl;
 
    double val, factor, shrink;
 
@@ -207,6 +210,8 @@ int main(int argc, char **argv, char **envp)
 
    char   fheader[28800];
    char  *inheader;
+
+   char  *ptr;
 
    char   temp   [MAXLEN];
    char   buf    [BUFSIZE];
@@ -237,6 +242,8 @@ int main(int argc, char **argv, char **envp)
    int    cntr2;
 
    char   file       [MAXLEN];
+   char   filebase   [MAXLEN];
+   char   url        [MAXLEN];
    char   fname1     [MAXLEN];
    char   fname2     [MAXLEN];
    char   diffname   [MAXLEN];
@@ -279,7 +286,7 @@ int main(int argc, char **argv, char **envp)
    double boxheight;
    double boxangle;
 
-   double scale;
+   double width, height;
 
    double error, maxerror;
 
@@ -300,7 +307,7 @@ int main(int argc, char **argv, char **envp)
    char   goodFile    [MAXLEN];
 
    char   locstr      [MAXLEN];
-   char   radstr      [MAXLEN];
+   char   sizestr     [MAXLEN];
 
    char   template    [MAXLEN];
    char   tmpfile     [MAXLEN];
@@ -311,12 +318,16 @@ int main(int argc, char **argv, char **envp)
 
    double allowedError;
 
-   double ra[4], dec[4];
    double rac, decc;
-   double x1, y1, z1;
-   double x2, y2, z2;
    double xpos, ypos;
    double dtr;
+
+   int     npts;
+   double *lons;
+   double *lats;
+
+
+   struct bndInfo *box = (struct bndInfo *)NULL;
 
    int    rflag, dflag;
 
@@ -651,7 +662,7 @@ int main(int argc, char **argv, char **envp)
          }
       }
 
-      if(debug >= 5)
+      if(debug >= 4)
          svc_debug(fdebug);
    }
 
@@ -885,10 +896,9 @@ int main(int argc, char **argv, char **envp)
       if(fhdr == (FILE *)NULL)
          printerr("Can't open header template file");
 
-
       bhdr = fopen("big_region.hdr", "w+");
 
-      if(bhdr == (FILE *)NULL)
+      if(bhdr == (FILE *)NULL) 
          printerr("Can't open expanded header file: [big_region.hdr]");
 
 
@@ -926,19 +936,19 @@ int main(int argc, char **argv, char **envp)
          }
 
          if(strncmp(temp, "NAXIS1", 6) == 0)
-         {
+         {       
             ival = atoi(temp+9);
             fprintf(bhdr, "NAXIS1  = %d\n", ival+3000);
-            naxis1 = ival;
-         }
+            naxis1 = ival; 
+         }       
          else if(strncmp(temp, "NAXIS2", 6) == 0)
-         {
+         {       
             ival = atoi(temp+9);
             fprintf(bhdr, "NAXIS2  = %d\n", ival+3000);
-            naxis2 = ival;
-         }
+            naxis2 = ival; 
+         }       
          else if(strncmp(temp, "CRPIX1", 6) == 0)
-         {
+         {       
             val = atof(temp+9);
             fprintf(bhdr, "CRPIX1  = %15.10f\n", val+1500);
          }
@@ -978,10 +988,11 @@ int main(int argc, char **argv, char **envp)
       fclose(bhdr);
 
 
-      /*********************************/
-      /* Find the corners of this area */
-      /* and the diagonal size         */
-      /*********************************/
+      /****************************************************************/
+      /* Collect the pixel corner coordinates around the outside of   */
+      /* the header and determine a vertical bounding box (to be used */
+      /* in image metadata searching.                                 */
+      /****************************************************************/
 
       wcs = wcsinit(fheader);
 
@@ -997,7 +1008,7 @@ int main(int argc, char **argv, char **envp)
 
       if(wcs->syswcs == WCS_J2000)
       {
-         sys   = EQUJ;
+         sys   = EQUJ; 
          epoch = 2000.;
 
          if(wcs->equinox == 1950)
@@ -1005,84 +1016,119 @@ int main(int argc, char **argv, char **envp)
       }
       else if(wcs->syswcs == WCS_B1950)
       {
-         sys   = EQUB;
+         sys   = EQUB; 
          epoch = 1950.;
 
          if(wcs->equinox == 2000)
-            epoch = 2000;
+            epoch = 2000; 
       }
       else if(wcs->syswcs == WCS_GALACTIC)
       {
-         sys   = GAL;
+         sys   = GAL;  
          epoch = 2000.;
       }
       else if(wcs->syswcs == WCS_ECLIPTIC)
       {
-         sys   = ECLJ;
+         sys   = ECLJ; 
          epoch = 2000.;
 
          if(wcs->equinox == 1950)
-         {
-            sys   = ECLB;
+         {       
+            sys   = ECLB; 
             epoch = 1950.;
-         }
+         }       
       }
-      else  
+      else    
       {
-         sys   = EQUJ;
+         sys   = EQUJ; 
          epoch = 2000.;
       }
 
 
-      /* Get the corners and the center */
+      npts = 2*(naxis1 + 1) + 2*(naxis2 + 1);
 
-      pix2wcs(wcs, wcs->nxpix/2., wcs->nypix/2., &xpos, &ypos);
+      lons = (double *)malloc(npts * sizeof(double));
+      lats = (double *)malloc(npts * sizeof(double));
 
-      convertCoordinates(sys, epoch, xpos, ypos,
-                         EQUJ, 2000., &rac, &decc, 0.0);
+      npts = 0;
 
-      pix2wcs(wcs, 0.5, 0.5, &xpos, &ypos);
+      for(i=0; i<=naxis1; ++i)
+      {
+         pix2wcs(wcs, i+0.5,        0.5, &xpos, &ypos);
 
-      convertCoordinates(sys, epoch, xpos, ypos,
-                         EQUJ, 2000., &ra[0], &dec[0], 0.0);
+         convertCoordinates(sys, epoch, xpos, ypos,
+                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
 
-      pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &xpos, &ypos);
+         if(xpos == 0.)
+            --npts;
 
-      convertCoordinates(sys, epoch, xpos, ypos,
-                         EQUJ, 2000., &ra[1], &dec[1], 0.0);
+         ++npts;
 
-      pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &xpos, &ypos);
+         pix2wcs(wcs, i+0.5, naxis2+0.5, &xpos, &ypos);
 
-      convertCoordinates(sys, epoch, xpos, ypos,
-                         EQUJ, 2000., &ra[2], &dec[2], 0.0);
+         convertCoordinates(sys, epoch, xpos, ypos,
+                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
 
-      pix2wcs(wcs, 0.5, wcs->nypix+0.5, &xpos, &ypos);
+         if(xpos == 0.)
+            --npts;
 
-      convertCoordinates(sys, epoch, xpos, ypos,
-                         EQUJ, 2000., &ra[3], &dec[3], 0.0);
+         ++npts;
+      }
+
+      for(j=0; j<=naxis2; ++j)
+      {
+         pix2wcs(wcs, 0.5,        j+0.5, &xpos, &ypos);
+
+         convertCoordinates(sys, epoch, xpos, ypos,
+                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+
+         if(xpos == 0.)
+            --npts;
+
+         ++npts;
+
+         pix2wcs(wcs, naxis1+0.5, j+0.5, &xpos, &ypos);
+
+         convertCoordinates(sys, epoch, xpos, ypos,
+                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+
+         if(xpos == 0.)
+            --npts;
+
+         ++npts;
+      }
 
 
-      /* Compute the diagonal size */
+      fout = fopen("boundary.tbl", "w+");
 
-      x1 = cos(ra[0]*dtr) * cos(dec[0]*dtr);
-      y1 = sin(ra[0]*dtr) * cos(dec[0]*dtr);
-      z1 = sin(dec[0]*dtr);
+      fprintf(fout, "|%12s|%12s|\n", "ra", "dec");
 
-      x2 = cos(ra[2]*dtr) * cos(dec[2]*dtr);
-      y2 = sin(ra[2]*dtr) * cos(dec[2]*dtr);
-      z2 = sin(dec[2]*dtr);
+      for(i=0; i<npts; ++i)
+         fprintf(fout, " %12.6f %12.6f \n", lons[i], lats[i]);
 
-      scale = acos(x1*x2 + y1*y2 + z1*z2) / dtr;
+      box = bndVerticalBoundingBox(npts, lons, lats);
+
+      rac    = box->centerLon;
+      decc   = box->centerLat;
+      width  = box->lonSize;
+      height = box->latSize;
+
+      free((char *)box);
+
+      free(lons);
+      free(lats);
 
       if(debug >= 2)
       {
-         fprintf(fdebug, "Scale = %-g\n", scale);
+         fprintf(fdebug, "Width  = %-g\n", width);
+         fprintf(fdebug, "Height = %-g\n", height);
          fflush(fdebug);
       }
 
       if(finfo)
       {
-         fprintf(finfo, "<p>Rough scale on the sky:  <b>%-g degrees</b>.</p>\n", scale);
+         fprintf(finfo, "<p>Region width on the sky:   <b>%-g degrees</b>.</p>\n", width);
+         fprintf(finfo, "<p>Region height on the sky:  <b>%-g degrees</b>.</p>\n", height);
          fprintf(finfo, "<hr style='color: #fefefe;' />\n");
          fflush(finfo);
       }
@@ -1148,7 +1194,7 @@ int main(int argc, char **argv, char **envp)
 
       /* Generate the size string */
 
-      sprintf(radstr, "%.2f", fabs(wcs->nxpix * wcs->xinc));
+      sprintf(sizestr, "%.2f x %.2f", width, height);
 
 
 
@@ -1169,15 +1215,12 @@ int main(int argc, char **argv, char **envp)
 
          lasttime = currtime;
 
-         // scale = scale * 1.42;
-         scale = scale * 2.00;
-       
          if(noSubset)
             sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote.tbl", 
-               survey[iband], band[iband], rac, decc, scale, scale);
+               survey[iband], band[iband], rac, decc, width, height);
          else
             sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote_big.tbl", 
-               survey[iband], band[iband], rac, decc, scale, scale);
+               survey[iband], band[iband], rac, decc, width, height);
 
          if(debug >= 4)
          {
@@ -1309,79 +1352,116 @@ int main(int argc, char **argv, char **envp)
 
          if(!userRaw)
          {
-            if(infoMsg)
-            {
-               printf("[struct stat=\"INFO\", msg=\"Retrieving %d images\"]\n", nimages);
-               fflush(stdout);
-            }
-
-            sprintf(cmd, "mArchiveExec ../remote.tbl");
-
-            if(debug >= 4)
-            {
-               fprintf(fdebug, "[%s]\n", cmd);
-               fflush(fdebug);
-            }
-
             if(finfo)
             {
-               fprintf(finfo, "<p><h3>Retrieving archive images</h3></p>\n");
-               fprintf(finfo, "<p><span style='color: blue;'><tt>mArchiveExec remote.tbl</tt></span></p>\n");
+               fprintf(finfo, "<p><h3>Retrieve images</h3></p>\n");
                fflush(finfo);
             }
 
-            svc_run(cmd);
 
-            strcpy(status, svc_value( "stat" ));
+            /***********************************/ 
+            /* Open the region list table file */
+            /***********************************/ 
 
-            if (strcmp( status, "ERROR") == 0)
+            ncols = topen("../remote.tbl");
+
+            iurl = tcol( "URL");
+            if(iurl < 0)
+               iurl = tcol( "url");
+
+            ifile = tcol( "fname");
+            if(ifile < 0)
+               ifile = tcol("file");
+
+            if(iurl < 0)
             {
-               strcpy( msg, svc_value( "msg" ));
-
-               printerr(msg);
-            }
-               
-            if (strcmp(status, "ABORT") == 0) 
-            {
-               strcpy( msg, svc_value( "msg" ));
-
-               printerr(msg);
-            }
-               
-            nimages = atof(svc_value("count"));
-
-            if (nimages == 0)
-            {
-               strcpy( msg, "No data was available for the region specified at this time");
-
-               printerr(msg);
+               printf("[struct stat=\"ERROR\", msg=\"Remote images table %s needs column 'URL' or 'url' and can optionally have column 'fname'/'file'\"]\n");
+               exit(1);
             }
 
-            time(&currtime);
 
-            if(debug >= 1)
+            /*****************************************/ 
+            /* Read the records and call mArchiveGet */
+            /*****************************************/ 
+
+            count  = 0;
+            failed = 0;
+
+            while(1)
             {
-               fprintf(fdebug, "TIME: mArchiveExec     %6d (%d images)\n", (int)(currtime - lasttime), nimages);
-               fflush(fdebug);
-            }
+               istat = tread();
 
+               if(istat < 0)
+                  break;
+
+               strcpy(url, tval(iurl));
+
+               if(ifile >= 0)
+                  strcpy(file, tval(ifile));
+               else
+               {
+                  if(debug > 1)
+                  {
+                     fprintf(fdebug, "DEBUG> url = [%s]\n", url);
+                     fflush(fdebug);
+                  }
+
+                  ptr = url+strlen(url)-1;
+
+                  while(1)
+                  {
+                     if(ptr == url || *ptr == '/')
+                     {
+                        strcpy(file, ptr+1);
+                        break;
+                     }
+
+                     --ptr;
+                  }
+               }
+
+               sprintf(cmd, "mArchiveGet %s %s", url, file);
+
+               if(finfo)
+               {
+                  fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
+                  fflush(finfo);
+               }
+
+               if(debug > 4)
+               {
+                  fprintf(fdebug, "DEBUG> [%s]\n", cmd);
+                  fflush(fdebug);
+               }
+
+               svc_run(cmd);
+
+               strcpy( status, svc_value( "stat" ));
+
+               ++count;
+
+               if(strcmp( status, "ERROR") == 0)
+               {
+                  ++failed;
+                  continue;
+               }
+
+               if(strlen(file) > 3 && strcmp(file+strlen(file)-3, ".gz") == 0)
+               {
+                  sprintf(cmd, "gunzip %s", file);
+                  system(cmd);
+               }
+            }
+         
             if(finfo)
             {
-               fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d images)</p>\n",
-                  (int)(currtime - lasttime), nimages);
+               fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> %d downloaded (%d failed)</p>\n",
+                  (int)(currtime - lasttime), count, failed);
                fprintf(finfo, "<hr style='color: #fefefe;' />\n");
                fflush(finfo);
             }
 
             lasttime = currtime;
-
-            if(debug >= 4)
-            {
-               fprintf(fdebug, "chdir to [%s]\n", workspace[iband]);
-               fflush(fdebug);
-            }
-
-            chdir(workspace[iband]);
          }
       }
 
@@ -1400,7 +1480,7 @@ int main(int argc, char **argv, char **envp)
 
       chdir(rawdir);
        
-      sprintf(cmd, "mImgtbl -c . rimages_full.tbl");
+      sprintf(cmd, "mImgtbl -c . rimages.tbl");
 
       if(debug >= 4)
       {
@@ -1440,7 +1520,7 @@ int main(int argc, char **argv, char **envp)
 
       chdir(workspace[iband]);
 
-      sprintf(cmd, "mv %s/rimages_full.tbl .", rawdir);
+      sprintf(cmd, "mv %s/rimages.tbl .", rawdir);
 
       if(debug >= 4)
       {
@@ -1449,33 +1529,6 @@ int main(int argc, char **argv, char **envp)
       }
 
       system(cmd);
-
-      sprintf(cmd, "mCoverageCheck rimages_full.tbl rimages.tbl -header region.hdr");
-
-      if(debug >= 4)
-      {
-         fprintf(fdebug, "[%s]\n", cmd);
-         fflush(fdebug);
-      }
-
-      svc_run(cmd);
-
-      strcpy( status, svc_value( "stat" ));
-
-      if(strcmp( status, "ERROR") == 0)
-      {
-         strcpy (msg, svc_value( "msg" ));
-         printerr(msg);
-      }
-
-      nimages = atof(svc_value("count"));
-
-      if (nimages == 0)
-      {
-         sprintf( msg, "%s/%s has no data covering area", survey[iband], band[iband]);
-
-         printerr(msg);
-      }
 
       ncols = topen("rimages.tbl");
 
@@ -1504,7 +1557,8 @@ int main(int argc, char **argv, char **envp)
 
       outtan = INTRINSIC;
 
-      if(wcs->prjcode != WCS_TAN
+      if(!quickMode
+      && wcs->prjcode != WCS_TAN
       && wcs->prjcode != WCS_SIN
       && wcs->prjcode != WCS_ZEA
       && wcs->prjcode != WCS_STG
@@ -1543,7 +1597,7 @@ int main(int argc, char **argv, char **envp)
             if(error > maxerror)
                maxerror = error;
 
-            if(debug >= 2)
+            if(debug >= 4)
             {
                fprintf(fdebug, "   Distorted TAN for output: max error = %-g, allowed error = %-g\n", 
                   maxerror, allowedError);
@@ -1772,7 +1826,7 @@ int main(int argc, char **argv, char **envp)
                if(error > maxerror)
                   maxerror = error;
 
-               if(debug)
+               if(debug >= 4)
                {
                   fprintf(fdebug, "   Distorted TAN on input: max error = %-g, allowed error = %-g\n",
                      maxerror, allowedError);
@@ -1791,7 +1845,7 @@ int main(int argc, char **argv, char **envp)
              intan = FAILED;
             outtan = FAILED;
 
-            if(debug)
+            if(debug >= 4)
             {
                fprintf(fdebug, "   Can't use distorted TAN when projecting between coordinate systems.\n");
                fflush(fdebug);
@@ -2353,7 +2407,7 @@ int main(int argc, char **argv, char **envp)
          ib  = tcol( "b");
          ic  = tcol( "c");
       
-         if(debug)
+         if(debug >= 4)
          {
             printf("\nCorrections table\n");
             printf("iid = %d\n", iid);
@@ -2621,6 +2675,8 @@ int main(int argc, char **argv, char **envp)
                   }
 
                   nmatches = atoi(svc_value("count"));
+
+                  nmatches = 1;  // XXXXXXXXXXX
 
                   if(nmatches > 0)
                   {
@@ -3064,7 +3120,7 @@ int main(int argc, char **argv, char **envp)
          fprintf(fhtml, "<td align=left><font color='#ffff00'>%s</font></td>\n", locText);
 
       fprintf(fhtml, "<td align=center><font color='#ffff00'>(%s)</font></td>\n", locstr);
-      fprintf(fhtml, "<td align=center><font color='#ffff00'>Size: %s degrees</font></td>\n", radstr);
+      fprintf(fhtml, "<td align=center><font color='#ffff00'>Size: %s degrees</font></td>\n", sizestr);
       fprintf(fhtml, "<td align=right><font color='#ffff00'>%s / %s</font></td></tr>\n", survey[iband], band[iband]);
       fprintf(fhtml, "</tr></table>\n");
 

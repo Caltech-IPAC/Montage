@@ -33,6 +33,8 @@ int  checkHdr     (char *infile, int hdrflag, int hdu);
 void checkHdrExact(int stringent);
 int  errorOutput  (char *msg);
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

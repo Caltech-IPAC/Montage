@@ -166,6 +166,8 @@ struct outfile
 }
 output, output_area;
 
+FILE *fstatus;
+
 
 
 /***********************/

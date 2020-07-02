@@ -133,13 +133,13 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
    double new_center_ra, new_center_dec;
    double box_rotation, box_radius, circle_radius, dist;
    double center_dist, scale_factor;
-   double point_ra[256], point_dec[256], xpix, ypix;
+   double *point_ra, *point_dec, xpix, ypix;
    double dtr;
 
    char  *checkWCS;
 
-   Vec    point[256], center, edge;
-   Vec    point_normal[256];
+   Vec    *point, center, edge;
+   Vec    *point_normal;
    Vec    normal1, normal2, direction;
 
    int    npoints;
@@ -222,7 +222,6 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    struct mCoverageCheckReturn *returnStruct;
 
-
    if(inpath == (char *)NULL)
       strcpy(path, "");
    else
@@ -301,6 +300,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       center.y = 0.;
       center.z = 0.;
 
+      point_ra     = (double *) malloc(narray * sizeof(double));
+      point_dec    = (double *) malloc(narray * sizeof(double));
+
+      point        = (Vec *) malloc(narray * sizeof(Vec));
+      point_normal = (Vec *) malloc(narray * sizeof(Vec));
+
       for(i=0; i<narray; i+=2)
       {
          point_ra [npoints] = array[i];
@@ -329,7 +334,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       if(status < 0)
       {
-         sprintf(returnStruct->msg, "Failed to find bounding polygon for points");
+         free(point_ra);
+         free(point_dec);
+         free(point);
+         free(point_normal);
+
+         sprintf(returnStruct->msg, "Failed to find bounding polygon for set of points");
          return returnStruct;
       }
 
@@ -456,13 +466,20 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          strcpy(returnStruct->msg, checkWCS);
          return returnStruct;
       }
+
+      npoints = 4;
+
+      point_ra     = (double *) malloc(npoints * sizeof(double));
+      point_dec    = (double *) malloc(npoints * sizeof(double));
+
+      point        = (Vec *) malloc(npoints * sizeof(Vec));
+      point_normal = (Vec *) malloc(npoints * sizeof(Vec));
+
                       
       pix2wcs(wcsbox,              -0.5,              -0.5, &point_ra[0], &point_dec[0]);
       pix2wcs(wcsbox, wcsbox->nxpix+0.5,              -0.5, &point_ra[1], &point_dec[1]);
       pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &point_ra[2], &point_dec[2]);
       pix2wcs(wcsbox,              -0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]);
-
-      npoints = 4;
 
       box_radius = 0;
 
@@ -574,6 +591,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       npoints = 4;
 
+      point_ra     = (double *) malloc(npoints * sizeof(double));
+      point_dec    = (double *) malloc(npoints * sizeof(double));
+
+      point        = (Vec *) malloc(npoints * sizeof(Vec));
+      point_normal = (Vec *) malloc(npoints * sizeof(Vec));
+
       pix2wcs(wcsbox,              -0.5,              -0.5, &lon, &lat);
 
       convertCoordinates (csys, epoch, lon, lat, 
@@ -625,7 +648,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       if(status < 0)
       {
-         sprintf(returnStruct->msg, "Failed to find bounding polygon for points");
+         free(point_ra);
+         free(point_dec);
+         free(point);
+         free(point_normal);
+
+         sprintf(returnStruct->msg, "Failed to find bounding polygon for header corners");
          return returnStruct;
       }
 
@@ -756,6 +784,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
  
    if(ncol < 0)
    {
+      free(point_ra);
+      free(point_dec);
+      free(point);
+      free(point_normal);
+
       sprintf(returnStruct->msg, "Error opening table %s", infile);
       fflush(stdout);
       return returnStruct;
@@ -765,6 +798,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    if(fout == (FILE *)NULL)
    {
+      free(point_ra);
+      free(point_dec);
+      free(point);
+      free(point_normal);
+
       sprintf(returnStruct->msg, "Cannot create output file (%s)", outfile);
       return returnStruct;
    }
@@ -870,6 +908,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       if(ifname < 0)
       {
+         free(point_ra);
+         free(point_dec);
+         free(point);
+         free(point_normal);
+
          sprintf(returnStruct->msg, "CUTOUT mode needs a valid 'fname' or 'file' column");
          return returnStruct;
       }
@@ -906,6 +949,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    if(tblmode == NULLMODE)
    {
+      free(point_ra);
+      free(point_dec);
+      free(point);
+      free(point_normal);
+
       sprintf(returnStruct->msg, "Need either WCS or corner columns.");
       return returnStruct;
    }
@@ -1059,6 +1107,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
          if(checkWCS)
          {
+            free(point_ra);
+            free(point_dec);
+            free(point);
+            free(point_normal);
+
             strcpy(returnStruct->msg, checkWCS);
             return returnStruct;
          }
@@ -1071,6 +1124,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
          if (nowcs (wcsimg)) 
          {
+            free(point_ra);
+            free(point_dec);
+            free(point);
+            free(point_normal);
+
             sprintf(returnStruct->msg, "Failed to create wcs structure for record %d.", nrow);
             return returnStruct;
          }
@@ -1610,6 +1668,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                   status = 0;
                   if(fits_open_file(&fptr, fname, READONLY, &status))
                   {
+                     free(point_ra);
+                     free(point_dec);
+                     free(point);
+                     free(point_normal);
+
                      sprintf(returnStruct->msg, "Image file %s missing or invalid FITS", fname);
                      return returnStruct;
                   }
@@ -1617,6 +1680,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                   status = 0;
                   if(fits_get_image_wcs_keys(fptr, &header, &status))
                   {
+                     free(point_ra);
+                     free(point_dec);
+                     free(point);
+                     free(point_normal);
+
                      fits_get_errstatus(status, status_str);
 
                      strcpy(returnStruct->msg, status_str);
@@ -1628,6 +1696,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
                   if(wcsimg == (struct WorldCoor *)NULL)
                   {
+                     free(point_ra);
+                     free(point_dec);
+                     free(point);
+                     free(point_normal);
+
                      sprintf(returnStruct->msg, "Input wcsinit() failed.");
                      return returnStruct;
                   }
@@ -1684,6 +1757,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
             if(checkWCS)
             {
+               free(point_ra);
+               free(point_dec);
+               free(point);
+               free(point_normal);
+
                strcpy(returnStruct->msg, checkWCS);
                return returnStruct;
             }
@@ -1696,8 +1774,13 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
             if (nowcs (wcsimg)) 
             {
-              sprintf(returnStruct->msg, "Failed to create wcs structure for record %d.", nrow);
-              return returnStruct;
+               free(point_ra);
+               free(point_dec);
+               free(point);
+               free(point_normal);
+
+               sprintf(returnStruct->msg, "Failed to create wcs structure for record %d.", nrow);
+               return returnStruct;
             }
 
 
@@ -2214,6 +2297,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    fflush(fout);
    fclose(fout);
+
+   free(point_ra);
+   free(point_dec);
+   free(point);
+   free(point_normal);
 
 
    returnStruct->status = 0;

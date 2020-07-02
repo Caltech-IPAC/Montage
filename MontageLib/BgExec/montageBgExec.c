@@ -80,7 +80,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
    int    ib;
    int    ic;
 
-   int    cntr, maxcntr = 0;
+   int    cntr, maxcntr;
    double *a;
    double *b;
    double *c;
@@ -295,17 +295,25 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
       if(have[cntr] == 0)
          ++nocorrection;
 
-      background = mBackground(ifile, ofile, a[cntr], b[cntr], c[cntr], noAreas, 0);
-
       if(debug)
       {
-         printf("mBackground(%s, %s, %-g, %-g, %-g) -> [%s]\n", 
-            file, ofile, a[cntr], b[cntr], c[cntr], background->msg);
+         printf("mBackground(%s, %s, %-g, %-g, %-g)\n", 
+            file, ofile, a[cntr], b[cntr], c[cntr]);
          fflush(stdout);
       }
 
+      background = mBackground(ifile, ofile, a[cntr], b[cntr], c[cntr], noAreas, 0);
+
       if(background->status)
+      {
          ++failed;
+
+         if(debug)
+         {
+            printf("Failed.  Message: [%s]\n", background->msg);
+            fflush(stdout);
+         }
+      }
 
       ++count;
 

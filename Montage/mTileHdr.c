@@ -36,6 +36,8 @@ extern int getopt(int argc, char *const *argv, const char *options);
 int checkHdr(char *infile, int hdrflag, int hdu);
 
 
+FILE *fstatus;
+
 int debug;
 
 void readTemplate(char *template);
@@ -186,6 +188,12 @@ int main(int argc, char **argv)
 
    xtilesize = wcs->nxpix / nx;
    ytilesize = wcs->nypix / ny;
+
+   if(xtilesize * nx < wcs->nxpix)
+      ++xtilesize;
+
+   if(ytilesize * ny < wcs->nypix)
+      ++ytilesize;
 
    if(debug)
    {

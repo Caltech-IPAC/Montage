@@ -34,6 +34,19 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
 //-------------------
 
+struct mAddMemReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double time;          // Run time (sec)   
+};
+
+struct mAddMemReturn *mAddMem(char *path, char *table_file, char *output_file, 
+                              char *template_file, int noAreas, int debug);
+
+//-------------------
+
 struct mArchiveExecReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -250,6 +263,23 @@ struct mExamineReturn
 
 struct mExamineReturn *mExamine(char *infile, int areaMode, int hdu, int plane3, int plane4,
                                 double ra, double dec, double radius, int locinpix, int radinpix, int debug);
+
+//-------------------
+
+struct mExecReturn
+{
+   int    status;           // Return status (0: OK, 1:ERROR)
+   char   msg [1024];       // Return message (for error return)
+   char   json[4096];       // Return parameters as JSON string
+   double time;             // Run time (sec).
+   char   survey   [1024];  // Survey (for archive data).
+   char   band     [1024];  // Band (for archive data).
+   char   workspace[1024];  // Output mosaic file.
+};
+
+struct mExecReturn *mExec(char *hdrfile, char *rawDir, char *savefile, char *survey, char *band, char *workspace,
+                          int debug, char *debugfile, int quickmode, int infoMsg, double allowedError, int levelOnly, 
+                          int noSubset, double pixelScale, int pixelCount, int northUp, int keepAll, int deleteAll);
 
 //-------------------
 
@@ -501,8 +531,8 @@ struct mProjExecReturn
 };
 
 struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, char *projdir, int quickMode, 
-                                  int exact, int wholeImages, int energyMode, char *border, char *scaleCol, 
-                                  char *weightCol, int restart, char *stats, int debug);
+                                  int exact, int wholeImages, int energyMode, double drizzle, char *border,
+                                  char *scaleCol, char *weightCol, int restart, char *stats, int debug);
 
 //-------------------
 
@@ -525,7 +555,7 @@ struct mShrinkReturn
    double time;          // Run time (sec)   
 };
 
-struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, 
+struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, double cdelt,
                               int hdu, int fixedSize, int debug);
 
 //-------------------
@@ -555,6 +585,19 @@ struct mSubCubeReturn
 struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double xref, double yref, 
                                 double xsize, double ysize, int hdu, int nowcs, char *d3constraint, char *d4constraint, 
                                 int debug);
+
+//-------------------
+
+struct mSubHdrReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg    [1024]; // Return message (for error return)
+   char   json   [4096]; // Return parameters as JSON string
+   int    lines;         // The size of the header file.
+};
+
+struct mSubHdrReturn *mSubHdr(char *infile, char *outfile, double xref, double yref, 
+                              char *xsize, char *ysize, int mode, int nowcs, int shift, int debug);
 
 //-------------------
 

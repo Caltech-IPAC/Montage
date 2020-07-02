@@ -108,6 +108,8 @@ static char montage_msgstr[1024];
 /*   int    energyMode     Pixel values are total energy rather than     */
 /*                         energy density.                               */
 /*                                                                       */
+/*   double drizzle        Optional pixel area 'drizzle' factor          */
+/*                                                                       */
 /*   char  *borderStr      Optional string that contains either a border */
 /*                         width or comma-separated "x1,y1,x2,y2, ..."   */
 /*                         pairs defining a pixel region polygon where   */
@@ -129,8 +131,8 @@ static char montage_msgstr[1024];
 /*************************************************************************/
 
 struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, char *projdir, int quickMode,
-                                  int exact, int expand, int energyMode, char *borderStr, char *scaleCol,
-                                  char *weightCol, int restart, char *stats, int debugin)
+                                  int exact, int expand, int energyMode, double drizzle, char *borderStr, 
+                                  char *scaleCol, char *weightCol, int restart, char *stats, int debugin)
 {
    int    stat, ncols, count, hdu, failed, nooverlap;
    int    ifname, ihdu, iweight, iscale, inp2p, outp2p;
@@ -138,7 +140,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    int    interp, noAreas, fullRegion;
 
    double maxerror, weight, time;
-   double drizzle, threshold, fluxScale;
+   double threshold, fluxScale;
 
    char   fname      [MAXSTR];
    char   infile     [MAXSTR];
@@ -225,7 +227,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    noAreas    = 0;
    interp     = NEAREST;
 
-   drizzle    = 1.;
    threshold  = 0.;
 
    if(strlen(stats) > 0)
@@ -599,7 +600,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          // mTANHdr
 
-         tanHdr = mTANHdr(origHdr, altout, 5, 50, 0.01, 0, 0);
+         tanHdr = mTANHdr(origHdr, altin, 5, 50, 0.01, 0, 0);
 
          if(mProjExec_debug)
          {
@@ -708,7 +709,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
          }
       }
 
-      else if(!wcsMatch)
+      else if(!wcsMatch || exact)
       {
          project = mProject(infile, outfile, template, hdu, weightFile, weight, threshold,
                             borderStr, drizzle, fluxScale, energyMode, expand, fullRegion, 0);

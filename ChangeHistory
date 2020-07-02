@@ -2,13 +2,6 @@
 Montage Release Change History
 
 
-7.0   19May2020    (Alpha at the moment)
-                   Nets major addition to Montage is a suite of tools for making
-                   HiPS maps.  The output is a tree of PNG (and FITS) files that 
-                   can be fed (via URL) to a specialized viewer and displayed in 
-                   any browser as a scrollable and zoomable all-sky map.
-
-
 6.0   09Nov2018    The primary addition in Version 6.0 is the packaging of Montage
                    as a set of Python binary extensions (for Mac OS/X and Linux 
                    platforms, Python versions 2.7 and 3.6).  This is very different

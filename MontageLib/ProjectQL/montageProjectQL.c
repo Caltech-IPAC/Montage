@@ -166,6 +166,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    int       imgi, imgj, keri, kerj;
    int       ix, jy;
    int       nullcnt;
+   int       hpx, hpxPix, hpxLevel;
    long      fpixel[4], nelements;
    double    lon, lat;
    double    ixpix, iypix;
@@ -202,6 +203,14 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    int       nfilter, nsamp;
 
    struct mProjectQLReturn *returnStruct;
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   hpx    = 0;
+   hpxPix = 0;
 
    
    /*************************************************/
@@ -285,7 +294,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    /***************************************/
 
    mProjectQL_debug = debugin;
-
+   
    hdu = hduin;
 
    strcpy(output_file, ofile);
@@ -304,20 +313,23 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    border     = 0;
    bordertype = FIXEDBORDER;
 
-   border = strtol(borderstr, &end, 10);
-
-   if(end < borderstr + strlen(borderstr))
+   if(borderstr)
    {
-      if(mProjectQL_BorderSetup(borderstr) <= 3)
+      border = strtol(borderstr, &end, 10);
+
+      if(end < borderstr + strlen(borderstr))
       {
-         sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
-            borderstr);
-         return returnStruct;
-      }
-      else
-      {
-         border = 0;
-         bordertype = POLYBORDER;
+         if(mProjectQL_BorderSetup(borderstr) <= 3)
+         {
+            sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
+               borderstr);
+            return returnStruct;
+         }
+         else
+         {
+            border = 0;
+            bordertype = POLYBORDER;
+         }
       }
    }
 
@@ -328,7 +340,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    }
 
    haveWeights = 0;
-   if(strlen(weight_file) > 0)
+   if(weight_file && strlen(weight_file) > 0)
       haveWeights = 1;
 
    checkHdr = montage_checkHdr(input_file, 0, hdu);
@@ -397,6 +409,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(mProjectQL_readFits(input_file, weight_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -474,6 +487,26 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    }
 
 
+   /**********************************************************/
+   /* Check the WCS header to see if we need to set up       */
+   /* special HPX handling.  The projection type tells us    */
+   /* if this is HPX and the pixel size tells us what order. */
+   /**********************************************************/
+
+   if(strcmp(output.wcs->ptype, "HPX") == 0)
+   {
+      hpx = 1;
+
+      hpxPix = 90.0 / fabs(output.wcs->xinc) / sqrt(2.0) + 0.5;
+
+      hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+      hpxPix = pow(2., (double)hpxLevel) + 0.5;
+      
+      hpxPix = 4 * hpxPix;
+   }
+
+
    /******************************************************************/
    /* Create the data and area buffers for one line of output pixels */
    /******************************************************************/
@@ -494,7 +527,6 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    oypixMin =  100000000;
    oypixMax = -100000000;
 
-
    /* Check input left and right */
 
    for (j=0; j<input.naxes[1]; ++j)
@@ -504,10 +536,26 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
                          output.sys, output.epoch, &lon, &lat, 0.0);
       
+
       offscl = input.wcs->offscl;
 
       if(!offscl)
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
+
+
+      // Special check for HPX.  This allows us to fill in the wraparound area in the
+      // lower left and upper right of the projection.
+
+      if(hpx)
+      {
+         offscl = 0;
+
+         if(oxpix < -(double)hpxPix/2.) oxpix += (double)hpxPix;
+         if(oxpix >  (double)hpxPix/2.) oxpix -= (double)hpxPix;
+
+         if(oypix < -(double)hpxPix/2.) oypix += (double)hpxPix;
+         if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
+      }
 
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
@@ -528,6 +576,17 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
       if(!offscl)
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
+
+      if(hpx)
+      {
+         offscl = 0;
+         
+         if(oxpix < -(double)hpxPix/2.) oxpix += (double)hpxPix;
+         if(oxpix >  (double)hpxPix/2.) oxpix -= (double)hpxPix;
+
+         if(oypix < -(double)hpxPix/2.) oypix += (double)hpxPix;
+         if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
+      }
 
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
@@ -555,6 +614,17 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(!offscl)
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
+      if(hpx)
+      {
+         offscl = 0;
+
+         if(oxpix < -(double)hpxPix/2.) oxpix += (double)hpxPix;
+         if(oxpix >  (double)hpxPix/2.) oxpix -= (double)hpxPix;
+
+         if(oypix < -(double)hpxPix/2.) oypix += (double)hpxPix;
+         if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
+      }
+
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
       if(!offscl)
@@ -575,6 +645,17 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(!offscl)
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
+      if(hpx)
+      {
+         offscl = 0;
+
+         if(oxpix < -(double)hpxPix/2.) oxpix += (double)hpxPix;
+         if(oxpix >  (double)hpxPix/2.) oxpix -= (double)hpxPix;
+
+         if(oypix < -(double)hpxPix/2.) oypix += (double)hpxPix;
+         if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
+      }
+
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
       if(!offscl)
@@ -585,6 +666,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix > oypixMax) oypixMax = oypix;
       }
    }
+
 
    /************************************************/
    /* Go around the outside of the OUTPUT image,   */
@@ -643,6 +725,18 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    jstart = oypixMin - 1;
 
    if(jstart < 0) 
+   if(istart < 0) 
+      istart = 0;
+   
+   ilength = oxpixMax - oxpixMin + 2;
+
+   if(ilength > output.naxes[0])
+      ilength = output.naxes[0];
+
+
+   jstart = oypixMin - 1;
+
+   if(jstart < 0) 
       jstart = 0;
    
    jlength = oypixMax - oypixMin + 2;
@@ -664,13 +758,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
-   /*
    if(oxpixMin > oxpixMax || oypixMin > oypixMax)
    {
       sprintf(returnStruct->msg, "No overlap");
+      mProjectQL_closeFiles();
       return returnStruct;
    }
-   */
 
 
    // In mProject/mProjectPP, we write the image out after having
@@ -697,6 +790,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(data == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for input data image array");
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -707,6 +801,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(data[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for input data image array");
+         mProjectQL_closeFiles();
          return returnStruct;
       }
    }
@@ -729,6 +824,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(weights == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for input weights array");
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -739,6 +835,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(weights[j] == (void *)NULL)
          {
             sprintf(returnStruct->msg, "Not enough memory for input weights array");
+            mProjectQL_closeFiles();
             return returnStruct;
          }
       }
@@ -782,6 +879,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -792,6 +890,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_closeFiles();
             return returnStruct;
          }
       }
@@ -803,8 +902,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
+
+   input.fptr = (fitsfile *)NULL;
 
    if(haveWeights)
    {
@@ -812,8 +914,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
+
+      weight.fptr = (fitsfile *)NULL;
    }
 
 
@@ -861,6 +966,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -870,7 +976,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         return returnStruct;
+
       }
    }
 
@@ -884,6 +990,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -899,6 +1006,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -918,6 +1026,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -933,6 +1042,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -953,6 +1063,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -962,6 +1073,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -976,6 +1088,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -984,6 +1097,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -992,6 +1106,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
 
@@ -1002,6 +1117,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -1010,6 +1126,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
    }
@@ -1020,6 +1137,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -1028,6 +1146,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
    }
@@ -1041,6 +1160,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -1049,6 +1169,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -1057,6 +1178,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -1067,6 +1189,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_closeFiles();
             return returnStruct;
          }
 
@@ -1075,6 +1198,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_closeFiles();
             return returnStruct;
          }
       }
@@ -1085,6 +1209,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_closeFiles();
             return returnStruct;
          }
 
@@ -1093,6 +1218,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_closeFiles();
             return returnStruct;
          }
       }
@@ -1136,28 +1262,31 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
          // Convert it back to make sure we weren't off scale
 
-         offscl = output.wcs->offscl;
+         if(!hpx)
+         {
+            offscl = output.wcs->offscl;
 
-         oxpixTest = 999.;
-         oypixTest = 999.;
+            oxpixTest = 999.;
+            oypixTest = 999.;
 
-         if(!offscl)
-            wcs2pix(output.wcs, xpos, ypos, &oxpixTest, &oypixTest, &offscl);
+            if(!offscl)
+               wcs2pix(output.wcs, xpos, ypos, &oxpixTest, &oypixTest, &offscl);
 
 
-         // The offscl parameter seems to be too sensitive in some
-         // cases, so we will replace it with the following.
+            // The offscl parameter seems to be too sensitive in some
+            // cases, so we will replace it with the following.
 
-         offscl = 0;
+            offscl = 0;
 
-         if(fabs(oxpixTest - oxpix) > 1.)
-            offscl = 1;
+            if(fabs(oxpixTest - oxpix) > 1.)
+               offscl = 1;
 
-         if(fabs(oypixTest - oypix) > 1.)
-            offscl = 1;
+            if(fabs(oypixTest - oypix) > 1.)
+               offscl = 1;
 
-         if(offscl)
-            continue;
+            if(offscl)
+               continue;
+         }
 
 
          // Convert to the input coordinate system
@@ -1172,8 +1301,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
          wcs2pix(input.wcs, lon, lat, &ixpix, &iypix, &offscl);
 
-         if(offscl)
-            continue;
+         if(!hpx)
+         {
+            if(offscl)
+               continue;
+         }
 
          ixpix = ixpix - 1.0;  // Similarly, the input pixel location is 
          iypix = iypix - 1.0;  // one offset from the array index
@@ -1259,6 +1391,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
 
@@ -1268,6 +1401,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_closeFiles();
             return returnStruct;
          }
 
@@ -1297,8 +1431,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_closeFiles();
       return returnStruct;
    }
+
+   output.fptr = (fitsfile *)NULL;
 
    if(mProjectQL_debug >= 1)
    {
@@ -1312,8 +1449,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_closeFiles();
          return returnStruct;
       }
+
+      output_area.fptr = (fitsfile *)NULL;
 
       if(mProjectQL_debug >= 1)
       {
@@ -1331,6 +1471,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    returnStruct->time = (double)(currtime - start);
 
+   mProjectQL_closeFiles();
    return returnStruct;
 }
 
@@ -1664,6 +1805,7 @@ int mProjectQL_readFits(char *filename, char *weightfile)
 
    status = 0;
 
+   
    /*****************************************/
    /* Open the FITS file and get the header */
    /* for WCS setup                         */
@@ -1690,6 +1832,31 @@ int mProjectQL_readFits(char *filename, char *weightfile)
       mProjectQL_printFitsError(status);
       return 1;
    }
+
+
+   /*******************************************/
+   /* Check for EPOCH used instead of EQUINOX */
+   /*******************************************/
+
+   char   *ptr;
+   char    replace[80];
+   int     ir;
+
+   if(strstr(header, "EQUINOX = ") == (char *)NULL)
+   {
+      if((ptr = strstr(header, "EPOCH   =")) != (char *)NULL)
+      {
+         epoch = atof(ptr+9);
+
+         if(epoch == 1950.)
+         {
+            strcpy(replace, "EQUINOX");
+
+            for(ir=0; ir<strlen(replace); ++ir)
+               *(ptr + ir) = replace[ir];
+         }
+       }     
+    }     
 
 
    /************************/
@@ -1839,6 +2006,37 @@ int mProjectQL_readFits(char *filename, char *weightfile)
 }
 
 
+/************************************/
+/*                                  */
+/*  Make sure FITS files are closed */
+/*                                  */
+/************************************/
+
+void mProjectQL_closeFiles()
+{
+   int status;
+
+   if(input.fptr != (fitsfile *)NULL)
+      fits_close_file(input.fptr, &status);
+
+   if(weight.fptr != (fitsfile *)NULL)
+      fits_close_file(weight.fptr, &status);
+
+   if(output.fptr != (fitsfile *)NULL)
+      fits_close_file(output.fptr, &status);
+
+   if(output_area.fptr != (fitsfile *)NULL)
+      fits_close_file(output_area.fptr, &status);
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   return;
+}
+
+
 
 /***********************************/
 /*                                 */
@@ -1951,7 +2149,7 @@ void mProjectQL_UpdateBounds (double oxpix, double oypix,
 
 /* Boundary polygon handling */
 
-int mProjectQL_BorderSetup(char *strin)
+int mProjectQL_BorderSetup(char *strin) 
 {
    int   len;
    char  str[8192];

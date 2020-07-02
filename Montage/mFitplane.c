@@ -60,6 +60,8 @@ extern int getopt(int argc, char *const *argv, const char *options);
 
 int debugCheck(char *debugStr);
 
+FILE *fstatus;
+
 int   debug;
 
 

@@ -165,7 +165,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int orderin, int maxiter, double tolerance, 
+struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int orderin, int maxiterin, double tolerancein, 
                               int useOffscl, int debugin)
 {
    int      iter;
@@ -174,12 +174,14 @@ struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int orderin, int ma
    int      ipix, jpix;
    int      iorder, jorder;
    int      stepsize, smallstep, offscl;
+   int      order, maxiter;
 
    double   x, y;
    double   ix, iy;
    double   xpos, ypos;
    double   xpow, ypow;
    double   z;
+   double   tolerance;
 
    double **matrix;
    double **vector;
@@ -199,6 +201,19 @@ struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int orderin, int ma
    dtr = atan(1.)/45.;
 
    order = orderin;
+
+   if(order <= 0)
+      order = 5;
+
+   tolerance = tolerancein;
+
+   if(tolerance <= 0.0)
+      tolerance = 0.01;
+
+   maxiter = maxiterin;
+
+   if(maxiter <= 0)
+      maxiter = 50;
 
 
    /*******************************/

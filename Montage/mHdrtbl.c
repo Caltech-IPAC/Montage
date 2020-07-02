@@ -50,6 +50,8 @@ char *mktemp(char *template);
 
 struct Hdr_rec hdr_rec;
 
+FILE *fstatus;
+
 
 /*************************************************************************/
 /*                                                                       */

@@ -343,7 +343,9 @@ struct mOverlapsReturn *mOverlaps(char *tblfile, char *difftbl, int quickmode, i
 
       input[nimages].cntr = atoi(tval(icntr));
 
-      strcpy(input[nimages].fname, mOverlaps_fileName(tval(ifname)));
+      // strcpy(input[nimages].fname, mOverlaps_fileName(tval(ifname)));
+
+      strcpy(input[nimages].fname, tval(ifname));
 
       if(strlen(input[nimages].fname) > namelen)
          namelen = strlen(input[nimages].fname);
@@ -825,7 +827,7 @@ struct mOverlapsReturn *mOverlaps(char *tblfile, char *difftbl, int quickmode, i
             {
                ++nmatches;
                fprintf(fout, fmt, input[k].cntr, input[l].cntr,
-               input[k].fname, input[l].fname, input[k].cntr, input[l].cntr);
+                  input[k].fname, input[l].fname, input[k].cntr, input[l].cntr);
                fflush(fout);
             }
             

@@ -126,6 +126,8 @@ int  parseLine   (char *line);
 double xcorrection;
 double ycorrection;
 
+FILE *fstatus;
+
 int debug;
 
 
