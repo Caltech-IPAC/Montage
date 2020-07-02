@@ -1,0 +1,719 @@
+
+
+=================================================
+Making WISE W1 HiPS Maps from Scratch using SLURM
+=================================================
+
+The bulk of of the Montage toolset is aimed at making mosaics from a collection of FITS
+files, with all the reprojection, background matching, and weighted coaddition necessary.
+When the data volume grows large enough, targetting a single huge output image becomes
+impractical and the problem is better broken up into pieces (tiles on the sky) while 
+still maintaining a common projection and a global approach to handling the background.
+
+That is the situation here, where we need to build what amounts to a single mosaic of the
+whole sky at arcsecond or better resolution.  There are different ways to achieve this
+but the simplest and the one used here is to make mosaics of a set of plates separately
+with background correction internal to the plate but with a single global projection.
+Then we treat the plates as a set for a global round of background corrections.
+
+If you don't understand how Montage makes a background-corrected mosaic from a set of
+input images you should read the various other Montage tutorials at 
+
+   http://montage.ipac.caltech.edu 
+
+---
+
+A lot of the processing can be parallelized and generally this consists of creating a
+set of processing scripts that can be run in a high-performance computing environment
+(for instance running each of the plate mosaic jobs mentioned above at the same time).
+Here we are using a SLURM cluster for the processing.  Each plate mosaic will be 
+handled by a little shell script and these mosaic scripts will be submitted to SLURM 
+in bulk to be processed there as resources become available.
+
+Much of our processing (especially after the initial mosaicking) is very I/O intensive,
+so running them all against the same disk space negates much of the multiprocessor
+efficiency gain.  By using a set of reasonably I/O-independent storage units and making
+sure that most processing only needs data from one storage unit, we can get some of this 
+back.
+
+A lot of what follows is general information that is independent of specific local hardware
+available but some of it is custom to the SLURM processing framework and will need to be
+adjusted for other sites.  Our SLURM cluster has four nodes available, each with twenty
+core (this may change with time).  In addition, we have four independent storage units
+(independent in that their I/O should not interfere with each other).
+
+
+   /stage/irsa-data-hips9/work    16 TByte
+   /stage/irsa-data-hips11/work    6 TByte
+   /stage/irsa-data-hips12/work    6 TByte
+   /stage/irsa-data-hips13/work    6 TByte
+
+
+We will try to organize our processing so that the I/O for a given process is constrained
+to a specific storage unit and so that we are balanced and any time across storage units
+and cluster processors.  This is actually pretty easy to do but it does mean we will have
+to be explicit about paths everywhere.  All this space is visible from every compute node
+and if we had all the storage together we would create a directory "W1"  to hold all our
+working files.  Instead, we will create
+
+
+   /stage/irsa-data-hips9/work/W1/mosaics/subset1
+   /stage/irsa-data-hips9/work/W1/mosaics/subset2 -> /stage/irsa-data-hips11/work/W1/mosaics
+   /stage/irsa-data-hips9/work/W1/mosaics/subset3 -> /stage/irsa-data-hips12/work/W1/mosaics
+   /stage/irsa-data-hips9/work/W1/mosaics/subset4 -> /stage/irsa-data-hips13/work/W1/mosaics
+
+
+Below these points, we will use a standard organization of directories and files, each 
+of these directory trees eventually ending up with about a quarter of all the files.
+
+
+-------------------------
+General Processing Scheme
+-------------------------
+
+The processing follows a fairly simple scheme.  For background on the HPX projection 
+see http://montage.ipac.caltech.edu/docs/HEALPix/ and in particular the all-sky map 
+in HPX projection.
+
+At order 18 (0.8 arcsecond pixels) this space is 1310720 pixels square.  In theory,
+we could build a single 1310720x1310720 mosaic but this would involve working with
+2 TByte files; unweildy and most likely to stress the system (CFITSIO, for instance,
+could handle it, but just barely).  So we define an 80x80 grid of subset "plates" 
+(3328 of which will have data and the rest are in the blank areas toward the upper 
+left and lower right).  Each plate is 16384x16384 pixels, there are 16x16 plates 
+per HEALPix "face" and there are 32x32 HiPS tiles per plate.
+
+
+   *  For each plate, we generate an HPX-projection header and use the Montage 
+      module mExec to make a mosaic (of, for example, WISE band 4 data).  mExec
+      does all the work of searching for images matching the region of the plate,
+      downloading the data via URL, reprojecting, background matching and correcting
+      the reprojected images, and coadding into a mosaic.
+
+   *  These plates will have pretty similar backgrounds on average but we can do 
+      better.  In practice, we pad each plate a little so that we can repeat the 
+      background matching and correction between the plates and therefore for the
+      whole sky (mDiffFitExec, mBgModel, mBackground).
+
+   *  For each background-corrected plate, also create the lower resolution versions
+      (shrinking by factors of two) used for the other orders (using mShrink).
+
+   *  We can now chop up each plate (for each order) to make the HiPS tiles, which
+      we store away using the HiPS Standard directory scheme.  This is the only place
+      in the actual image processing (as opposed to workflow) where we use a custom
+      module specific to HiPS to generate multiple tiles in parallel from a single
+      plate.
+
+   *  Finally, we use a pre-defined all-sky data histogram to convert the HiPS FITS
+      files to PNG format.  Creating the histogram is a separate endeavor; we are
+      currently just using the histogram of one of the plates but this could be 
+      done by analyzing the entire dataset.
+
+
+All these steps involve looping over a large number of plates, image differences, etc.
+and are embarrassingly parallel.  For instance, the plate generation could be done as 
+a set of 3328 independent mosaics.  Difference workflow managers will want to do this
+differently but as we are using a slurm cluster, we have opted for creating sets of 
+scripts for each phase and submitting them all to slurm (and letting slurm manage
+all queueing and execution).
+
+
+
+------------------------
+File System Organization
+------------------------
+
+If we were doing this single-threaded, we would have a subdirectory for the plates,
+one for each HiPS order, and so on.  Splitting up the processing to be based on
+associating plate ranges with storage units, the simplest thing is to replicate this
+same structure for each subset.  We won't need to replicate everything but here is 
+the full set:
+
+
+   index.html: Boilerplate CDS HiPS viewer page.  We'll use these for inspecting the 
+   final PNG files as we create them.  Remember that each of these tree will only 
+   contain a quarter of the final files but the way we are partioning things (see 
+   below) the regions will be internally contiguous on the sky.
+
+   mosaics: Montage mosaics for HPX plates at the highest resolution.  We may adjust this
+   at some point but for now we are using plates that are 16384x16384 pixels.  This size
+   has several advantages: 1) it's a power of two so as we shift between HEALPix orders
+   we can shrink by factors of two without having to incoporate pixels from adjacent 
+   plates; and 2) there will be exactly 80x80 plates for the whole space (about half of 
+   which are on the sky, exactly 16x16 plates on a HEALPix "face", and 32x32 HiPS tiles
+   on a plate.  In addition, the FITS files generated will be about 2 GByte (not too 
+   big) and the number of overlays between plates will be in the thousands (also not 
+   too big).
+
+   plates: The mosaic plates shrunken to the various orders (factors of 2).
+
+   HiPS:  This subdirectory is organized as specified in the HiPS standard into 
+   subdirectory trees Norder0 through Norder10 (or however deep the HiPS tiles go).
+   Order 9 is for data with a resolution of around 0.8 arcsecond.  WISE, with pixel 
+   scales between 6 and 12 arcsec is more like order 7/8 but we'll push it to 9 to
+   ensure minimal loss of information when reprojecting.
+
+   scripts: Two sets of processing scripts.  In scripts/jobs are a set of scripts with
+   basic Montage commands plus setup/cleanup.  These could in principle be run anywhere.
+   If you didn't have any special processing (e.g. cloud, cluster, or just a bunch of 
+   machines) you could still make the HiPS tiles just by run all of these in the right
+   order.  In the scripts directory proper there are a small number of SLURM-specific
+   scripts for submitting the jobs in groups to SLURM for parallel execution.  There
+   is also a scripts/logs subdirectory for SLURM / Montage output.
+
+
+As mentioned above, the mosaicking space and resultant plates directories are partitioned
+across a set of independent storage devices.  The processing scripts (and SLURM driver
+scripts) don't need to be replicated; we keep them in /stage/irsa-data-hips9/work/W1/scripts.
+We could partition the HiPS maps themselves but would have to collect them together anyway
+for the web service so we don't bother.
+
+Setting up the directories and soft links is straightforward but laborious enough that we
+have written a setup program to simplify things.  You give it a name for the map (e.g., 
+"W1" in this case) and the base locations of the various storage partitions (with the 
+first one used as the base):
+
+
+   mHiPSSetup W1 \
+              /stage/irsa-data-hips9/work \
+              /stage/irsa-data-hips11/work \
+              /stage/irsa-data-hips12/work \
+              /stage/irsa-data-hips13/work
+
+
+This routine is quite fast but if you already have the space populated (e.g. from a 
+previous build using the same name) it first cleans up the space, which can take a 
+while.
+
+
+----------------
+Processing Steps
+----------------
+
+As we said before, standard Montage is doing most of the work here.  The additional tools
+we have added for HiPS processing are mostly one of the following:
+
+
+   Setup script (above).
+
+   HiPS and HPX header generators.
+
+   Generators of scripts for running processing in parallel on the slurm cluster.
+
+   HiPS plate to tile processor.
+
+   General utilities, e.g., for converting from/to pixel space (i,j) to/from HiPS tile ID.
+
+
+The first step is to create a set of scripts for building fairly large plates in HPX 
+projection.  For WISE, 2MASS, SDSS, etc. this involves mosaicking several original 
+image (with background correction).  For other datasets it can be as simple as just
+reprojecting a few large original files.
+
+
+
+   Generate Plate List
+   -------------------
+
+   By carefully constructing the order in which we process plates, we can balance 
+   the I/O load for a set of storage units while still keeping sets of plates that
+   are contiguous on the sky co-located on disk.
+                                                                    
+   mHPXPlateList takes a range of plates (by default the whole sky) and outputs a
+   list of plates to process in optimal order:
+
+
+      mHPXPlateList -s 4 9 80 /stage/irsa-data-hips9/work/W1/platelist.tbl
+
+   
+   This creates a list of HPX order 9 plates with order 18 pixels (0.8 arcsec) on
+   an 80x80 plate grid and assuming 4 storage units.  The output table
+   (platelist.tbl) looks like the following:
+
+
+      \order = 9
+      \nplate = 80
+
+      | id  |    plate    |  i  |  j  | bin |
+      | int |    char     | int | int | int |
+           0   plate_00_00     0     0     0
+         128   plate_04_00     4     0     1
+         256   plate_08_00     8     0     2
+         384   plate_12_00    12     0     3
+           1   plate_00_01     0     1     0
+         129   plate_04_01     4     1     1
+          .
+          .
+          .
+
+   with a total of 3328 plates.
+
+   [Note: For testing, we can add arguments to limit the range of plates in X and Y.]
+
+   If jobs get submitted in this order with the output going to the storage bin
+   specified, this will satisfy our requirements.  Plates 0, 1, 2, ... (which are
+   contiguous on the sky) will all go to storage bin 0; plates 128, 129, 130, ...
+   will go to bin 1 and so on.  At the same time we are reasonable certain to have
+   roughly the same number of jobs per storage bin running at the same time since
+   the first twenty jobs (we have twenty core in the SLURM cluster) consist of 
+   five jobs each for the four storage bins.  They will finish at roughly the same
+   time and be replaced with twenty more with the same pattern.
+
+   Even though we have standardize on 80x80, we still have this a free parameter in
+   case we change our minds in the future.  The HiPS order does also need to stay
+   a free parameter; not all datasets have resolutions that require going this deep 
+   (and some possibly need to go deeper).  
+
+   [A further note:  We'll probably modify this slightly in the future; it turns
+    out that the number of plates is not as free as we thought.  We need order 0
+    plates (which we get by progressively shrinking our original level plates) to be
+    at least 512x512 pixels.  This won't happen if we make our original plates too
+    small.  In fact, it turns out that our original plates - independent of their
+    order - can't be smaller than 16384x16384.  This means 80x80 at order 9, 
+    5x5 at order 5, etc.  Below order 5, we chop the sky up into uniform plates
+    and might as well just make a single big mosaic and chop that up.]
+
+
+
+   Mosaicking Plates
+   -----------------
+
+   The program
+
+
+      mHPXMosaicScripts /stage/irsa-data-hips9/work/W1/scripts \
+                        /stage/irsa-data-hips9/work/W1/mosaics \
+                        /stage/irsa-data-hips9/work/W1/platelist.tbl \
+                        WISE 1
+   
+
+   creates scripts for building all 3328 WISE band 1 plates for the 80x80 grid at 
+   HiPS order 9 (based on the plate list). 
+   
+   There are four additional parameters that can be added that allow specifying
+   ranges of the plate tiling scheme to use.  This allows us to do regions on the
+   sky rather than everything (primarily for testing purposes).
+
+   These scripts are created in <workdir>/scripts/jobs and there is another script
+   created as <workdir>/scripts/runMosaics.sh to submit the mosaic scripts for
+   cluster processing.
+
+   Below is one of the job scripts (this one for plate 47_28):
+
+
+      #!/bin/sh
+
+      export PATH=$2:$PATH
+
+      mkdir $1
+      rm -rf $1/work_47_28
+      mkdir $1/work_47_28
+      mHPXHdr 9 $1/hpx9_47_28.hdr
+      mTileHdr $1/hpx9_47_28.hdr $1/plate_47_28.hdr 80 80 47 28 256 256
+      mExec -q -l -c -d 3 -f $1/plate_47_28.hdr -o $1/plate_47_28.fits WISE 4 $1/work_47_28
+      rm -rf $1/work_47_28
+      rm -f $1/hpx9_47_28.hdr
+      rm -f $1/plate_47_28.hdr
+
+
+   We keep these scripts fairly generic; there is nothing relating to slurm or the
+   storage partitioning in them.  Even the path to Montage is left as a parameter
+   (i.e., "$2").  All of that is captured in the submission script 
+   "<workdir>/scripts/runMosaic.sh":
+
+
+      #!/bin/sh
+
+      sbatch submitMosaic.bash /stage/irsa-data-hips9/work/W1/scripts/plate_00_00.sh /stage/irsa-data-hips9/work/W1/mosaics/set1 /stage/irsa-staff-jcg/Montage/bin
+      sbatch submitMosaic.bash /stage/irsa-data-hips9/work/W1/scripts/plate_00_20.sh /stage/irsa-data-hips9/work/W1/mosaics/set2 /stage/irsa-staff-jcg/Montage/bin
+      sbatch submitMosaic.bash /stage/irsa-data-hips9/work/W1/scripts/plate_00_40.sh /stage/irsa-data-hips9/work/W1/mosaics/set3 /stage/irsa-staff-jcg/Montage/bin
+      .
+      .
+      sbatch submitMosaic.bash /stage/irsa-data-hips9/work/W1/scripts/plate_47_28.sh /stage/irsa-data-hips9/work/W1/mosaics/set2 /stage/irsa-staff-jcg/Montage/bin
+      .
+      .
+      sbatch submitMosaic.bash /stage/irsa-data-hips9/work/W1/scripts/plate_79_59.sh /stage/irsa-data-hips9/work/W1/mosaics/set3 /stage/irsa-staff-jcg/Montage/bin
+      sbatch submitMosaic.bash /stage/irsa-data-hips9/work/W1/scripts/plate_79_79.sh /stage/irsa-data-hips9/work/W1/mosaics/set4 /stage/irsa-staff-jcg/Montage/bin
+
+
+   We want the four subsets to contain contiguous blocks of tiles and we also want
+   the processing to be accessing the four storage units fairly uniformly with time.
+   The simplest way to achieve this was to associate the first quarter of plate Y 
+   coordinates with the first storage unit and so on but then to cycle through four
+   lists round-robin.  So in the above you will see plate_00_00 started first but
+   then plate_00_20 (the first plate for the second storage unit) and so on.
+
+   In aid of keeping our scripts generic, we have isolated the slurm specific scripting
+   info into "submitMosaic.bash":
+
+
+      #SBATCH -p debug # partition (queue)
+      #SBATCH -N 1 # number of nodes a single job will run on
+      #SBATCH -n 1 # number of cores a single job will use
+      #SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung
+      #SBATCH -o mosaic.%N.%j.out # STDOUT
+      #SBATCH -e mosaic.%N.%j.err # STDERR
+      $1 $2 $3 $4
+
+
+   We also don't want to require any special installations on the slurm cluster, so
+   we have made the path to the Montage executables part of the command input.
+
+   When we run the runMosaics.sh script, all 3328 mosaicking jobs are submitted to slurm.
+   At the moment, we have access to three nodes with twenty core per node, so sixty of 
+   the jobs will be run at a time, with the others started as each old one finishes.
+
+
+
+   Fitting Plate Overlap Differences
+   ---------------------------------
+
+   The set of mosaics built above all had padding around the outside so they will 
+   overlap by twice that amount.  This lets us do an additional background matching
+   between the plates to fix any remaining inter-plate differences.
+
+   We have parallelized this step as well.  Once we have all the plates, we treat
+   them as a set of images.  Going to the "mosaics" subdirectory and running 
+
+
+      mImtbl -c . images.tbl
+
+   we get a list of the plates where the mosaicking succeeeded. Don't use the "-r"
+   flags; there may be workspace subdirectories that failed to get cleaned-up and 
+   which may contain some FITS files you don't want in this list.
+
+   Normally in Montage we use mOverlaps to determine the set of overlaps we need to
+   difference.  Here the plates are in a simple regular pattern so we can build the
+   difference list algorithmically.
+
+   Parallelization consists of breaking this list up into roughly equal subsets and
+   running mDiffFitExec on each subset on a separate processor.  We scale the subsets
+   by dividing the total number of overlaps by the number of processors (actually 
+   the number of core) we have.  In our case we have eighty core total.
+
+   Since these difference calculations are pretty quick (and there are a lot of them)
+   we've opted for making one job per core.
+
+
+      mHPXDiffScripts /stage/irsa-data-hips9/work/W1/scripts \
+                      /stage/irsa-data-hips9/work/W1/mosaics \
+                      /stage/irsa-data-hips9/work/W1/mosaics/images.tbl \
+                      9 80
+
+
+   where 9 is the HiPS order we are using throughout and 80 is the number of core.
+   This program will created a list of the differences (diffs.tbl) in the mosaics
+   directory as a side effect.
+
+   As with the mosaicking (and the other script generation steps to follow), the 
+   programs creates a set of scripts in <workdir>/scripts/jobs and a driver in 
+   <workdir>/scripts/runDiffFit.sh.  Since we are going to need all the little 
+   fitting tables concatenated for modeling, we create a concatenation script as
+   well.  Run the first, and when it is done, the second:
+
+   
+      runComboFit.sh /stage/irsa-data-hips9/work/W1/mosaics 
+
+
+   and we will have the input needed for the background matching algorithm.
+
+
+
+   Modelling the Background Differences
+   ------------------------------------
+
+   We don't (can't) use any parallelization for the background matching modelling.
+   Again in the "mosaics" directory (or using full paths):
+
+
+      mBgModel -l images.tbl fitcombo.tbl corrections.tbl
+
+
+
+   Background Correcting the Plates
+   --------------------------------
+
+   To get final corrected plates, we have to subtract the correction for each one.
+   Again, this is best done in parallel.
+
+
+      mHPXBgScripts -n 9 \
+                    /stage/irsa-data-hips9/work/W1/scripts \
+                    /stage/irsa-data-hips9/work/W1/mosaics \
+                    /stage/irsa-data-hips9/work/W1/plates \
+                    /stage/irsa-data-hips9/work/W1/mosaics/images.tbl \
+                    /stage/irsa-data-hips9/work/W1/mosaics/corrections.tbl
+
+      
+   creates a set of scripts in <workdir>/scripts and a driver in 
+   <workdir>/scripts/runBgExec.sh.  Again, we want to balance over the different
+   storage sets.  Since background correction uses the same set of plate that
+   the original mosaicking did, we can use the same logic for ordering / parallelizing
+   the processing.
+
+   [Note: For datasets where backgroud correction is not needed, the image files in
+    the "mosaics" directory can be copied directly to the correct order subdirectory
+    of "plates".]
+
+
+
+   Making Plates for the Other Orders
+   ----------------------------------
+
+   What we have at this poing is essentially a single FITS images of the whole sky
+   at the finest pixel resolution (HEALPix order 9 tiles / order 18 pixels) in 
+   HPX projection and divided up into a set of plates.  We were careful to keep 
+   these plates to be a power of two in size, so if we shrink (repeatedly) by two
+   we never have to deal with fraction pixels.
+
+   So if we shrink these base plates by a factor of two (average four pixels together)
+   we get exactly what we would have gotten if we had made order 8 mosaics in the 
+   first place.  We can repeat this process down order by order to order 1 (or whereever)
+   we want to stop.  At order one the plates will be pretty small (a full HEALPix
+   face is 512 pixels so each plate will only be 16 pixels square).
+
+   Again, we have a script generator:
+
+
+      mHPXShrinkScripts  9 \
+                        /stage/irsa-data-hips9/work/W1/scripts \
+                        /stage/irsa-data-hips9/work/W1/plates \
+                        /stage/irsa-data-hips9/work/W1/mosaics/images.tbl
+
+
+   where 9 is the order of the base plates.  Again, this generates a set of scripts in 
+   <workdir>/scripts and a driver in <workdir>/drivers/runShrink.sh.  And again,
+   balancing is handled in a similar manner.
+
+
+
+   Generating HiPS Tiles
+   ---------------------
+
+   After all the above set-up, the actual HiPS generation is almost anti-climactic.
+   A single HiPS tile is just a 512x512 cutout from one of the plates.  We use a  
+   custom utility for this, which reads through the plate image and writes out sets
+   of 32 tile images at a time:
+
+
+      mHiPSTiles plate_14_16.fits /stage/irsa-data-hips9/work/W1
+
+
+   which we use through another script generator:
+
+
+      mHiPSTileScripts /stage/irsa-data-hips9/work/W1/scripts \
+                       /stage/irsa-data-hips9/work/W1/plates  \
+                       /stage/irsa-data-hips9/work/W1/HiPS    \
+                       /stage/irsa-data-hips9/work/W1/mosaics/images.tbl
+                       
+
+   
+
+   Preparing to Make HiPS PNGs
+   ---------------------------
+
+   One of the more difficult issues in making the HiPS PNGs is deciding on a 
+   stretch for the data (converting the floating point FITS files with all their
+   dynamic range into 8-bit PNG).  Realistically, different regions are best
+   stretched differently but since we want a seamless single map we have to 
+   define a single transform that is "good enough" for everything.
+
+   The Montage adaptive stretch is based of fitting the detailed shape of the
+   histogram for an image.  We actually have enough data to create such a histogram
+   for the whole sky but at the moment haven't done this.  Instead, we make an  
+   all-sky coadd at order 3 and create a histogram of that image.  This histogram 
+   will be used below in generating the PNGs for all orders.
+
+
+         cd /stage/irsa-data-hips9/work/W1/plates
+         mImgtbl order3 order3.tbl
+         mHPXHdr 3 hpx3.hdr
+         mAdd -n -p order3 order3.tbl hpx3.hdr order3.fits
+         mHistogram -file order3.fits -2s max gaussian-log -out order3.hist
+
+
+   This is one of the areas where we will want to do more R&D later.
+
+
+
+   Making the HiPS PNGs
+   --------------------
+   Given the above histogram, generating a specific HiPS PNG from the associated
+   FITS tile file is just a matter of running the Montage mViewer module, e.g.:
+
+      
+      mViewer -ct       0 \
+              -gray     HiPS/Norder9/Dir174000/Npix1746330.fits \
+              -histfile /stage/irsa-data-hips9/work/W1/plates/order3.hist \
+              -out      HiPS/Norder9/Dir174000/Npix1746330.png
+
+
+   We are most likely going to regenerate PNGs multiple times for different tweaks
+   to the stretch.
+   
+   The current HiPS viewers use PNGs (or JPEGs) which are XY transposed from what
+   you would normally expect for an image of the sky (i.e. if you rotate the PNG so
+   that North is up, RA (or Galactic longitude in our case) increases to the right
+   instead of left.  We could add a transpose mode to mViewer but the process is 
+   fast enough that we instead use mTranspose to create a temporary transposed
+   FITS file instead.
+
+   The scripting is simple.  We use a script generator:
+
+   
+      mHiPSPNGScripts /stage/irsa-data-hips9/work/W1/scripts            \
+                      /stage/irsa-data-hips9/work/W1/HiPS               \
+                      /stage/irsa-data-hips9/work/W1/plates/order3.hist \
+                      /stage/irsa-data-hips9/work/W1/Tiles              \
+                      80
+   
+   This program recursively walks a directory tree and subdivides the FITS files
+   found into 80 groups (as above the number of core), creating 80 scripts of
+   mTranspose/mViewer calls with an overall startup script.
+
+
+      runPNGs.sh 
+
+
+   The second to the last argument to the script builder is the top of the directory
+   tree where we want to put the resultant PNGs.  This could be the same as the HiPS
+   directory where we put the 512x512 FITS files.  Here we create a new space for the
+   tiles. 
+
+   The script builder can also handle full color PNG generation from three sets of
+   FITS files (e.g. for difference wavelengths).  In that case there would be two
+   more sets of HiPS FITS-file directory / histogram file argument pairs.
+
+
+
+
+
+
+
+---------------------------
+Summary Processing Overview
+---------------------------
+
+
+In summary, the process involves going back and forth between running a few Montage 
+commands, building scripts (for submission to SLURM) and running those scripts.   If
+one were sure the processing needed no intermediate evaluation, it is perfectly 
+possible to script it end-to-end.  This would involve coming up with some mechanism
+for knowing when each bulk-scripted step ends, but at worst that could be done by
+polling for the SLURM status.
+
+Here are all the steps, in order:
+
+
+
+      Make the plate mosaics (highest resolution):
+
+
+         mHiPSSetup W1 /stage/irsa-data-hips9/work \
+                       /stage/irsa-data-hips11/work \
+                       /stage/irsa-data-hips12/work \
+                       /stage/irsa-data-hips13/work
+
+
+         mHPXPlateList -s 4 9 80 stage/irsa-data-hips9/work/W1/platelist.tbl 
+
+         mHPXMosaicScripts /stage/irsa-data-hips9/work/W1/scripts \
+                           /stage/irsa-data-hips9/work/W1/mosaics \
+                           /stage/irsa-data-hips9/work/W1/platelist.tbl \
+                           WISE 4
+
+         cd /stage/irsa-data-hips9/work/W1/scripts
+         runMosaics.sh
+
+
+
+      Determine the plate overlap differences:
+
+
+         cd /stage/irsa-data-hips9/work/W1/mosaics
+         mImtbl -r -c . images.tbl
+         mOverlaps images.tbl diffs.tbl
+
+         mHPXDiffScripts /stage/irsa-data-hips9/work/W1/scripts \
+                         /stage/irsa-data-hips9/work/W1/mosaics \
+                         /stage/irsa-data-hips9/work/W1/mosaics/diffs.tbl \
+                         9 15
+
+         cd /stage/irsa-data-hips9/work/W1/scripts
+         runDiffFit.sh 
+
+
+      and sometime later
+
+         runComboFit.sh /stage/irsa-data-hips9/work/W1/mosaics
+
+
+
+      Model and correct the plate backgrounds:
+
+
+         cd /stage/irsa-data-hips9/work/W1/mosaics
+         mBgModel images.tbl fitcombo.tbl corrections.tbl
+
+         mHPXBgScripts -n 9 \
+                       /stage/irsa-data-hips9/work/W1/scripts \
+                       /stage/irsa-data-hips9/work/W1/mosaics \
+                       /stage/irsa-data-hips9/work/W1/plates \
+                       /stage/irsa-data-hips9/work/W1/mosaics/images.tbl \
+                       /stage/irsa-data-hips9/work/W1/mosaics/corrections.tbl
+
+         cd /stage/irsa-data-hips9/work/W1/scripts
+         runBgCorrections.sh
+
+
+
+      Make plates for the other orders:
+
+
+         mHPXShrinkScripts 9 \
+                           /stage/irsa-data-hips9/work/W1/scripts \
+                           /stage/irsa-data-hips9/work/W1/plates \
+                           /stage/irsa-data-hips9/work/W1/mosaics/images.tbl
+
+         cd /stage/irsa-data-hips9/work/W1/scripts
+         runShrink.sh
+
+
+
+      Slice up into HiPS tile FITS files:
+
+
+         mHiPSTileScripts 9 \
+                          /stage/irsa-data-hips9/work/W1/scripts \
+                          /stage/irsa-data-hips9/work/W1/plates \
+                          /stage/irsa-data-hips9/work/W1/HiPS \
+                          /stage/irsa-data-hips9/work/W1/mosaics/images.tbl
+
+         cd /stage/irsa-data-hips9/work/W1/scripts
+         runHiPSTiles.sh
+                          
+
+
+      Make an order 3 allsky image and Generate an histogram from it:
+
+
+         cd /stage/irsa-data-hips9/work/W1/plates
+         mImgtbl order3 order3.tbl
+         mHPXHdr 3 hpx3.hdr
+         mAdd -n -p order3 order3.tbl hpx3.hdr order3.fits
+         mHistogram -file order3.fits -2s max gaussian-log -out order3.hist
+
+
+
+      Make the HiPS tile PNGs:
+
+
+         mHiPSPNGScripts /stage/irsa-data-hips9/work/W1/scripts            \
+                         /stage/irsa-data-hips9/work/W1/HiPS               \
+                         /stage/irsa-data-hips9/work/W1/plates/order3.hist \
+                         /stage/irsa-data-hips9/work/W1/Tiles              \
+                         80
+      
+         runPNGs.sh 
+
