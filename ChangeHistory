@@ -2,6 +2,14 @@
 Montage Release Change History
 
 
+7.0   01Jul2020    There are some general functional additions (such as mAddMem 
+                   to do final mosaic coaddition in memory instead of a line at
+                   a time) but the pricipal addition in 7.0 is a set of utilities
+                   dedicated to making HiPS maps.  These structured datasets are
+                   used by custom clients to interactively roam around the sky,
+                   zooming and panning to view any region desired.
+
+
 6.0   09Nov2018    The primary addition in Version 6.0 is the packaging of Montage
                    as a set of Python binary extensions (for Mac OS/X and Linux 
                    platforms, Python versions 2.7 and 3.6).  This is very different
