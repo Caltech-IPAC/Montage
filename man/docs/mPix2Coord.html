@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mPix2Coord</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Takes an image FITS header template and a pixel (x,y) coordinate, and outputs the corresponding sky location.<p/>
+  Newer mExamine can do the same and more for real image files.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mPix2Coord [-d] <b>template.hdr ixpix jypix</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Print out additional debugging information</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>template.hdr</dt>
+  <dd>ASCII header template describing the image (either a FITS image, or a JPEG file created from the FITS file)</dd>
+  <dt>ixpix</dt>
+  <dd>X coordinate (pixel location) on image</dd>
+  <dt>jypix</dt>
+  <dd>Y coordinate (pixel location) on image</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", lon=<i>ra</i>, lat=<i>dec</i>]</span></dd>
+  <dd>where <i>ra, dec</i> are the sky coordinates that correspond to the input pixel.</dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<p>To find out what the coordinates are at the <i>100,130</i> pixel on an image defined by <a href="examples/mPix2Coord/template.hdr"><span class="file">template.hdr</span></a>:</p>
+
+<dl class="example">
+  <dt>$ mPix2Coord template.hdr 100 130</dt>
+  <dd>[struct stat="OK", lon=0.027777, lat=0.036110]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", lon=<i>ra</i>, lat=<i>dec</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mPix2Coord [-d] template.hdr ixpix jypix"]</li>
+  <li>[struct stat="ERROR", msg="Bad template: <i>template.hdr</i>"]</li>
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+      <title>Montage User Documentation</title>
+  <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mSubimage</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Creates a subimage (or "cutout") of a FITS file.  Note that in "normal" mode,
+      all the parameters (location and size) are in degrees; in pixel (-p) mode, all of 
+      them are in pixels</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mSubimage [-d] [-a] [-h <i>hdu</i>] [-s <i>statusfile</i>] <b>in.fits out.fits ra dec xsize</b> [ysize]</dd>
+  <dd>mSubimage -p [-d] [-h <i>hdu</i>] [-s <i>statusfile</i>] <b>in.fits out.fits xstartpix ystartpix xpixsize</b> [ypixsize]</dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Turns on debugging.</dd>
+  <dt>-a</dt>
+  <dd>All pixels - Force retrieval of whole image (useful to extract an entire HDU)</dd>
+  <dt>-h <i>hdu</i></dt>
+  <dd>Operate on the specified FITS header extension (HDU)</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd>
+  <dt>-p</dt>
+  <dd>Pixel mode - create subimage using pixel locations, instead of a location on the sky</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS file.</dd>
+  <dt>out.fits</dt>
+  <dd>Path to output FITS file.</dd>
+  <dt>ra</dt>
+  <dd>In normal mode, RA of center of output image.</dd>
+  <dt>dec</dt>
+  <dd>In normal mode, declination of center of output image.</dd>
+  <dt>xstartpix</dt>
+  <dd>In pixel mode, pixel along the x-axis where the cutout image will begin</dd>
+  <dt>ystartpix</dt>
+  <dd>In pixel mode, pixel along the y-axis where the cutout image will begin</dd>
+  <dt>xsize</dt>
+  <dd>In normal mode, width of output image in degrees.</dd>
+  <dt>ysize</dt>
+  <dd>In normal mode, height of output image in degrees (default is equal to <i>xsize</i>.</dd>
+  <dt>xpixsize</dt>
+  <dd>In pixel mode, width of output image in pixels</dd>
+  <dt>ypixsize</dt>
+  <dd>In pixel mode, height of output image in pixels (default is equal to <i>xpixsize</i></dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", content="<i>blank, flat or normal</i>"]</span></dd>
+  <dd>The content keyword indicates whether all pixels where NaN (blank), all pixels were the same value (flat), or the image appears to be normal.</dd> 
+</dl>
+
+<p class="dochead">Examples</p>
+<dl class="example">
+  <dt>$ mSubimage image1.fits subimage.fits 307.9 37.29 .01 .01</dt>
+  <dd>[struct stat="OK", content="normal"]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", content="<i>blank, flat or normal</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mSubimage [-d][-a(ll-pixels)] [-h hdu] [-s statusfile] in.fit out.fit ra dec xsize [ysize] | mSubimage -p [-d] [-h hdu] [-s statusfile] in.fits out.fit xstartpix ystartpix xpixsize [ypixsize]"]</li>   
+  <li>[struct stat="ERROR", msg="HDU value (<i>hdu</i>) must be a non-negative integer"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Center RA string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Center Dec string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="X size string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Y size string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid 'x' size"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid 'y' size"]</li>   
+  <li>[struct stat="ERROR", msg="Image file <i>filename</i> missing or invalid FITS"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot find HDU <i>hdu</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>   
+  <li>[struct stat="ERROR", msg="Location is off image"]</li>   
+  <li>[struct stat="ERROR", msg="Region outside image"]</li>   
+  <li>[struct stat="ERROR", msg="No pixels match area."]</li>   
+  <li>[struct stat="ERROR", msg="Can't create output file: <i>out.fits</i>"]</li>   
+  <li>[struct stat="ERROR", flag=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

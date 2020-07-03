@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-
+strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mFitplane</h1>
+
+<div id="usage">
+<a name="usage"></a>
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Uses least squares to fit a plane (excluding outlier pixels) to an image. It is used on the difference images generated using <span class="file">mDiff</span> or <span class="file">mDiffExec</span>.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mFitplane [-b <i>border</i>] [-d <i>level</i>] [-s <i>statusfile</i>] <b>in.fits</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-b <i>border</i></dt>
+  <dd>Number of border pixels to ignore at edges of image.</dd>
+  <dt>-d <i>level</i></dt>
+  <dd>Turns on debugging to the specified level (1-3).</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are written to <i>statusfile</i> instead of stdout.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS file is a difference file between two other FITS files, as can be generated using <span class="file">mDiff</span>.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>The plane fit to the image is of the form:<br><br><span class="file">
+  fit = <i>A</i>*x + <i>B</i>*y + <i>C</i></span></dd>
+  <dd>where x is the "horizontal" pixel offset from CRPIX1 in the FITS header
+and y is the "vertical" offset from CRPIX2.  Since all reprojected images
+use the same reference pixel, this is a uniform definition for x,y for the
+whole image set.</dd>
+<dd>The fitting is a simple least squares, with an iterative loop to exclude
+points more than 2 sigma (sigma defined as the rms from the previous
+loop).</dd>
+<dd>The <i>rms</i> output is the value computed above.  The <i>xmin, ... ymax</i> output
+correspond to the range of x,y values found while fitting.  The rms is for
+information only but the <i>xmin, ... ymax</i> are used in the background fitting
+(mBgModel).  <i>crpix1</i> and <i>crpix2</i> are the reference pixels for each axis, as determined from the FITS header.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<dl class="example">  
+  <dt>$ mFitplane 2mass-atlas-990322n-j0640266.fits</dt>
+  <dd>[struct stat="OK", a=-8.9198e-11, b=-2.54173e-10, c=5.24277e-05, crpix1=808, crpix2=212.5, xmin=-808, xmax=167, ymin=-210.5, ymax=638.5, xcenter=-320.871, ycenter=213.014, npixel=314299, rms=0.393003, boxx=-320.92, boxy=212.424, boxwidth=835.421, boxheight=509.274, boxang=-29.5537]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", a=<i>A</i>, b=<i>B</i>, c=<i>C</i>, crpix1=<i>crpix1</i>, crpix2=<i>crpix2</i>, xmin=<i>xmin</i>, xmax=<i>xmax</i>, ymin=<i>ymin</i>, ymax=<i>ymax</i>, xcenter=<i>xcenter</i>, ycenter=<i>ycenter</i>, npixel=<i>npixel</i>, rms=<i>rms</i>, boxx=<i>boxx</i>, boxy=<i>boxy</i>, boxwidth=<i>boxwidth</i>, boxheight=<i>boxheight</i>, boxang=<i>boxang</i>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mFitplane [-b border] [-d level] [-s statusfile] in.fits"]</li>   
+  <li>[struct stat="ERROR", msg="Argument to -b (<i>string</i>) cannot be interpreted as an integer"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Image file <i>filename</i> missing or invalid FITS"]</li>   
+  <li>[struct stat="ERROR", status=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+  <li>[struct stat="ERROR", msg="<i>general error</i>"]</li>   
+  <li>[struct stat="WARNING", msg="Too few pixels to fit"]</li>   
+  <li>[struct stat="WARNING", msg="Too few pixels for bounding box"]</li>   
+  <li>[struct stat="WARNING", msg="Singular Matrix-1"]</li>   
+  <li>[struct stat="WARNING", msg="Singular Matrix-2"]</li>   
+  <li>[struct stat="WARNING", msg="allocation failure in ivector()"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

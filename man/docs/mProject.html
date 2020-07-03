@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mProject</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><p><span class="file">mProject</span> reprojects a single image to the scale defined in a FITS header template file (read more about header templates <a href="headers.html">here</a>). The program produces a pair of images: the reprojected image and an "area" image consisting of the fraction input pixel sky area that went into each output pixel.  The "drizzle" algorithm is implemented.  The algorithm proceeds by mapping pixel corners (as adjusted by drizzle, if called) from the input pixel space to the output pixel space, calculating overlap area with each output pixel, and accumulating an appropriate fraction of the input flux into the output image pixels.  In addition, the appropriate fraction of the input pixel area is accumulated into the area image pixels.  Projection of points from input pixel space to output pixel space is calculated in two steps: first map from input pixel space to sky coordinates; second map from sky coordinates to output pixel space.</p>
+
+<p>One situation that has happened often enough to warrant special note:  It is possible to define a FITS header with the
+reference location off the image.  In particular, people often reference cylindrical projections (<i>e.g.,</i> CAR, CEA)
+to location (0.,0.) (<i>e.g.,</i> the Galactic center).  This is not wrong in itself but does lead to extremely large
+pixel offsets (<i>e.g.,</i> in the hundreds of thousands).  Related to this, if you extract a header from an image with 
+large offsets of this type, it is unlikely that you can simply change projection types without also adjusting the reference
+location/offsets.  Most likely, you will end up with the reproject data all being off-scale.</p>
+</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mProject [-z <i>factor</i>] [-d <i>level</i>] [-s <i>statusfile</i>] [-h <i>hdu</i>] [-x <i>scale</i>] [-w <i>weightfile</i>] [-t <i>threshold</i>] [-X] [-f] <b>in.fits out.fits hdr.template</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-z <i>factor</i></dt>
+  <dd>Processing is done utilizing the <a href="algorithms.html#drizzle">drizzle algorithm</a>. <i>factor</i> is a floating point number; recommended drizzle factors are from 0.5 to 1. </dd>
+  <dt>-d <i>level</i></dt>
+  <dd>Causes additional debugging information to be printed to stdout.  Valid levels are 1-5 (for higher debugging levels, it is recommended to redirect the output to a file).</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are written to <i>statusfile</i> instead of being written to stdout. </dd>
+  <dt>-h <i>hdu</i></dt>
+  <dd>Use the specified FITS extension (default is to use the first HDU with image data)</dd>
+  <dt>-x <i>scale</i></dt>
+  <dd>Apply a correction factor of <i>scale</i> to each pixel</dd>
+  <dt>-w <i>weightfile</i></dt>
+  <dd>Path to a weight map to be used when reading values from the input image.</dd>
+  <dt>-t <i>threshold</i></dt>
+  <dd>Pixels with weights below <i>threshold</i> will be treated as blank.</dd>
+  <dt>-X</dt>
+  <dd>Makes the output region (originally defined in the header template) big enough to include all of the input images</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS file to be reprojected.</dd>
+  <dt>out.fits</dt>
+  <dd>Path of output FITS file to be created.</dd>
+  <dt>hdr.template</dt>
+  <dd>FITS <a href="headers.html">header template</a> to be used in generation of output image</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>Two files are created as output: the reprojected FITS file (<i>out.fits</i>), and an "area" image (<i>out_area.fits</i>) which records the amount of coverage (in output pixel space) provided by the input images.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<dl class="example">
+  <dt>$ mProject rawdir/real_orig.fits projdir/base_unity.fits templates/galactic_orig.txt</dt>
+  <dd>[struct stat="OK", time=143]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="<i>OK</i>", time=<i>seconds</i>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mProject [-z factor][-d level][-i ypix,xpix][-o ypix,xpix] in.fits out.fits hdr.template"]</li>   
+  <li>[struct stat="ERROR", msg="Drizzle factor string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Weight threshold string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Flux scale string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"] </li>   
+  <li>[struct stat="ERROR", msg="HDU value (<i>hdu</i>) must be a non-negative integer"] </li>   
+  <li>[struct stat="ERROR", msg="No overlap"] <span class="explanation">(indicates that none of the output pixels are contained in the area defined by the header template)</span></li>   
+  <li>[struct stat="ERROR", msg="Not enough memory for output data image array"]</li>   
+  <li>[struct stat="ERROR", msg="Not enough memory for output area image array"]</li>   
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>   
+  <li>[struct stat="ERROR", msg="Input wcsinit() failed."]</li>   
+  <li>[struct stat="ERROR", status=<i>n</i>, msg="FITS library error"]</li>   
+  <li>[struct stat="ERROR", msg="All pixels are blank"]</li>   
+  <li>[struct stat="ERROR", msg="Template file not found"]</li>   
+  <li>[struct stat="ERROR", msg="Image file <i>in.fits</i> missing or invalid FITS"]</li>   
+  <li>[struct stat="ERROR", msg="Weight file <i>weightfile</i> missing or invalid FITS"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

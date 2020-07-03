@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mDAG</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  mDAG creates an XML-based Directed Acyclic Graph (DAG) that specifies  "jobs"   
+  or Montage modules to be run to produce a mosaic,  "files" to be           
+  consumed or generated during processing (input, intermediate, and output   
+  files), and "dependencies" between jobs and files that imply an order      
+  in which jobs should be run.  In this "abstract graph", logical names are  
+  assigned to jobs and files.  The abstract graph is intended to be an input 
+  to a job scheduler, such as Pegasus in the Chimera Virtual Data System.    
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  mDAG <b>survey</b> <b>band</b> <b>objstr</b> <b>width</b> <b>height</b> <b>cdelt</b>
+       <b>workdir</b> <b>workurlbase</b> [<b>urlbase</b>] <br/>
+
+  mDAG -h <b>survey</b> <b>band</b> <b>hdrfile</b> <b>workdir</b> <b>workurlbase</b> [<b>urlbase</b>]
+  </dd>
+</dl>
+
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+
+  <dt>survey</dt>
+  <dd>
+  mDAG has custom code for dealing with surveys (<i>e.g.</i> DSS) where we know
+  we have to use the slower mProject module rather than mProjectPP.
+  </dd>
+
+  <dt>band</dt>
+  <dd>
+  mDAG also has custom code for the 2MASS survey where Montage scales the data
+  to a project-specified magnitude zero point by band (J,H,K).
+  </dd>
+
+  <dt>objstr</dt>
+  <dd>
+  Object name, resolved through NED/SIMBAD for sky location.
+  </dd>
+
+  <dt>width/height</dt>
+  <dd>
+  Size of the image in degrees.
+  </dd>
+
+  <dt>cdelt </dt>
+  <dd>
+  Pixel scale in degrees.
+  </dd>
+
+  <dt>hdrfile</dt>
+  <dd>
+  Instead of objstr, width, height, and cdelt the user an provide a pre-built
+  FITS header.
+  </dd>
+
+  <dt>workdir</dt>
+  <dd>
+  There are a collection of files the processing will need ane which mDAG creates.
+  The user needs to create a location for this and give it to mDAG.
+  </dd>
+
+  <dt>workurlbase</dt>
+  <dd>
+  While working, some files in the workspace are accessed via URL.  Again, this
+  needs to be set up by the user beforehand.
+  </dd>
+
+  <dt>urlbase</dt>
+  <dd>
+  Optionally, results can be made URL-accessible if this parameter is given.
+  </dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+
+  <dt>-h</dt>
+  <dd>
+  Output mosaic is based on a header file rather than explicit object name (for location), sizes and scale.
+  </dd>
+</dl>
+
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  If successful, the workspace will be populated with severeal tables and with
+  the "dag.xml" file to be given to the workflow manager.
+  </dd>
+</dl>
+
+<p class="dochead">Example:</p>
+
+<dl class="example">
+  <dt>mDAG 2mass j m51 0.5 0.5 0.00277778 m51work http://montage-web.ipac.caltech.edu/workspace/m51<p/></dt>
+
+  <dd>[struct stat="OK", id="20150904_095958_21631"]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="ERROR", msg="Error opening debug file"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mDAG survey band objstr width height cdelt workdir workurlbase [urlbase] | mDAG -h survey band hdrfile workdir workurlbase [urlbase] (object/location string must be a single argument)"]</li>
+  <li>[struct stat="ERROR", msg="Error opening header template file"]</li>
+  <li>[struct stat="ERROR", msg="Error opening big header template file"]</li>
+  <li>[struct stat="ERROR", msg="Error opening image list"]</li>
+  <li>[struct stat="ERROR", msg="Error opening working file list for write"]</li>
+  <li>[struct stat="ERROR", msg="Error opening working file list for read"]</li>
+  <li>[struct stat="ERROR", msg="Error opening parent list"]</li>
+  <li>[struct stat="ERROR", msg="Error opening sorted parent list"]</li>
+  <li>[struct stat="ERROR", msg="Bad template: <i>file</i>"]</li>
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>
+  <li>[struct stat="ERROR", msg="<i>general error message</i>"]</li>
+  <li>[struct stat="ERROR", msg="No return message from object lookup."]</li>
+  <li>[struct stat="ERROR", msg="Invalid location specification or object name."]</li>
+  <li>[struct stat="ERROR", msg="Can't find RA in lookup return."]</li>
+  <li>[struct stat="ERROR", msg="Can't find Dec in lookup return."]</li>
+  <li>[struct stat="ERROR", msg="Couldn't find host <i>hostname</i>"]</li>
+  <li>[struct stat="ERROR", msg="Couldn't create socket()"]</li>
+  <li>[struct stat="ERROR, msg="<i>hostname</i>: connect failed."]</li>
+
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

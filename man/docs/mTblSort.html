@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/x
+html1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+ <head>
+     <title>Montage User Documentation</title>
+ <!--#include virtual="include/header.html"-->
+ <div id="wrapper">
+<h1>mTblSort</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Sorts a table on numeric values.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mTblSort [-d] <b>in.tbl colname out.tbl</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Turns on debugging</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.tbl</dt>
+  <dd>Path to input table</dd>
+  <dt>colname</dt>
+  <dd>Name of column to sort on (column must contain numeric values)</dd>
+  <dt>out.tbl</dt>
+  <dd>Path to output table</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>[struct stat="OK", count=<i>nrows</i>]</dd>
+  <dd>where <i>nrows</i> is the number of rows in the table.</dd>
+</dl>
+
+<p class="dochead">Examples</p>
+<dl class="example">
+  <dt>$ mTblSort <a href="examples/mTblSort/images.tbl">images.tbl</a> ra ra_sorted.tbl</dt>
+  <dd>[struct stat="OK", count=5, nmatches=3]</dd>
+</dl>
+
+<p><a href="examples/mTblSort/ra_sorted.tbl"><tt>ra_sorted.tbl</tt></a> is now sorted on the column "ra".</p>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", count=<i>nrows</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mTblSort [-d] in.tbl colname out.tbl]</li>
+  <li>[struct stat="ERROR", msg="Cannot allocate memory for data"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open input file"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open output file"]</li>
+  <li>[struct stat="ERROR", msg="Table file open failed for [<i>in.tbl</i>]"]</li>
+  <li>[struct stat="ERROR", msg="Table file does not have fixed-length records"]</li>
+  <li>[struct stat="ERROR", msg="Table does not contain column [<i>colname</i>]"]</li>
+
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

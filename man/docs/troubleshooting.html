@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+			    <head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Troubleshooting Montage</h1>
+
+
+<p><b>Why do I get a "command not found" error when trying to run one of the Montage modules?</b></p>
+<p>If you are trying to run the command from the same directory as the executable (i.e., <span class="file">Montage_vX.Y/bin</span>), make sure that your path contains "."</p>
+<p>If you are trying to run the command from another directory, add Montage_vX.Y/bin to your path.</p>
+<p>&nbsp;</p>
+
+<p><b>Is there a way to look at or edit FITS headers?</b></p>
+<p>The Montage package includes the WCS library and tools, including a program called "edhead."  This is not built automatically when you build Montage; if you want to compile it, go into <span class="file">Montage_vX.Y/lib/src/wcstools-3.5.2</span> and type "<span class="file">make edhead</span>".  This will create an executable <span class="file">edhead</span> in this directory.  If you want to be able to call it from anyplace, you should copy it into a directory that is included in your path.</p>
+<p>To run <span class="file">edhead</span>, simply type <span class="file">edhead filename.fits</span>.  It will strip the header from the FITS file and open it for editing using the program defined in your environment.  Make the changes, save and exit the editor, and the header is re-attached to the image.</p>
+
+
+
+<div id="docnav">
+<p class="left"><a href="caveats.html">&lt;-- Caveats</a></p>
+<p class="right"><a href="m101tutorial.html">Tutorial: m101 Mosaic --&gt;</a></p>
+</div>
+
+
+
+
+<!--#include virtual="include/footer.html"-->

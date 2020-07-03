@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+      <title>Montage User Documentation</title>
+  <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mExec</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>The <span class="file">mExec</span> module is a mosaicking executive for 2MASS, SDSS, and DSS data.  It includes remote data and metadata access.  Alternatively, users can mosaic a set of data already on disk.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mExec [-r <i>rawdir</i>] [-n <i>ntilex</i>] [-m <i>ntiley</i>] [-l] [-k] [-c] [-o <i>output.fits</i>] [-d <i>level</i>] <b>[-f <i>region.hdr</i> | -h <i>header</i>] survey band</b> [<i>workspace-dir</i>]</dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-r <i>rawdir</i></dt>
+  <dd>Provide path to directory containing original ("raw") data which will be reprojected and mosaicked.  Not necessary if using <span class="file">mExec</span> to retrieve remote data from the 2MASS, SDSS or DSS surveys.</dd>
+  <dt>-n <i>ntilex</i></dt>
+  <dd>Number of output tiles to create along the X-axis - default is 1 for a single mosaicked image.</dd>
+  <dt>-m <i>ntiley</i></dt>
+  <dd>Number of output tiles to create along the Y-axis - default is equal to <i>ntilex</i>.</dd>
+  <dt>-l</dt>
+  <dd>"Level-only" flag (see <a href="mBgModel.html"><span class="file">mBgModel</span></a>)</dd>
+  <dt>-k</dt>
+  <dd>If retrieving data from a remote archive, the "keep" flag will leave the original data products on disk after generating a mosaic.  Without this flag, raw data will be deleted (unless it was provided by the user with the "-r" flag).</dd>
+  <dt>-c</dt>
+  <dd>Remove all temporary files and intermediate data products.  <b>Note:</b> if not using the '-o' flag to specify an output file, this will also remove mosaic.fits.</dd>
+  <dt>-o <i>output.fits</i></dt>
+  <dd>Provide your own filename for the output mosaic.  Default filename is "mosaic.fits."</dd>
+  <dt>-d <i>level</i></dt>
+  <dd>Print out additional debugging information (levels 1-4)</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<p><span class="file">mExec</span> must be provided with FITS header information.  This can be in the form of a header template ("-f" flag), or the user can pass header text directly to the program ("-h" flag).</p>
+<dl class="args">
+  <dt>-f <i>region.hdr</i></dt>
+  <dd>Path to <a href="headers.html">header template</a> used to create mosaic.</dd>
+  <dt>
+  <dt>-h <i>header</i></dt>
+  <dd>Provide header template as text input rather than point to a file; see <a href="examples/mExec/shell.txt">sample shell script</a> that makes use of this option.</dd>
+  <dt>survey band</dt>
+  <dd>If <b>not</b> mosaicking user-provided data ("-r" flag), must select one of the following combinations of survey and band:
+    <ul>
+      <li>2MASS [j, h, k]</li>
+      <li>SDSS [u, g, r, i, z]</li>
+      <li>DSS [DSS1, DSS1R, DSS1B, DSS2, DSS2B, DSS2R, DSS2IR]</li>
+    </ul></dd>
+  <dt>workspace-dir</dt>
+  <dd>Directory where intermediate files will be created.  If no workspace is given, a unique local subdirectory will be created (e.g.; ./MOSAIC_AAAaa17v)</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", workspace="<i>workspace-dir</i>"]</dd>
+  <dd>The output mosaic(s), and any intermediate files (if the "-c" flag was not used) will be inside <i>workspace-dir</i>.</dd>
+</dl>
+
+<p class="dochead">Examples</p>
+<p>To create a small mosaic of the area around m31, located at coordinates "10.68469 41.26904":</p>
+<dl class="example">
+  <dt>$ mHdr m31 0.3 <a href="examples/mExec/m31.hdr">m31.hdr</a></dt>
+  <dd>[struct stat="OK", count="16"]</dd>
+  <dt>$ mExec -o m31.fits -f m31.hdr 2MASS J tempdir</dt>
+  <dd>[struct stat="OK", workspace="/path/to/tempdir"]</dd>
+</dl>
+
+<p>To mosaic your own collection of data, contained in the directory "raw":</p>
+
+<dl class="example">
+  <dt>$ mImgtbl raw raw.tbl</dt>
+  <dd>[struct stat="OK", count=16, badfits=0]</dd>
+  <dt>$ mMakeHdr raw.tbl raw.hdr</dd>
+  <dd>[struct stat="OK", count=16, clon=0.118289, clat=0.118288, lonsize=0.236660, latsize=0.236660, posang=359.999756, lon1=0.236618, lat1=-0.000042, lon2=359.999959, lat2=-0.000041, lon3=359.999959, lat3=0.236618, lon4=0.236620, lat4=0.236617]</dd>
+  <dt>$ mExec -o my_mosaic.fits raw.hdr workdir</dt>
+  <dd>[struct stat="OK", workspace="/path/to/workdir"]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", workspace="<i>workdir</i>"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mExec [-r rawdir] [-n ntilex] [-m ntiley] [-l(evel only)] [-k(eep all)] [-c(lean)] [-o output.fits] [-d(ebug) level] [-f region.hdr | -h header] survey band [workspace-dir]"]</li>
+  <li>[struct stat="ERROR", msg="Must have either header file (-f) or header text (-h)"]</li>
+  <li>[struct stat="ERROR", msg="Can't open original header template file: [<i>region.hdr</i>]"]</li>
+  <li>[struct stat="ERROR", msg="Can't open workspace header template file: [<i>region.hdr</i>]"]</li>
+  <li>[struct stat="ERROR", msg="Can't create proper subdirectories in workspace (may already exist)"]</li>
+  <li>[struct stat="ERROR", msg="Can't open header template file"]</li>
+  <li>[struct stat="ERROR", msg="Can't open expanded header file: [big_region.hdr]"]</li>
+  <li>[struct stat="ERROR", msg="<i>survey</i> has no data covering expanded area"]</li>
+  <li>[struct stat="ERROR", msg="<i>survey</i> has no data covering this area"]</li>
+  <li>[struct stat="ERROR", msg="No data was available for the region specified at this time"]</li>
+  <li>[struct stat="ERROR", msg="Bad WCS in input image"]</li>
+  <li>[struct stat="ERROR", msg="Can't open mosaic file: [mosaic.fits]"]</li>
+  <li>[struct stat="ERROR", msg="Can't open save file: [image.fits]"]</li>
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed"]</li>
+  <li>[struct stat="ERROR", msg="<i>Error from another Montage module</i>"]</li>
+</ul>
+</div></div>
+<!--#include virtual="include/footer.html"-->

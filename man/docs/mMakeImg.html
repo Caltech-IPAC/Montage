@@ -1,0 +1,69 @@
+!<DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/x
+html1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+
+<div id="wrapper">
+<h1>mMakeImg</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Generates synthetic FITS images, with varying levels of noise, from a table of provided point sources. Each source is treated independently and its flux is distributed on a source-specific point-spread function.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mMakeImg [-d <i>level</i>] [-n <i>noise_level</i>] [-b <i>bg1 bg2 bg3 bg4</i>] [-t <i>tbl col width epoch mag</i>] <b>template.hdr out.fits </b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d <i>level</i></dt>
+  <dd>Turns on debugging to the specified level (1-4).</dd>
+  <dt>-n <i>noise_level</i></dt>
+  <dd>Specified random noise equal to <i>noise_level</i> will be added to image background.</dd>
+  <dt>-b <i>bg1 bg2 bg3 bg4</i></dt>
+  <dd>Specifies the four corners for a 'tilted' background for the image. Each value is a floating point number specifying the background height at the corner.</dd>
+  <dt>-t <i>tbl col width epoch mag</i></dt>
+  <dd>Specifies a table of sources to be added to the raw image. <i>tbl</i> is the table filename, <i>col</i> is the column name which contains the source fluxes, <i>width</i> is a floating point number determining the point spread of each source, <i>epoch</i> is the coordinate system reference year, and <i>mag</i> is the reference magnitude of the source list. In addition, the source table should have <i>ra</i> and <i>dec</i> columns for the image positions. <br>Several input tables can be specified if desired through repeated use of the -t flag and arguments.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>template.hdr</dt>
+  <dd>FITS header template, used to indicate the desired parameters of the output image</dd>
+  <dt>out.fits</dt>
+  <dd>Path of FITS image to be generated.</dd>
+</dl>
+
+<dl class="definition">
+  <dt>Results:</dt>
+  <dd>Synthetic FITS output image; sources in image will represent the values from the input table(s).</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<dl class="example">
+  <dt>$ mMakeImg -n 0.01 -b 0 1.0 1.0 0 -t sources.tbl J_MAG 5.0 2000 10.0 template.hdr out.fits</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+<li>[struct stat="OK"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mMakeImg [-d level] [-n noise_level] [-b bg1 bg2 bg3 bg4] [-t tbl col width epoch mag] template.hdr out.fits (-t args can be repeated)"]</li>   
+  <li>[struct stat="ERROR", msg="Can't open table table <i>tbl</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Can't find lon, lat columns"]</li>   
+  <li>[struct stat="ERROR", msg="Can't find flux/magnitude column '<i>col</i>'"]</li>   
+  <li>[struct stat="ERROR", msg="Template file [<i>template.hdr</i>] not found"]</li>   
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed.  Exiting."]</li>   
+  <li>[struct stat="ERROR", flag="<i>FITS error code</i>, msg="<i>FITS library error</i>"]</li>   
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

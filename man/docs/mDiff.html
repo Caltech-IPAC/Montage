@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mDiff</h1>
+
+<div id="usage">
+<a name="usage"></a>
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><span class="file">mDiff</span> calculates a simple difference between a single pair of overlapping images. This is meant for use on reprojected images where the pixels already line up exactly. <span class="file">mDiff</span> analyzes an image metadata table to determine a list of overlapping images.  Each image is compared with every other image to determine all overlapping image pairs.  A pair of images are deemed to overlap if any pixel around the perimeter of one image falls within the boundary of the other image. </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mDiff [-d <i>level</i>] [-n(o-areas)] [-s <i>statusfile</i>] <b>in1.fits in2.fits out.fits template.hdr</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d <i>level</i></dt>
+  <dd>Turns on debugging to the specified level (1-4).</dd>
+  <dt>-n</dt>
+  <dd>No-area-images flag. Creates difference image without requiring pixel area FITS image</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in1.fits</dt>
+  <dd>First input FITS file.  (Also needs area image <span class="file">in1_area.fits</span>, or use -n flag)</dd>
+  <dt>in2.fits</dt>
+  <dd>Second input FITS file.(Also needs area image <span class="file">in2_area.fits</span>, or use -n flag)</dd>
+  <dt>out.fits</dt>
+  <dd>Difference FITS image to be generated.</dd>
+  <dt>template.hdr</dt>
+  <dd>FITS header template used to generate output image.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>FITS image and area image representing the difference in the overlap region.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<dl class="example">
+  <dt>$ mDiff proj/in1.fits proj/in2.fits output/diff.fits template.hdr</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK"]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mDiff [-d level] [-n(o-areas)] [-s statusfile] in1.fits in2.fits out.fits hdr.template"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Images don't overlap"]</li>
+  <li>[struct stat="ERROR", msg="All pixels are blank"]</li>
+  <li>[struct stat="ERROR", msg="Template file not found"]</li>
+  <li>[struct stat="ERROR", status=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+  <li>[struct stat="ERROR", msg="<i>general error</i>"]</li>
+</ul>
+
+
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

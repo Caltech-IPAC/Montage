@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mGetHdr</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Reads in the header from a FITS image and prints it out to a text file.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mGetHdr [-d] [-h hdu] [-s <i>statusfile</i>] <b>img.fits img.hdr</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Turns on debugging.</dd>
+  <dt>-h <i>hdu</i></dt>
+  <dd>Retrieve the header from the Fits extention given by <i>hdu</i>.  "0" indicates the primary FITS extension, and is the default used by <span class="file">mGetHdr</span>.</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt><i>img.fits</i></dt>
+  <dd>Path to FITS image from which to retrieve the header.</dd>
+  <dt>img.hdr</dt>
+  <dd>Path to text file where FITS header should be written.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>Creates output file <span class="file">img.hdr</span> which is a text copy of the FITS header from the input image.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<p>Running <span class="file">mGetHdr</span> on a 2MASS Atlas image:</p>
+
+<dl class="example">
+  <dt>$ mGetHdr 2mass.fits test.hdr</dt>
+  <dd>[struct stat="OK", ncard=112]</dd>
+</dl>
+
+<p>This creates the text file <a href="examples/mGetHdr/test.hdr"><span class="file">test.hdr</span></a>.</p>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", ncard=<tt>nrows</tt>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mGetHdr [-d] [-h hdu] [-s statusfile] img.fits img.hdr"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="HDU value (<i>hdu</i>) must be a non-negative integer"]</li>   
+  <li>[struct stat="ERROR", msg="Usage: Image file (<i>filename</i>) does not exist"]</li>   
+  <li>[struct stat="ERROR", msg="Can't open output header file."]</li>   
+  <li>[struct stat="ERROR", flag=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

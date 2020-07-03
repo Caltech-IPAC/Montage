@@ -1,0 +1,96 @@
+/*
+   ----------------------------------------------------------------
+  |     Global style defaults - print
+   ----------------------------------------------------------------
+ */
+
+body
+{
+    margin: 0;
+    padding: 0;
+    background-color: #fff;
+    color: #000;
+}
+
+a
+{
+    border: 0;
+    color: #006699;
+    background-color: inherit;
+}
+
+img { border: 0; }
+
+
+/*
+   ----------------------------------------------------------------
+  |     Page structure - print
+   ----------------------------------------------------------------
+ */
+
+/* IRSA banner (top of page) */
+#irsa-banner
+{
+    display: none;
+}
+
+/* Left sidebar (for navigation menu) */
+#irsa-menu
+{
+    display: none;
+}
+
+/* Page content */
+#content
+{
+    top: 0;
+    left: 0;
+    width: auto;
+    margin: 0;
+    padding: 1% 0 2% 1%;
+    color: #000;
+    background-color: #fff;
+}
+
+/* Footer */
+#irsa-footer
+{
+    display: none;
+}
+
+/* Global system notices */
+#irsa-sysnotice
+{
+    display: none;
+}
+
+/* Advance past any floats in the normal layout flow */
+.break { clear: both; }
+
+/*
+   ----------------------------------------------------------------
+  |     Expand anchors to print URLs on CSS3 browsers
+   ----------------------------------------------------------------
+ */
+
+.webpage a[href^="/"]:after
+{
+   color : #ccc;
+   font-size: 90%;
+   content: " (http://irsa.ipac.caltech.edu" attr(href) ") ";
+   text-decoration: underline;
+}
+
+.webpage a[href^="http://"]:after
+{
+   color: #ccc;
+   font-size: 90%;
+   content: " (" attr(href) ") ";
+   text-decoration: underline;
+}
+
+/*
+   ----------------------------------------------------------------
+  |     Otherwise, let the default style-sheet apply
+   ----------------------------------------------------------------
+ */

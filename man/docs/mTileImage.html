@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+      <title>Montage User Documentation</title>
+  <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mTileHdr</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Takes a header template file and creates another which represents one of a regular set of tiles covering the original.  The user specifies the tile gridding and which tile is desired.</dd>
+  <dd>Only the NAXIS and CRVAL keyword lines are changed (pixel size and reference point location); all other keyword values will be inherited from the input header.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mTileHdr [-d] [-s <i>statusfile</i>] <b>orig.hdr new.hdr nx ny ix iy</b> [xpad [ypad]]</dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Turns on debugging.</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>orig.hdr</dt>
+  <dd>ASCII <a href="headers.html">header template</a> from which to derive tiled headers</dd>
+  <dt>new.hdr</dt>
+  <dd>Path to output header</dd>
+  <dt>nx</dt>
+  <dd>Number of tiles in the x-direction</dd>
+  <dt>ny</dt>
+  <dd>Number of tiles in the y-direction</dd>
+  <dt>ix</dt>
+  <dd>Integer identifying the x location of the output tile on the grid (counting from 0)</dd>
+  <dt>iy</dt>
+  <dd>Integer identifying the y location of the output tile on the grid (counting from 0)</dd>
+  <dt>xpad</dt>
+  <dd>Number of pixels to overlap tiles in the x direction (optional; default is 0)</dd>
+  <dt>ypad</dt>
+  <dd>Number of pixels to overlap tiles in the y direction (optional; default is 0)</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", naxis1=<i>xsize</i>, naxis1=<i>ysize</i>, crpix1=<i>xref</i>, crpix2=<i>yref</i>]</dd>
+  <dd>Where <i>xsize</i> and <i>ysize</i> are the x and y dimensions of the image described by the output header, and <i>crpix1</i> and <i>crpix2</i> are the new offset from the original reference pixel on the sky. </dd>
+</dl>
+
+<p class="dochead">Examples</p>
+<p><a href="examples/mTileHdr/template.hdr">template.hdr</a> is 850x850 pixels, and we want to generate the center tile out of 9 (3 by 3):</p>
+<dl class="example">
+  <dt>$ mTileHdr template.hdr tile_1_1.hdr 3 3 1 1</dt>
+  <dd>[struct stat="OK", naxis1=283, naxis2=283, crpix1=-283, crpix2=-283]</dd>
+</dl>
+<p><a href="examples/mTileHdr/tile_1_1.hdr">tile_1_1.hdr</a> has the same reference location and pixel scale as the input header, but a new pixel offset (CRPIX) and size (NAXIS).</p>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", naxis1=<i>xsize</i>, naxis2=<i>ysize</i>, crpix1=<i>xref</i>, crpix2=<i>yref</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mTileHdr [-d] [-s statusfile] orig.hdr new.hdr nx ny ix iy [xpad [ypad]]"</li>
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="(nx,ny) have to be positive integers and (ix,iy) have to be in the range (0..nx-1, 0..ny-1)"]</li>   
+  <li>[stat="ERROR", msg="Cannot open output template <i>new.hdr</i>"]</li>   
+  <li>[stat="ERROR", msg="Bad template:<i>orig.hdr</i>"]</li>   
+  <li>[stat="ERROR", msg="Bad template:<i>new.hdr</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>   
+</ul>
+</div></div>
+<!--#include virtual="include/footer.html"-->

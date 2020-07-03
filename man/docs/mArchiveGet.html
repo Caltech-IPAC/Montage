@@ -1,0 +1,65 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mArchiveGet</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Retrieve a single FITS image from a remote archive, using a basic URL GET but with a structured output.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mArchiveGet [-d] [-r] <b>remoteref localfile</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Print additional debugging information.</dd>
+  <dt>-r</dt>
+  <dd>"Raw" mode - use a raw HTTP GET (no "HTTP/1.1" etc in the header); necessary for communication with some servers.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>remoteref</dt>
+  <dd>URL of remote FITS file to retrieve (should be in quotes).  See <a href="mArchiveList.html"><span class="file">mArchiveList</span></a> for more information.</dd>
+  <dt>localfile</dt>
+  <dd>Full path/filename of the retrieved file.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", count="<i>bytes</i>"]</dd>
+  <dd>If <i>remoteref</i> points to a g-zipped 2MASS QuickLook image, the image will be unzipped during transfer.  </dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<dl class="example">
+  <dt>$ mArchiveGet "http://irsa.ipac.caltech.edu/cgi-bin/FileDownload/ nph-download?raw=1&ref=/ti08/971024n/s009/ image/j10090244.fits.gz" j10090244.fits</dt>
+  <dd>[struct stat="OK", count="2111040"]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", count="<i>bytes</i>"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mArchiveGet [-d] [-d] remoteref localfile"]</li>
+  <li>[struct stat="ERROR", msg="Output file (<i>localfile</i>) open failed"]</li>
+  <li>[struct stat="ERROR", msg="Invalid URL string (must start 'http://')"]</li>
+  <li>[struct stat="ERROR", msg="No data reference given in URL"]</li>
+  <li>[struct stat="ERROR", msg="Illegal port number in URL"]</li>
+  <li>[struct stat="ERROR", msg="Illegal return from select()"] <span class="explanation">(data transfer error)</span></li>
+  <li>[struct stat="ERROR", msg="Connection timed out"]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

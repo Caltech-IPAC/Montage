@@ -1,0 +1,479 @@
+/*
+   ----------------------------------------------------------------
+  |     Global style defaults
+   ----------------------------------------------------------------
+ */
+
+body
+{
+    margin: 0;
+    padding: 0;
+    color: #000;
+    background-image: url("images/page_background.jpg");
+    background-repeat:no-repeat;
+    background-position: 50% 95px; 
+    background-color:rgb(238,238,238);
+}
+
+a,
+a:link,
+a:hover,
+a:visited,
+a:active,
+a:focus
+{
+    border: 0;
+    color: #006699;
+    background-color: inherit;
+}
+
+img { border: 0; }
+
+
+/*
+   ----------------------------------------------------------------
+  |     Page structure
+   ----------------------------------------------------------------
+ */
+
+div#sum
+{
+    padding-left: 20px;
+}
+
+/* IRSA banner (top of page) */
+#old-irsa-banner
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width:800px;
+    height: 120px;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: bold;
+    font-family: arial,geneva,verdana,helvetica,sans-serif;
+    background: url('images/irsa-top.jpg') top left no-repeat;
+}
+#old-irsa-banner a
+{
+    margin: 0 20px 0 0;
+    padding: 0;
+}
+#old-irsa-banner a:link,
+#old-irsa-banner a:visited,
+#old-irsa-banner a:active
+{
+    color: #888;
+    background-color: inherit;
+    text-decoration: none;
+}
+#old-irsa-banner a:hover,
+#old-irsa-banner a:focus
+{
+    color: #000;
+    background-color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid #000;
+}
+#old-irsa-banner a.help:link,
+#old-irsa-banner a.help:visited,
+#old-irsa-banner a.help:active
+{
+    color: #c88;
+}
+#old-irsa-banner a.help:hover,
+#old-irsa-banner a.help:focus
+{
+    color: red;
+    border-bottom: 1px solid red;
+}
+#old-irsa-banner .navigate
+{
+    position: relative;
+    top: 98px;
+    left: 114px;
+    width: 650px;
+    margin: 0;
+    padding: 0 0 0 36px;
+    border-bottom: 1px solid #ccc;
+}
+a#icon
+{
+    display: block;
+    position: absolute;
+    top: 15px;
+    left: 700px;
+    width: 100px;
+    height: 45px;
+    border: 0;
+    text-decoration: none;
+}
+a#icon:link,
+a#icon:hover,
+a#icon:visited,
+a#icon:active,
+a#icon:focus
+{
+    border: 0;
+    text-decoration: none;
+}
+
+
+/* Left sidebar (for navigation menu) */
+#irsa-menu
+{
+    position: absolute;
+    z-index: 2;
+    top: 120px;
+    left: 0px;
+    width: 116px;
+    height: 447px;
+    margin: 0;
+    padding: 0;
+    font-family: arial,geneva,verdana,helvetica,sans-serif;
+    color: #fff;
+    background: url('images/irsa-left.jpg') 0 0 no-repeat;
+}
+
+/* Page content */
+#content
+{
+    display: table;
+    padding: 5px 15px 10px 15px;
+    min-height: 500px;
+    margin: 10px auto;
+    width: 750px;
+    color: #000;
+    background-color: #fff;
+    box-shadow: 2px 2px 5px #888888;
+}
+#    padding: 10px 0px 20px 10px;
+
+/* Footer */
+#irsa-footer
+{
+    position: relative;
+    clear: both;
+    width: 100%;
+    margin-top: 20px;
+    padding: 0;
+    border-top: 1px solid #999;
+    text-align: center;
+    font-family: arial,geneva,verdana,helvetica,sans-serif;
+    font-size: 11px;
+}
+
+#irsa-footer .oasis
+{
+    width: 400px;
+    margin: 3px auto 20px auto;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid #ccc;
+    color: #000;
+    background-color: #eee;
+}
+#irsa-footer .oasis img { vertical-align: middle; }
+#irsa-footer .oasis .what
+{
+    vertical-align: middle;
+    font-weight: bold;
+    margin-left: 5px;
+    color: #911;
+    background-color: inherit;
+}
+
+/* Google search bar */
+#irsa-footer .google
+{
+    padding: 10px 3px 0 0;
+    margin: 0 auto 0 auto;
+    border-spacing: 0;
+    border-right: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+}
+
+#irsa-footer .google td
+{
+    vertical-align: top;
+}
+
+/* Global system notices */
+#irsa-sysnotice
+{
+    width: 500px;
+    margin: 0;
+    padding: 0 2px 10px 2px;
+    color: red;
+}
+
+/* Advance past any floats in the normal layout flow */
+.break { clear: both; }
+
+/*
+   ----------------------------------------------------------------
+  |     Static IRSA content is placed inside a
+  |     <div class="webpage"> element, allowing style
+  |     to be isolated from web service/generated pages
+   ----------------------------------------------------------------
+ */
+
+.webpage
+{
+    font-family: 'lucida sans',arial,geneva,verdana,helvetica,sans-serif;
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+}
+
+.webpage h1,
+.webpage h2,
+.webpage h3,
+.webpage h4
+{
+    font-family: arial,geneva,verdana,helvetica,sans-serif;
+}
+
+.webpage h1
+{
+    text-align: center;
+    padding: 0;
+    font-size: 22px;
+    font-weight: bold;
+    color: #031a4d;
+    background-color: #c3d5e1;
+    border: 1px solid #a4bfd0;
+}
+#    margin: 0 0 10px 0;
+#    width: 100%;
+
+.webpage h2,
+.webpage h3,
+.webpage h4 
+{
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+    padding: 10px 0 0 0;
+    background-color: inherit;
+}
+.webpage h2
+{
+    color: #000;
+    border-bottom: 1px solid #ccc;
+    padding: 0 5px;
+}
+.webpage h3
+{
+    color: #444;
+    text-align: center;
+}
+.webpage h4
+{
+    color: #6e6e6e;
+    border-bottom: 1px solid #ccc;
+    text-align: center;
+}
+
+.webpage form { margin: 0; padding: 0; }
+.webpage p { 
+    padding: 0 10px;
+}
+
+.webpage table,
+.webpage tr,
+.webpage td
+{
+    margin: 0; padding: 0; border: 0;
+}
+
+.webpage a,
+.webpage a:link,
+.webpage a:visited,
+.webpage a:active
+{
+    border: 0;
+    color: #069;
+    background-color: inherit;
+    text-decoration: none;
+}
+.webpage a:hover,
+.webpage a:focus
+{
+    text-decoration: underline;
+}
+
+.webpage h2 a,
+.webpage h2 a:link,
+.webpage h2 a:visited,
+.webpage h2 a:active
+{
+    text-decoration: none;
+    border-bottom: 1px solid;
+}
+.webpage h2 a:hover,
+.webpage h2 a:focus
+{
+    text-decoration: none;
+    border: 0;
+}
+
+
+/*
+   ----------------------------------------------------------------
+  | Striped table style: publication/link tables
+   ----------------------------------------------------------------
+ */
+
+.webpage table.striped
+{
+    width: 750px;
+    margin: 20px 0 30px 0;
+    padding: 0;
+    border: 0;
+}
+.webpage table.striped th
+{
+    padding: 2px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    color: #000;
+    background-color: #ccc;
+    border: 0;
+}
+
+.webpage table.striped td
+{
+    padding: 2px;
+    border: 0;
+    text-align: left;
+    vertical-align: top;
+    font-weight: normal;
+    font-size: 12px;
+}
+.webpage table.striped td.t_a { width: 210px; }
+.webpage table.striped td.t_t { width: 245px; }
+.webpage table.striped td.t_d { width:  35px; }
+.webpage table.striped tr td { color: #000; background-color: #eee; }
+.webpage table.striped tr.even td { color: #000; background-color: #ddd; }
+
+.webpage table.striped th.which
+{
+    font-weight: normal;
+    text-align: center;
+    color: #000;
+    background-color: #fff;
+}
+
+.webpage table.striped td.th { width: 135px; }
+.webpage table.striped td.tc { padding: 5px; }
+.webpage table.striped ul
+{
+    list-style: disc;
+    margin: 5px;
+    padding: 0;
+}
+.webpage table.striped li
+{
+    margin: 0 0 0 10px;
+    padding: 0;
+}
+
+
+/*
+   ----------------------------------------------------------------
+  | Mission link tables
+   ----------------------------------------------------------------
+ */
+
+.webpage table.mission
+{
+    width: 650px;
+    margin: 5px auto 30px auto;
+    padding: 0;
+    border: 0;
+    border-spacing: 0;
+}
+.webpage table.mission th
+{
+    width: 325px;
+    padding: 5px;
+    margin: 0;
+    vertical-align: top;
+    text-align: left;
+    font-weight: normal;
+}
+.webpage table.mission td
+{
+    width: 325px;
+    padding: 5px;
+    margin: 0;
+    vertical-align: top;
+    text-align: left;
+    font-weight: normal;
+}
+.webpage tr.top th, .webpage tr.top td
+{
+    border-top: 2px solid #aaa;
+}
+
+
+/*
+   ----------------------------------------------------------------
+  | 40x error page styles
+   ----------------------------------------------------------------
+ */
+
+.webpage .httperror
+{
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    color:#900;
+    background-color: inherit;
+}
+
+.coldescrip a  /* anchor tags for column descriptions shouldn't be bl ue */
+{
+  color: #000000;
+}
+
+.gatorbutton1, .gatorbutton {
+    text-align: center;
+    vertical-align: middle;
+    width: 150px;
+    height: 15px;
+    margin: 15px 5px 15px 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.gatorbutton {
+    background-color: #fff;
+    border: 3px solid  #6699cc;
+    padding: 0 5px 0 5px;
+}
+
+.gatorbutton1 {
+    background-color:  #CEE3F6;
+    border: 1px solid  #6699cc;
+    padding: 2px 5px 2px 5px;
+}
+
+.gatorbutton1 a, .gatorbutton a {
+    text-decoration: none;
+    color: #000;
+}
+
+.gatorbutton:hover {
+    border: 3px solid  #990000;
+}
+
+.gatorbutton1:hover {
+    border: 1px solid  #990000;
+    background-color: #F5A9A9;
+}

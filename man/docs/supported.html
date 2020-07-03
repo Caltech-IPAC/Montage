@@ -1,0 +1,23 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+  <title>Supported File Formats</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Supported File Formats: The Flexible Image Transport System and the World Coordinate System</h1>
+
+<p>Montage supports two-dimensional images that adhere to the definition of the <a href="http://fits.gsfc.nasa.gov/fits_home.html">Flexible Image Transport System</a> (FITS) standard (Calabretta and Greisen 2002). FITS is the format adopted by the astronomical community for data interchange and archival storage. </p>
+
+<p>Briefly, FITS is a data format designed to provide a platform-independent means for exchange of astronomical data. A FITS data file is composed of a fixed logical record length of 2880 bytes. The file can contain an unlimited number of header records, 80 bytes long, having a '<i>keyword=value</i>' format. These headers describe the organization of the binary data and the format of the contents. The headers are followed by the data themselves, represented as binary records.</p>
+
+<p>The relationship between the pixel coordinates in the image and physical units is defined by the <a href="http://fits.gsfc.nasa.gov/fits_wcs.html">World Coordinate System</a> (WCS) (Calabretta and Greisen 2002). Included in the WCS is a definition of how celestial coordinates and projections are represented in the FITS format as <i>keyword=value</i> pairs in the file headers.  Montage analyzes these pairs of values to discover the footprints of the images on the sky and calculates the footprint of the image mosaic that encloses the input footprints.  Montage supports all projections supported by WCS, and all common astronomical coordinate systems. The output mosaic is FITS-compliant, with the specification of the image parameters written as keywords in the FITS header.  The toolkit also contains a utility, <a href="mJPEG.html"><tt>mJPEG</tt></a>, that will convert the FITS image to a <i>Joint Photographic Experts Group</i> (JPEG) format image.</p>
+
+<div id="docnav">
+<p class="left"><a href="design.html">&lt;-- Design Philosophy</a></p>
+<p class="right"><a href="algorithms.html">Algorithms --&gt;</a></p>
+</div>
+
+
+<!--#include virtual="include/footer.html"-->

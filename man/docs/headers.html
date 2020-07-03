@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<h1>Montage Header Templates</h1>
+
+<ul>
+<li><a href="#intro">Introduction</a>
+<li><a href="#keywords">About Header Keywords</a>
+<li><a href="#ref">References</a>
+</ul>
+
+<a name="intro"></a><h2>Introduction</h2>
+
+<p>The header templates used by several of the Montage modules are just like a normal FITS image header, with two exceptions: they don't need to be padded to 80 characters on each line, and each line ends in a newline.</p>
+
+<p>Some of the ways to create a template header are:</p>
+
+<ul>
+  <li>Using the Montage utility <a href="mHdr.html"><span class="file">mHdr</span></a> to create a header based on a location, size, resolution and rotation.</li>
+  <li>From scratch, using a text editor.
+  <li>Using <a href="mGetHdr.html"><tt>mGetHdr</tt></a> to strip the header from an image and write it to a text file.  This header can then be modified to your specifications.
+  <li>By running <a href="mMakeHdr.html"><tt>mMakeHdr</tt></a> on a metadata table describing the images you wish to mosaic together.  Particularly useful if you will be reprojecting the images back into their original projection.
+
+</ul>
+
+<p><b>Carriage Returns:</b> If a header template contains carriage returns (i.e., created/modified on a Windows machine), Montage modules will create and use a temporary <i>copy</i> of the header template from which the carriage returns have been removed.  This is in order to avoid problems with the WCS library when trying to process headers.  The original header template is not modified, and the process should be completely invisible to the user.</p>
+
+<p><b>Image Coverage:</b> It is best for the background correction algorithms if the area described in the header template <i>completely encloses</i> all of the input images in their entirety.  If parts of input images are "chopped off" by the header template, the background correction will be affected. We recommend you use an expanded header for the reprojection and background modeling steps, returning to the originally desired header size for the final coaddition.</p>
+
+<p>The ZPN, COE, CEA, and DSS projections all require additional parameters beyond the standard FITS keywords.  For more information on these projections, see Calabretta &amp; Greisen's <a href="http://www.atnf.csiro.au/people/mcalabre/WCS/wcs.pdf">Representations of world coordinates in FITS</a>.</p>
+
+<p>See the <a href="caveats.html">caveats</a> section for more information on Montage and the WCS library.</p>
+
+
+<p>&nbsp;</p>
+
+
+<a name="keywords"><h2>Header Keywords:</h2>
+</a>
+
+<p>The keywords used in FITS to characterize coordinates have evolved over the years, culminating an official standard (Greisen and Calabretta, A&A 395, 1061-1075 and 1077-1122).</p>
+
+<p>Three areas tend to cause some confusion and we would like to comment on them (see the above papers for full details): rotation, celestial coordinate system, and projection parameters.</p>
+
+<p><b>1) Rotation</b></p>
+
+<p>Coordinates in FITS are relative to some reference pixel location.  This doesn't need to be at the center or corner of the pixel or on the image; it's just a place where we tie a coordinate on the sky to a coordinate in pixel space.</p>
+
+<p>In pixel space, this location is given by CRPIX1 and CRPIX2 (in horizontal "i" and vertical "j" directions). On the sky this location is at CRVAL1 and CRVAL2   coordinates in the native image coordinate system (e.g. RA, Dec).</p>
+
+<p>This reference pixel also has size (i.e. the extent of the pixel on the sky) given by CDELT1 and CDELT2. </p>
+
+<p>The first step in projecting a pixel location onto the sky is to convert the pixel (i,j) coordinate to an angular scale (i.e. psuedo-degrees still on the image plane
+   surface).</p>
+
+<p>If there were no rotation, this would be simply</p>
+
+<blockquote>
+<span class="file">x' = CDELT1 * (i - CRPIX1)<br>y' = CDELT2 * (j - CRPIX2)</span></blockquote>
+
+<p>The oldest approach to dealing with rotation used a simple rotation angle, CROTA2, to indicate how much the y' axis was rotated relative to North.  Therefore the true (x,y) needed for input into projection formulae was</p>
+
+<blockquote><span class="file">x  =  x' * cos(CROTA2)  -  y' * sin(CROTA2)<br>y  =  x' * sin(CROTA2)  +  y' * cos(CROTA2)</span></blockquote>
+
+<p>or</p>
+
+<blockquote><span class="file">x  =  CDELT1*(i-CRPIX1)*cos(CROTA2) - CDELT2*(j-CRPIX2)*sin(CROTA2)<br>
+y  =  CDELT1*(i-CRPIX1)*sin(CROTA2) + CDELT2*(j-CRPIX2)*cos(CROTA2)</span></blockquote>
+
+<p>This approach doesn't allow for skewed pixels, etc. and no version of it based on, for instance, CROTA1 was ever widely used (if at all).</p>
+
+<p>Instead, there are two alternative approaches which recognize that the above is essentially a matrix transform.  One approach replaces the above with</p>
+
+<blockquote><span class="file">x  =  (i-CRPIX1)*CD1_1 + (j-CRPIX2)*CD1_2<br>y  =  (i-CRPIX1)*CD2_1 + (j-CRPIX2)*CD2_2</span></blockquote>
+
+<p>The CD matrix elements here absorb both the CDELT values and the sin()/cos() of the rotation angle.</p>
+
+<p>The second approach (which is the preferred one in the standard) keeps the CDELT values distinct:</p>
+
+<blockquote><span class="file">x  =  CDELT1*(i-CRPIX1)*PC1_1 + CDELT2*(j-CRPIX2)*PC1_2<br>y  =  CDELT1*(i-CRPIX1)*PC2_1 + CDELT2*(j-CRPIX2)*PC2_2</span></blockquote>
+
+<p>In the case where the CDELT values are equal, the PC matrix is a pure rotation.</p>
+
+<p>Any of these three approaches are valid (two CDELTs and CROTA2, a CD matrix, or two CDELTs and a PC matrix) though the first relies on a parameter (CROTA2) which has been    deprecated in the standard (and which cannot handle skewed pixels).</p>
+
+<p>Montage relies on the WCS library from SAO (Doug Mink, incorporating the work of Calabretta) and this library carefully checks for all the possible historical  variations above.  However, this library (and therefore Montage) does not enforce any standards but instead does its best to interpret the intent of the data supplier.    However, not all software is this conscientious and some confusion may arise if certain combinations of keywords are used. Therefore care should be taken in constructing headers for Montage use.</p>
+
+<p>&nbsp;</p>
+<p><b>2) Celestial Coordinate System</b></p>
+
+<p>The basic coordinate system information is given in the    first few characters of the CTYPE1 and CTYPE2 keywords    and can be (RA,Dec), (Glon, Glat), etc.  For equatorial    and ecliptic coordinates it is also necessary to specify    both the equinox of the coordinate system and the detailed    "system" to which the coordinates refer (FK4, FK5, ICRS):</p>
+
+<blockquote><span class="file">EQUINOX = 2000.0<br>RADESYS = 'IRCS'</span></blockquote>
+
+<p>Different software packages deal with defaulting these   values (or one if the other is given) in different ways.    In the WCS library (and as documented in the standard):</p>
+
+<blockquote>
+   RADESYS defaults to IRCS unless EQUINOX is given alone,
+   in which case it defaults to FK4 prior to 1984 and FK5
+   after 1984.<br><br>
+
+   EQUINOX defaults to 2000 unless RADESYS is FK4, in which
+   case it defaults to 1950.</blockquote>
+
+<p>&nbsp;</p>
+
+<p><b>3) Projection Parameters</b></p>
+
+<p>About half the projections available through the WCS
+   library require additional parameters. These can be
+   quantities like reference latitudes and spacing
+   information.  These are all documented the reference
+   above.</p>
+
+<p>Usually, there are only one or two such values, though
+   Zenithal Polynomial (ZPN), as the name implies, requires
+   a set of polynomial coefficients (up to 20).
+</p>
+
+<p>
+
+   Some existing data uses an early proposed syntax for
+   these parameters: PROJP1, PROJP2, etc.  This has been
+   superceded in the standard by PV2_1, PV2_2, etc.
+   (While the formalism allows for associating parameters
+   with any axis, the current ones are invariably linked
+   to latitude, hence always PV2_n).  While the WCS
+   library can handle both, it is not guaranteed that
+   other software will.</p>
+
+
+
+
+
+<p>&nbsp;</p>
+<p><b>References:</b></p>
+<a name="ref"></a>
+<ul>
+<li><a href="ftp://legacy.gsfc.nasa.gov/fits_info/fits_office/fits_standard.pdf">Definition of the FITS standard</a> (PDF)</li>
+<li><a href="http://www.atnf.csiro.au/people/mcalabre/WCS/wcs.pdf">Representations of world coordinates in FITS</a>, E.W. Greisen and M.R. Calabretta (PDF)</li>
+<li><a href="http://www.atnf.csiro.au/people/mcalabre/WCS/Intro/">Representing Celestial Coordinate Systems</a>: M. Calabretta's slides describing relationships between FITS keywords</li>
+
+
+
+
+<p>&nbsp;</p>
+
+<div id="docnav">
+<p class="left"><a href="wcs.html">&lt;-- Supported WCS Projections</a></p>
+<p class="right"><a href="debug.html">Debug Levels --&gt;</a></p>
+</div>
+
+
+
+<!--#include virtual="include/footer.html"-->

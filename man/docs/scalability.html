@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Extending Montage to Larger or Different Problems</h1>
+
+<p>The algorithms employed by Montage do not themselves limit the size of
+either the input images or output mosaics.  The main limiting factor
+to the problem size on which Montage can be applied is a hardware
+limitation of the amount of disk space available (see <a href="requirements.html">Montage Memory
+Requirements</a>).  If problems occur due to the size of the output image, we recommend that instead of constructing a
+single huge output mosaic, users should build a set of output mosaic
+tiles of more modest size that can simply be abutted together to form
+the desired image region.  Users may prefer to leave the output as
+this set of tiles because they may encounter more problems anyway if
+they try to use their favorite FITS viewer to view the huge output
+mosaic.</p>
+
+<p>Montage uses the WCS library for reprojection and uses a general
+mosaicking algorithm that should be suitable for creating mosaics in
+any WCS projection, as long as the input images have valid FITS
+headers with full WCS information.
+</p>
+
+
+
+
+
+
+<!--#include virtual="include/footer.html"-->

@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mHdrCheck</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><span class="file">mHdrCheck</span> reads in the header from a FITS image (or an ASCII header template file) and checks to see if any header lines are invalid.  If it finds one, it will print out a message stating which keyword is invalid and exit before checking the rest of the header.  It will <i>not</i> report on multiple invalid values.  If all value are correct, <span class="file">mHdrCheck</span> will print out a "Valid FITS/WCS" message.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mHdrCheck [-s <i>statusfile</i>] <i>img.fits</i></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>img.fits</dt>
+  <dd>Path of FITS file to be validated.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+  <dt>$ mHdrCheck input/badfits/bad-crota2.fits</dt>
+  <dd>[struct stat="ERROR", msg="CROTA2 keyword in FITS header not a real number"]</dd>
+  <dt>$ mHdrCheck input/2mass.fits</dt>
+  <dd>[struct stat="OK", msg="Valid FITS/WCS."]</dd>
+  <dt>$ mHdrCheck input/badfits/bad-ctype.fits
+  <dd>[struct stat="ERROR", msg="Invalid projection"]
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", msg="Valid WCS in FITS file."]</li>   
+  <li>[struct stat="OK", msg="Valid FITS/WCS in header file."]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mHdrCheck [-s statusfile] img.fits"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="File <i>filename</i> not found."]</li>   
+  <li>[struct stat="ERROR", msg="File (<i>filename</i>) is not a FITS image"]</li>   
+  <li>[struct stat="ERROR", msg="FITS header lines cannot be greater than 80 characters"]</li>   
+  <li>[struct stat="ERROR", msg="No BITPIX keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No NAXIS keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No NAXIS1 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No NAXIS2 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CTYPE1 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CTYPE2 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CRPIX1 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CRPIX2 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CRVAL1 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CRVAL2 keyword in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CDELT1 keyword (or incomplete CD matrix) in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="No CDELT2 keyword (or incomplete CD matrix) in FITS header"]</li>   
+  <li>[struct stat="ERROR", msg="BITPIX keyword in FITS header not an integer"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid BITPIX in FITS header (must be 8,16,32,64,-32 or -64)"]</li>   
+  <li>[struct stat="ERROR", msg="NAXIS keyword in FITS header not an integer"]</li>   
+  <li>[struct stat="ERROR", msg="NAXIS keyword in FITS header must be >= 2"]</li>   
+  <li>[struct stat="ERROR", msg="NAXIS1 keyword in FITS header not an integer"]</li>   
+  <li>[struct stat="ERROR", msg="NAXIS1 keyword in FITS header must be > 0"]</li>   
+  <li>[struct stat="ERROR", msg="NAXIS2 keyword in FITS header not an integer"]</li>   
+  <li>[struct stat="ERROR", msg="NAXIS2 keyword in FITS header must be > 0"]</li>   
+  <li>[struct stat="ERROR", msg="CRPIX1 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CRPIX2 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CRVAL1 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CRVAL2 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CDELT1 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CDELT2 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CROTA2 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CD1_1 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CD1_2 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CD2_1 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="CD2_2 keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="EQUINOX keyword in FITS header not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="No WCS information (or not FITS header)"]</li>   
+  <li>[struct stat="ERROR", msg="Must have at least two dimensions"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid projection"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid NAXIS1"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid NAXIS2"]</li>   
+  <li>[struct stat="ERROR", msg="CTYPE1 and CTYPE2 don't match"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid CTYPE1"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid CD matrix"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid CDELT1"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid CDELT2"]</li>   
+  <li>[struct stat="ERROR", flag=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

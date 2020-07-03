@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mJPEG</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Generates a JPEG image file from a FITS file (or a set of three FITS files in color).  A data range for each image can be defined, and the data can be stretched by any power of the log() function (including zero: linear).  Pseudo-color color tables can be applied in single-image mode.</dd>
+  <dd><b>Note:</b> If creating a true color image, all input images must have identical WCS information (ie, same size, resolution, coordinate system, etc).</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mJPEG [-d] [-t <i>power</i>] [-s <i>statusfile</i>] [-ct <i>color-table</i>]<br>[<b>-gray <i>in.fits minrange maxrange</b></i> [<i>logpower/gaussian</i>]<br>[<b>-red <i>red.fits rminrange rmaxrange</b></i> [<i>rlogpower/gaussian</i>]<br>[<b>-green <i>green.fits gminrange gmaxrange</b></i> [<i>glogpower/gaussian</i>]<br>[<b>-blue <i>blue.fits bminrange bmaxrange</b></i> [<i>blogpower/gaussian</i>]<br><b>-out <i>out.jpg</i></b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Print out additional debugging information</dd>
+  <dt>-t <i>power</i></dt>
+  <dd>Increasing the value of <i>power</i> will enhance the contrast between colors; useful when all pixels are close to white, but you wish to accentuate the color difference.</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Write output and errors to <i>statusfile</i> instead of stdout</dd>
+  <dt>-ct <i>color-table</i></dt>
+  <dd>Choose a color table for pseudo-color images; <i>color-table</i> can be an integer between 0 and 11.  <a href="color_tables">Click here</a> for samples of each color table.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<p><span class="file">mJPEG</span> takes as arguments a list of FITS images to be used as input for the true- or pseudo-color image.  To create a pseudo-color image from a single FITS file, use the <i><b>-gray</b></i> flag; to create a true-color image, use the <i><b>-red</i></b>, <i><b>-green</i></b>, and <b><i>-blue</i></b> flags together.  The syntax for each is the same:</p>
+<dl class="args">
+  <dt>-color</dt>
+  <dd>Provide the image name and stretch information to be used for <i>color</i> (one of: "gray", "red", "green", "blue")</dd>
+  <dt><i>color</i>.fits</dt>
+  <dd>Filename of input image for this color.  Can use a specific FITS extension by including it as: "filename.fits[<i>X</i>]", where <i>X</i> is the HDU number.</dd>
+  <dt>minrange maxrange</dt>
+  <dd>Lower/upper pixel values to use when stretching the image.  Can also be expressed as a percentage, a sigma value, or any combination of these three.  Some examples:
+  <ul>
+    <li>0 100</li>
+    <li>0s 99.999%</li>
+    <li>-1s 1s</li>
+   </ul></dd>
+  <dt>logpower/gaussian</dt>
+  <dd>Specify a log power to use in stretching the image.  Can be a positive integer or one of: 
+    <ul>
+      <li>log</li>
+      <li>loglog</li>
+      <li>linear (default)</li>
+    </ul></dd>
+   <dt>-out <i>out.jpg</i></dt>
+   <dd>Path to the output JPEG image</dd>
+</dl>
+
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>The output message includes stretch information from the creation of the JPEG:</dd>
+  <dd>Psuedo-color (gray input only):<br><span class="file">[struct stat="OK", min=<i>datamin</i>, minpercent=<i>minfrac</i>, max=<i>datamax</i>, maxpercent=<i>maxfrac</i>]</span></dd>
+  <dd>Three-color (red/green/blue inputs):<br>
+  <span class="file">[struct stat="OK", bmin=<i>bdatamin</i>, bminpercent=<i>bminfrac</i>, bmax=<i>bdatamax</i>, bmaxpercent=<i>bmaxfrac</i>, gmin=<i>gdatamin</i>, gminpercent=<i>gminfrac</i>, gmax=<i>gdatamax</i>, gmaxpercent=<i>gmaxfrac</i>, rmin=<i>rdatamin</i>, rminpercent=<i>rminfrac</i>, rmax=<i>rdatamax</i>, rmaxpercent=<i>rmaxfrac</i>]</span></dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<p>To create a grayscale image from a FITS file:</p>
+<dl class="example">
+  <dt>$ mJPEG -ct 1 -gray SINGS_B.fits 0s 99.999% gaussian -out SINGS_B.jpg</dt>
+  <dd>[struct stat="OK", min=0.391706, minpercent=50.00, max=136.555, maxpercent=100.00]</dd>
+</dl>
+
+<p align="center"><b><font size="-1">Output grayscale JPEG:</font></b><br><img src="examples/mJPEG/SINGS_grayscale.jpg"></p>
+<p>To create a true 3-color image from three input images:</p>
+<dl class="example">
+  <dt>$ mJPEG -t 2 -blue SINGS_B.fits 0s 99.999% gaussian <br>-green SINGS_R.fits 0s 99.999% gaussian<br>-red SINGS_I.fits 0s 99.999% gaussian<br>-out SINGS_3color.jpg</dt>
+  <dd>[struct stat="OK", bmin=0.391706, bminpercent=50.00, bmax=136.555, bmaxpercent=100.00, gmin=2.98851, gminpercent=50.00, gmax=366.148, gmaxpercent=100.00, rmin=4.26902, rminpercent=50.00, rmax=295.179, rmaxpercent=100.00]</dd>
+
+<p align="center"><b><font size="-1">Output 3-color JPEG:</font></b><br><img src="examples/mJPEG/SINGS_3color.jpg"></p>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", min=<i>datamin</i>, minpercent=<i>minfrac</i>, max=<i>datamax</i>, maxpercent=<i>maxfrac</i>]</span></li>
+  <li>[struct stat="OK", bmin=<i>bdatamin</i>, bminpercent=<i>bminfrac</i>, bmax=<i>bdatamax</i>, bmaxpercent=<i>bmaxfrac</i>, gmin=<i>gdatamin</i>, gminpercent=<i>gminfrac</i>, gmax=<i>gdatamax</i>, gmaxpercent=<i>gmaxfrac</i>, rmin=<i>rdatamin</i>, rminpercent=<i>rminfrac</i>, rmax=<i>rdatamax</i>, rmaxpercent=<i>rmaxfrac</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mJPEG [-d] [-t(rue-color) power] [-s statusfile] [-ct color-table] -gray in.fits minrange maxrange [logpower/gaussian] -red red.fits rminrange rmaxrange [rlogpower/gaussian] -green green.fits gminrange gmaxrange [glogpower/gaussian] -blue blue.fits bminrange bmaxrange [blogpower/gaussian] -out out.jpg"]</li>
+  <li>[struct stat="ERROR", msg="Too few arguments following -ct flag"]</li>
+  <li>[struct stat="ERROR", msg="Color table index must be between 0 and 11"]</li>
+  <li>[struct stat="ERROR", msg="Too few arguments following -s flag"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>
+  <li>[struct stat="ERROR", msg="Too few arguments following -<i>color</i> flag"]</li>
+  <li>[struct stat="ERROR", msg="Image file <i>in.fits</i> invalid FITS"]</li>
+  <li>[struct stat="ERROR", msg="Can't find HDU <i>X</i>"]</li>
+  <li>[struct stat="ERROR", msg="Too few arguments following -out flag"]</li>
+  <li>[struct stat="ERROR", msg="Error opening output file "<i>out.jpg</i>"]</li>
+  <li>[struct stat="ERROR", msg="No input '<i>color</i>' FITS file name given"] <span class="explanation">(in true-color mode)</span></li>
+  <li>[struct stat="ERROR", msg="No input FITS file name given"] <span class="explanation">(in pseudo-color mode)</span></li>
+  <li>[struct stat="ERROR", msg="No input JPEG file name given"]</li>
+  <li>[struct stat="ERROR", msg="Color mode but no <i>color</i> image given"]</li>
+  <li>[struct stat="ERROR", msg="WCS init failed for [<i>fitsfile</i>]"]</li>
+  <li>[struct stat="ERROR", msg="Red and green FITS images don't match."]</li>
+  <li>[struct stat="ERROR", msg="Red and blue FITS images don't match."]</li>
+  <li>[struct stat="ERROR", msg="Grayscale/pseudocolor mode but no gray image given"]</li>
+  <li>[struct stat="ERROR", msg="min percentile value "<i>minrange</i>%" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="min sigma value "<i>minrange</i>s" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="min value "<i>minrange</i>" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="max percentile value "<i>maxrange</i>%" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="max sigma value "<i>maxrange</i>s" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="max value "<i>maxrange</i>" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="beta percentile value "<i>betaval</i>%" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="beta sigma value "<i>betaval</i>s" is not a real number"]</li>
+  <li>[struct stat="ERROR", msg="beta value "<i>betaval</i>" is not a real number"]</li>
+  <li>[struct stat="ERROR", flag=<i>errcode</i>, msg="<i>FITS library error</i>"]</li>
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

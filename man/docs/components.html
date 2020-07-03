@@ -1,0 +1,292 @@
+  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+		  <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+		  <head>
+  <title>Toolkit Components</title>
+
+<!--#include virtual="include/header.html"-->
+
+<div id="documentation">
+
+<h1>Montage Components</h1>
+
+<ul>
+  <li><a href="#before">Before Building</a></li>
+  <li><a href="#exec">Executables</a></li>
+</ul>
+
+<a name="before"><h2>Before Building Montage:</h2></a>
+
+<p>When the tar file is first extracted, the following directories and files are created:</p>
+
+<dl class="ls">
+  <dt class="file">README / README.release</dt>
+  <dd>Instructions on building Montage and where to go for help</dd>
+
+  <dt class="file">ChangeHistory</dt>
+  <dd>Text file describing the changes made in each version of Montage.</dd>
+
+  <dt class="file">LICENSE</dt>
+  <dd>Montage user license</dd>
+
+  <dt class="file">Makefile</dt>
+  <dd>The main Montage Makefile, which configures and builds the toolkit</dd>
+
+  <dt class="dir">Montage/</dt>
+  <dd>Source code for core Montage executables</dd>
+
+  <dt class="dir">util/</dt>
+  <dd>Source code for extra utilities</dd>
+
+  <dt class="dir">grid/</dt>
+  <dd>Source code for grid tools</dd>
+
+  <dt class="dir">lib/</dt>
+  <dd>Source code for libraries</dd>
+
+  <dt class="dir">bin/</dt>
+  <dd>Location for Montage excutables, once built
+
+  <dt class="dir">python/</dt>
+  <dd>Python wrapper around mViewer
+
+  <dt class="dir">docs/</dt>
+  <dd>Directory containing Montage documentation (like this)</dd>
+
+</dl>
+
+<a name="exec"><h2>Montage Executables</h2></a>
+
+<p>The figure below (taken from the Montage Software Specification) shows the core modules delivered with the Montage distribution:</p>
+
+<p align="center"><img src="images/processflow.jpg" /></p>
+
+<p>After building Montage, the following executables will be placed in the <span class="dir">bin</span> folder:</p>
+
+<p><b>Core Modules:</b> [source code in the <span class="dir">Montage</span> subdirectory]</p>
+<dl class="ls">
+   <dt class="file"><a href="mAdd.html">mAdd</a></dt>
+   <dd>Coadd the reprojected images using the same FITS header
+   template and working from the same <span class="file">mImgtbl</span class="file"> 
+   list as was used to reproject the image set.</dd>
+
+   <dt class="file"><a href="mAddCube.html">mAddCube</a></dt>
+   <dd>Like mAdd but optimized for looping over the third (and fourth
+   if it exists) dimensions of set of data cubes.</dd>
+
+   <dt class="file"><a href="mAddExec.html">mAddExec</a></dt>
+   <dd>Builds a series of outputs (which together make up a tiled output) 
+   through multiple executions of the mAdd module.</dd>
+
+   <dt class="file"><a href="mBackground.html">mBackground</a></dt>
+   <dd>Remove a background from a single image (planar has proven
+   to be adequate for the images we have dealt with).</dd>
+
+   <dt class="file"><a href="mBgExec.html">mBgExec</a></dt>
+   <dd>Run <tt>mBackground</tt> on all the images in the metadata table.</dd>
+
+   <dt class="file"><a href="mBgModel.html">mBgModel</a></dt>
+   <dd>Modelling/fitting program which uses the image-to-image
+   difference parameter table to interactively determine a
+   set of corrections to apply to each image to achieve a
+   "best" global fit.</dd>
+
+  <dt class="file"><a href="mConvert.html">mConvert</a></dt>
+  <dd>Changes the datatype of an image (i.e., 64-bit floating point to 16-bit integer)</dd>
+
+  <dt class="file"><a href="mCoverageCheck.html">mCoverageCheck</a></dt>
+  <dd>Using an image metadata table, determine which images cover a given point, polygon, circle, or box.</dd>
+
+   <dt class="file"><a href="mDiff.html">mDiff</a></dt>
+   <dd>Perform a simple image difference between a single pair of
+   overlapping images.  This is meant for use on reprojected images
+   where the pixels already line up exactly.</dd>
+
+   <dt class="file"><a href="mDiffExec.html">mDiffExec</a></dt>
+   <dd>Run <span class="file">mDiff</pan on all the pairs identified by
+   <span class="file">mOverlaps</span>.</dd>
+
+   <dt class="file"><a href="mFitplane.html">mFitplane</a></dt>
+   <dd>Fit a plane (excluding outlier pixels) to an image.  Meant for
+   use on the difference images generated above.</dd>
+
+   <dt class="file"><a href="mFitExec.html">mFitExec</a></dt>
+   <dd>Run <span class="file">mFitplane</span> on all the <span class="file">mOverlaps</span> pairs.
+   Creates a table of image-to-image difference parameters.</dd>
+
+   <dt class="file"><a href="mDiffFitExec.html">mDiffFitExec</a></dt>
+   <dd>Runs both <span class="file">mDiff</span> and <span class="file">mFitplane</span> on all the <span class="file">mOverlaps</span> pairs.
+   Creates a table of image-to-image difference parameters.</dd>
+
+  <dt class="file"><a href="mFlattenExec.html">mFlattenExec</a></dt>
+  <dd>Performs mFitPlane and mBackground on a set of images.</dd>
+
+  <dt class="file"><a href="mGetHdr.html">mGetHdr</a></dt>
+  <dd>Strip the header from an image and write it to a text file.</dd>
+
+  <dt class="file"><a href="mHdrCheck.html">mHdrCheck</a></dt>
+  <dd>Checks the header of an image to make sure all the keyword values are valid.</dd>
+
+  <dt class="file"><a href="mHdrtbl.html">mHdrtbl</a></dt>
+  <dd>Makes a list (with WCS information) of all header files in the named directory.</dd>
+
+  <dt class="file"><a href="mImgtbl.html">mImgtbl</a></dt>
+  <dd>Extracts the FITS header information from a set of files
+   and creates an ASCII image metadata table which can be used by several
+   of the other programs.</dd>
+
+  <dt class="file"><a href="mMakeHdr.html">mMakeHdr</a></dt>
+  <dd>From a list of images to be mosaicked together, <span class="file">mMakeHdr</span> generates 
+  the FITS header that best describes the output image.</dd>
+
+  <dt class="file"><a href="mMakeImg.html">mMakeImg</a></dt>
+  <dd>A general output FITS image is defined and its pixels are then populated from a table of 
+  point sources.  The source fluxes from the table are distributed based on a source-specific 
+  point-spread function.   </dd>
+
+   <dt class="file"><a href="mOverlaps.html">mOverlaps</a></dt>
+  <dd>Analyze an image metadata table to determine a list of overlapping
+   images.</dd>
+
+   <dt class="file"><a href="mProject.html">mProject</a></dt>
+   <dd>Reprojects a single image to the scale defined in a pseudo-FITS
+   header template file (an ASCII file with the output image header
+   lines, but not padded to 80 characters and with newlines at the end
+   of each line).  Actually produces a pair of images: the reprojected
+   image and an "area" image consisting of the fraction input pixel
+   sky area that went into each output pixel.</dd>
+
+   <dt class="file"><a href="mProjectCube.html">mProjectCube</a></dt>
+   <dd>Like mProject but optimized for looping over the third (and fourth
+   if it exists) dimensions of set of data cubes.</dd>
+
+   <dt class="file"><a href="mProjectPP.html">mProjectPP</a></dt>
+   <dd>Fast reprojection of images in tangent-plane projections.</dd>
+
+   <dt class="file"><a href="mProjExec.html">mProjExec</a></dt>
+   <dd>A simple executive which runs <span class="file">mProject</span> for each image
+   in an image metadata table.</dd>
+
+  <dt class="file"><a href="mPutHdr.html">mPutHdr</a></dt>
+  <dd>Replaces the header of the input file with one supplied by the user (presumably a "corrected" version of the input).</dd>
+
+  <dt class="file"><a href="mShrink.html">mShrink</a></dt>
+  <dd>Changes the binning of a FITS image.</dd>
+
+  <dt class="file"><a href="mShrinkCube.html">mShrinkCube</a></dt>
+   <dd>Like mShrink but optimized for looping over the third (and fourth
+   if it exists) dimensions of set of data cubes.</dd>
+
+  <dt class="file"><a href="mSubimage.html">mSubimage</a></dt>
+  <dd>Creates a subimage of a FITS image.</dd>
+
+  <dt class="file"><a href="mSubCube.html">mSubCube</a></dt>
+   <dd>Like mSubimage but optimized for looping over the third (and fourth
+   if it exists) dimensions of set of data cubes. Since the nature of the
+   higher dimensions is dataset-specific, does not modify these in any way.</dd>
+
+  <dt class="file"><a href="mSubset.html">mSubset</a></dt>
+  <dd><tt>mSubset</tt> generates a table of images that is a subset of the input
+  table, containing only those images that cover the area defined by a given
+  FITS header.</dd>
+
+   <dt class="file"><a href="mTblSort.html">mTblSort</a></dt>
+   <dd>A simple sorter for table files.  Only handles a single numeric column.  For more        
+   complicated manipulation, DBMS technology is more effective.</dd>
+
+   <dt class="file"><a href="mTANHdr.html">mTanHdr</a></dt>
+   <dd>mTANHdr analyzes a template file and determines if there would be an adequate equivalent 
+   distorted TAN projection, within a specified tolerance, and outputs the alternate header.</dd>
+
+  <dt class="file"><a href="mTileHdr.html">mTileHdr</a></dt>
+  <dd>This module takes a header template file and creates another which represents one of a 
+  regular set of tiles covering the original.</dd>
+
+  <dt class="file"><a href="mTileImage.html">mTileImage</a></dt>
+  <dd>This module slices an input image into a series of output images (tiles).</dd>
+
+
+</dl>
+</dl>
+
+<p><b>Utilities:</b> [source code in the <span class="dir">util</span> subdirectory]</p>
+<dl class="ls">
+  <dt class="file"><a href="mArchiveList.html">mArchiveList</a></dt>
+  <dd>Retrieve a list of images that overlap a position on the sky.</dd>
+
+  <dt class="file"><a href="mArchiveGet.html">mArchiveGet</a></dt>
+  <dd>Retrieve a FITS image from a remote archive.</dd>
+
+  <dt class="file"><a href="mArchiveExec.html">mArchiveExec</a></dt>
+  <dd>Call <tt>mArchiveGet</tt> for each image in a table generated by <tt>mArchiveList</tt>.</dd>
+
+  <dt class="file"><a href="mBestImage.html">mBestImage</a></dt>
+  <dd>From a list of images, determine which provides the best coverage for a location on the sky.</dd>
+
+  <dt class="file"><a href="mCatMap.html">mCatMap</a></dt>
+  <dd>Point-source imaging program.</dd>
+
+  <dt class="file"><a href="mExamine.html">mExamine</a></dt>
+  <dd>Returns statistics on a FITS image.  Mostly geometry but optionally a region can be
+  defined and various flux-related statistics on it will be returned as well.</dd>
+
+  <dt class="file"><a href="mExec.html">mExec</a></dt>
+  <dd>Mosaicking executive for 2MASS, SDSS and DSS data.</dd>
+
+  <dt class="file"><a href="mFixNaN.html">mFixNaN</a></dt>
+  <dd>Converts NaNs in an image to some other value, or converts a range of values into NaNs.</dd>
+
+  <dt class="file"><a href="mHdr.html">mHdr</a></dt>
+  <dd>Create a FITS header template from user-supplied parameters.</dd>
+
+  <dt class="file"><a href="mHistogram.html">mHistogram</a></dt>
+  <dd>The image viewer tool mViewer contains code to generate a histogram of the data 
+  for stretching purposes.  This program does the same thing, but writes the output
+  to a file for later use, either by mViewer or for user analysis.</dd>
+
+  <dt class="file"><a href="mJPEG.html">mJPEG</a></dt>
+  <dd>Create a JPEG image from one or more input FITS images.  This has been superceded by a more general
+  <b>mViewer</b> utility which handles overlays and can output PNG as well as JPEG.  mViewer has its own
+  set of documentation.<a href="/mViewer/">here</a>.</dd>
+
+  <dt class="file"><a href="mPad.html">mPad</a></dt>
+  <dd>Pad around the image with NULLs.  This is usually just for visual effect or to allow 
+  space for annotation, etc.</dd>
+
+  <dt class="file"><a href="mPix2Coord.html">mPix2Coord</a></dt>
+  <dd>Given a FITS header, map a pixel coordinate to a sky location</dd>
+
+  <dt class="file"><a href="mRotate.html">mRotate</a></dt>
+  <dd>Perform a rotation on a FITS image</dd>
+
+  <dt class="file"><a href="mShrinkHdr.html">mShrinkHdr</a></dt>
+  <dd>Properly modify an existing FITS header template to represent the same
+  area with different-sized pixels.</dd>
+
+  <dt class="file"><a href="mTranspose.html">mTranspose</a></dt>
+  <dd>The Montage datacube manipulation tools are designed to work only with files
+  where the sky coordinates axes are the first two in the file.  This is not always
+  the case, so mTranspose is provided to allow conversion from any axis configuration
+  to another.</dd>
+
+  <dt class="file"><a href="mViewer.html">mViewer</a></dt>
+  <dd>Create a PNG or JPEG image from one or more input FITS images, included a number
+  of overlay modes.  mViewer has its own set of documentation.<a href="/mViewer/">here</a>.</dd>
+</dl>
+
+
+<p><b>Grid Tools:</b> [source code in the <span class="dir">grid</span> subdirectory]</p>
+<p class="note">These modules should be considered prototypes: they have been used extensively but have not been subject to the same rigorous testing to which the core modules have been subjected.  We advise users to contact Montage (<a href="mailto:montage.ipac.caltech.edu">montage@ipac.caltech.edu</a>) before employing them to verify limitations in their use and changes in the interfaces.</p>
+
+<p>Brief descriptions of the tools available can be found <a href="gridtools.html">here</a>.</p>
+
+</div>
+
+<div id="docnav">
+<p class="left"><a href="index.html">&lt;-- Documentation Index</a></p>
+<p class="right"><a href="requirements.html">System Requirements --&gt;</a></p>
+</div>
+
+
+
+<!--#include virtual="include/footer.html"-->

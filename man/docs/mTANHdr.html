@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/x
+html1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+ <head>
+   <title>Montage User Documentation</title>
+    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mTANHdr</h1>
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Analyzes a template file and determines if there would be an adequate equivalent distorted TAN projection, within a specified tolerance, and outputs the alternate header. This header can be used in conjunction with <a href="mProjectPP.html"><span class="file">mProjectPP</span></a> to produce a TAN plane image. This process is considerably faster than projecting with the general purpose tool <a href="mProject.html"><span class="file">mProject</span></a>. </dd>
+  <dd>The output header is a FITS header template containing a TAN projection with polynomial focal plane distortions. (Link to an example output <a href="examples/mTANHdr/alternate.hdr">header</a>)</dd>
+  <dd><span class="file">mTANHdr</span> is most suitable for projections which can be approximated by tangent-plane projections (TAN, SIN, ZEA, STG, ARC), and is also therefore not suited for images covering large portions of the sky. </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mTANHdr [-d] [-o <i>order</i>][-i <i>maxiter</i>][-t <i>tolerance</i>][-s <i>statusfile</i>] <b>orig.hdr new.hdr</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d</dt>
+  <dd>Print additional debugging information to stdout.</dd> 
+  <dt>-o <i>order</i></dt>
+  <dd>Order of output header polynomial focal plane distortions (default = 4)</dd>
+  <dt>-i <i>maxiter</i></dt>
+  <dd>Maximum number of iteration attempts to produce header (default = 50)</dd>
+  <dt>-t <i>tolerance</i></dt>
+  <dd>Distortion tolerance value for acceptable output (default = 0.01)</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are written to <i>statusfile</i> instead of stdout.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>orig.hdr</dt>
+  <dd>Input FITS header</dd>
+  <dt>new.hdr</dt>
+  <dd>Path to output header to be created</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", fwdxerr=<i>fwdxerr</i>, fwdyerr=<i>fwdyerr</i>, fwditer=<i>iter</i>, revxerr=<i>revxerr</i>, revyerr=<i>revyerr</i>, reviter=<i>reviter</i>]</span></dd>
+  <dd>where <i>fwdxerr</i> and <i>fwdyerr</i> are the maximum errors along each axis found when projecting from the original image to the distorted header; <i>revxerr</i> and <i>revyerr</i> are the maximum errors along each axis found when projecting from the distorted header back to the original header; and <i>fwditer</i> and <i>reviter</i> are the number of iterations required in each direction to converge on a solution.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example"> 
+  <dt>$ mTANHdr input/SIN_1.hdr alternate.hdr</dt>
+  <dd>[struct stat="OK", fwdxerr=4.31068e-05, fwdyerr=4.42599e-05, fwditer=4, revxerr=1.22123e-05, revyerr=1.19694e-05, reviter=4]</dd>
+</dl>
+
+<p>The output header is a FITS header template containing a TAN projection with polynomial focal plane distortions: <a href="examples/mTANHdr/alternate.hdr">alternate.hdr</a>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", fwdxerr=<i>fwdxerr</i>, fwdyerr=<i>fwdyerr</i>, fwditer=<i>iter</i>, revxerr=<i>revxerr</i>, revyerr=<i>revyerr</i>, reviter=<i>reviter</i>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mTANHdr [-d] [-o order] [-i maxiter] [-t tolerance] [-s statusfile] orig.hdr new.hdr (default: order = 4, maxiter = 50, tolerance = 0.01)"]</li>   
+  <li>[struct stat="ERROR", msg="-i (iterations) argument "<i>arg</i>" not an integer"]</li>   
+  <li>[struct stat="ERROR", msg="-o (order) argument "<i>arg</i>" not an integer"]</li>   
+  <li>[struct stat="ERROR", msg="-t (tolerance) argument "<i>arg</i>" not a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open output template file <i>new.hdr</i>"]</li>   
+  <li>[struct stat="ERROR", msg="All points offscale in forward transform"]</li>   
+  <li>[struct stat="ERROR", msg="All points offscale in reverse transform"]</li>   
+  <li>[struct stat="ERROR", msg="Bad template: <i>orig.hdr</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>   
+  <li>[struct stat="ERROR", msg="Singular Matrix-1"]</li>   
+  <li>[struct stat="ERROR", msg="Singular Matrix-2"]</li>   
+  <li>[struct stat="ERROR", msg="Allocation failure in ivector()"]</li>   
+</ul>
+
+</div></div>
+<!--#include virtual="include/footer.html"-->

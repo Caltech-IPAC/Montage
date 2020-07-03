@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<div id="tutorial">
+
+<h1>Montage Tutorial: Creating a Mosaic from Data Cubes</h1>
+
+<p>This tutorial shows how to aggregate a set of data cubes into a mosaic. It creates a mosaic of five data cubes released as part of the Galactic Arecibo L-band Feed Array HI (GALFA-HI) survey (Peek et al., 2011, Ap J Suppl, 194, 20; DOI 10.1088/0067-0049/194/2/20; ADS Bibcode 2011ApJS..194...20P). GALFA is a high-resolution (~4'), large-area (13,000 deg2), high spectral resolution (0.18 km s-1), and wide band (-700 km s -1 &lt; v LSR &lt; +700 km s-1) survey of the Galactic interstellar medium in the 21 cm line hyperfine transition of neutral hydrogen conducted at Arecibo Observatory.</p>
+
+<p>Here is an image of one part of the mosaicked cube, an average of the central 10 wavelength planes:</p>
+
+<center><a href="images/GALFAcenter.png"><img src="images/GALFAcenter_sm.png" border="0" alt=""/></a></center>
+<center><em>(Click to enlarge)</em></center>
+
+<p>View a movie of the final mosaic: (<a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/galfa3.mov">GALFA3.mov</a>; QuickTime; 115 MB)</p>
+
+<p>The data cubes are organized in regions 512 arcminutes on a side, with RA and Dec as the first two axes (NAXIS=1 and NAXIS=2), and the velocity as the third axis. This tutorial wil mosaic five "narrow band cubes," with 0.18 km/s resolution from -190 to +190 km/s and 512 individual dec slices, stepped in RA, with 0.18 km/s resolution from -750 to 750 V(LSR).</p>
+
+<p>The five cubes have been downloaded from the GALFA Data Release 1 (DR1) archive at <a href="https://purcell.ssl.berkeley.edu" target="_blank">https://purcell.ssl.berkeley.edu</a>. We will shrink these cubes by averaging every 10 planes in the wavelength axis. This reduces processing time for this tutorial, which is approximately 9 minutes on an Intel Xeon 3.2 GHz Quad-Core machine. If you wish to mosaic the original cubes, the processing time will be roughly 90 minutes.</p>
+
+<p>Note that we do not perform background rectification in creating mosaics of data cubes.</p>
+
+<h2>Steps to Create a Mosaic</h2>
+ 
+<h3>Step One:</b> Prepare the source input files.</h3>
+
+<p>Download the <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/GALFA_tutorial.tar.gz">gzipped input files</a> (1.07 GB each), then unzip and untar them. This will create a folder called <strong>narrow</strong> containing these files:</p>
+
+<blockquote><span class="file">
+GALFA_HI_RA+DEC_004.00+18.35_N.fits<br />
+GALFA_HI_RA+DEC_004.00+26.35_N.fits<br />
+GALFA_HI_RA+DEC_004.00+34.35_N.fits<br />
+GALFA_HI_RA+DEC_012.00+10.35_N.fits<br />
+GALFA_HI_RA+DEC_020.00+02.35_N.fits<br />
+
+</span></blockquote>
+
+
+<h3>Step Two:</b> Create directories to hold the  images.</h3>
+ 
+
+<ul>
+
+<li>Create a directory to hold the reprojected images: <tt>$ mkdir proj-narrow</tt></li>
+
+<li>Create a directory to hold the shrunken images: <tt>$ mkdir narrow-shrunk</tt></li>
+<li>Create a directory to hold the final image mosaic: <tt>$ mkdir final</tt></li>
+</ul>
+
+
+<h3>Step Three: Shrink the input images.</h3>
+
+<p>Shrink the input images by averaging data over every 10 planes in the wavelength axis; each of these processes will take approximately 15 seconds. Compare the output with <a href="examples/narrow_shrunk.tar.gz">these files</a>.</p>
+
+<blockquote><span class="file">
+mShrinkCube -m 10 narrow/GALFA_HI_RA+DEC_004.00+18.35_N.fits <br />narrow_shrunk/GALFA_HI_RA+DEC_004.00+18.35_N_m10_1.fits 1<br />
+[struct stat="OK"]<br />
+<br />
+mShrinkCube -m 10 narrow/GALFA_HI_RA+DEC_004.00+26.35_N.fits <br />narrow_shrunk/GALFA_HI_RA+DEC_004.00+26.35_N_m10_1.fits 1<br />
+[struct stat="OK"]<br />
+<br />
+mShrinkCube -m 10 narrow/GALFA_HI_RA+DEC_004.00+34.35_N.fits <br />narrow_shrunk/GALFA_HI_RA+DEC_004.00+34.35_N_m10_1.fits 1<br />
+[struct stat="OK"]<br />
+<br />
+mShrinkCube -m 10 narrow/GALFA_HI_RA+DEC_012.00+10.35_N.fits <br />narrow_shrunk/GALFA_HI_RA+DEC_012.00+10.35_N_m10_1.fits 1<br />
+[struct stat="OK"]<br />
+<br />
+mShrinkCube -m 10 narrow/GALFA_HI_RA+DEC_020.00+02.35_N.fits <br />narrow_shrunk/GALFA_HI_RA+DEC_020.00+02.35_N_m10_1.fits 1<br />
+[struct stat="OK"]
+</span></blockquote>
+
+<h3>Step Four: Create the image list. </h3>
+
+<p>Create an image list, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/images-narrow.tbl">images-narrow.tbl</a>, of the shrunken images:</p>
+
+<blockquote><span class="file">
+mImgtbl narrow_shrunk/ images-narrow.tbl <br />
+[struct stat="OK", count=5, badfits=0, badwcs=0]
+</span></blockquote>
+ 
+<h3>Step Five: Create a header template.</h3>
+ 
+<p>Create a header template, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/template-narrow.hdr">template-narrow.hdr</a> for the mosaic:</p>
+<blockquote><span class="file">
+mMakeHdr images-narrow.tbl template-narrow.hdr<br /> 
+[struct stat="OK", count=5, ncube=5, naxis1=1136, naxis2=2963, clon=9.216833, clat=16.816168, lonsize=18.933371, latsize=49.383432, posang=26.334880, lon1=27.158147, lat1=-0.533033, lon2=11.480844, lat2=-7.857621, lon3=347.839988, lat3=32.320290, lon4=6.223720, lat4=41.457206]
+</span></blockquote>
+
+<h3>Step Six: Reproject the five input images.</h3>
+
+
+<blockquote><span class="file">
+mProjectCube narrow_shrunk/GALFA_HI_RA+DEC_004.00+18.35_N_m10_1.fits  proj-narrow/GALFA_HI_RA+DEC_004.00+18.35_N_m10_1_proj.fits template-narrow<br /> 
+[struct stat="OK", time=48]<br /> 
+<br /> 
+mProjectCube narrow_shrunk/GALFA_HI_RA+DEC_004.00+26.35_N_m10_1.fits  proj-narrow/GALFA_HI_RA+DEC_004.00+26.35_N_m10_1_proj.fits template-narrow<br /> 
+[struct stat="OK", time=42]<br /> 
+<br /> 
+mProjectCube narrow_shrunk/GALFA_HI_RA+DEC_004.00+34.35_N_m10_1.fits proj-narrow/GALFA_HI_RA+DEC_004.00+34.35_N_m10_1_proj.fits <br /> template-narrow<br /> 
+[struct stat="OK", time=48]<br /> 
+<br /> 
+mProjectCube narrow_shrunk/GALFA_HI_RA+DEC_012.00+10.35_N_m10_1.fits  proj-narrow/GALFA_HI_RA+DEC_0012.00+10.35_N_m10_1_proj.fits template-narrow<br /> 
+[struct stat="OK", time=48]<br /> 
+<br /> 
+mProjectCube narrow_shrunk/GALFA_HI_RA+DEC_020.00+02.35_N_m10_1.fits   proj-narrow/GALFA_HI_RA+DEC_020.00+02.35_N_m10_1_proj.fits template-narrow<br /> 
+[struct stat="OK", time=48]
+</span></blockquote>
+
+<p>The <strong><a href="examples/proj-narrow.tar.gz">proj-narrow</a></strong> directory will contain these images:</p>
+
+<blockquote><span class="file">
+GALFA_HI_RA+DEC_004.00+18.35_N_out.fits		
+GALFA_HI_RA+DEC_004.00+26.35_N_out_area.fits	
+GALFA_HI_RA+DEC_012.00+10.35_N_out.fits		
+GALFA_HI_RA+DEC_020.00+02.35_N_out_area.fits
+GALFA_HI_RA+DEC_004.00+18.35_N_out_area.fits	
+GALFA_HI_RA+DEC_004.00+34.35_N_out.fits		
+GALFA_HI_RA+DEC_012.00+10.35_N_out_area.fits
+GALFA_HI_RA+DEC_004.00+26.35_N_out.fits		
+GALFA_HI_RA+DEC_004.00+34.35_N_out_area.fits	
+GALFA_HI_RA+DEC_020.00+02.35_N_out.fits
+</span></blockquote>
+
+<p>The reprojected images will be approximately 750 MB each, and the area files will be 3.7 MB each.</p>
+
+<h3>Step Seven: Create an image metadata file</h3>
+
+<p>Create an image metadata file, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/proj-images-narrow.tbl">proj-images-narrow.tbl</a>, for the reprojected images:</p>
+
+<blockquote><span class="file">
+mImgtbl proj-narrow/ proj-images-narrow.tbl<br />
+[struct stat="OK", count=5, badfits=0, badwcs=0]
+</span></blockquote>
+
+
+<h3>Step Eight: Co-add the reprojected images.</h3>
+
+<p>Co-add the reprojected images to create the final mosaic, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/GALFAmosaic.fits">GALFAmosaic.fits</a></strong>.</p>
+
+<blockquote><span class="file">
+mAddCube -p proj-narrow proj-images-narrow.tbl template-narrow.hdr final/GALFAmosaic.fits
+</span></blockquote>
+
+<p>The mosaic, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/GALFAmosaic.fits">GALFAmosaic.fits</a>, (5.5 GB) is a datacube with 204 planes in the z-axis, and this header:</p>
+
+<pre>
+SIMPLE  =                    T
+BITPIX  =                  -64
+NAXIS   =                    3
+NAXIS1  =                 1135
+NAXIS2  =                 2952
+NAXIS3  =                  204
+EXTEND  =                    T / FITS dataset may contain extensions
+COMMENT   FITS (Flexible Image Transport System) format is defined in 'Astronomy
+COMMENT   and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H
+CTYPE1  = 'RA---TAN'
+CTYPE2  = 'DEC--TAN'
+EQUINOX =                 2000
+CRVAL1  =          9.216833479
+CRVAL2  =         16.816167686
+CRVAL3  =          0.000000000
+CRPIX1  =                568.5
+CRPIX2  =                1482.
+CRPIX3  =       1024.500000000
+CDELT1  =         -0.016666700
+CDELT2  =          0.016666700
+CDELT3  =       1840.307099000
+CROTA2  =         26.334879644
+END
+</pre>
+
+<p>Create this header, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/GALFAmosaic.hdr">GALFAmosaic.hdr</a>, as follows:</p>
+
+<blockquote><span class="file">
+mGetHdr  GALFAmosaic.fits   GALFAmosaic.hdr<br />
+[struct stat="OK", ncard=22]
+</span></blockquote>
+
+<p>This step is highly CPU-intensive, and we recommend you do the co-addition on a quiet machine. It took 127 sseconds with 85% of the CPU on Mac OS 10.9, with a 3.2GHz Quad-Core processor.</p>
+
+ 
+
+
+
+
+<h3>Step Nine: Create an image and enjoy the movie.</h3>
+
+<p>Create an image like the one at the beginning of this tutorial using mViewer:</p>
+<blockquote><span class="file">
+mViewer -ct 4 -gray GALFAmosaic.fits[0][99:109] -2s max gaussian-log -out GALFA102.jpg<br />
+[struct stat="OK", min=-349.547, minpercent=0.00, minsigma=-2.00, max=40.6294, maxpercent=100.00, maxsigma=2.33, datamin=-169.384, datamax=40.6294, xflip=0, yflip=1, bunit="", colortable=4]
+</span></blockquote>
+<p>Here is a movie of the final cube: <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/galfa3.mov">GALFA3.mov</a> (115 MB).</p>
+
+<p>This tutorial was based on a script developed by Dr. Ben Rusholme (IPAC, Caltech). It uses data from the Galactic ALFA HI (GALFA HI) survey data set obtained with the Arecibo L-band Feed Array (ALFA) on the Arecibo 305m telescope. Arecibo Observatory is part of the National Astronomy and Ionosphere Center, which is operated by Cornell University under Cooperative Agreement with the U.S. National Science Foundation. The GALFA HI surveys are funded by the NSF through grants to Columbia University, the University of Wisconsin, and the University of California. </p>
+
+<div id="docnav">
+<p class="left"><a href="troubleshooting.html">&lt;-- Troubleshooting</a></p>
+<p class="right"><a href="index.html">Documentation Index --&gt;</a></p>
+</div>
+
+
+</div>
+<!--#include virtual="include/footer.html"-->

@@ -1,0 +1,45 @@
+  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+		  <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+		  <head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+
+
+
+<h2>Montage has been successfully built, though not rigorously tested, on the following unsupported platforms:</h2>
+
+<ul>
+  <li>Sun sparc Sun-Fire-V240, Solaris 5.9, with cc 5.7
+  <li>Sun sparc Ultra-2, Solaris 5.8, with cc 5.1
+  <li>HP-built IA64, 32 cpu, SuSe Linux 8, with gcc 3.2
+  <li>IBM-built IA64, 128 cpu, SuSe Linux 8, with gcc 3.2
+  <li>IBM-built IA64, 256 cpu, SuSe Linux 8, with gcc 3.2
+  <li>HP Superdome, PA8500, 16 cpu, HPUX 11.11, with HP ANSI C compiler
+  <li>Pentium 3 dual, Debian Linux 3.0, with gcc 3.2
+  <li>SGI Fuel Workstation (MIPS R14000 Processor), IRIX 6.5.19, using MIPS C cc
+  <br>Needed to make following changes:
+    <ul>
+      <li>lib/src/svc_v1.5/Makefile: change "CC = gcc -g" to "CC = cc"
+      <li>lib/src/cfitsio-2.420/Makefile: remove "-fPIC" from CFLAGS
+      <li>lib/src/Makefile: remove both "ranlib" lines
+      <li>lib/src/wcstools-3.3.2/libwcs/Makefile: remove "ranlib $@"
+  </ul>
+
+
+  <li>MacOS 10.2.x (w/ developer CD installed), using GCC version 1151 (based on gcc v3.1)
+  <br><ul><li>Had to remove 2 lines for SIGPOLL and SIGPWR from svclib.c.</ul>
+  <li>Windows 2000, under cygwin with gcc version 3.2 and cygwin dll version 1.3.22-1
+  <br><ul><li>Minor changes are required: namely SIGPWR is not available under windows, so it has to be commented out.  Also, -lsocket and -lnsl need to be deleted from all Makefiles where they appear.</ul>
+</ul>
+
+
+
+
+
+
+
+
+<!--#include virtual="include/footer.html"-->

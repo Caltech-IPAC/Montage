@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Photometric and Calibration Accuracy</h1>
+
+
+<p>This document summarizes the results of the accuracy testing that was done on mProject, the engine that performs all reprojections, image rotations, coordinate transformations, and spatial sampling within Montage. The accuracy and fidelity of an image mosaic is governed by the performance of mProject, the computational heart of Montage. An extensive test program was performed on mProject that investigated the accuracy and fidelity of transformed images by extracting point sources from the original and processed images, and comparing their fluxes and positions. Interested parties wishing to see individual test results should contact the Montage project at  <a href="mailto:montage@ipac.caltech.edu">montage@ipac.caltech.edu</a>.</p>
+
+<p>The SWIRE team has also performed third-party validation for Montage: <a href="swirevalidation.html">read more</a>.</p>
+
+<p>&nbsp;</p>
+<p><b>Sextractor</b></p>
+<p>The principal test tool was Sextractor, an Open Source tool used widely in astronomy for extracting point sources from images. It is available for download at <a href="http://terapix.iap.fr/soft/sextractor/">http://terapix.iap.fr/soft/sextractor/</a>.  A particularly useful User Guide is <a href="http://arxiv.org/abs/astro-ph/0512139">"Source Extractor for Dummies."</a> Configuration of Sextractor for application to images processed by Montage is included in <a href="sextractor_caveats_rev2.doc">Source Extractor Caveats (Word)</a>.</p>
+
+<p>&nbsp;</p>
+
+<p><b>Description of Test Suite</b></p>
+
+<p>The <span class="file">mProject</span> test suite consisted of the following:</p>
+
+<ul>
+  <p><li>4 image types:
+    <ul>
+      <li>null - the image consists entirely of pixel value 0.0
+      <li>flat - the image consists entirely of a pixel value 1.0
+      <li>synthetic - the image consists of an easily identifiable pattern of 1.0 value pixels on a background of 0.0 value pixels
+      <li>atlas - A randomly chosen, full-resolution, science grade Atlas image from the 2MASS 2nd Release
+    </ul>
+  </li>
+  <p><li>4 image locations - this corresponds to the location the image was placed on the sky.  Note that for all locations the same synthetic or atlas image was used and the location was simply changed in its FITS header.
+    <ul>
+      <li>orig - this is the original image location, i.e. image centered about (ra, dec): (307.8908523, 37.285056).
+      <li>npole - image header changed so that image is located at North Pole.
+      <li>spole - image header changed so that image is located at South Pole.
+      <li>zerozero - image header changed so that image is located at (ra, dec): (0, 0).
+    </ul>
+  </li>
+  <p><li>10 types of projection:  SIN to each of AIT, CAR, CEA (PROJP1=0.5, 0.75, and 1.0), COE (PROJP1=0.5), SIN, STG, TAN, ZEA, ZPN (PV2_1 = 1.0, PV2_3 = 100.0), and DSS</li>
+  <p><li>13 transformation types:
+    <ul>
+      <li>ecliptic - coordinate transformation to ecliptic coordinates
+      <li>fliphoriz - horizontally flipped image
+      <li>flipvert - vertically flipped image
+      <li>galactic - coordinate transformation to galactic coordinates
+      <li>rot0.1 - image rotated by 0.1 degrees
+      <li>rot427 - image rotated by 427 degrees
+      <li>rot45 - image rotated by 45 degrees
+      <li>shift - image shifted by moving the center down to the lower left hand corner of original image.
+      <li>unity - identity transformation
+      <li>zoomin4 - making the pixel size (CDELT) of the image 1/4-th its original size, while keeping the image size in pixels constant.
+      <li>zoomin8 - making the pixel size (CDELT) of the image 1/8-th its original size, while keeping the image size in pixels constant
+      <li>zoomout2 - making the pixel size (CDELT) of the image twice its original size
+      <li>zoomout8 - making the pixel size (CDELT) of the image 8-time its original size
+    </ul>
+  </li>
+
+</ul>
+
+<p>With the exception of the DSS projection, the product of all those parameters was performed, resulting in 1144 re-projections.  In addition, 8 projections (4 atlas and 4 synthetic files) were tested for SIN to DSS projection.  This resulted in a grand total of 1152 re-projections.</p>
+
+<p>For null and flat images, only the output of mProject was tested (to check for its stability), and in addition a few images were visually inspected.</p>
+
+<p>For synthetic and atlas images, a much more rigorous testing was performed to test the accuracy of re-projections.   The images that were used for the testing can be seen in Appendix A (synthetic image) and Appendix B (atlas image).  The software <b>sextractor</b> was used to extract the sources present in input and the re-projected files; then the locations and fluxes of these files were compared (see <a href="detailed-test.doc">detailed-test.doc</a> for more details on how this was done).  </p>
+
+<p>The results of our accuracy testing are summarized in two histograms below.  The first histogram summarizes the flux errors for both the synthetic and the atlas images:</p>
+
+<p align="center"><img src="images/accuracy1.gif"></p>
+
+<p>For synthetic images, 99.7% of the sources in the re-projected images were within 0.1% of the original flux, the remaining 0.3% have approximately a 6% error.  These larger errors were reported in cases where mProject was used to "zoom in" on the input image or when reprojecting between very similar projections, and was corrected prior to version 3.0 of Montage.</p>
+
+
+<p align="center"><img src="images/accuracy2.gif"></p>
+
+<p>For synthetic images 72.0% of the sources in the re-projected images were within 0.1 pixel (in the pixel size of the original image) of where they were in the original image.  The source of this error is also well known and is not due to Montage; it is, in fact, unavoidable.  Because we are using single pixel resolution in the synthetic source image, when there is a change to a coarser resolution or when the shape of a pixel changes greatly the location of the center of the pixel cannot be preserved.   This is highlighted by the fact that locations of sources were conserved better by the atlas image tests, even though there is more uncertainty in the extraction of sources from these images.   If one does not include the transformations to coarser resolution in the analysis then 100% of the sources in synthetic re-projected images were within 0.1 pixels of where they were in the original image. To exemplify what is happening, we analyze the zoomout2 images; here the error in location is stated to be 0.707 pixels.  This is because the side of a pixel goes from 1.0 (in original pixel units) to 2.0, therefore the center of the pixel moves by sqrt(2)/2, which is exactly 0.707.</p>
+
+<p>The performance of Montage on the atlas images is also summarized in the histograms; however, because the image used for analysis is extremely dense with sources, the ideal sextractor parameters needed for extraction could not be found.  In all cases where we had larger errors (42 of the atlas images that could not be properly extracted), it could be attributed to our inability to extract sources accurately with sextractor (e.g. it would extract two sources as one, thereby causing major flux and some location errors) with the threshold settings that we had.</p>
+
+
+
+
+<p>&nbsp;</p>
+
+<p align="center"><font size="+1"><b>Appendix A - Synthetic image used for accuracy/precision testing</b></font></p>
+<p align="center"><img src="images/appA.gif"></p>
+
+<p>&nbsp;</p>
+
+<p align="center"><font size="+1"><b>Appendix B - 2MASS atlas image used for accuracy/precision testing</font></b></p>
+<p align="center"><img src="images/appB.gif"></p>
+
+
+
+
+<div id="docnav">
+<p class="left"><a href="gridtools.html">&lt;-- Grid Tools</a></p>
+<p class="right"><a href="index.html">Documentation Index --&gt;</a></p>
+</div>
+
+
+
+
+
+
+
+<!--#include virtual="include/footer.html"-->

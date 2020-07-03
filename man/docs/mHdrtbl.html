@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mHdrtbl</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><span class="file">mHdrtbl</span> operates in a fashion similar to <a href="mImgtbl.html"><span class="file">mImgtbl</span></a>, but is used on a set of header template files instead of FITS images.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mHdrtbl [-rcdb] [-s <i>statusfile</i>] [-t <i>imglist</i>] <b>directory images.tbl</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-r</dt>
+  <dd><span class="file">mHdrtbl</span> can also be used as a standalone program to gather image metadata for other purposes (to populate a database, as a basis for spatial coverage searches, etc.)   In this case it is often desirable to collect information on all the files in a directory tree recursively.  The "-r" (recursive) flag instructs <span class="file">mHdrtbl</span> to search the given directory and all its subdirectories recursively.</dd>
+  <dt>-c</dt>
+  <dd>The "-c" (corners) option in mHdrtbl will cause eight extra columns to be added to the output metadata table containing the RA, Dec coordinates (ra1, dec1, ... ra4, dec4) of the image corners.  The output is always Equatorial J2000, even if the input is some other system.  This has been done to make the metadata uniform so that it can easily be used for coverage searches, etc.  The "-c" option is not needed for normal Montage processing.</dd>
+  <dt>-d</dt>
+  <dd>Turn on debugging</dd>
+  <dt>-b</dt>
+  <dd>When this switch is set, <span class="file">mHdrtbl</span> will explicitly output each header file it finds that does not appear to be valid, along with information on the error.</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are written to <i>statusfile</i> instead of being written to stdout.</dd>
+  <dt>-t <i>imglist</i></dt>
+  <dd><span class="file">mHdrtbl</span> will only process files with names specified in table <i>imglist</i>, ignoring any other files in the directory. Example: <a href="examples/mHdrtbl/example.imglist">example.imglist</a>.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>directory</dt>
+  <dd>Path to directory containing set of input header templates.</dt>
+  <dt>images.tbl</dt>
+  <dd>Path of output metadata table.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>Output table contains metadata information from all readable header templates in the directory specified by <i>directory</i>.  <i>count</i> is the number of records in the table, and <i>badhdrs</i> is the number of files for which FITS/WCS metadata could not be extracted.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<p>The following example runs <span class="file">mHdrtbl</span> on a directory containing header templates stripped from 14 2MASS images:</p>
+
+<dl class="example">
+  <dt>$ mHdrtbl input/2mass headers.tbl</dt>
+  <dd>[struct stat="OK", count=14, badfits=0]</dd>
+</dl>
+
+<p>Output: <a href="examples/mHdrtbl/headers.tbl"><span class="file">headers.tbl</span></a>.</p>
+
+<p class="dochead">Column Names:</p>
+<dl class="args">
+  <dt>cntr</dt>
+  <dd>A unique counter (row number)</dd>
+  <dt>ra,dec</dt>
+  <dd>Image position in decimal degree format</dd>
+  <dt>cra,cdec</dt>
+  <dd>Right ascension in HHMMSS.SS format. Declination in DDMMSS.S format</dd>
+  <dt>naxis1, naxis2</dt>
+  <dd>The size of the image in pixels for dimensions 1 and 2</dd>
+  <dt>ctype1, ctype2</dt>
+  <dd>The coordinate system (the first four characters) and WCS map projection (last three characters) for dimensions 1 and 2</dd>
+  <dt>crpix1, crpix2</dt>
+  <dd>The pixel coordinates of the reference location (can be fractional and can be off the image) for dimensions 1 and 2</dd>
+  <dt>crval1, crval2</dt>
+  <dd>The coordinates of a reference location on the sky (often at the center of the image) for dimensions 1 and 2</dd>
+  <dt>cdelt1, cdelt2</dt>
+  <dd>The pixel scale (in degrees on the sky per pixel) at the reference location for dimensions 1 and 2</dd>
+  <dt>crota2</dt>
+  <dd>The rotation angle from the "up" direction to the celestial pole</dd>
+  <dt>equinox</dt>
+  <dd>Precessional year associated with the coordinate system</dd>
+  <dt>hdu</dt>
+  <dd>Numerical identifier for the FITS extension that the image info is extracted from, for FITS files with multiple HDUs.</dd>
+  <dt>size</dt>
+  <dd>Filesize (in bytes) of the input FITS file</dd>
+  <dt>fname</dt>
+  <dd>The path to the input FITS file</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", count=<i>count</i>, badfits=<i>badfits</i>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mHdrtbl [-rcdb][-s statusfile][-f fieldlistfile][-t imglist] directory images.tbl"]</li>   
+  <li>[struct stat="ERROR", msg="Illegal argument: -<i>arg</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open field list file: <i>fieldlistfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open image list file: <i>imgfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Image table needs column fname/file"]</li>   
+  <li>[struct stat="ERROR", msg="Illegal field name: <i>string</i>]</li>   
+  <li>[struct stat="ERROR", msg="Illegal field type: <i>string</i>]</li>   
+  <li>[struct stat="ERROR", msg="Cannot access <i>directory</i>"]</li>   
+  <li>[struct stat="ERROR", msg="<i>directory</i> is not a directory"]</li>   
+  <li>[struct stat="ERROR", msg="Can't open output table."]</li>   
+  <li>[struct stat="ERROR", msg="Can't open copy table."]</li>   
+  <li>[struct stat="ERROR", msg="Can't open tmp (in) table."]</li>   
+  <li>[struct stat="ERROR", msg="Can't open tmp (out) table."]</li>   
+  <li>[struct stat="ERROR", msg="Can't open final table."]</li>   
+  <li>[struct stat="ERROR", flag=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->
