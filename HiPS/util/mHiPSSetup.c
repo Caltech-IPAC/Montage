@@ -228,7 +228,7 @@ int main(int argc, char **argv)
 
    for(i=1; i<ndata; ++i)
    {
-      sprintf(directory, "%s/%s/plates", datadir[i], mapname, j); mMkDir(directory, 0);
+      sprintf(directory, "%s/%s/plates", datadir[i], mapname); mMkDir(directory, 0);
    }
 
    for(j=0; j<10; ++j)

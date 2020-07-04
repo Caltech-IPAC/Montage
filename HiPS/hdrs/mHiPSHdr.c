@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG> Base tile    = %d (offset %d %d)\n", 
+      printf("\nDEBUG> Base tile    = %ld (offset %d %d)\n", 
          baseTile, xoffset[baseTile], yoffset[baseTile]);
       fflush(stdout);
    }
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG> Relative tile: X = %7d, Y = %7d (of %d) [X was originally %d]\n", x, y, nside, nside - 1 - x);
+      printf("\nDEBUG> Relative tile: X = %7d, Y = %7d (of %ld) [X was originally %ld]\n", x, y, nside, nside - 1 - x);
       fflush(stdout);
    }
 

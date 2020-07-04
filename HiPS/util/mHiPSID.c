@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Original XY:   X = %9.1f, Y = %9.1f (level %ld)\n", xoriginal, yoriginal, pixlev);
+      printf("DEBUG> Original XY:   X = %9.1f, Y = %9.1f (level %lld)\n", xoriginal, yoriginal, pixlev);
       fflush(stdout);
    }
 
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Absolute:      X = %9.1f, Y = %9.1f (level %ld)\n", xabsolute, yabsolute, pixlev); 
+      printf("DEBUG> Absolute:      X = %9.1f, Y = %9.1f (level %lld)\n", xabsolute, yabsolute, pixlev); 
       fflush(stdout);
    }
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Reverse:       X = %9.1f, Y = %9.1f (level %ld)\n", xreverse, yreverse, pixlev); 
+      printf("DEBUG> Reverse:       X = %9.1f, Y = %9.1f (level %lld)\n", xreverse, yreverse, pixlev); 
       fflush(stdout);
    }
 
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Base tile = %d\n\n", baseTile);
+      printf("DEBUG> Base tile = %lld\n\n", baseTile);
       fflush(stdout);
    }
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev); 
+      printf("DEBUG> Relative tile: X = %9.5f, Y = %9.5f (level %lld)\n", xintile, yintile, pixlev); 
       fflush(stdout);
    }
 
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, outlevel); 
+      printf("DEBUG> Relative tile: X = %9.5f, Y = %9.5f (level %lld)\n", xintile, yintile, outlevel); 
       fflush(stdout);
    }
 
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG> Tile starting index = %lld (level %ld)\n\n", index, outlevel);
+      printf("\nDEBUG> Tile starting index = %lld (level %lld)\n\n", index, outlevel);
       fflush(stdout);
    }
 
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Relative tile: X = %9.5f, Y = %9.5f (of %d)\n", xintile, yintile, nsideout);
+      printf("DEBUG> Relative tile: X = %9.5f, Y = %9.5f (of %lld)\n", xintile, yintile, nsideout);
       fflush(stdout);
    }
 
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> Integer tile:  X = %9d, Y = %9d (of %d)\n", xi, yi, nsideout);
+      printf("DEBUG> Integer tile:  X = %9lld, Y = %9lld (of %lld)\n", xi, yi, nsideout);
       fflush(stdout);
    }
 
@@ -250,8 +250,8 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG> Tile index   = %ld (i.e., index inside base tile)\n", id);
-      printf("DEBUG> Tile index   = %o (octal)\n\n", id);
+      printf("\nDEBUG> Tile index   = %lld (i.e., index inside base tile)\n", id);
+      printf("DEBUG> Tile index   = %llo (octal)\n\n", id);
       fflush(stdout);
    }
 

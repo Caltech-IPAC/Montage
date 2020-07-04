@@ -237,10 +237,10 @@ int main(int argc, char **argv)
      chmod(scriptfile, 0777);
 
      if(single_threaded)
-        fprintf(fdriver, "%sjobs/tiles%03d.sh %s %s\n", scriptdir, count, platedir, hipsdir, platedir);
+        fprintf(fdriver, "%sjobs/tiles%03d.sh %s %s\n", scriptdir, count, platedir, hipsdir);
      else
         fprintf(fdriver, "sbatch submitHiPSTiles.bash %sjobs/tiles%03d.sh %s %s\n", 
-           scriptdir, count, platedir, hipsdir, platedir);
+           scriptdir, count, platedir, hipsdir);
      fflush(fdriver);
 
       ++count;
