@@ -40,7 +40,6 @@ Version  Developer        Date     Change
 #include <wcs.h>
 
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR  256

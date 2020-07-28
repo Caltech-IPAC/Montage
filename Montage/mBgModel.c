@@ -52,7 +52,6 @@ Version  Developer        Date     Change
 #include <string.h>
 #include <math.h>
 
-#include "montage.h"
 #include <mtbl.h>
 
 #define MAXSTR  256

@@ -44,8 +44,6 @@ Version  Developer        Date     Change
 #include "distort.h"
 #include "mNaN.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 #define MAXFILE 256
 #define HDRLEN  80000

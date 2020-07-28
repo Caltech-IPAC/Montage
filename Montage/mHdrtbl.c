@@ -18,7 +18,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <fitshead.h>
 #include "mtbl.h"
-#include "montage.h"
 #include "hdr_rec.h"
 
 #define MAXLEN 4096

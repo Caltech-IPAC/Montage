@@ -143,7 +143,6 @@ int hputi4 (char *hstring, const char *keyword, const int ival);
 #  endif
 #endif
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR     256

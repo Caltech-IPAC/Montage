@@ -20,8 +20,6 @@ Version  Developer        Date     Change
 
 #include "fitsio.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 
 extern char *optarg;

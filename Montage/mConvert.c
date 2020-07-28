@@ -16,7 +16,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <fitsio.h>
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR  256
@@ -94,7 +93,7 @@ int main(int argc, char **argv)
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 

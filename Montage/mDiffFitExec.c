@@ -15,8 +15,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <mtbl.h>
 
-#include "montage.h"
-
 #define MAXSTR 4096
 
 char *svc_value();

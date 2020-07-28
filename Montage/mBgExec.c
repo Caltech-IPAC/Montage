@@ -43,8 +43,6 @@ Version         Developer          Date           Change
 #include <mpi.h>
 #endif
 
-#include "montage.h"
-
 #define MAXSTR  4096
 
 char *svc_value();

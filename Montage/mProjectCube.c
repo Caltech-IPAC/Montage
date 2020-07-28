@@ -19,8 +19,6 @@ Version  Developer        Date     Change
 #include "coord.h"
 #include "mNaN.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 #define MAXFILE 256
 

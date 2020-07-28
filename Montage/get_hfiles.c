@@ -16,10 +16,11 @@ Version  Developer        Date     Change
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
-#include "montage.h"
 #include "hdr_rec.h"
 
 #define MAXSTR 4096
+
+extern FILE *fstatus;
 
 extern int   debug;
 extern int   recursiveMode;

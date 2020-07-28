@@ -36,7 +36,6 @@ Version  Developer        Date     Change
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "montage.h"
 #include "fitsio.h"
 #include "wcs.h"
 
@@ -45,6 +44,8 @@ Version  Developer        Date     Change
 #define FITS   0
 #define HDR    1
 #define EITHER 2
+
+extern FILE *fstatus;
 
 int havePLTRAH;
 

@@ -22,8 +22,6 @@ Version  Developer        Date     Change
 #include <fitsio.h>
 #include <www.h>
 
-#include "montage.h"
-
 #define NORMAL  0
 #define COM     1
 #define WCS     2

@@ -63,8 +63,6 @@ Version  Developer        Date     Change
 #include <mpi.h>
 #endif
 
-#include "montage.h"
-
 #define MAXSTR 4096
 #define MAXHDR 80000
 

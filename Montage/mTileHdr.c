@@ -23,7 +23,6 @@ Version  Developer        Date     Change
 static struct WorldCoor *wcs;
 
 FILE    *fout;
-FILE    *fstatus;
 
 int      naxis1, naxis2;
 double   crpix1, crpix2;

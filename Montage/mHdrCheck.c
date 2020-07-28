@@ -16,7 +16,6 @@ Version  Developer        Date     Change
 #include <string.h>
 #include <wcs.h>
 
-#include "montage.h"
 #include "fitsio.h"
 
 extern char *optarg;

@@ -40,7 +40,6 @@ Version  Developer        Date     Change
 #include <time.h>
 #include <math.h>
 
-#include "montage.h"
 #include "fitsio.h"
 #include "wcs.h"
 #include "mNaN.h"

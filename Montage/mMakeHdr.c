@@ -51,8 +51,6 @@ Version  Developer        Date     Change
 #include <wcs.h>
 #include <boundaries.h>
 
-#include "montage.h"
-
 #define MAXSTR   4096
 #define MAXFILES   16
 #define MAXCOORD 4096

@@ -39,8 +39,6 @@ Version  Developer        Date     Change
 #include <wcs.h>
 #include <coord.h>
 
-#include "montage.h"
-
 #define MAXSTR 256
 #define MAXIMG 256
 

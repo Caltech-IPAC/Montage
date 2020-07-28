@@ -33,7 +33,6 @@ int allocError(char *);
 #include <wcs.h>
 #include <mtbl.h>
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR     256

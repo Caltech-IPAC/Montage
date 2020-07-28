@@ -36,7 +36,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <pixbounds.h>
 
-#include "montage.h"
 #include "fitsio.h"
 #include "mNaN.h"
 

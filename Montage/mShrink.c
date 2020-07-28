@@ -42,8 +42,6 @@ Version  Developer        Date     Change
 #include "wcs.h"
 #include "mNaN.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 
 extern char *optarg;
