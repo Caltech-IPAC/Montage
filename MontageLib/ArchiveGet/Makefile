@@ -2,7 +2,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc
-CFLAGS =	-g -I. -I.. -I../../lib/include -fPIC
+CFLAGS =	-g -O2 -I. -I.. -I../../lib/include -fPIC
 LIBS   =	 -L../../lib -lbz2
 
 .c.o:

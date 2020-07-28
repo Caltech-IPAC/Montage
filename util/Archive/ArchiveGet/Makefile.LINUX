@@ -8,7 +8,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc
-CFLAGS =	-g -I../../../Montage -I../../../lib/include
+CFLAGS =	-g -O2 -I../../../Montage -I../../../lib/include
 LIBS   =	 -L../../../lib -lwcs -lcfitsio -lmcurl -lcurl -lnsl -lidn -lssl -lcrypto -ldl -llber -lldap -lz -lrt -L/usr/kerberos/lib64 -lm
 
 .c.o:

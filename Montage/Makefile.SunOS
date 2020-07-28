@@ -48,7 +48,7 @@
 
 CC     =	gcc
 MPICC  =
-CFLAGS =	-g -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
+CFLAGS =	-g -O2 -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
 LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		   -lwww -lboundaries -lpixbounds -ltwoplane -lsocket -lnsl -lm
 
@@ -163,11 +163,11 @@ mHdrCheck:	mHdrCheck.o checkHdr.o checkWCS.o checkFile.o
 		checkFile.o $(LIBS)
 
 mHdrtbl:	mHdrtbl.o get_hfiles.o get_hhdr.o print_hrec.o checkWCS.o
-		$(CC) -g -o mHdrtbl mHdrtbl.o get_hfiles.o \
+		$(CC) -g -O2 -o mHdrtbl mHdrtbl.o get_hfiles.o \
 		get_hhdr.o print_hrec.o checkWCS.o $(LIBS)
 
 mImgtbl:	mImgtbl.o get_files.o get_hdr.o print_rec.o checkWCS.o
-		$(CC) -g -o mImgtbl mImgtbl.o get_files.o \
+		$(CC) -g -O2 -o mImgtbl mImgtbl.o get_files.o \
 		get_hdr.o print_rec.o checkWCS.o $(LIBS)
 
 mMakeHdr:	mMakeHdr.o debugCheck.o checkHdr.o checkWCS.o
