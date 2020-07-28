@@ -19,11 +19,12 @@ Version  Developer        Date     Change
 #include <wcs.h>
 #include <coord.h>
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR  1024
 #define MAXFILE 1024
+
+FILE *fstatus;
 
 extern char *optarg;
 extern int optind, opterr;
@@ -129,7 +130,7 @@ int main(int argc, char **argv)
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 

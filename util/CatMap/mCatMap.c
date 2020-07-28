@@ -32,6 +32,8 @@ char  *tval(int);
 
 int  debug;
 
+FILE *fstatus;
+
 struct
 {
    fitsfile         *fptr;

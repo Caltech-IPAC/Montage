@@ -21,9 +21,9 @@ Version  Developer        Date     Change
 
 #include <svc.h>
 
-#include "montage.h"
-
 #define MAXSTR 4096
+
+FILE *fstatus;
 
 char input_file1  [MAXSTR];
 char input_file2  [MAXSTR];

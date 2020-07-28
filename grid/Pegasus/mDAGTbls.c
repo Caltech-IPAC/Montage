@@ -25,13 +25,13 @@ Version  Developer        Date     Change
 #include "coord.h"
 #include "mtbl.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 #define MAXFILE 256
 
 #define CDELT   1
 #define CD      2
+
+FILE *fstatus;
 
 extern char *optarg;
 extern int optind, opterr;

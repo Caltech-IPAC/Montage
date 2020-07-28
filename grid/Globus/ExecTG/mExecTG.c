@@ -33,6 +33,8 @@
 #define COMPUTED  1
 #define FAILED    2
 
+FILE *fstatus;
+
 extern char *optarg;
 extern int optind, opterr;
 

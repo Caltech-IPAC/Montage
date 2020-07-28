@@ -23,7 +23,6 @@ Version  Developer        Date     Change
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <montage.h>
 #include <cmd.h>
 #include <wcs.h>
 #include <coord.h>
@@ -112,6 +111,7 @@ typedef struct rectStruct
 }
 RectInfo;
 
+FILE *fstatus;
 
 extern char *optarg;
 extern int   optind, opterr;

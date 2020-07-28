@@ -30,6 +30,8 @@
 
 void convertGalToEqu(double glon, double glat, double *ra, double *dec)
 {     
+   int coord_debug = 0;
+
    static int nthru = 0;
 
    static double dtor, rtod;
@@ -180,6 +182,8 @@ void convertGalToEqu(double glon, double glat, double *ra, double *dec)
 
 void convertEquToGal(double ra, double dec, double *glon, double *glat)
 {
+   int coord_debug = 0;
+
    static int nthru = 0;
 
    static double dtor, rtod;

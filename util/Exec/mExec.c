@@ -63,6 +63,7 @@ static time_t currtime, start, lasttime;
 
 int debug;
 
+FILE *fstatus;
 FILE *fdebug;
 FILE *finfo;
 
@@ -1375,7 +1376,7 @@ int main(int argc, char **argv, char **envp)
 
             if(iurl < 0)
             {
-               printf("[struct stat=\"ERROR\", msg=\"Remote images table %s needs column 'URL' or 'url' and can optionally have column 'fname'/'file'\"]\n");
+               printf("[struct stat=\"ERROR\", msg=\"Remote images table needs column 'URL' or 'url' and can optionally have column 'fname'/'file'\"]\n");
                exit(1);
             }
 

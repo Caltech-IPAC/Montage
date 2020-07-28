@@ -5,7 +5,6 @@
 double computeEquPole();
 
 
-
 /***************************************************************************/
 /*                                                                         */
 /* convertEclToEqu computes equatorial coords from ecliptic coords.        */
@@ -33,6 +32,8 @@ double computeEquPole();
 void convertEclToEqu(double elon, double elat, double *ra, double *dec, 
 		     double date, int besselian)
 {
+   int coord_debug = 0;
+
    static int    nthru          =    0;
    static int    savebesselian  =  -99;
    static double savedate       = -1.0;
@@ -177,6 +178,8 @@ void convertEclToEqu(double elon, double elat, double *ra, double *dec,
 void convertEquToEcl(double ra, double dec, double *elon, double *elat, 
 		     double date, int besselian)
 {
+   int coord_debug = 0;
+
    static int    nthru          =    0;
    static int    savebesselian  =  -99;
    static double savedate       = -1.0;
@@ -307,6 +310,8 @@ void convertEquToEcl(double ra, double dec, double *elon, double *elat,
 
 double computeEquPole(double date, int besselian)
 {   
+   int coord_debug = 0;
+
 
    /* 't' is the time offset from the reference date in centuries */
 

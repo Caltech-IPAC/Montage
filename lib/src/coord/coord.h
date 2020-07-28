@@ -1,9 +1,5 @@
 #ifndef ISIS_COORD_LIB
 
-
-int coord_debug;
-
-
 struct COORD                /* Definition of coordinate structure            */
 {                           /*                                               */ 
   char sys[3];              /* Coordinate system                             */
