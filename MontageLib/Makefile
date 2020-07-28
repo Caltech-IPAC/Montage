@@ -9,7 +9,6 @@ endif
 all: pgm lib pythonlibs
 
 pgm: 
-
 		(cd util          &&                   $(MAKE))
 		(cd Add           && ./Configure.sh && $(MAKE) && $(MAKE) install)
 		(cd AddCube       && ./Configure.sh && $(MAKE) && $(MAKE) install)
