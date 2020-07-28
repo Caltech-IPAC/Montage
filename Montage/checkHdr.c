@@ -76,7 +76,8 @@ char ctype1[1024];
 char ctype2[1024];
 
 char *hdrCheck_outfile = (char *)NULL;
-FILE *fout;
+
+extern FILE *fout;
 
 int CHdebug    = 0;
 int errorCount = 0;

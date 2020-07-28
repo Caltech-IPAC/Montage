@@ -1080,7 +1080,7 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
    float  fnan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    dnan = value.d8;
    fnan = value.d4[0];
@@ -1378,7 +1378,7 @@ int mSubCube_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
    double dnan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    dnan = value.d;
 

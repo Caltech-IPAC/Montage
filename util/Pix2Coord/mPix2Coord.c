@@ -28,6 +28,7 @@ struct WorldCoor *getWCS();
 static struct WorldCoor *wcs;
 
 FILE    *fstatus;
+FILE    *fout;
 
 extern char *optarg;
 extern int optind, opterr;

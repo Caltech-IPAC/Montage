@@ -591,7 +591,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    value;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    double nan;
 

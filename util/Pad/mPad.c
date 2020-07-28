@@ -23,6 +23,7 @@ Version  Developer        Date     Change
 #define MAXFILE 256
 
 FILE *fstatus;
+FILE *fout;
 
 char input_file  [MAXSTR];
 char output_file [MAXSTR];

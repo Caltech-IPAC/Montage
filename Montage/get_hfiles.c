@@ -32,7 +32,7 @@ extern int   hdrlen;
 int  get_hhdr   (char*, struct Hdr_rec*, char*);
 void print_hrec (struct Hdr_rec*);
 
-struct Hdr_rec hdr_rec;
+extern struct Hdr_rec hdr_rec;
 
 
 /* Recursively finds all FITS files     */

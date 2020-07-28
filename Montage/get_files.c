@@ -44,7 +44,7 @@ void print_rec (struct Hdr_rec*);
 
 char *mktemp(char *template);
 
-struct Hdr_rec hdr_rec;
+extern struct Hdr_rec hdr_rec;
 
 
 /* Recursively finds all FITS files     */

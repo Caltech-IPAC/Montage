@@ -144,7 +144,7 @@ struct mShrinkCubeReturn *mShrinkCube(char *input_file, char *output_file, doubl
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 

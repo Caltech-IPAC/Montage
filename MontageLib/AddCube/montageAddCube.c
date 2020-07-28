@@ -266,7 +266,7 @@ struct mAddCubeReturn *mAddCube(char *inpath, char *tblfile, char *template_file
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -781,7 +781,7 @@ struct mAddCubeReturn *mAddCube(char *inpath, char *tblfile, char *template_file
    /* Allocate memory for input buffers */
    /*************************************/
 
-   inbuflen = labs(imax-imin);
+   inbuflen = fabs(imax-imin);
 
    if( output.naxes[0] > inbuflen)
       inbuflen = output.naxes[0];

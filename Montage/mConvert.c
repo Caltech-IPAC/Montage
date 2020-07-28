@@ -28,6 +28,8 @@ void printError    (char *);
 int  readFits      (char *fluxfile);
 int  checkHdr      (char *infile, int hdrflag, int hdu);
 
+FILE *fout;
+
 long naxes[2];
 
 int  debug;

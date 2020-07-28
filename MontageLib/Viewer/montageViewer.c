@@ -575,6 +575,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    returnStruct = &rtnStruct;
 
+   outType = PNG;
+
    grayType  = 0;
    redType   = 0;
    greenType = 0;
@@ -7972,7 +7974,11 @@ int mViewer_setPixel(int i, int j, double brightness, double red, double green, 
 {
    int offset;
    int rval, gval, bval;
-   int rref, gref, bref;
+
+   int rref = 0;
+   int gref = 0;
+   int bref = 0;
+
    int valmag, refmag;
 
    if(i < 0 || i >= nx)

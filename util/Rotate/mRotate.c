@@ -25,6 +25,7 @@ Version  Developer        Date     Change
 #define MAXFILE 1024
 
 FILE *fstatus;
+FILE *fout;
 
 extern char *optarg;
 extern int optind, opterr;

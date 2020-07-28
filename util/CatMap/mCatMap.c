@@ -33,6 +33,7 @@ char  *tval(int);
 int  debug;
 
 FILE *fstatus;
+FILE *fout;
 
 struct
 {

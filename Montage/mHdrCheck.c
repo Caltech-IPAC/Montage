@@ -33,6 +33,7 @@ void checkHdrExact(int stringent);
 int  errorOutput  (char *msg);
 
 FILE *fstatus;
+FILE *fout;
 
 
 /*************************************************************************/
