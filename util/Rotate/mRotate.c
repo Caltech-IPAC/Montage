@@ -75,14 +75,14 @@ double dtr;
 
 double rotation;
 
-int haveCDELT1;
-int haveCDELT2;
-int haveCROTA2;
+extern int haveCDELT1;
+extern int haveCDELT2;
+extern int haveCROTA2;
 
-int haveCD1_1;
-int haveCD1_2;
-int haveCD2_1;
-int haveCD2_2;
+extern int haveCD1_1;
+extern int haveCD1_2;
+extern int haveCD2_1;
+extern int haveCD2_2;
 
 
 /*****************************************************/
