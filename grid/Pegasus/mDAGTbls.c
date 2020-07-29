@@ -32,6 +32,7 @@ Version  Developer        Date     Change
 #define CD      2
 
 FILE *fstatus;
+FILE *fout;
 
 extern char *optarg;
 extern int optind, opterr;

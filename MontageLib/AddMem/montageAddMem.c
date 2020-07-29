@@ -35,7 +35,7 @@ struct
    long      naxes[2];
    double    crpix1, crpix2;
 }
-   input, input_area, output, output_area;
+   addmem_input, addmem_input_area, addmem_output, addmem_output_area;
 
 static time_t currtime, start;
 
@@ -239,10 +239,10 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
    if(mAddMem_debug >= 1)
    {
-      printf("output.naxes[0] =  %ld\n", output.naxes[0]);
-      printf("output.naxes[1] =  %ld\n", output.naxes[1]);
-      printf("output.crpix1   =  %-g\n", output.crpix1);
-      printf("output.crpix2   =  %-g\n", output.crpix2);
+      printf("addmem_output.naxes[0] =  %ld\n", addmem_output.naxes[0]);
+      printf("addmem_output.naxes[1] =  %ld\n", addmem_output.naxes[1]);
+      printf("addmem_output.crpix1   =  %-g\n", addmem_output.crpix1);
+      printf("addmem_output.crpix2   =  %-g\n", addmem_output.crpix2);
       fflush(stdout);
    }
 
@@ -251,8 +251,8 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* Allocate memory for the output image pixels */ 
    /***********************************************/ 
 
-   ilength = output.naxes[0];
-   jlength = output.naxes[1];
+   ilength = addmem_output.naxes[0];
+   jlength = addmem_output.naxes[1];
 
    data = (double **)malloc(jlength * sizeof(double *));
 
@@ -367,23 +367,23 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
          return returnStruct;
       }
 
-      ioffset = output.crpix1 - input.crpix1;
-      joffset = output.crpix2 - input.crpix2;
+      ioffset = addmem_output.crpix1 - addmem_input.crpix1;
+      joffset = addmem_output.crpix2 - addmem_input.crpix2;
 
       if(mAddMem_debug >= 2)
       {
-         printf("\nflux file            =  %s\n",  infile);
-         printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-         printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-         printf("input.crpix1         =  %-g\n",   input.crpix1);
-         printf("input.crpix2         =  %-g\n",   input.crpix2);
-         printf("\narea file            =  %s\n",  inarea);
-         printf("input_area.naxes[0]  =  %ld\n",   input.naxes[0]);
-         printf("input_area.naxes[1]  =  %ld\n",   input.naxes[1]);
-         printf("input_area.crpix1    =  %-g\n",   input.crpix1);
-         printf("input_area.crpix2    =  %-g\n",   input.crpix2);
-         printf("\nioffset              =  %d\n",  ioffset);
-         printf("joffset              =  %d\n\n",  joffset);
+         printf("\nflux file                 =  %s\n",  infile);
+         printf("addmem_input.naxes[0]       =  %ld\n",   addmem_input.naxes[0]);
+         printf("addmem_input.naxes[1]       =  %ld\n",   addmem_input.naxes[1]);
+         printf("addmem_input.crpix1         =  %-g\n",   addmem_input.crpix1);
+         printf("addmem_input.crpix2         =  %-g\n",   addmem_input.crpix2);
+         printf("\narea file                 =  %s\n",  inarea);
+         printf("addmem_input_area.naxes[0]  =  %ld\n",   addmem_input.naxes[0]);
+         printf("addmem_input_area.naxes[1]  =  %ld\n",   addmem_input.naxes[1]);
+         printf("addmem_input_area.crpix1    =  %-g\n",   addmem_input.crpix1);
+         printf("addmem_input_area.crpix2    =  %-g\n",   addmem_input.crpix2);
+         printf("\nioffset                     =  %d\n",  ioffset);
+         printf("joffset                     =  %d\n\n",  joffset);
 
          fflush(stdout);
       }
@@ -393,15 +393,15 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       /* Create the output array by processing the input pixels */
       /**********************************************************/
 
-      buffer  = (double *)malloc(input.naxes[0] * sizeof(double));
-      abuffer = (double *)malloc(input.naxes[0] * sizeof(double));
+      buffer  = (double *)malloc(addmem_input.naxes[0] * sizeof(double));
+      abuffer = (double *)malloc(addmem_input.naxes[0] * sizeof(double));
 
       fpixel[0] = 1;
       fpixel[1] = 1;
       fpixel[2] = 1;
       fpixel[3] = 1;
 
-      nelements = input.naxes[0];
+      nelements = addmem_input.naxes[0];
 
       status = 0;
 
@@ -410,7 +410,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       /* Loop over the input lines */
       /*****************************/
 
-      for (j=0; j<input.naxes[1]; ++j)
+      for (j=0; j<addmem_input.naxes[1]; ++j)
       {
          if(mAddMem_debug >= 2)
          {
@@ -429,7 +429,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
          /* Read a line from the input file */
          /***********************************/
 
-         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
+         if(fits_read_pix(addmem_input.fptr, TDOUBLE, fpixel, nelements, &nan,
                           buffer, &nullcnt, &status))
          {
             free(buffer);
@@ -452,12 +452,12 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
          
          if(noAreas)
          {
-            for(i=0; i<input.naxes[0]; ++i)
+            for(i=0; i<addmem_input.naxes[0]; ++i)
                abuffer[i] = 1.;
          }
          else
          {
-            if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
+            if(fits_read_pix(addmem_input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
                              abuffer, &nullcnt, &status))
             {
                free(buffer);
@@ -485,7 +485,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
          /* For each input pixel */
          /************************/
 
-         for (i=0; i<input.naxes[0]; ++i)
+         for (i=0; i<addmem_input.naxes[0]; ++i)
          {
             if(mAddMem_debug >= 4)
             {
@@ -497,8 +497,8 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
             if(i+ioffset < 0) continue;
             if(j+joffset < 0) continue;
 
-            if(i+ioffset >= output.naxes[0]) continue;
-            if(j+joffset >= output.naxes[1]) continue;
+            if(i+ioffset >= addmem_output.naxes[0]) continue;
+            if(j+joffset >= addmem_output.naxes[1]) continue;
 
             if(mNaN(buffer[i]))
                continue;
@@ -531,7 +531,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       free(buffer);
       free(abuffer);
 
-      if(fits_close_file(input.fptr, &status))
+      if(fits_close_file(addmem_input.fptr, &status))
       {
          for(j=0; j<jlength; ++j)
          {
@@ -549,7 +549,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
       if(!noAreas)
       {
-         if(fits_close_file(input_area.fptr, &status))
+         if(fits_close_file(addmem_input_area.fptr, &status))
          {
             for(j=0; j<jlength; ++j)
             {
@@ -642,7 +642,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    remove(output_file);               
    remove(output_area_file);               
 
-   if(fits_create_file(&output.fptr, output_file, &status)) 
+   if(fits_create_file(&addmem_output.fptr, output_file, &status)) 
    {
       for(j=0; j<jlength; ++j)
       {
@@ -658,7 +658,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_create_file(&output_area.fptr, output_area_file, &status)) 
+   if(fits_create_file(&addmem_output_area.fptr, output_area_file, &status)) 
    {
       for(j=0; j<jlength; ++j)
       {
@@ -680,7 +680,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* handled automatically.                                */
    /*********************************************************/
 
-   if (fits_create_img(output.fptr, bitpix, naxis, output.naxes, &status))
+   if (fits_create_img(addmem_output.fptr, bitpix, naxis, addmem_output.naxes, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -702,7 +702,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       fflush(stdout);
    }
 
-   if (fits_create_img(output_area.fptr, bitpix, naxis, output_area.naxes, &status))
+   if (fits_create_img(addmem_output_area.fptr, bitpix, naxis, addmem_output_area.naxes, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -729,7 +729,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* Set FITS header from a template file */
    /****************************************/
 
-   if(fits_write_key_template(output.fptr, template_file, &status))
+   if(fits_write_key_template(addmem_output.fptr, template_file, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -751,7 +751,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       fflush(stdout);
    }
 
-   if(fits_write_key_template(output_area.fptr, template_file, &status))
+   if(fits_write_key_template(addmem_output_area.fptr, template_file, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -778,7 +778,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* Modify BITPIX to be -64 */
    /***************************/
 
-   if(fits_update_key_lng(output.fptr, "BITPIX", -64,
+   if(fits_update_key_lng(addmem_output.fptr, "BITPIX", -64,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -795,7 +795,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "BITPIX", -64,
+   if(fits_update_key_lng(addmem_output_area.fptr, "BITPIX", -64,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -817,7 +817,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* Update NAXIS, NAXIS1, NAXIS2, CRPIX1 and CRPIX2 */
    /***************************************************/
 
-   if(fits_update_key_lng(output.fptr, "NAXIS", 2,
+   if(fits_update_key_lng(addmem_output.fptr, "NAXIS", 2,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -834,7 +834,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output.fptr, "NAXIS1", imax-imin+1,
+   if(fits_update_key_lng(addmem_output.fptr, "NAXIS1", imax-imin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -851,7 +851,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output.fptr, "NAXIS2", jmax-jmin+1,
+   if(fits_update_key_lng(addmem_output.fptr, "NAXIS2", jmax-jmin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -868,7 +868,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output.fptr, "CRPIX1", output.crpix1-imin, -14,
+   if(fits_update_key_dbl(addmem_output.fptr, "CRPIX1", addmem_output.crpix1-imin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -885,7 +885,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output.fptr, "CRPIX2", output.crpix2-jmin, -14,
+   if(fits_update_key_dbl(addmem_output.fptr, "CRPIX2", addmem_output.crpix2-jmin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -902,7 +902,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "NAXIS", 2,
+   if(fits_update_key_lng(addmem_output_area.fptr, "NAXIS", 2,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -919,7 +919,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "NAXIS1", imax-imin+1,
+   if(fits_update_key_lng(addmem_output_area.fptr, "NAXIS1", imax-imin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -936,7 +936,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "NAXIS2", jmax-jmin+1,
+   if(fits_update_key_lng(addmem_output_area.fptr, "NAXIS2", jmax-jmin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -953,7 +953,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output_area.fptr, "CRPIX1", output.crpix1-imin, -14,
+   if(fits_update_key_dbl(addmem_output_area.fptr, "CRPIX1", addmem_output.crpix1-imin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -970,7 +970,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output_area.fptr, "CRPIX2", output.crpix2-jmin, -14,
+   if(fits_update_key_dbl(addmem_output_area.fptr, "CRPIX2", addmem_output.crpix2-jmin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1017,7 +1017,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
    for(j=jmin; j<=jmax; ++j)
    {
-      if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements, 
+      if (fits_write_pix(addmem_output.fptr, TDOUBLE, fpixel, nelements, 
                          (void *)(&data[j][imin]), &status))
       {
          for(i=0; i<jlength; ++i)
@@ -1056,7 +1056,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
       for(j=jmin; j<=jmax; ++j)
       {
-         if (fits_write_pix(output_area.fptr, TDOUBLE, fpixel, nelements,
+         if (fits_write_pix(addmem_output_area.fptr, TDOUBLE, fpixel, nelements,
                             (void *)(&area[j][imin]), &status))
          {
             for(i=0; i<jlength; ++i)
@@ -1088,7 +1088,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* Close the FITS file */
    /***********************/
 
-   if(fits_close_file(output.fptr, &status))
+   if(fits_close_file(addmem_output.fptr, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1112,7 +1112,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
    if(!noAreas)
    {
-      if(fits_close_file(output_area.fptr, &status))
+      if(fits_close_file(addmem_output_area.fptr, &status))
       {
          for(j=0; j<jlength; ++j)
          {
@@ -1271,26 +1271,26 @@ int mAddMem_parseLine(char *line)
 
    if(strcmp(keyword, "NAXIS1") == 0)
    {
-      output.naxes[0] = atoi(value);
-      output_area.naxes[0] = atoi(value);
+      addmem_output.naxes[0] = atoi(value);
+      addmem_output_area.naxes[0] = atoi(value);
    }
 
    if(strcmp(keyword, "NAXIS2") == 0)
    {
-      output.naxes[1] = atoi(value);
-      output_area.naxes[1] = atoi(value);
+      addmem_output.naxes[1] = atoi(value);
+      addmem_output_area.naxes[1] = atoi(value);
    }
 
    if(strcmp(keyword, "CRPIX1") == 0)
    {
-      output.crpix1 = atof(value);
-      output_area.crpix1 = atof(value);
+      addmem_output.crpix1 = atof(value);
+      addmem_output_area.crpix1 = atof(value);
    }
 
    if(strcmp(keyword, "CRPIX2") == 0)
    {
-      output.crpix2 = atof(value);
-      output_area.crpix2 = atof(value);
+      addmem_output.crpix2 = atof(value);
+      addmem_output_area.crpix2 = atof(value);
    }
 
    return 0;
@@ -1315,7 +1315,7 @@ int mAddMem_readFits(char *fluxfile, char *areafile)
 
    if(!noAreas)
    {
-      if(fits_open_file(&input_area.fptr, areafile, READONLY, &status))
+      if(fits_open_file(&addmem_input_area.fptr, areafile, READONLY, &status))
       {
          sprintf(errstr, "Area file %s missing or invalid FITS", areafile);
          mAddMem_printError(errstr);
@@ -1323,36 +1323,36 @@ int mAddMem_readFits(char *fluxfile, char *areafile)
       }
    }
 
-   if(fits_open_file(&input.fptr, fluxfile, READONLY, &status))
+   if(fits_open_file(&addmem_input.fptr, fluxfile, READONLY, &status))
    {
       sprintf(errstr, "Image file %s missing or invalid FITS", fluxfile);
       mAddMem_printError(errstr);
       return 1;
    }
 
-   if(fits_read_keys_lng(input.fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
+   if(fits_read_keys_lng(addmem_input.fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
    {
       mAddMem_printFitsError(status);
       return 1;
    }
    
-   input.naxes[0] = naxes[0];
-   input.naxes[1] = naxes[1];
+   addmem_input.naxes[0] = naxes[0];
+   addmem_input.naxes[1] = naxes[1];
 
-   input_area.naxes[0] = naxes[0];
-   input_area.naxes[1] = naxes[1];
+   addmem_input_area.naxes[0] = naxes[0];
+   addmem_input_area.naxes[1] = naxes[1];
 
-   if(fits_read_keys_dbl(input.fptr, "CRPIX", 1, 2, crpix, &nfound, &status))
+   if(fits_read_keys_dbl(addmem_input.fptr, "CRPIX", 1, 2, crpix, &nfound, &status))
    {
       mAddMem_printFitsError(status);
       return 1;
    }
 
-   input.crpix1 = crpix[0];
-   input.crpix2 = crpix[1];
+   addmem_input.crpix1 = crpix[0];
+   addmem_input.crpix2 = crpix[1];
 
-   input_area.crpix1 = crpix[0];
-   input_area.crpix2 = crpix[1];
+   addmem_input_area.crpix1 = crpix[0];
+   addmem_input_area.crpix2 = crpix[1];
    
    return 0;
 }

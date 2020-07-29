@@ -90,7 +90,6 @@ static int mSubimage_debug;
 static int isflat;
 static int bitpix;
 
-int haveBlank;
 static long blank;
 
 static char content[128];
@@ -155,6 +154,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
    double    cdelt[10];
    int       pixMode, shrinkWrap;
    int       imin, imax, jmin, jmax;
+   int       haveBlank;
 
    int       sys;
    double    epoch;

@@ -67,31 +67,6 @@ Version  Developer        Date     Change
 
 struct WorldCoor *outwcs;
 
-
-/* Basic image WCS information    */
-/* (from the FITS header and as   */
-/* returned from the WCS library) */
-
-struct ImgInfo
-{
-   struct WorldCoor *wcs;
-   int               sys;
-   int               equinox;
-   double            epoch;
-   char              ctype1[16];
-   char              ctype2[16];
-   int               naxis1;
-   int               naxis2;
-   double            crpix1;
-   double            crpix2;
-   double            crval1;
-   double            crval2;
-   double            cdelt1;
-   double            cdelt2;
-   double            crota2;
-}
-   input;
-
 int mMakeHdr_debug;
 
 
@@ -222,6 +197,32 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
    char  **fnames;
 
    double  dtr;
+
+
+   /* Basic image WCS information    */
+   /* (from the FITS header and as   */
+   /* returned from the WCS library) */
+
+   struct ImgInfo
+   {
+      struct WorldCoor *wcs;
+      int               sys;
+      int               equinox;
+      double            epoch;
+      char              ctype1[16];
+      char              ctype2[16];
+      int               naxis1;
+      int               naxis2;
+      double            crpix1;
+      double            crpix2;
+      double            crval1;
+      double            crval2;
+      double            cdelt1;
+      double            cdelt2;
+      double            crota2;
+   }
+      input;
+
 
    struct mMakeHdrReturn *returnStruct;
 

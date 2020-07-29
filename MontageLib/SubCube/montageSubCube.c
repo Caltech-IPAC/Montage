@@ -39,7 +39,6 @@ static int mSubCube_debug;
 static int isflat;
 static int bitpix;
 
-int haveBlank;
 static long blank;
 
 static char content[128];
@@ -104,6 +103,7 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
    double    cdelt[10];
    int       allPixels, shrinkWrap;
    int       imin, imax, jmin, jmax;
+   int       haveBlank;
 
    int       sys;
    double    epoch;
