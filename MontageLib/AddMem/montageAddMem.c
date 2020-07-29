@@ -27,7 +27,7 @@ Version  Developer        Date     Change
 
 
 int  mAddMem_debug;
-int  noAreas;
+int  mAddMem_noAreas;
 
 struct
 {
@@ -156,7 +156,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /***************************************/
 
    mAddMem_debug   = debugin;
-   noAreas         = noAreasin;
+   mAddMem_noAreas = noAreasin;
 
    strcpy(output_file, ofile);
 
@@ -340,7 +340,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
       /* Need to build _area filenames if we have area images */
 
-      if (!noAreas)
+      if (!mAddMem_noAreas)
       {
         if(strlen(filename) > 5 &&
              strncmp(filename+strlen(filename)-5, ".fits", 5) == 0)
@@ -349,7 +349,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
 
       strcpy(infile, filename);
 
-      if (!noAreas)
+      if (!mAddMem_noAreas)
       {
         strcat(infile,  ".fits");
         strcpy(inarea, filename);
@@ -450,7 +450,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
          }
          
          
-         if(noAreas)
+         if(mAddMem_noAreas)
          {
             for(i=0; i<addmem_input.naxes[0]; ++i)
                abuffer[i] = 1.;
@@ -547,7 +547,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
          return returnStruct;
       }
 
-      if(!noAreas)
+      if(!mAddMem_noAreas)
       {
          if(fits_close_file(addmem_input_area.fptr, &status))
          {
@@ -1048,7 +1048,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
    /* Write the area data */
    /***********************/
 
-   if(!noAreas)
+   if(!mAddMem_noAreas)
    {
       fpixel[0] = 1;
       fpixel[1] = 1;
@@ -1110,7 +1110,7 @@ struct mAddMemReturn *mAddMem(char *path, char *table_file, char *template_file,
       fflush(stdout);
    }
 
-   if(!noAreas)
+   if(!mAddMem_noAreas)
    {
       if(fits_close_file(addmem_output_area.fptr, &status))
       {
@@ -1313,7 +1313,7 @@ int mAddMem_readFits(char *fluxfile, char *areafile)
 
    status = 0;
 
-   if(!noAreas)
+   if(!mAddMem_noAreas)
    {
       if(fits_open_file(&addmem_input_area.fptr, areafile, READONLY, &status))
       {

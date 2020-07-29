@@ -52,7 +52,7 @@ Version  Developer        Date     Change
 
 
 int  mDiff_debug;
-int  noAreas;
+int  diff_noAreas;
 
 struct
 {
@@ -196,8 +196,8 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* Process the command-line parameters */
    /***************************************/
 
-   mDiff_debug = debugin;
-   noAreas     = noAreasin;
+   mDiff_debug  = debugin;
+   diff_noAreas = noAreasin;
 
    strcpy(output_file, ofile);
 
@@ -363,7 +363,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
       if(fits_close_file(diff_input_area.fptr, &status))
       {
@@ -458,7 +458,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
       if(fits_close_file(diff_input_area.fptr, &status))
       {
@@ -633,7 +633,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       }
       
       
-      if(noAreas)
+      if(diff_noAreas)
       {
          for(i=0; i<ilength; ++i)
             abuffer[i] = 1.;
@@ -757,7 +757,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
       if(fits_close_file(diff_input_area.fptr, &status))
       {
@@ -846,7 +846,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       }
       
       
-      if(noAreas)
+      if(diff_noAreas)
       {
          for(i=0; i<ilength; ++i)
             abuffer[i] = 1.;
@@ -966,7 +966,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
       if(fits_close_file(diff_input_area.fptr, &status))
       {
@@ -1789,7 +1789,7 @@ int mDiff_readFits(char *fluxfile, char *areafile)
 
    status = 0;
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
       if(fits_open_file(&diff_input_area.fptr, areafile, READONLY, &status))
       {
