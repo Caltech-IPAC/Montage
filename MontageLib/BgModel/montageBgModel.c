@@ -44,7 +44,83 @@ Version  Developer        Date     Change
                                    images.tbl or fits.tbl.
 1.0      John Good        29Jan03  Baseline code
 
-*/
+
+/*************************************************************************************************
+
+OVERVIEW
+--------
+
+The algorithms used in this program are complicated enough that the would be virtually impossible 
+to decipher without some explanation.  So in the interest of making this code maintainable we will
+spend some effort here to make it all intelligible.
+
+What we are trying to do is determine a set of corrections (in the form of planes) to be 
+added/subtracted to/from each of the original reprojected images.  We start with measures of the
+differences between all the pairs of overlapping images and an assumption that, because these images
+measure the same sky and are photometrically calibrated, the overlap differences will be pretty flat
+(i.e. the differences are just to to large-scale background variations due to calibration, zodiacal
+emission, etc.  True sky variability and "curvature" in the backgrounds due to effects like
+vignetting will compromise the processing.
+
+An ideal but impractical approach would be to do a iterative least-squares processing to fit a set
+correction parameters using the entire set of pixel difference values for all the overlaps put
+together.  For instance, if you had 1000 images and wanted to correct them with a plane each, that
+would require 3000 paramters (the 1000 planes) and would probably have millions of overlap pixels.
+It would probably take thousands of iteractions and would run for weeks.
+
+Instead, we approximate this with a couple of simplifying assumptions.  The first is that the planes
+fit to the differences are a close enough approximation to the pixels themselves.  With properly
+calibrated data and reasonable backgrounds, this can be show empirically to be reasonable.  The
+second is that the overlap regions be approximated rectangular areas.  For many large surveys this
+is close to be exact.  Even for irregular overlaps this mostly results in variability in the
+weighting of one overlap region versus another with no demonstrable problemmatic effects.
+
+The reason for wanting the second constraint is that the length summations that would be needed for
+the least-squares matrix calculations can then be replaced with simple computations using the fit
+plane values and region extent sizes.  The resultant least-squares interaction is then feasible,
+with even tens of thousands of iterations taking mere seconds.
+
+---
+
+The organization of the data structures used and the effects of the above iterations on them also
+deserves some explanation.
+
+The input is a list of images (mostly included because the other two structures key off the
+sequential image ID), the planar fits to the differences between images (which captures the fit
+plane parameters, the pixel extent of the overlap region, and the IDs of the "plus" and "minus"
+images in the difference.  This structure is not, in fact, static; as we adjust the background
+levels associated with the original image we adjust these difference values accordingly.
+
+The third and main set of structures are the "correction" planes for the images.  This captures
+the correction plane values (initially a flat plane of value zero), transiently the next
+correction, and pointers to all of the above "fits" that are affected by any change to the image
+background.
+
+In the processing of an iterations, we gather are the sums needed for the least-squares matrices,
+invert to get the deltas to the background planes, then apply them to the planes and the affected
+"fits".  We look for convergence (unchanging correction planes) and break.
+
+The final correction planes are written to a table file for application to the actual images.
+
+---
+
+Trying to fit all three planar parameters for all the images at once can be a little unstable at
+times so we allow for two variants on this.  The first is to just fit the background levels and
+leave the corrections flat.  For many datasets this is sufficient.  The second is to iterate
+between fitting just the leve and fitting just the slopes.  This will end up a the same minimum
+but get there more sedately.  This is particularly effective when the set of input image contains
+a few with "bad" backgrounds.  For instance, some infrared all-sky maps contain regions where the
+background actually do vary with time (e.g. zodiacal dust bands).  This approach can't get rid of
+this artifact but will limit their negative affect on neighboring regions.
+
+---
+
+Finally, some map projections (especially for all-sky maps) contain gap where the data on one side
+of the gap is actually adjacent on the sky to data on the other side.  The most obvious example of
+this is when we spit a cylindrical projection 0/360 line.  To accomodate this, we usually use a
+custom bit of code to construct pseudo-overlap data that relate input images across the gap.
+
+*************************************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -45,7 +45,7 @@ void mViewer_symbol          (struct WorldCoor *wcs, int flipY,
                               double symsize, int symnpnt, int symmax, int symtype, double symang,
                               double red,   double green, double blue, double linewidth);
 
-void mViewer_drawing         (char *filename);
+void mViewer_drawing         (char *filename, int flipY, struct WorldCoor *wcs, int csysimg, double epochimg, char *fontfile);
 
 void mViewer_smooth_line     (double x1, double y1, 
                               double x2, double y2,
@@ -63,9 +63,15 @@ void mViewer_longitude_line  (double lon, double latmin, double latmax,
                               int csysimg, double epochimg, int csysgrid, double epochgrid,
                               double red, double green, double blue, double linewidth);
 
+void mViewer_draw_label      (char *fontfile, int fontsize,
+                              int xlab, int ylab, char *text,
+                              double red, double green, double blue);
+
 void mViewer_draw_boundary   (double red, double green, double blue, double linewidth);
 
 void mViewer_hpxCheck        (int *offscl, double *x, double *y);
+
+void mViewer_addOverlay      (double alpha);
 
 
 struct Pix
@@ -1088,6 +1094,9 @@ void mViewer_great_circle(struct WorldCoor *wcs, int flipY,
 
    dtr = atan(1.)/45.;
    
+   printf("\n\n\nXXX> GREAT_CIRCLE\n");
+   fflush(stdout);
+
    convert = 0;
    if(csys != csysimg || epoch != epochimg)
       convert = 1;
@@ -1413,29 +1422,53 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
 /*                                                   */
 /*****************************************************/
 
-void mViewer_drawing(char *filename)
+void mViewer_drawing(char *filename, int flipY, struct WorldCoor *wcs, int csysimg,  double epochimg, char *fontfile)
 {
+   int    i, n, csys, offscl;
    int    cmdc;
-   char   line[MAXSTR];
    char  *cmdv[256];
 
    FILE  *fdraw;
 
+   static double epoch = 2000.;
+
+   double alpha = 1.;
+
    static double xprev = 0.;
    static double yprev = 0.;
+
+   static double xpos, ypos;
+   static double xpix, ypix;
 
    static double red   = 255.;
    static double green = 255.;
    static double blue  = 255.;
    
    static double linewidth = 3.;
+   static double fontsize  = 1.;
+   static double fontscale = 1.;
 
-   double xpix, ypix;
+   static double lon = 0.;
+   static double lat = 0.;
 
-   // double clon, clat;
+   static double *xpoly = (double *)NULL;
+   static double *ypoly = (double *)NULL;
 
-   // pix2wcs(wcs, xpix, ypix, &clon, &clat);
-   //
+   static int    ref = JULIAN;
+
+   static int    npoly;
+
+   static int    ix = 0;
+   static int    iy = 0;
+
+   static char   line     [MAXSTR];
+   static char   subline  [MAXSTR];
+   static char   xstr     [MAXSTR];
+   static char   ystr     [MAXSTR];
+   static char   labeltext[MAXSTR];
+
+   static char   *end;
+
 
    fdraw = fopen(filename, "r");
 
@@ -1447,46 +1480,114 @@ void mViewer_drawing(char *filename)
       if(fgets(line, MAXSTR, fdraw) == (char *)NULL)
          break;
 
+      if(line[strlen(line) - 1] == '\n')
+         line[strlen(line) - 1] =  '\0';
+
+      if(gdebug)
+      {
+         printf("mViewer_drawing> read: [%s]\n", line);
+         fflush(stdout);
+      }
+
       if(line[0] == '#')
          continue;
+
+      if(strlen(line) > 6)
+         strcpy(subline, line+6);
+      else
+         strcpy(subline, "");
 
       cmdc = parsecmd(line, cmdv);
 
       if(cmdc <= 0)
          continue;
 
+      if(gdebug)
+      {
+         printf("mViewer_drawing> cmdc: %d, cmdv[0]: [%s], subline: [%s]\n", cmdc, cmdv[0], subline);
+         fflush(stdout);
+      }
+
+      
+      // ALPHA command
+
+      if(strcasecmp(cmdv[0], "alpha") == 0)
+      {
+         if(cmdc < 2)
+            break;
+
+         alpha  = atof(cmdv[1]);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> ALPHA %-g\n", alpha);
+            fflush(stdout);
+         }
+      }
+
       
       // COLOR command
 
-      if(strcmp(cmdv[0], "color") == 0)
+      if(strcasecmp(cmdv[0], "color") == 0)
       {
+         if(cmdc < 4)
+            break;
+
          blue  = atof(cmdv[1]);
          green = atof(cmdv[2]);
          red   = atof(cmdv[3]);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> COLOR %-g %-g %-g\n", blue, green, red);
+            fflush(stdout);
+         }
       }
 
       
-      // WIDTH command
+      // LINEWIDTH command
       
-      if(strcmp(cmdv[0], "width") == 0)
+      if(strcasecmp(cmdv[0], "linewidth") == 0
+      || strcasecmp(cmdv[0], "width")     == 0)
       {
+         if(cmdc < 2)
+            break;
+
          linewidth = atof(cmdv[1]);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> LINEWIDTH %-g\n", linewidth);
+            fflush(stdout);
+         }
       }
 
 
-      // MOVE command
+      // MOVE command (pixel coords)
       
-      if(strcmp(cmdv[0], "move") == 0)
+      if(strcasecmp(cmdv[0], "move") == 0)
       {
+         if(cmdc < 3)
+            break;
+
          xprev = atof(cmdv[1]);
          yprev = atof(cmdv[2]);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> MOVE %-g %-g\n", xprev, yprev);
+            fflush(stdout);
+         }
       }
 
 
-      // DRAW command
+      // DRAW command (pixel coords)
       
-      if(strcmp(cmdv[0], "draw") == 0)
+      if(strcasecmp(cmdv[0], "draw") == 0)
       {
+         if(cmdc < 3)
+            break;
+
          xpix = atof(cmdv[1]);
          ypix = atof(cmdv[2]);
 
@@ -1494,9 +1595,202 @@ void mViewer_drawing(char *filename)
 
          xprev = xpix;
          yprev = ypix;
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> DRAW %-g %-g\n", xprev, yprev);
+            fflush(stdout);
+         }
+
+         mViewer_addOverlay(alpha);
+      }
+
+
+      // CSYS command
+      
+      if(strcasecmp(cmdv[0], "csys") == 0)
+      {
+         if(cmdc < 2)
+            break;
+
+         ref = JULIAN;
+
+         csys  = EQUJ;
+         epoch = -999.;
+
+         if(cmdc > 2)
+         {
+            if(cmdv[2][0] == 'j' || cmdv[2][0] == 'J')
+            {
+               ref = JULIAN;
+               epoch = atof(cmdv[2]+1);
+            }
+
+            else if(cmdv[2][0] == 'b' || cmdv[2][0] == 'B')
+            {
+               ref = BESSELIAN;
+               epoch = atof(cmdv[2]+1);
+            }
+         }
+
+         if(strncasecmp(cmdv[1], "eq", 2) == 0)
+         {
+            if(ref == BESSELIAN)
+               csys = EQUB;
+            else
+               csys = EQUJ;
+         }
+
+         else if(strncasecmp(cmdv[1], "ec", 2) == 0)
+         {
+            if(ref == BESSELIAN)
+               csys = ECLB;
+            else
+               csys = ECLJ;
+         }
+
+         else if(strncasecmp(cmdv[1], "ga", 2) == 0)
+            csys = GAL;
+
+         ++i;
+
+         if(epoch == -999.)
+            epoch = 2000.;
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> CSYS: csys=%d epoch=%-g\n", csys, epoch);
+            fflush(stdout);
+         }
+      }
+
+
+      // COORD command
+      
+      if(strcasecmp(cmdv[0], "coord") == 0)
+      {
+         if(cmdc < 3)
+            break;
+
+         lon = atof(cmdv[1]);
+         lat = atof(cmdv[2]);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> COORD: %-g %-g\n", lon, lat);
+            fflush(stdout);
+         }
+      }
+
+
+      // FONTSCALE command
+      
+      if(strcasecmp(cmdv[0], "fontscale") == 0)
+      {
+         if(cmdc < 2)
+            break;
+
+         fontscale = atof(cmdv[1]);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> FONTSCALE %-g\n", fontscale);
+            fflush(stdout);
+         }
+      }
+
+
+      // LABEL command
+      
+      if(strcasecmp(cmdv[0], "label") == 0)
+      {
+         if(cmdc < 2)
+            break;
+
+         strcpy(labeltext, subline);
+
+         convertCoordinates(csys, epoch, lon, lat,
+                             csysimg,  epochimg, &xpos, &ypos, 0.0);
+
+         wcs2pix(wcs, xpos, ypos, &xpix, &ypix, &offscl);
+
+         if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
+
+         ix = xpix;
+         iy = ypix;
+
+         fontsize = (int)(14. * fontscale);
+
+         if(fontsize < 1)
+            fontsize = 1;
+
+         mViewer_draw_label(fontfile, fontsize, ix, iy, labeltext, red, green, blue);
+
+         if(gdebug)
+         {
+            printf("mViewer_drawing> DRAW> LABEL  \"%s\" at pixel %d %d\n", labeltext, ix, iy);
+            fflush(stdout);
+         }
+
+         mViewer_addOverlay(alpha);
+      }
+
+
+      // POLYLINE command (great circle segments)
+      //
+      if(strncasecmp(cmdv[0], "polyline", 4) == 0)
+      {
+         if(cmdc < 2)
+            break;
+
+         npoly = atoi(cmdv[1]);
+
+         if(xpoly != (double *)NULL)
+            free(xpoly);
+
+         if(ypoly != (double *)NULL)
+            free(ypoly);
+
+         xpoly = (double *)malloc(npoly * sizeof(double));
+         ypoly = (double *)malloc(npoly * sizeof(double));
+
+         n = 0;
+
+         for(i=0; i<npoly; ++i)
+         {
+            if(fgets(line, MAXSTR, fdraw) == (char *)NULL)
+               break;
+
+            sscanf(line, "%s %s", xstr, ystr);
+
+            xpoly[i] = strtod(xstr, &end);
+
+            if(end < xstr + strlen(xstr))
+               break;
+
+            ypoly[i] = strtod(ystr, &end);
+
+            if(end < ystr + strlen(ystr))
+               break;
+
+            ++n;
+         }
+
+         for(i=0; i<n-1; ++i)
+         {
+            mViewer_great_circle(wcs, flipY, csysimg,  epochimg, csys, epoch, 
+                                 xpoly[i], ypoly[i], xpoly[i+1], ypoly[i+1],
+                                 red, green, blue, linewidth);
+            if(gdebug)
+            {
+               printf("mViewer_drawing> DRAW> POLYLINE %d: %-g %-g -> %-g %-g\n", i, xpoly[i], ypoly[i], xpoly[i+1], ypoly[i+1]);
+               fflush(stdout);
+            }
+         }
+
+         mViewer_addOverlay(alpha);
       }
    }
 
    fclose(fdraw);
 }
-

@@ -342,9 +342,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    // "Sticky" value; set in a command like -symbol, used when
    // needed thereafter until reset or unset.
 
-   int       csys, symUnits, symNPnt, symNMax, symType, scaleType;
+   int       csys, symUnits, symNPnt, symNMax, symType, scaleType, tzero;
    double    epoch, symSize, symRotAngle, scaleVal, fontScale, fontSize;
-   double    lineWidth, alpha;
+   double    lineWidth, alpha, imgalpha;
 
    char      symSizeColumn [MAXSTR];
    char      symShapeColumn[MAXSTR];
@@ -692,6 +692,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    fontScale   = 1.;
    lineWidth   = 1.;
    alpha       = 1.;
+   imgalpha    = 1.;
+
+   tzero = 1;
 
    strcpy(symSizeColumn,  "");
    strcpy(symShapeColumn, "");
@@ -864,15 +867,43 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       }
 
 
+      /* IMGALPHA */
+
+      if(json_val(layout, "imgalpha", valstr))
+      {
+         imgalpha = strtod(valstr, &end);
+
+         if(imgalpha < 0. || imgalpha > 1. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Alpha parameter must a number between zero and one.");
+            return returnStruct;
+         }
+      }
+
+
+      /* TZERO */
+
+      if(json_val(layout, "tzero", valstr))
+      {
+         tzero = strtol(valstr, &end, 0);
+
+         if(end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Tzero parameter must be an integer (nominally zero or one for false/true).");
+            return returnStruct;
+         }
+      }
+
+
       /* COLOR TABLE (for grayscale) */
 
       if(json_val(layout, "color_table", valstr))
       {
          colortable = strtol(valstr, &end, 10);
 
-         if(colortable < 0 || colortable > 11 || end < valstr+strlen(valstr))
+         if(colortable < 0 || colortable > 12 || end < valstr+strlen(valstr))
          {
-            strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+            strcpy(returnStruct->msg, "Color table index must be a number between 0 and 12");
             return returnStruct;
          }
       }
@@ -947,9 +978,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             {
                colortable = strtol(valstr, &end, 10);
 
-               if(colortable < 0 || colortable > 11 || end < valstr+strlen(valstr))
+               if(colortable < 0 || colortable > 12 || end < valstr+strlen(valstr))
                {
-                  strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+                  strcpy(returnStruct->msg, "Color table index must be a number between 0 and 12");
                   return returnStruct;
                }
             }
@@ -2031,6 +2062,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          }
          
 
+         /* IMGALPHA  */
+
+         else if(strcmp(argv[i], "-imgalpha") == 0)
+         {
+            imgalpha = strtod(argv[i+1], &end);
+
+            if(imgalpha < 0. || imgalpha > 1. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Image opacity (alpha) must a number between zero and one.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* TZERO */
+         
+         else if(strcmp(argv[i], "-tzero") == 0)
+         {
+            tzero = strtol(argv[i+1], &end, 0);
+
+            if(end < valstr+strlen(valstr))
+            {
+               strcpy(returnStruct->msg, "Tzero parameter must be an integer (nominally zero or one for false/true).");
+               return returnStruct;
+            }
+         }
+         
+
          /* Don't flip the image (to get North up) */
 
          else if(strcmp(argv[i], "-noflip") == 0)
@@ -2764,9 +2825,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             colortable = strtol(argv[i+1], &end, 10);
 
-            if(colortable < 0  || colortable > 11 || end < argv[i+1]+strlen(argv[i+1]))
+            if(colortable < 0  || colortable > 12 || end < argv[i+1]+strlen(argv[i+1]))
             {
-               strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+               strcpy(returnStruct->msg, "Color table index must be a number between 0 and 12");
                return returnStruct;
             }
 
@@ -4725,7 +4786,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   pngData[ii + 0] = (int)redImVal;
                   pngData[ii + 1] = (int)greenImVal;
                   pngData[ii + 2] = (int)blueImVal;
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 3] = (int)(255*imgalpha);
+
+                  if(tzero && redImVal == 0. && greenImVal == 0. && blueImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
                else
                {
@@ -4734,7 +4798,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   pngData[ii + 0] = (int)redImVal;
                   pngData[ii + 1] = (int)greenImVal;
                   pngData[ii + 2] = (int)blueImVal;
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 3] = (int)(255*imgalpha);
+
+                  if(tzero && redImVal == 0. && greenImVal == 0. && blueImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
             }
          }
@@ -5287,7 +5354,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   pngData[ii + 0] = color_table[index][0];
                   pngData[ii + 1] = color_table[index][1];
                   pngData[ii + 2] = color_table[index][2];
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 3] = (int)(255 * imgalpha);
+
+                  if(tzero && grayImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
                else
                {
@@ -5296,7 +5366,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   pngData[ii + 0] = color_table[index][0];
                   pngData[ii + 1] = color_table[index][1];
                   pngData[ii + 2] = color_table[index][2];
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 3] = (int)(255 * imgalpha);
+
+                  if(tzero && grayImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
             }
          }
@@ -5315,6 +5388,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       pixScale   = fabs(cdelt1);
    }
 
+
+   // GRIDS
+   
    for(i=0; i<ngrid; ++i)
    {
       if(mViewer_debug)
@@ -5331,6 +5407,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    }
 
 
+   // CATALOGS / IMAGE INFO
+   
    for(i=0; i<ncat; ++i)
    {
       if(mViewer_debug)
@@ -5961,6 +6039,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    }
 
 
+   // MARKS
+   
    for(i=0; i<nmark; ++i)
    {
       if(mViewer_debug)
@@ -5995,6 +6075,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    }
 
 
+   // LABELS
+   
    for(i=0; i<nlabel; ++i)
    {
       if(mViewer_debug)
@@ -6038,12 +6120,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    }
 
 
+   // DRAWINGS
+   
    for(i=0; i<ndrawing; ++i)
-   {
-      mViewer_drawing(drawing[i].file);
-
-      mViewer_addOverlay(drawing[i].alpha);
-   }
+      mViewer_drawing(drawing[i].file, flipY, wcs, csysimg, epochimg, fontfile);
 
 
    if(mViewer_debug)
@@ -6746,6 +6826,9 @@ void mViewer_createColorTable(int itable)
     int dn4[] = {  0,  23,  46,  70,  93, 116, 
                  139, 162, 185, 209, 232, 255};
     
+    int dn5[] = {  0,  20,  39,  59,  78,  98,
+                 118, 137, 156, 177, 196, 255};
+    
     int red_tbl0[]   = {  0, 255};
     int grn_tbl0[]   = {  0, 255};
     int blue_tbl0[]  = {  0, 255};
@@ -6835,6 +6918,16 @@ void mViewer_createColorTable(int itable)
 
     int blue_tbl11[] = {  255, 175,  90,  30,   0,   0,   
                             0,   0,   0,  85, 170, 255}; 
+
+
+    int red_tbl12[]  = {  255, 255, 191, 160, 128, 122, 
+                          255, 255, 255, 255, 200, 128}; 
+
+    int grn_tbl12[]  = {  255, 255, 204, 230, 255, 255, 
+                          255, 200, 145,   0,   0,   0}; 
+
+    int blue_tbl12[] = {  255, 255, 255, 255, 255, 147,   
+                            0,   0,   0,   0,   0,   0}; 
 
 
    switch(itable)
@@ -6933,6 +7026,14 @@ void mViewer_createColorTable(int itable)
          red_tbl  = red_tbl11;
          grn_tbl  = grn_tbl11;
          blue_tbl = blue_tbl11;
+         break;
+      
+      case 12:
+         dn       = dn5;
+         nseg     = 12;
+         red_tbl  = red_tbl12;
+         grn_tbl  = grn_tbl12;
+         blue_tbl = blue_tbl12;
          break;
       
       default:
@@ -7981,6 +8082,10 @@ int mViewer_setPixel(int i, int j, double brightness, double red, double green, 
 
    int valmag, refmag;
 
+   printf("XXX> setPixel(%d, %d, alpha=%.2f, [%.2f, %.2f, %.2f], %d)\n", 
+      i, j, brightness, red, green, blue, replace);
+   fflush(stdout);
+
    if(i < 0 || i >= nx)
       return 0;
 
@@ -8105,6 +8210,13 @@ void mViewer_addOverlay(double alpha)
       {
          brightness = ovlyweight[j][i] * alpha;
 
+         printf("XXX> addOverlay: (%d %d) [%d %d %d] + [%d %d %d]  weight=%-g alpha=%-g brightness=%-g\n", 
+            i, j,
+            pngData[offset + 0], pngData[offset + 1], pngData[offset + 2],
+            pngOvly[offset + 0], pngOvly[offset + 1], pngOvly[offset + 2],
+            ovlyweight[j][i], alpha, brightness);
+         fflush(stdout);
+
          if(outType == JPEG)
          {
             jpegData[j][3*i  ] = brightness * jpegOvly[j][3*i+0] + (1. - brightness) * jpegData[j][3*i  ];
@@ -8121,6 +8233,8 @@ void mViewer_addOverlay(double alpha)
                pngData[offset + 0] = brightness * pngOvly[offset + 0] + (1. - brightness) * pngData[offset + 0];
                pngData[offset + 1] = brightness * pngOvly[offset + 1] + (1. - brightness) * pngData[offset + 1];
                pngData[offset + 2] = brightness * pngOvly[offset + 2] + (1. - brightness) * pngData[offset + 2];
+
+               pngData[offset + 3] = (brightness + (1. - brightness) * pngData[offset + 3]/255.) * 255.;
             }
          }
 
@@ -8515,6 +8629,10 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
               red, green, blue, linewidth);
       fflush(stdout);
    }
+
+   printf("\n\n\nXXX> LATITUDE_LINE\n");
+   fflush(stdout);
+
 
    if(lat >= 90. || lat <= -90.)
       return;

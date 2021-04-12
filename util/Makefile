@@ -1,15 +1,15 @@
 all:
-	(cd Calibrate                       && make && make install)
-	(cd CatMap       && ./Configure.sh  && make && make install)
-	(cd CatSearch                       && make && make install)
-	(cd Exec         && ./Configure.sh  && make && make install)
-	(cd MovingTarget && ./Configure.sh  && make && make install)
-	(cd Pad          && ./Configure.sh  && make && make install)
-	(cd Pix2Coord    && ./Configure.sh  && make && make install)
-	(cd Rotate       && ./Configure.sh  && make && make install)
-	(cd Search       && ./Configure.sh  && make && make install)
-	(cd ShrinkHdr    && ./Configure.sh  && make && make install)
-	(cd TblExec                         && make && make install)
+	(cd Calibrate    && make && make install)
+	(cd CatMap       && make && make install)
+	(cd CatSearch    && make && make install)
+	(cd Exec         && make && make install)
+	(cd MovingTarget && make && make install)
+	(cd Pad          && make && make install)
+	(cd Pix2Coord    && make && make install)
+	(cd Rotate       && make && make install)
+	(cd Search       && make && make install)
+	(cd ShrinkHdr    && make && make install)
+	(cd TblExec      && make && make install)
 
 
 clean:

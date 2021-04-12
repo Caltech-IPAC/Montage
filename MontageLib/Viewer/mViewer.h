@@ -46,7 +46,8 @@ int    mViewer_getPixel           (int i, int j, int color);
 
 double mViewer_label_length       (char *face_path, int fontsize, char *text);
 
-void   mViewer_drawing            (char *file);
+void   mViewer_drawing            (char *file, int flipY, struct WorldCoor *wcs, int csysimg, double epochimg, char *fontfile);
+
 
 void   mViewer_addOverlay         (double alpha);
 

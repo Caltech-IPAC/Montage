@@ -665,7 +665,7 @@ void mViewer_curve(double *xcurve, double *ycurve, int npt,
 
    while(1)
    {
-      if(fabs(xcurve[i]-xcurve[i-1]) < 10.)
+      // if(fabs(xcurve[i]-xcurve[i-1]) < 10.)
          mViewer_smooth_line(xcurve[i-1], ycurve[i-1], xcurve[i], ycurve[i], red, green, blue, linewidth);
 
       ++i;
@@ -751,6 +751,7 @@ void mViewer_draw_bitmap( FT_Bitmap * bitmap, int x, int y, double red, double g
 /*                                                */
 /**************************************************/
 
+
 void mViewer_smooth_line(double x1, double y1, 
                          double x2, double y2,
                          double red, double green, double blue,
@@ -762,8 +763,15 @@ void mViewer_smooth_line(double x1, double y1,
    double xend, yend, xf, yf;
    double brightness1, brightness2;
 
+   printf("XXX> smooth_line(%8.2f, %8.2f, %8.2f, %8.2f, %7.4f, %7.4f, %7.4f, %5.2f)\n", 
+         x1, y1, x2, y2, red, green, blue, linewidth);
+   fflush(stdout);
+
    if(linewidth != 1.)
+   {
       mViewer_thick_line(x1, y1, x2, y2, red, green, blue, linewidth);
+      return;
+   }
 
 
    /* Extent of line in X and Y */
@@ -939,6 +947,10 @@ void mViewer_thick_line(double x1, double y1,
    int    nxfine, nyfine;
 
    int    nsamp, narray;
+
+   printf("XXX> thick_line(%8.2f, %8.2f, %8.2f, %8.2f, %7.4f, %7.4f, %7.4f, %5.2f)\n", 
+         x1, y1, x2, y2, red, green, blue, width);
+   fflush(stdout);
 
    nsamp = 3;
 
