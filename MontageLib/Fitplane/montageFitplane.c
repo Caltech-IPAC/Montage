@@ -404,6 +404,13 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
       ymin =  1000000;
       ymax = -1000000;
 
+      if(debug >= 1)
+      {
+         printf("\nUsing x %d to %d\n", border, (int)naxes[0]-border-1);
+         printf("Using y %d to %d\n\n", border, (int)naxes[1]-border-1);
+         fflush(stdout);
+      }
+
       for (j=border; j<naxes[1]-border; ++j)
       {
          ypos = j - crpix[1];
@@ -571,7 +578,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
             dz = fabs(pixel_value - fit);
 
-            if(dz > 2*rms)
+            if(iteration > 0 && dz > 2*rms)
                continue;
 
             sumzz += dz * dz;
@@ -583,7 +590,8 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
       rms = sqrt(sumzz/sumn);
 
       if(debug >= 1)
-         printf("iteration %d: rms=%-g\n", iteration, rms);
+         printf("iteration %d: rms=%-g (using %.0f values)\n",
+               iteration, rms, sumn);
    }
 
 

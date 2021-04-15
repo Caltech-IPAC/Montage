@@ -127,6 +127,21 @@ int main(int argc, char **argv)
    chmod(sname, 0755);
 
 
+   sprintf(sname, "%s/%s/scripts/submitGap.bash", basedir, mapname);
+   fout = fopen(sname, "w+");
+
+   fprintf(fout, "#!/bin/bash\n");
+   fprintf(fout, "#SBATCH -p debug # partition (queue)\n");
+   fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+   fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
+   fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+   fprintf(fout, "#SBATCH -o logs/gap.%%N.%%j.out # STDOUT\n");
+   fprintf(fout, "#SBATCH -e logs/gap.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "$1 $2\n");
+   fclose(fout);
+   chmod(sname, 0755);
+
+
    sprintf(sname, "%s/%s/scripts/submitBackground.bash", basedir, mapname);
    fout = fopen(sname, "w+");
 
@@ -228,7 +243,7 @@ int main(int argc, char **argv)
 
    for(i=1; i<ndata; ++i)
    {
-      sprintf(directory, "%s/%s/plates", datadir[i], mapname); mMkDir(directory, 0);
+      sprintf(directory, "%s/%s/plates", datadir[i], mapname, j); mMkDir(directory, 0);
    }
 
    for(j=0; j<10; ++j)

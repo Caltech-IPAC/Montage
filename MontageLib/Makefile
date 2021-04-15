@@ -53,8 +53,8 @@ pgm:
 		(cd ProjExec      && $(MAKE) && $(MAKE) install)
 
 lib:
-		rm -f libmontage.a libmontage.so libmontagepy.so
-		ar q  libmontage.a \
+		-rm -f libmontage.a libmontage.so libmontagepy.so
+		-ar q  libmontage.a \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
@@ -98,7 +98,7 @@ lib:
 			FitExec/montageFitExec.o \
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o 
-		gcc -shared $(SO_FLAG) -o libmontage.so \
+		-gcc -shared $(SO_FLAG) -o libmontage.so \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
@@ -144,9 +144,9 @@ lib:
 			ProjExec/montageProjExec.o 
 
 pythonlibs:
-		rm -f ../python/MontagePy/lib/*.o
-		mkdir -p ../python/MontagePy/lib
-		cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
+		-rm -f ../python/MontagePy/lib/*.o
+		-mkdir -p ../python/MontagePy/lib
+		-cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
@@ -389,10 +389,10 @@ pythonlibs:
 			../lib/src/bzip2-1.0.6/decompress.o \
 			../lib/src/bzip2-1.0.6/bzlib.o \
          ../python/MontagePy/lib
-		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
-		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
-		cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
-		cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
+		-cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
+		-cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
+		-cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
+		-cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
 # The last four lines are needed because we have .o file name conflicts
 
 doc:

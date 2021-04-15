@@ -141,7 +141,7 @@ int mHiPSPNGs_getFiles (char *pathname)
    char            transfile1[MAXSTR];
    char            transfile2[MAXSTR];
    char            transfile3[MAXSTR];
-   char            jpgfile   [MAXSTR];
+   char            pngfile   [MAXSTR];
    char            tmpfile   [MAXSTR];
    char            newdir    [MAXSTR];
    char            cmd       [MAXSTR];
@@ -217,19 +217,19 @@ int mHiPSPNGs_getFiles (char *pathname)
 
             if (strncmp(dirname1+len-5, ".fits", 5) == 0)
             {
-               strcpy(jpgfile, dirname1);
+               strcpy(pngfile, dirname1);
 
-               jpgfile[len-5] = '\0';
+               pngfile[len-5] = '\0';
 
-               strcat(jpgfile, ".jpg");
+               strcat(pngfile, ".png");
 
                if(color)
                {
-                  strcpy(tmpfile, jpgfile);
+                  strcpy(tmpfile, pngfile);
 
-                  sprintf(jpgfile, "%s%s", outdir, tmpfile+len1);
+                  sprintf(pngfile, "%s%s", outdir, tmpfile+len1);
 
-                  strcpy(newdir, jpgfile);
+                  strcpy(newdir, pngfile);
 
                   ptr = (char *)NULL;
 
@@ -290,7 +290,7 @@ int mHiPSPNGs_getFiles (char *pathname)
                   svc_run(cmd);
 
                   sprintf(cmd, "mViewer -blue %s -histfile %s -green %s -histfile %s -red %s -histfile %s -png %s",
-                     transfile1, histfile1, transfile2, histfile2, transfile3, histfile3, jpgfile);
+                     transfile1, histfile1, transfile2, histfile2, transfile3, histfile3, pngfile);
 
                   if(debug)
                   {
@@ -299,6 +299,8 @@ int mHiPSPNGs_getFiles (char *pathname)
                   }
 
                   svc_run(cmd);
+
+                  svc_closeall();
 
                   unlink(transfile1);
                   unlink(transfile2);
@@ -319,7 +321,7 @@ int mHiPSPNGs_getFiles (char *pathname)
 
                   svc_run(cmd);
 
-                  sprintf(cmd, "mViewer -ct 0 -gray %s -histfile %s -png %s", transfile1, histfile1, jpgfile);
+                  sprintf(cmd, "mViewer -ct 0 -gray %s -histfile %s -png %s", transfile1, histfile1, pngfile);
 
                   if(debug)
                   {

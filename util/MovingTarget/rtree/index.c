@@ -24,6 +24,7 @@
 #define  ADDRESS 0
 #define  ID      1
 
+long  nodeCount;
 int   maxLevel;
 long  rootID;
 

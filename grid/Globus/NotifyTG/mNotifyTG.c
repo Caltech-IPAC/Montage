@@ -18,8 +18,6 @@ Version  Developer        Date     Change
 
 #define MAXLEN 20000
 
-FILE *fstatus;
-
 char *url_encode (char *s);
 int   tcp_connect(char *hostname, int port);
 

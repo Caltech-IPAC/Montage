@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
    fitsfile *plate, **hips;
 
-   int       i, j, k, l, m, offscl, istat, nhips, ntot, maxhips;
+   int       i, j, k, l, m, it, offscl, istat, nhips, ntot, maxhips;
    int       hpxPix, hpxLevel, tileLevel, fullscale, nullcnt;
 
    int       ibegin, iend;
@@ -282,9 +282,8 @@ int main(int argc, char **argv)
    /**************************************************/
    /* Find the range of pixels that can be used for  */
    /* HiPS tiles.  Since we usually pad the "plates" */
-   /* by 128 pixels, we would expect to start that   */
-   /* many pixels in from the bottom and left end    */
-   /* end similarly.                                 */
+   /* by 256 pixels, we would expect to start that   */
+   /* many pixels in from the bottom and left side.  */
    /**************************************************/
 
    ibegin = fullscale/2. - (crpix1 - 0.5) + 0.5;
@@ -315,14 +314,15 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   iTileBegin = (ibegin + 256.) / 512.;
-   jTileBegin = (jbegin + 256.) / 512.;
+   iTileBegin = ibegin / 512. + 1;
+   jTileBegin = jbegin / 512. + 1;
 
-   iTileEnd = (iend + 256.) / 512.;
-   jTileEnd = (jend + 256.) / 512.;
+   iTileEnd = iend / 512.;
+   jTileEnd = jend / 512.;
 
    padLeft   = iTileBegin * 512 - ibegin;
    padBottom = jTileBegin * 512 - jbegin;
+
    padRight  = iend - iTileEnd * 512;
    padTop    = jend - jTileEnd * 512;
 
@@ -348,6 +348,8 @@ int main(int argc, char **argv)
 
    jrow = 0;
 
+   fpixel[1] = padBottom;
+
    fpixelo[0] = 1;
    fpixelo[1] = 1;
 
@@ -361,7 +363,9 @@ int main(int argc, char **argv)
          
          nhips = 0;
 
-         for(icenter=ibegin+padLeft+256; icenter<iend-padRight; icenter+=512)
+         it = 0;
+
+         for(icenter=ibegin+padLeft+256; icenter<iend-padRight+256; icenter+=512)
          {
             tileID = mHiPSTiles_HiPSID(hpxLevel, (double)icenter, (double)jcenter);
 
@@ -433,9 +437,11 @@ int main(int argc, char **argv)
 
             if(debug)
             {
-               printf("DEBUG (main)> icenter=%d, jcenter=%d  -->  %s\n", icenter, jcenter, path);
+               printf("DEBUG (main)> %3d: icenter=%d, jcenter=%d  -->  %s (nhips=%d)\n", it, icenter, jcenter, path, nhips-1);
                fflush(stdout);
             }
+
+            ++it;
          }
       }
 
@@ -445,10 +451,16 @@ int main(int argc, char **argv)
       if(fits_read_pix(plate, TDOUBLE, fpixel, nelements, &dnan, indata, &nullcnt, &status))
          mHiPSTiles_printFitsError(status);
 
+      if(debug && fpixel[1] == padBottom)
+         printf("DEBUG> READ line.  fpixel = %d %d\n", fpixel[0], fpixel[1]);
+
       nelementso = 512;
 
       for(l=0; l<nhips; ++l)
       {
+         if(debug && fpixel[1] == padBottom)
+             printf("DEBUG> WRITE line %d [image %3d].  outdata[0] = indata[%d]\n", fpixelo[1], l, padLeft + 512*l);
+
          for(m=0; m<512; ++m)
             outdata[m] = indata[padLeft + 512*l + m];
 

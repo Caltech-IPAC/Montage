@@ -132,9 +132,10 @@ struct mBgModelReturn
    int    status;        // Return status (0: OK, 1:ERROR)
    char   msg [1024];    // Return message (for error return)
    char   json[4096];    // Return parameters as JSON string
+   int    nnan;          // Number of fit parameters that are NaNs
 };
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int noslope, int useall, 
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int zones, char *gapdir, int noslope, int useall, 
                                 int niterations, int debug);
 
 //-------------------
@@ -570,6 +571,20 @@ struct mShrinkCubeReturn
 
 struct mShrinkCubeReturn *mShrinkCube(char *input_file, char *output_file, double shrinkFactor, int hdu, int mfactor, 
                                       int fixedSize, int debug);
+
+//-------------------
+
+struct mShrinkExecReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    count;         // Number of images
+   int    failed;        // Number of images where shrinking failed
+};
+
+struct mShrinkExecReturn *mShrinkExec(char *inpath, char *tblfile, char *shrunkdir, double factor,
+                                      double cdelt, int hdu, int fixedsize, int njob, int debug);
 
 //-------------------
 

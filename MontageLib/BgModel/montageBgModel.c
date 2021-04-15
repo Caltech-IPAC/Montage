@@ -44,83 +44,48 @@ Version  Developer        Date     Change
                                    images.tbl or fits.tbl.
 1.0      John Good        29Jan03  Baseline code
 
+*/
 
-/*************************************************************************************************
+/*
 
-OVERVIEW
---------
+Some temporariy notes on the processing of subsets of images needed to prevent the
+kind of background instability propogation we see in processing WISE all-sky (HiPS)
+maps.
 
-The algorithms used in this program are complicated enough that the would be virtually impossible 
-to decipher without some explanation.  So in the interest of making this code maintainable we will
-spend some effort here to make it all intelligible.
+The problem appears to arise because the the background handling near the brightest
+part of the galactic plane (and in particular the galactic center) produces nasty
+offsets that then get propogated up and down / left and right as we try to globally
+match all the backgrounds.  Toggling back and forth between just background level 
+and just slopes helps a lot but not enough.
 
-What we are trying to do is determine a set of corrections (in the form of planes) to be 
-added/subtracted to/from each of the original reprojected images.  We start with measures of the
-differences between all the pairs of overlapping images and an assumption that, because these images
-measure the same sky and are photometrically calibrated, the overlap differences will be pretty flat
-(i.e. the differences are just to to large-scale background variations due to calibration, zodiacal
-emission, etc.  True sky variability and "curvature" in the backgrounds due to effects like
-vignetting will compromise the processing.
+To address this, I want to try fitting globally just those images away from the plane
+(i.e. ignoring the plane-related image entirely) then fit just the plane images but
+require them to match the first set which is now considered "fixed in place".
 
-An ideal but impractical approach would be to do a iterative least-squares processing to fit a set
-correction parameters using the entire set of pixel difference values for all the overlaps put
-together.  For instance, if you had 1000 images and wanted to correct them with a plane each, that
-would require 3000 paramters (the 1000 planes) and would probably have millions of overlap pixels.
-It would probably take thousands of iteractions and would run for weeks.
+This could be considered a specific case of a more general case where images are added-
+in in groups but I doubt that will ever be used so there is no reason to over-complicate
+the logic.  Likewise, any approach based on toggling sets on and off is equally overkill
+as it probably just leads back to the same problem we currently have.
 
-Instead, we approximate this with a couple of simplifying assumptions.  The first is that the planes
-fit to the differences are a close enough approximation to the pixels themselves.  With properly
-calibrated data and reasonable backgrounds, this can be show empirically to be reasonable.  The
-second is that the overlap regions be approximated rectangular areas.  For many large surveys this
-is close to be exact.  Even for irregular overlaps this mostly results in variability in the
-weighting of one overlap region versus another with no demonstrable problemmatic effects.
+So basically, we just need to define the set of images out of the whole that are in
+the "first subset".  We do those and then do everything but do not allow the first 
+subset to actually change.  In the first subsubset processing we know about the 
+full set but don't include the second subset in any of the calculations.  In the
+second subset processing we "fit" everything but don't update the first subset images
+corrections.  That will eventually force the second subset images to conform to the
+first subset edges.
 
-The reason for wanting the second constraint is that the length summations that would be needed for
-the least-squares matrix calculations can then be replaced with simple computations using the fit
-plane values and region extent sizes.  The resultant least-squares interaction is then feasible,
-with even tens of thousands of iterations taking mere seconds.
+Operationally, we can simply have an optional column in our image list that marks
+images as in the second subset (or equivalently as 0/1 two subset group indices).
+This might find application in more general processing where there is "background"
+versus "bright region" processing, say for large galaxy mosaics.
 
----
+Another way this technique could be used is where there are a handfull of input images
+with really bad backgounds.  By making just these "second subset" we could get 
+everything else right then essentially force them to fit to that as best the can.
+They'd still be included but would not torque things around.
 
-The organization of the data structures used and the effects of the above iterations on them also
-deserves some explanation.
-
-The input is a list of images (mostly included because the other two structures key off the
-sequential image ID), the planar fits to the differences between images (which captures the fit
-plane parameters, the pixel extent of the overlap region, and the IDs of the "plus" and "minus"
-images in the difference.  This structure is not, in fact, static; as we adjust the background
-levels associated with the original image we adjust these difference values accordingly.
-
-The third and main set of structures are the "correction" planes for the images.  This captures
-the correction plane values (initially a flat plane of value zero), transiently the next
-correction, and pointers to all of the above "fits" that are affected by any change to the image
-background.
-
-In the processing of an iterations, we gather are the sums needed for the least-squares matrices,
-invert to get the deltas to the background planes, then apply them to the planes and the affected
-"fits".  We look for convergence (unchanging correction planes) and break.
-
-The final correction planes are written to a table file for application to the actual images.
-
----
-
-Trying to fit all three planar parameters for all the images at once can be a little unstable at
-times so we allow for two variants on this.  The first is to just fit the background levels and
-leave the corrections flat.  For many datasets this is sufficient.  The second is to iterate
-between fitting just the leve and fitting just the slopes.  This will end up a the same minimum
-but get there more sedately.  This is particularly effective when the set of input image contains
-a few with "bad" backgrounds.  For instance, some infrared all-sky maps contain regions where the
-background actually do vary with time (e.g. zodiacal dust bands).  This approach can't get rid of
-this artifact but will limit their negative affect on neighboring regions.
-
----
-
-Finally, some map projections (especially for all-sky maps) contain gap where the data on one side
-of the gap is actually adjacent on the sky to data on the other side.  The most obvious example of
-this is when we spit a cylindrical projection 0/360 line.  To accomodate this, we usually use a
-custom bit of code to construct pseudo-overlap data that relate input images across the gap.
-
-*************************************************************************************************/
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,6 +93,7 @@ custom bit of code to construct pseudo-overlap data that relate input images acr
 #include <string.h>
 #include <strings.h>
 #include <math.h>
+#include <dirent.h>
 
 #include <mtbl.h>
 
@@ -136,6 +102,10 @@ custom bit of code to construct pseudo-overlap data that relate input images acr
 
 #define MAXSTR  256
 #define MAXCNT  128
+
+#define ALL        0
+#define LEVEL_ONLY 1
+#define ALTERNATE  2
 
 #define LEVEL 0
 #define SLOPE 1
@@ -154,10 +124,12 @@ custom bit of code to construct pseudo-overlap data that relate input images acr
 static struct ImgInfo
 {
    int               cntr;
+   char              fname[1024];
    int               naxis1;
    int               naxis2;
    double            crpix1;
    double            crpix2;
+   int               zone;
 }
 *imgs;
 
@@ -172,6 +144,8 @@ static struct FitInfo
 {
    int    plus;
    int    minus;
+   int    plusind;
+   int    minusind;
    double a;
    double b;
    double c;
@@ -190,8 +164,9 @@ static struct FitInfo
    double Ymin;
    double Ymax;
    double boxangle;
-   int    compl;
    int    use;
+   int    have_transform;
+   double transform[3][3];
 
    struct CorrInfo *plusimg;
    struct CorrInfo *minusimg;
@@ -228,6 +203,10 @@ static struct CorrInfo
 static int ncorrs, maxcorrs;
 
 
+static char montage_msgstr[1024];
+static char montage_json  [1024];
+
+
 /*-***********************************************************************/
 /*                                                                       */
 /*  mBModel                                                              */
@@ -244,7 +223,12 @@ static int ncorrs, maxcorrs;
 /*   char  *fitfile        Set of image overlap difference fits          */
 /*   char  *corrtbl        Output table of corrections for images        */
 /*                         in input list                                 */
-/*   int    noslope        Only fit levels, not slopes                   */
+/*   char  *gapdir         Optional directory containing special         */
+/*                         "gap" differences (e.g. for HPX projection).  */
+/*   int    mode           Three possible background matching modes:     */
+/*                         level fitting only; level fitting followed    */
+/*                         by fitting slope and level; and alternating   */
+/*                         between level and slope fitting.              */
 /*   int    useall         Use all the input differences (by default     */
 /*                         we exclude very small overlap areas)          */
 /*   int    niteration     Number of iterations to run                   */
@@ -252,11 +236,13 @@ static int ncorrs, maxcorrs;
 /*                                                                       */
 /*************************************************************************/
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int noslope, int useall, int niter, int debug)
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int zones, char *gapdir, int mode, int useall, int niter, int debug)
 {
    int     i, j, k, index, stat;
+   int     ntoggle, toggle, nancnt;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
+   int     nzone, izone;
    double  averms, sigrms, avearea;
    double  imin, imax, jmin, jmax;
    double  A, B, C;
@@ -283,6 +269,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    int     iboxheight;
    int     iboxangle;
    int     icntr;
+   int     ifname;
    int     inl;
    int     ins;
 
@@ -300,6 +287,18 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    double  dsumxx, dsumyy, dsumxy, dsumx, dsumy, dsumn;
    double  sumxz, sumyz, sumz;
 
+   int     badslope;
+   double  suma, sumb, sumc;
+   double  suma2, sumb2, sumc2;
+   double  avea, aveb, avec;
+   double  sigmaa, sigmab, sigmac;
+   double  maxa, maxb, maxc;
+   int     iamax, ibmax, icmax;
+
+   double  acorrection;
+   double  bcorrection;
+   double  ccorrection;
+
    double  dtr;
    double  Xmin, Xmax, Ymin, Ymax;
    double  theta, sinTheta, cosTheta;
@@ -311,6 +310,18 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    double  linearLimit = 0.25;
    double  sigmaLimit  = 2.00;
    double  areaLimit   = 0.002;
+
+   char    cwd     [1024];
+   char    line    [1024];
+   char    filepath[1024];
+
+   char   *ptr;
+
+   FILE   *fgap;
+
+   DIR    *dirp;
+
+   struct dirent *direntp;
 
    struct mBgModelReturn *returnStruct;
 
@@ -327,7 +338,10 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
    // Debug reference image (change here manually)
 
-   refimage = 0;
+   // refimage = 510;
+   // refimage = 509;
+
+   refimage = -1;
 
 
    /*******************************/
@@ -385,7 +399,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    if(debug)
    {
       printf("niteration = %d\n", niteration);
-      printf("noslope    = %d\n", noslope);
+      printf("mode       = %d\n", mode);
       printf("imgfile    = %s\n", imgfile);
       printf("fitfile    = %s\n", fitfile);
       printf("corrtbl    = %s\n", corrtbl);
@@ -414,10 +428,12 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    }
 
    icntr    = tcol("cntr");
+   ifname   = tcol("fname");
    inl      = tcol("nl");
    ins      = tcol("ns");
    icrpix1  = tcol("crpix1");
    icrpix2  = tcol("crpix2");
+   izone    = tcol("zone");
 
    if(ins < 0)
       ins = tcol("naxis1");
@@ -426,12 +442,13 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       inl = tcol("naxis2");
 
    if(icntr   < 0
+   || ifname  < 0
    || inl     < 0
    || ins     < 0
    || icrpix1 < 0
    || icrpix2 < 0)
    {
-      sprintf(returnStruct->msg, "Need columns: cntr nl ns crpix1 crpix2 in image info file");
+      sprintf(returnStruct->msg, "Need columns: cntr fname nl ns crpix1 crpix2 in image info file");
       return returnStruct;
    }
 
@@ -442,6 +459,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    /******************************/ 
 
    nimages   =      0;
+   nzone     =      1;
    maximages = MAXCNT;
 
    if(debug >= 2)
@@ -473,6 +491,29 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       imgs[nimages].naxis2    = atoi(tval(inl));
       imgs[nimages].crpix1    = atof(tval(icrpix1));
       imgs[nimages].crpix2    = atof(tval(icrpix2));
+
+      if(zones == 1 && izone >= 0)
+      {
+         imgs[nimages].zone = atoi(tval(izone));
+
+         if(imgs[nimages].cntr == refimage)
+         {
+            printf("REFIMAGE: refimage = %d, nimages=%d, zone=%d\n\n", 
+               refimage, nimages, imgs[nimages].zone);
+            fflush(stdout);
+         }
+
+         if(imgs[nimages].zone > 0)
+            nzone = 2;
+      }
+      else
+         imgs[nimages].zone = 0;
+      
+      strcpy(imgs[nimages].fname, tval(ifname));
+
+      // printf("\nXXX> nimages=%d: cntr=%d fname=[%s], zone=%d\n\n", 
+      //    nimages, imgs[nimages].cntr, imgs[nimages].fname, imgs[nimages].zone);
+      // fflush(stdout);
 
       avearea += imgs[nimages].naxis1*imgs[nimages].naxis2;
 
@@ -631,13 +672,16 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       fits[nfits].Ymax = Y0 + height/2.;
 
       fits[nfits].boxangle  = angle/dtr;
-      fits[nfits].compl     = nfits+1;
 
       if(fits[nfits].rms < 1.e99)
       {
          averms += fits[nfits].rms;
          ++nrms;
       }
+
+      fits[nfits].use =  1;
+
+      fits[nfits].have_transform = 0;
 
       ++nfits;
 
@@ -684,7 +728,10 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       fits[nfits].Ymin     =  fits[nfits-1].Ymin;
       fits[nfits].Ymax     =  fits[nfits-1].Ymax;
       fits[nfits].boxangle =  fits[nfits-1].boxangle;
-      fits[nfits].compl    =  nfits-1;
+
+      fits[nfits].use = 1;
+
+      fits[nfits].have_transform = 0;
 
       ++nfits;
 
@@ -709,7 +756,228 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       }
    }
 
+
+   /* If there is a "gap" directory, augment fits with data found there */
+
+   if(gapdir != (char *)NULL && strlen(gapdir) > 0)
+   {
+      dirp = opendir(gapdir);
+
+      if(dirp == NULL)
+      {
+         strcpy(returnStruct->msg, "\"Gap\" directory cannot be opened.");
+         return returnStruct;
+      }
+
+      getcwd(cwd, 1024);
+
+      chdir(gapdir);
+
+      while((direntp = readdir(dirp)) != NULL)
+      {
+         if(strlen(direntp->d_name) > 6 && strcmp(direntp->d_name+strlen(direntp->d_name)-5, ".diff") == 0)
+         {
+            // We are going to be a little lazy here.  The gap diff files do have parameter labels 
+            // but we are just going to assume structure of the file.
+
+            // printf("\nXXXX> Reading [%s]\n", direntp->d_name);
+
+            fgap = fopen(direntp->d_name, "r");
+
+            for(i=0; i<2; ++i)
+            {
+               // Plus image
+               
+               fgets(line, 1024, fgap); sscanf(line+28, "%s", filepath);
+               // printf("XXXXX> plus: [%s]\n", line+28);
+
+               ptr = filepath + strlen(filepath);
+
+               while(ptr > filepath && *ptr != '/')
+                  --ptr;
+
+               if(*ptr == '/')
+                  ++ptr;
+
+               for(j=0; j<nimages; ++j)
+                  if(strcmp(ptr, imgs[j].fname) == 0)
+                     break;
+
+               if(j == nimages)
+               {
+                  sprintf(returnStruct->msg, "Cannot find plus image '%s' in image list.", filepath);
+                  return returnStruct;
+               }
+
+               fits[nfits].plus = imgs[j].cntr;
+
+               // printf("XXXXX> Plus:  [%s](%d)\n", filepath, fits[nfits].plus);
+
+
+               // Minus image
+               
+               fgets(line, 1024, fgap); sscanf(line+28, "%s", filepath);
+               // printf("XXXXX> minus: [%s]\n", line+28);
+
+               ptr = filepath + strlen(filepath);
+
+               while(ptr > filepath && *ptr != '/')
+                  --ptr;
+
+               if(*ptr == '/')
+                  ++ptr;
+
+               for(j=0; j<nimages; ++j)
+                  if(strcmp(ptr, imgs[j].fname) == 0)
+                     break;
+
+               if(j == nimages)
+               {
+                  sprintf(returnStruct->msg, "Cannot find minus image '%s' in image list.", filepath);
+                  return returnStruct;
+               }
+               
+
+               fits[nfits].minus = imgs[j].cntr;
+
+               // printf("XXXXX> Minus: [%s](%d)\n\n", filepath, fits[nfits].minus);
+
+
+               // The rest of the parameters
+
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].a, &fits[nfits].b, &fits[nfits].c);
+               // printf("XXXXX> A,B,C: [%s]\n", line+28);
+               // printf("XXXXX> [%-g]\n", fits[nfits].a);
+               // printf("XXXXX> [%-g]\n", fits[nfits].b);
+               // printf("XXXXX> [%-g]\n", fits[nfits].c);
+
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf",     &fits[nfits].crpix1,  &fits[nfits].crpix2);
+               // printf("XXXXX> crpix [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%d %d",       &fits[nfits].xmin,    &fits[nfits].xmax);
+               // printf("XXXXX> xmin,xmax: [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%d %d",       &fits[nfits].ymin,    &fits[nfits].ymax);
+               // printf("XXXXX> ymin,ymax [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf",     &fits[nfits].xcenter, &fits[nfits].ycenter);
+               // printf("XXXXX> xcenter,ycenter: [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%d %lf",      &fits[nfits].npix,    &fits[nfits].rms);
+               // printf("XXXXX> npix,rms: [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf",     &boxx,  &boxy);
+               // printf("XXXXX> boxx,boxy: [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &width, &height, &angle);
+               // printf("XXXXX> width,height,angle: [%s]\n", line+28);
+
+               fgets(line, 1024, fgap);
+               // printf("XXXXX> have_transform: [%s]\n", line+28);
+
+               fits[nfits].use =  1;
+
+               fits[nfits].have_transform = 1;
+
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].transform[0][0], &fits[nfits].transform[0][1], &fits[nfits].transform[0][2]);
+               // printf("XXXXX> transform: [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].transform[1][0], &fits[nfits].transform[1][1], &fits[nfits].transform[1][2]);
+               // printf("XXXXX> transform: [%s]\n", line+28);
+               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].transform[2][0], &fits[nfits].transform[2][1], &fits[nfits].transform[2][2]);
+               // printf("XXXXX> transform: [%s]\n", line+28);
+
+               angle = angle * dtr;
+
+               X0 =  boxx * cos(angle) + boxy * sin(angle);
+               Y0 = -boxx * sin(angle) + boxy * cos(angle);
+
+               fits[nfits].Xmin = X0 - width /2.;
+               fits[nfits].Xmax = X0 + width /2.;
+               fits[nfits].Ymin = Y0 - height/2.;
+               fits[nfits].Ymax = Y0 + height/2.;
+
+               fits[nfits].boxangle  = angle/dtr;
+
+               // printf("XXXXX> plus:           [%d]\n",  fits[nfits].plus);
+               // printf("XXXXX> minus:          [%d]\n",  fits[nfits].minus);
+               // printf("XXXXX> A:              [%-g]\n", fits[nfits].a);
+               // printf("XXXXX> B:              [%-g]\n", fits[nfits].b);
+               // printf("XXXXX> C:              [%-g]\n", fits[nfits].c);
+               // printf("XXXXX> crpix1:         [%.2f]\n", fits[nfits].crpix1);
+               // printf("XXXXX> crpix2:         [%.2f]\n", fits[nfits].crpix2);
+               // printf("XXXXX> xmin:           [%d]\n",  fits[nfits].xmin);
+               // printf("XXXXX> xmax:           [%d]\n",  fits[nfits].xmax);
+               // printf("XXXXX> ymin:           [%d]\n",  fits[nfits].ymin);
+               // printf("XXXXX> ymax:           [%d]\n",  fits[nfits].ymax);
+               // printf("XXXXX> xcenter:        [%.2f]\n", fits[nfits].xcenter);
+               // printf("XXXXX> ycenter:        [%.2f]\n", fits[nfits].ycenter);
+               // printf("XXXXX> npix:           [%d]\n",  fits[nfits].npix);
+               // printf("XXXXX> rms:            [%-g]\n", fits[nfits].rms);
+               // printf("XXXXX> Xmin:           [%-g]\n", fits[nfits].Xmin);
+               // printf("XXXXX> Xmax:           [%-g]\n", fits[nfits].Xmax);
+               // printf("XXXXX> Ymin:           [%-g]\n", fits[nfits].Ymin);
+               // printf("XXXXX> Ymax:           [%-g]\n", fits[nfits].Ymax);
+               // printf("XXXXX> boxangle:       [%-g]\n", fits[nfits].boxangle);
+               // printf("XXXXX> use:            [%d]\n",  fits[nfits].use);
+               // printf("XXXXX> have_transform: [%d]\n",  fits[nfits].have_transform);
+
+               // printf("XXXXX> transform:      [%-g][%-g][%-g]\n", fits[nfits].transform[0][0], fits[nfits].transform[0][1], fits[nfits].transform[0][2]);
+               // printf("XXXXX> transform:      [%-g][%-g][%-g]\n", fits[nfits].transform[1][0], fits[nfits].transform[1][1], fits[nfits].transform[1][2]);
+               // printf("XXXXX> transform:      [%-g][%-g][%-g]\n", fits[nfits].transform[2][0], fits[nfits].transform[2][1], fits[nfits].transform[2][2]);
+               fflush(stdout);
+
+               if(i == 0)
+               { 
+                  fgets(line, 1024, fgap);
+                  // printf("XXXXX> [%s]\n", line+28);
+               }
+
+               ++nfits;
+               
+
+               if(nfits >= maxfits-2)
+               {
+                  maxfits += MAXCNT;
+
+                  if(debug >= 2)
+                  {
+                     printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
+                     fflush(stdout);
+                  }
+
+                  fits = (struct FitInfo *)realloc(fits, 
+                                              maxfits * sizeof(struct FitInfo));
+
+                  if(fits == (struct FitInfo *)NULL)
+                  {
+                     sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [3]", maxfits * sizeof(struct FitInfo));
+                     return returnStruct;
+                  }
+               }
+            }
+
+            fclose(fgap);
+         }
+      }
+
+      closedir(dirp);
+
+      chdir(cwd);
+   }
+
+
    averms = averms / nrms;
+
+
+   /*************************************************************************/
+   /* Find the image indices for the images mentioned in the fits structure */
+   /*************************************************************************/
+
+   for(j=0; j<nfits; ++j)
+   {
+      for(i=0; i<nimages; ++i)
+      {
+         if(fits[j].plus == imgs[i].cntr)
+            fits[j].plusind = i;
+
+         if(fits[j].minus == imgs[i].cntr)
+            fits[j].minusind = i;
+      }
+   }
 
 
    /********************************************/
@@ -881,12 +1149,6 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       }
    }
 
-   if(refimage != 0 && (refimage < 0 || refimage >= ncorrs))
-   {
-      sprintf(returnStruct->msg, "Debug reference image out of range (0 - %d)", ncorrs-1);
-      return returnStruct;
-   }
-
 
    /*******************************************************/
    /* Find the back reference from the fits to the images */
@@ -922,459 +1184,577 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
          printf(" %12.5e ",  fits[j].a);
          printf(" %12.5e ",  fits[j].b);
-         printf(" %12.5e\n", fits[j].c);
+         printf(" %12.5e ",  fits[j].c);
+         printf(" (%12.5e)\n", fits[j].rms);
 
          fflush(stdout);
       }
    }
 
 
+   /************************************************************/
+   /* Usually, we fit all the images at the same time but      */
+   /* there are a few situations (HiPS all-sky or a set        */
+   /* of questionable image) where we want to divide the       */
+   /* sky into to "zones", doing on first and then the other   */
+   /* with the second constrainted to match up with the first  */
+   /* but not allowing the first set to change in the process. */
+   /************************************************************/
 
-   /***********************************************/
-   /* Turn off the fits which represent those     */
-   /* overlaps which are smaller than 2% of the   */
-   /* average image area and those whose linear   */
-   /* extent in at least one direction isn't      */
-   /* at least half the size of the corresponding */
-   /* images                                      */
-   /***********************************************/
+   if(nzone == 2)
+      useall = 0;
 
-   for(k=0; k<nfits; ++k)
-      fits[k].use = 1;
-
-   if(!useall)
+   for(izone=0; izone<nzone; ++izone)
    {
-      for(k=0; k<nfits; ++k)
-      {
-         if(fits[k].rms >= 1.e99)
-         {
-            fits[k].use = 0;
-
-            continue;
-         }
-
-         if(fits[k].npix < areaLimit * avearea)
-         {
-            if(debug >= 2)
-               printf("not using fit %d [%d|%d] (area to small: %d/%-g\n",
-                  k, fits[k].plus, fits[k].minus, fits[k].npix, avearea);
-
-            fits[k].use = 0;
-
-            continue;
-         }
-
-         xfsize = fits[k].xmax - fits[k].xmin;
-         yfsize = fits[k].ymax - fits[k].ymin;
-
-         xisize1 = imgs[fits[k].plus].naxis1;
-         yisize1 = imgs[fits[k].plus].naxis2;
-
-         xisize2 = imgs[fits[k].minus].naxis1;
-         yisize2 = imgs[fits[k].minus].naxis2;
-
-         if(xfsize < xisize1 * linearLimit
-         && yfsize < yisize1 * linearLimit
-         && xfsize < xisize2 * linearLimit
-         && yfsize < yisize2 * linearLimit)
-         {
-            if(debug >= 2)
-               printf("not using fit %d [%d|%d] (linear size too small: %-g %-g %-g %-g)\n",
-                  k, fits[k].plus, fits[k].minus, xfsize/xisize1, yfsize/yisize1, xfsize/xisize2, yfsize/yisize2);
-
-            fits[k].use = 0;
-         }
-      }
-   }
-
-
-   /***********************************************/
-   /* We don't want to use noisy fits, so turn    */
-   /* off those with an rms more than two sigma   */
-   /* above the average                           */
-   /***********************************************/
-
-   if(!useall)
-   {
-      sumn   = 0.;
-      sumx   = 0.;
-      sumxx  = 0.;
+      /***********************************************/
+      /* Turn off the fits which represent those     */
+      /* overlaps which are smaller than 2% of the   */
+      /* average image area and those whose linear   */
+      /* extent in at least one direction isn't      */
+      /* at least half the size of the corresponding */
+      /* images                                      */
+      /***********************************************/
 
       for(k=0; k<nfits; ++k)
-      {
-         if(fits[k].use)
-         {
-            sumn  += 1.;
-            sumx  += fits[k].rms;
-            sumxx += fits[k].rms * fits[k].rms;
-         }
-      }
+         fits[k].use = 1;
 
-      averms = sumx / sumn;
-      sigrms = sqrt(sumxx/sumn - averms*averms);
-
-      for(k=0; k<nfits; ++k)
+      if(!useall)
       {
-         if(fits[k].use)
+         for(k=0; k<nfits; ++k)
          {
-            if(fits[k].rms > averms + sigmaLimit * sigrms)
+
+            if(fits[k].rms >= 1.e99)
+            {
+               fits[k].use = 0;
+
+               continue;
+            }
+
+            if(fits[k].npix < areaLimit * avearea)
             {
                if(debug >= 2)
-                  printf("not using fit %d [%d|%d] rms too large: %-g/%-g+%-g)\n",
-                     k, fits[k].plus, fits[k].minus, fits[k].rms, averms, sigrms);
+                  printf("not using fit %d [%d|%d] (area too small: %d/%-g\n",
+                     k, fits[k].plus, fits[k].minus, fits[k].npix, avearea);
 
                fits[k].use = 0;
 
                continue;
             }
+
+            /* 
+            printf("\nXXX> k = %d\n", k);
+            printf("XXX> xfsize = %-g\n", xfsize);
+            printf("XXX> yfsize = %-g\n", yfsize);
+            printf("XXX> fits[k].plus: %d\n", fits[k].plus);
+            printf("XXX> fits[k].minus: %d\n", fits[k].minus);
+            printf("XXX> fits[k].plusind: %d\n", fits[k].plusind);
+            printf("XXX> fits[k].minusind: %d\n", fits[k].minusind);
+            printf("XXX> imgs[fits[k].plusind].naxis1: %d\n", imgs[fits[k].plusind].naxis1);
+            printf("XXX> imgs[fits[k].plusind].naxis2: %d\n", imgs[fits[k].plusind].naxis2);
+            printf("XXX> imgs[fits[k].minusind].naxis1: %d\n", imgs[fits[k].minusind].naxis1);
+            printf("XXX> imgs[fits[k].minusind].naxis2: %d\n", imgs[fits[k].minusind].naxis2);
+            fflush(stdout);
+            */
+
+            xfsize = fits[k].xmax - fits[k].xmin;
+            yfsize = fits[k].ymax - fits[k].ymin;
+
+            xisize1 = imgs[fits[k].plusind].naxis1;
+            yisize1 = imgs[fits[k].plusind].naxis2;
+
+            xisize2 = imgs[fits[k].minusind].naxis1;
+            yisize2 = imgs[fits[k].minusind].naxis2;
+
+            if(xfsize < xisize1 * linearLimit
+            && yfsize < yisize1 * linearLimit
+            && xfsize < xisize2 * linearLimit
+            && yfsize < yisize2 * linearLimit)
+            {
+               if(debug >= 2)
+                  printf("not using fit %d [%d|%d] (linear size too small: %-g %-g %-g %-g)\n",
+                     k, fits[k].plus, fits[k].minus, xfsize/xisize1, yfsize/yisize1, xfsize/xisize2, yfsize/yisize2);
+
+               fits[k].use = 0;
+            }
          }
-      }
-   }
 
-
-   /***************************************/
-   /* Dump out the correction information */
-   /***************************************/
-
-   if(debug >= 3)
-   {
-      for(i=0; i<ncorrs; ++i)
-      {
-         printf("\n-----\n\nCorrection %d (Image %d)\n\n", i, corrs[i].id);
-
-         for(j=0; j<corrs[i].nneighbors; ++j)
+         if(debug >= 1)
          {
-            printf("\n  neighbor %3d:\n", j+1);
-
-            printf("            id: %d\n", corrs[i].neighbors[j]->minus);
-
-            printf("       (A,B,C): (%-g,%-g,%-g)\n", 
-               corrs[i].neighbors[j]->a, 
-               corrs[i].neighbors[j]->b, 
-               corrs[i].neighbors[j]->c);   
-
-            printf("             x: %5d to %5d\n", 
-               corrs[i].neighbors[j]->xmin, corrs[i].neighbors[j]->xmax);
-
-            printf("             y: %5d to %5d\n",
-               corrs[i].neighbors[j]->ymin, corrs[i].neighbors[j]->ymax);
-
-            printf("        center: (%-g,%-g)\n", 
-               corrs[i].neighbors[j]->xcenter, corrs[i].neighbors[j]->ycenter);
+            printf("Removed any 'small' fits.");
+            fflush(stdout);
          }
       }
-   }
 
 
-   iteration = 0;
+      /***********************************************/
+      /* We don't want to use noisy fits, so turn    */
+      /* off those with an rms more than two sigma   */
+      /* above the average                           */
+      /***********************************************/
 
-   while(1)
-   {
-      if(noslope)
-         fittype = LEVEL;
-      else
+      if(!useall)
       {
-         if(iteration < maxlevel)
+         sumn   = 0.;
+         sumx   = 0.;
+         sumxx  = 0.;
+
+         for(k=0; k<nfits; ++k)
+         {
+            if(fits[k].use)
+            {
+               sumn  += 1.;
+               sumx  += fits[k].rms;
+               sumxx += fits[k].rms * fits[k].rms;
+            }
+         }
+
+         averms = sumx / sumn;
+         sigrms = sqrt(sumxx/sumn - averms*averms);
+
+         for(k=0; k<nfits; ++k)
+         {
+            if(fits[k].use)
+            {
+               if(fits[k].rms > averms + sigmaLimit * sigrms)
+               {
+                  if(debug >= 2)
+                     printf("not using fit %d [%d|%d] rms too large: %-g/%-g+%-g)\n",
+                        k, fits[k].plus, fits[k].minus, fits[k].rms, averms, sigrms);
+
+                  fits[k].use = 0;
+
+                  continue;
+               }
+            }
+         }
+
+         if(debug >= 1)
+         {
+            printf("Removed fits with RMS greater than %-g + %-g x %-g (average RMS + sigmaLimit*sigrms)\n",
+                  averms, sigmaLimit, sigrms);
+            fflush(stdout);
+         }
+      }
+
+
+      /***************************************/
+      /* Dump out the correction information */
+      /***************************************/
+
+      if(debug >= 3)
+      {
+         for(i=0; i<ncorrs; ++i)
+         {
+            printf("\n-----\n\nCorrection %d (Image %d)\n\n", i, corrs[i].id);
+
+            for(j=0; j<corrs[i].nneighbors; ++j)
+            {
+               printf("\n  neighbor %3d:\n", j+1);
+
+               printf("            id: %d\n", corrs[i].neighbors[j]->minus);
+
+               printf("       (A,B,C): (%-g,%-g,%-g)\n", 
+                  corrs[i].neighbors[j]->a, 
+                  corrs[i].neighbors[j]->b, 
+                  corrs[i].neighbors[j]->c);   
+
+               printf("             x: %5d to %5d\n", 
+                  corrs[i].neighbors[j]->xmin, corrs[i].neighbors[j]->xmax);
+
+               printf("             y: %5d to %5d\n",
+                  corrs[i].neighbors[j]->ymin, corrs[i].neighbors[j]->ymax);
+
+               printf("        center: (%-g,%-g)\n", 
+                  corrs[i].neighbors[j]->xcenter, corrs[i].neighbors[j]->ycenter);
+            }
+         }
+      }
+
+      /***********************************************/
+      /* If we are using the two-zone method (and    */
+      /* processing zone 0), turn off any overlaps   */
+      /* that involve at least one image from zone 1 */
+      /***********************************************/
+
+      if(zones == 1 && izone == 0)
+      {
+         for(k=0; k<nfits; ++k)
+         {
+            if(imgs[fits[k].plus ].zone == 1)
+            {
+               fits[k].use = 0;
+
+               if(debug >= 2)
+               {
+                  printf("Removed fits[%d]: image %d is in zone 1.\n", k, fits[k].plus);
+                  fflush(stdout);
+               }
+            }
+
+            if(imgs[fits[k].minus].zone == 1)
+            {
+               fits[k].use = 0;
+
+               if(debug >= 2)
+               {
+                  printf("Removed fits[%d]: image %d is in zone 1.\n", k, fits[k].minus);
+                  fflush(stdout);
+               }
+            }
+         }
+      }
+
+
+
+      iteration = 0;
+
+      while(1)
+      {
+         /*************************************************/
+         /* Original logic: Either level fitting or level */
+         /* fitting followed by fitting slope and level.  */
+         /*************************************************/
+
+         if(mode == LEVEL_ONLY)
             fittype = LEVEL;
-         else
-            fittype = BOTH;
-      }
 
-      if(debug >= 2)
-      {
-         printf("Iteration %d", iteration+1);
-              if(fittype == LEVEL) printf(" (LEVEL):\n");
-         else if(fittype == SLOPE) printf(" (SLOPE):\n");
-         else if(fittype == BOTH)  printf(" (BOTH ):\n");
-         else                      printf(" (ERROR):\n");
-         fflush(stdout);
-      }
-
-      /*********************************************/
-      /* For each image, calculate the "best fit"  */
-      /* correction plane, based of the difference */
-      /* data between an image and its neighbors   */
-      /*********************************************/
-
-      for(i=0; i<ncorrs; ++i)
-      {
-         sumn  = 0.;
-         sumx  = 0.;
-         sumy  = 0.;
-         sumxx = 0.;
-         sumxy = 0.;
-         sumyy = 0.;
-         sumxz = 0.;
-         sumyz = 0.;
-         sumz  = 0.;
-
-         corrs[i].acorrection = 0.;
-         corrs[i].bcorrection = 0.;
-         corrs[i].ccorrection = 0.;
-
-         for(j=0; j<corrs[i].nneighbors; ++j)
+         if(mode == ALL)
          {
-            /* We have earlier "turned off" some of these because */
-            /* the fit was bad (too few points or too noisy).     */
-            /* If so, don't include them in the sums.             */
-
-            if(corrs[i].neighbors[j]->use == 0)
-               continue;
-
-
-            /* What we do here is essentially a "least squares",   */
-            /* though rather than go back to the difference files  */
-            /* we instead use the parameterized value of the plane */
-            /* fit to that data.                                   */
-
-            imin = corrs[i].neighbors[j]->xmin;
-            imax = corrs[i].neighbors[j]->xmax;
-            jmin = corrs[i].neighbors[j]->ymin;
-            jmax = corrs[i].neighbors[j]->ymax;
-
-            theta = corrs[i].neighbors[j]->boxangle;
-
-            Xmin = corrs[i].neighbors[j]->Xmin;
-            Xmax = corrs[i].neighbors[j]->Xmax;
-            Ymin = corrs[i].neighbors[j]->Ymin;
-            Ymax = corrs[i].neighbors[j]->Ymax;
-
-            if(debug >= 3)
-            {
-               printf("\n--------------------------------------------------\n");
-               printf("\nCorrection %d (%d) / Neighbor %d (%d)\n\nPixel Range:\n",
-                  i, corrs[i].id, j, corrs[i].neighbors[j]->minus);
-               printf("i:     %12.5e->%12.5e (%12.5e)\n", imin, imax, imax-imin+1);
-               printf("j:     %12.5e->%12.5e (%12.5e)\n", jmin, jmax, jmax-jmin+1);
-               printf("X:     %12.5e->%12.5e (%12.5e)\n", Xmin, Xmax, Xmax-Xmin+1);
-               printf("Y:     %12.5e->%12.5e (%12.5e)\n", Ymin, Ymax, Ymax-Ymin+1);
-               printf("angle: %-g\n", theta);
-               printf("\n");
-
-               fflush(stdout);
-            }
-
-            sinTheta = sin(theta*dtr);
-            cosTheta = cos(theta*dtr);
-
-            dsumn = (Xmax - Xmin) * (Ymax - Ymin);
-
-            dsumx  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * cosTheta 
-                   - (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta;
-
-            dsumy  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * sinTheta 
-                   + (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta;
-            
-            dsumxx = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*cosTheta
-                   - 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta*sinTheta
-                   + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*sinTheta;
-
-            dsumyy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * sinTheta*sinTheta
-                   + 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta*cosTheta
-                   + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * cosTheta*cosTheta;
-
-            dsumxy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*sinTheta
-                   + (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * (cosTheta*cosTheta - sinTheta*sinTheta)
-                   - (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*cosTheta;
-
-
-            if(debug >= 3)
-            {
-               printf("\nSums:\n");
-               printf("dsumn   = %12.5e\n", dsumn);
-               printf("dsumx   = %12.5e\n", dsumx);
-               printf("dsumy   = %12.5e\n", dsumy);
-               printf("dsumxx  = %12.5e\n", dsumxx);
-               printf("dsumxy  = %12.5e\n", dsumxy);
-               printf("dsumyy  = %12.5e\n", dsumyy);
-               printf("\n");
-
-               fflush(stdout);
-            }
-
-            sumn  += dsumn;
-            sumx  += dsumx;
-            sumy  += dsumy;
-            sumxx += dsumxx;
-            sumxy += dsumxy;
-            sumyy += dsumyy;
-
-            index = corrs[i].neighbors[j]->plusimg->id;
-
-            A = corrs[i].neighbors[j]->a;
-            B = corrs[i].neighbors[j]->b;
-            C = corrs[i].neighbors[j]->c;
-
-            sumz  += A * dsumx  + B * dsumy  + C * dsumn;
-            sumxz += A * dsumxx + B * dsumxy + C * dsumx;
-            sumyz += A * dsumxy + B * dsumyy + C * dsumy;
-            
-            if(debug >= 3)
-            {
-               printf("\n");
-               printf("sumn    = %12.5e\n", sumn);
-               printf("sumx    = %12.5e\n", sumx);
-               printf("sumy    = %12.5e\n", sumy);
-               printf("sumxx   = %12.5e\n", sumxx);
-               printf("sumxy   = %12.5e\n", sumxy);
-               printf("sumyy   = %12.5e\n", sumyy);
-               printf("A       = %12.5e\n", A);
-               printf("B       = %12.5e\n", B);
-               printf("C       = %12.5e\n", C);
-               printf("sumz    = %12.5e\n", sumz);
-               printf("sumxz   = %12.5e\n", sumxz);
-               printf("sumyz   = %12.5e\n", sumyz);
-               printf("\n");
-
-               fflush(stdout);
-            }
+            if(iteration < maxlevel)
+               fittype = LEVEL;
+            else
+               fittype = BOTH;
          }
 
 
-         /* If we found no overlaps, don't */
-         /* try to compute correction      */
+         /************************************************/
+         /* An alternate approach:  toggle between level */
+         /* fitting and slope fitting.                   */
+         /************************************************/
 
-         if(sumn == 0.)
-            continue;
-
-
-
-         /***********************************/
-         /* Least-squares plane calculation */
-
-         /*** Fill the matrix and vector  ****
-
-              |a00  a01 a02| |A|   |b00|
-              |a10  a11 a12|x|B| = |b01|
-              |a20  a21 a22| |C|   |b02|
-
-         *************************************/
-
-         a[0][0] = sumxx;
-         a[1][0] = sumxy;
-         a[2][0] = sumx;
-
-         a[0][1] = sumxy;
-         a[1][1] = sumyy;
-         a[2][1] = sumy;
-
-         a[0][2] = sumx;
-         a[1][2] = sumy;
-         a[2][2] = sumn;
-
-         b[0][0] = sumxz;
-         b[1][0] = sumyz;
-         b[2][0] = sumz;
-
-         if(debug >= 3)
+         if(mode == ALTERNATE)
          {
-            printf("\nMatrix:\n");
-            printf("| %12.5e %12.5e %12.5e | |A|   |%12.5e|\n", a[0][0], a[0][1], a[0][2], b[0][0]);
-            printf("| %12.5e %12.5e %12.5e |x|B| = |%12.5e|\n", a[1][0], a[1][1], a[1][2], b[1][0]);
-            printf("| %12.5e %12.5e %12.5e | |C|   |%12.5e|\n", a[2][0], a[2][1], a[2][2], b[2][0]);
-            printf("\n");
+            ntoggle = 1000;
+            if(niteration < 10000)
+               ntoggle = niteration / 10.;
 
-            fflush(stdout);
+            if(ntoggle < 1)
+               ntoggle = 1;
+
+            toggle = (iteration / ntoggle) % 2;
+
+            if(toggle)
+               fittype = SLOPE;
+            else
+               fittype = LEVEL;
          }
-
-
-         /* Solve */
-
-         if(fittype == LEVEL)
-         {
-            b[0][0] = 0.;
-            b[1][0] = 0.;
-            b[2][0] = sumz/sumn;
-
-            istatus = 0;
-         }
-         else if(fittype == SLOPE)
-         {
-            n = 2;
-            istatus = mBgModel_gaussj(a, n, b, m);
-
-            b[2][0] = 0.;
-         }
-         else if(fittype == BOTH)
-         {
-            n = 3;
-            istatus = mBgModel_gaussj(a, n, b, m);
-         }
-         else
-         {
-            sprintf(returnStruct->msg, "Invalid fit type");
-            return returnStruct;
-         }
-
-
-         /* Singular matrix, don't use corrections */
-
-         if(istatus)
-         {
-            b[0][0] = 0.;
-            b[1][0] = 0.;
-            b[2][0] = 0.;
-         }
-
-         /* Apply the corrections */
-
-         if(debug >= 3)
-         {
-            printf("\nMatrix Solution:\n");
-
-            printf(" |%12.5e|\n", b[0][0]);
-            printf(" |%12.5e|\n", b[1][0]);
-            printf(" |%12.5e|\n", b[2][0]);
-            printf("\n");
-
-            fflush(stdout);
-         }
-
-         corrs[i].acorrection = b[0][0] / 2.;
-         corrs[i].bcorrection = b[1][0] / 2.;
-         corrs[i].ccorrection = b[2][0] / 2.;
 
          if(debug >= 2)
          {
-            printf("Background corrections (Correction %d (%4d) / Iteration %d) ", 
-               i, corrs[i].id, iteration+1);
-
+            printf("Iteration %d", iteration+1);
                  if(fittype == LEVEL) printf(" (LEVEL):\n");
             else if(fittype == SLOPE) printf(" (SLOPE):\n");
             else if(fittype == BOTH)  printf(" (BOTH ):\n");
             else                      printf(" (ERROR):\n");
-
-            if(istatus)
-               printf("\n***** Singular Matrix ***** \n\n");
-
-            printf("  A = %12.5e\n",   corrs[i].acorrection);
-            printf("  B = %12.5e\n",   corrs[i].bcorrection);
-            printf("  C = %12.5e\n\n", corrs[i].ccorrection);
-
             fflush(stdout);
          }
-      }
 
+         /*********************************************/
+         /* For each image, calculate the "best fit"  */
+         /* correction plane, based of the difference */
+         /* data between an image and its neighbors   */
+         /*********************************************/
 
-      /***************************************/
-      /* Apply the corrections to each image */
-      /***************************************/
-
-      for(i=0; i<ncorrs; ++i)
-      {
-         corrs[i].a += corrs[i].acorrection;
-         corrs[i].b += corrs[i].bcorrection;
-         corrs[i].c += corrs[i].ccorrection;
-
-         if(debug >= 1)
+         for(i=0; i<ncorrs; ++i)
          {
-            if(i == 0)
+            sumn  = 0.;
+            sumx  = 0.;
+            sumy  = 0.;
+            sumxx = 0.;
+            sumxy = 0.;
+            sumyy = 0.;
+            sumxz = 0.;
+            sumyz = 0.;
+            sumz  = 0.;
+
+            corrs[i].acorrection = 0.;
+            corrs[i].bcorrection = 0.;
+            corrs[i].ccorrection = 0.;
+
+            for(j=0; j<corrs[i].nneighbors; ++j)
+            {
+               /* We have earlier "turned off" some of these because */
+               /* the fit was bad (too few points or too noisy).     */
+               /* If so, don't include them in the sums.             */
+
+               if(corrs[i].neighbors[j]->use == 0)
+                  continue;
+
+
+               /* What we do here is essentially a "least squares",   */
+               /* though rather than go back to the difference files  */
+               /* we instead use the parameterized value of the plane */
+               /* fit to that data.                                   */
+
+               imin = corrs[i].neighbors[j]->xmin;
+               imax = corrs[i].neighbors[j]->xmax;
+               jmin = corrs[i].neighbors[j]->ymin;
+               jmax = corrs[i].neighbors[j]->ymax;
+
+               theta = corrs[i].neighbors[j]->boxangle;
+
+               Xmin = corrs[i].neighbors[j]->Xmin;
+               Xmax = corrs[i].neighbors[j]->Xmax;
+               Ymin = corrs[i].neighbors[j]->Ymin;
+               Ymax = corrs[i].neighbors[j]->Ymax;
+
+               if(debug >= 3)
+               {
+                  printf("\n--------------------------------------------------\n");
+                  printf("\nCorrection %d (%d) / Neighbor %d (%d)\n\nPixel Range:\n",
+                     i, corrs[i].id, j, corrs[i].neighbors[j]->minus);
+                  printf("i:     %12.5e->%12.5e (%12.5e)\n", imin, imax, imax-imin+1);
+                  printf("j:     %12.5e->%12.5e (%12.5e)\n", jmin, jmax, jmax-jmin+1);
+                  printf("X:     %12.5e->%12.5e (%12.5e)\n", Xmin, Xmax, Xmax-Xmin+1);
+                  printf("Y:     %12.5e->%12.5e (%12.5e)\n", Ymin, Ymax, Ymax-Ymin+1);
+                  printf("angle: %-g\n", theta);
+                  printf("\n");
+
+                  fflush(stdout);
+               }
+
+               sinTheta = sin(theta*dtr);
+               cosTheta = cos(theta*dtr);
+
+               dsumn = (Xmax - Xmin) * (Ymax - Ymin);
+
+               dsumx  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * cosTheta 
+                      - (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta;
+
+               dsumy  = (Ymax - Ymin) * (Xmax*Xmax - Xmin*Xmin)/2. * sinTheta 
+                      + (Xmax - Xmin) * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta;
+               
+               dsumxx = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*cosTheta
+                      - 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * cosTheta*sinTheta
+                      + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*sinTheta;
+
+               dsumyy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * sinTheta*sinTheta
+                      + 2. * (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * sinTheta*cosTheta
+                      + (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * cosTheta*cosTheta;
+
+               dsumxy = (Ymax - Ymin) * (Xmax*Xmax*Xmax - Xmin*Xmin*Xmin)/3. * cosTheta*sinTheta
+                      + (Xmax*Xmax - Xmin*Xmin)/2. * (Ymax*Ymax - Ymin*Ymin)/2. * (cosTheta*cosTheta - sinTheta*sinTheta)
+                      - (Xmax - Xmin) * (Ymax*Ymax*Ymax - Ymin*Ymin*Ymin)/3. * sinTheta*cosTheta;
+
+
+               if(debug >= 3)
+               {
+                  printf("\nSums:\n");
+                  printf("dsumn   = %12.5e\n", dsumn);
+                  printf("dsumx   = %12.5e\n", dsumx);
+                  printf("dsumy   = %12.5e\n", dsumy);
+                  printf("dsumxx  = %12.5e\n", dsumxx);
+                  printf("dsumxy  = %12.5e\n", dsumxy);
+                  printf("dsumyy  = %12.5e\n", dsumyy);
+                  printf("\n");
+
+                  fflush(stdout);
+               }
+
+               sumn  += dsumn;
+               sumx  += dsumx;
+               sumy  += dsumy;
+               sumxx += dsumxx;
+               sumxy += dsumxy;
+               sumyy += dsumyy;
+
+               index = corrs[i].neighbors[j]->plusimg->id;
+
+               A = corrs[i].neighbors[j]->a;
+               B = corrs[i].neighbors[j]->b;
+               C = corrs[i].neighbors[j]->c;
+
+               sumz  += A * dsumx  + B * dsumy  + C * dsumn;
+               sumxz += A * dsumxx + B * dsumxy + C * dsumx;
+               sumyz += A * dsumxy + B * dsumyy + C * dsumy;
+               
+               if(debug >= 3)
+               {
+                  printf("\n");
+                  printf("sumn    = %12.5e\n", sumn);
+                  printf("sumx    = %12.5e\n", sumx);
+                  printf("sumy    = %12.5e\n", sumy);
+                  printf("sumxx   = %12.5e\n", sumxx);
+                  printf("sumxy   = %12.5e\n", sumxy);
+                  printf("sumyy   = %12.5e\n", sumyy);
+                  printf("A       = %12.5e\n", A);
+                  printf("B       = %12.5e\n", B);
+                  printf("C       = %12.5e\n", C);
+                  printf("sumz    = %12.5e\n", sumz);
+                  printf("sumxz   = %12.5e\n", sumxz);
+                  printf("sumyz   = %12.5e\n", sumyz);
+                  printf("\n");
+
+                  fflush(stdout);
+               }
+            }
+
+
+            /* If we found no overlaps, don't */
+            /* try to compute correction      */
+
+            if(sumn == 0.)
+               continue;
+
+
+
+            /***********************************/
+            /* Least-squares plane calculation */
+
+            /*** Fill the matrix and vector  ****
+
+                 |a00  a01 a02| |A|   |b00|
+                 |a10  a11 a12|x|B| = |b01|
+                 |a20  a21 a22| |C|   |b02|
+
+            *************************************/
+
+            a[0][0] = sumxx;
+            a[1][0] = sumxy;
+            a[2][0] = sumx;
+
+            a[0][1] = sumxy;
+            a[1][1] = sumyy;
+            a[2][1] = sumy;
+
+            a[0][2] = sumx;
+            a[1][2] = sumy;
+            a[2][2] = sumn;
+
+            b[0][0] = sumxz;
+            b[1][0] = sumyz;
+            b[2][0] = sumz;
+
+            if(debug >= 3)
+            {
+               printf("\nMatrix:\n");
+               printf("| %12.5e %12.5e %12.5e | |A|   |%12.5e|\n", a[0][0], a[0][1], a[0][2], b[0][0]);
+               printf("| %12.5e %12.5e %12.5e |x|B| = |%12.5e|\n", a[1][0], a[1][1], a[1][2], b[1][0]);
+               printf("| %12.5e %12.5e %12.5e | |C|   |%12.5e|\n", a[2][0], a[2][1], a[2][2], b[2][0]);
                printf("\n");
 
-            if(refimage == 0 || i == refimage)
+               fflush(stdout);
+            }
+
+
+            /* Solve */
+
+            if(fittype == LEVEL)
             {
-               printf("Corrected backgrounds (Correction %4d (%4d) / Iteration %4d) ", 
+               b[0][0] = 0.;
+               b[1][0] = 0.;
+               b[2][0] = sumz/sumn;
+
+               istatus = 0;
+            }
+            else if(fittype == SLOPE)
+            {
+               n = 2;
+               istatus = mBgModel_gaussj(a, n, b, m);
+
+               b[2][0] = 0.;
+            }
+            else if(fittype == BOTH)
+            {
+               n = 3;
+               istatus = mBgModel_gaussj(a, n, b, m);
+            }
+            else
+            {
+               sprintf(returnStruct->msg, "Invalid fit type");
+               return returnStruct;
+            }
+
+
+            /* Singular matrix, don't use corrections */
+
+            if(istatus)
+            {
+               b[0][0] = 0.;
+               b[1][0] = 0.;
+               b[2][0] = 0.;
+            }
+
+            /* Save the corrections */
+
+            if(debug >= 3)
+            {
+               printf("\nMatrix Solution:\n");
+
+               printf(" |%12.5e|\n", b[0][0]);
+               printf(" |%12.5e|\n", b[1][0]);
+               printf(" |%12.5e|\n", b[2][0]);
+               printf("\n");
+
+               fflush(stdout);
+            }
+
+            corrs[i].acorrection = b[0][0] / 2.;
+            corrs[i].bcorrection = b[1][0] / 2.;
+            corrs[i].ccorrection = b[2][0] / 2.;
+
+            if(debug >= 2)
+            {
+               printf("Background corrections (Correction %d (%4d) / Iteration %d) ", 
                   i, corrs[i].id, iteration+1);
+
+                    if(fittype == LEVEL) printf(" (LEVEL):\n");
+               else if(fittype == SLOPE) printf(" (SLOPE):\n");
+               else if(fittype == BOTH)  printf(" (BOTH ):\n");
+               else                      printf(" (ERROR):\n");
+
+               if(istatus)
+                  printf("\n***** Singular Matrix ***** \n\n");
+
+               printf("  A = %12.5e\n",   corrs[i].acorrection);
+               printf("  B = %12.5e\n",   corrs[i].bcorrection);
+               printf("  C = %12.5e\n\n", corrs[i].ccorrection);
+
+               fflush(stdout);
+            }
+         }
+
+
+         /***************************************/
+         /* Apply the corrections to each image */
+         /***************************************/
+
+         for(i=0; i<ncorrs; ++i)
+         {
+            // If we are doing Zone 0, don't update any zone 1 images
+            // and if we are doing Zone 1, don't update any Zone 0 images
+            
+            if(   (nzone == 2 && izone == 0 && imgs[corrs[i].id].zone == 1)
+               || (nzone == 2 && izone == 1 && imgs[corrs[i].id].zone == 0) )
+            {
+               if(debug >= 2)
+               {
+                  printf("Correction %d unapplied: image %d (%s) / zone %d\n", 
+                     i, corrs[i].id, imgs[corrs[i].id].fname, imgs[corrs[i].id].zone);
+                  fflush(stdout);
+               }
+            }
+            else
+            {
+               corrs[i].a += corrs[i].acorrection;
+               corrs[i].b += corrs[i].bcorrection;
+               corrs[i].c += corrs[i].ccorrection;
+            }
+
+            if(debug >= 1)
+            {
+               printf("Correction %4d (i.e., Image %4d) / Iteration %4d (zone %d) ", 
+                  i, corrs[i].id, iteration+1, izone);
 
                     if(fittype == LEVEL) printf(" (LEVEL): ");
                else if(fittype == SLOPE) printf(" (SLOPE): ");
@@ -1383,54 +1763,202 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
                printf(" %12.5e ",  corrs[i].a);
                printf(" %12.5e ",  corrs[i].b);
-               printf(" %12.5e\n", corrs[i].c);
+               printf(" %12.5e ",  corrs[i].c);
+
+               printf(" (correction offsets: %12.5e ",  corrs[i].acorrection);
+               printf(" %12.5e ",  corrs[i].bcorrection);
+               printf(" %12.5e)\n", corrs[i].ccorrection);
+
+               fflush(stdout);
+            }
+
+            if(corrs[i].id == refimage)
+            {
+               printf("Correction %4d (i.e., Image %4d) / Iteration %4d (zone %d) ", 
+                  i, corrs[i].id, iteration+1, izone);
+
+                    if(fittype == LEVEL) printf(" (LEVEL): ");
+               else if(fittype == SLOPE) printf(" (SLOPE): ");
+               else if(fittype == BOTH)  printf(" (BOTH ): ");
+               else                      printf(" (ERROR): ");
+
+               printf(" %12.5e ",  corrs[i].a);
+               printf(" %12.5e ",  corrs[i].b);
+               printf(" %12.5e ",  corrs[i].c);
+
+               printf(" (correction offsets: %12.5e ",  corrs[i].acorrection);
+               printf(" %12.5e ",  corrs[i].bcorrection);
+               printf(" %12.5e)\n", corrs[i].ccorrection);
 
                fflush(stdout);
             }
          }
-      }
 
 
-      /*************************************/
-      /* Apply the corrections to each fit */
-      /*************************************/
+         /***********************************/
+         /* Calculate correction statistics */
+         /***********************************/
 
-      for(i=0; i<nfits; ++i)
-      {
-         fits[i].a -= fits[i].plusimg->acorrection;
-         fits[i].b -= fits[i].plusimg->bcorrection;
-         fits[i].c -= fits[i].plusimg->ccorrection;
+         badslope = 0;
 
-         fits[i].a += fits[i].minusimg->acorrection;
-         fits[i].b += fits[i].minusimg->bcorrection;
-         fits[i].c += fits[i].minusimg->ccorrection;
-
-         if(debug >= 2)
+         if(badslope)
          {
-            if(i == 0)
-               printf("\n");
+            sumn   = 0.;
+            suma   = 0.;
+            suma2  = 0.;
+            sumb   = 0.;
+            sumb2  = 0.;
+            sumc   = 0.;
+            sumc2  = 0.;
 
-            printf("Corrected fit (fit %4d / Iteration %5d) ", 
-               i, iteration+1);
+            maxa = 0.;
+            maxb = 0.;
+            maxc = 0.;
 
-                 if(fittype == LEVEL) printf(" (LEVEL): ");
-            else if(fittype == SLOPE) printf(" (SLOPE): ");
-            else if(fittype == BOTH)  printf(" (BOTH ): ");
-            else                      printf(" (ERROR): ");
+            for(i=0; i<nfits; ++i)
+            {
+               acorrection = fits[i].plusimg->acorrection;
+               bcorrection = fits[i].plusimg->bcorrection;
+               ccorrection = fits[i].plusimg->ccorrection;
 
-            printf(" %12.5e ",  fits[i].a);
-            printf(" %12.5e ",  fits[i].b);
-            printf(" %12.5e\n", fits[i].c);
+               if(fits[i].use)
+               {
+                  sumn  += 1.;
 
-            fflush(stdout);
+                  suma  += fabs(acorrection);
+                  suma2 += acorrection * acorrection;
+
+                  sumb  += fabs(bcorrection);
+                  sumb2 += bcorrection * bcorrection;
+
+                  sumc  += fabs(ccorrection);
+                  sumc2 += ccorrection * ccorrection;
+
+                  if(fabs(acorrection) > maxa)
+                  {
+                     maxa = fabs(acorrection);
+                     iamax = i;
+                  }
+
+                  if(fabs(bcorrection) > maxb)
+                  {
+                     maxb = fabs(acorrection);
+                     ibmax = i;
+                  }
+
+                  if(fabs(ccorrection) > maxc)
+                  {
+                     maxc = fabs(ccorrection);
+                     icmax = i;
+                  }
+               }
+            }
+
+            avea   = suma / sumn;
+            sigmaa = sqrt(suma2/sumn - avea*avea);
+
+            aveb   = sumb / sumn;
+            sigmab = sqrt(sumb2/sumn - aveb*aveb);
+
+            avec   = sumc / sumn;
+            sigmac = sqrt(sumc2/sumn - avec*avec);
+
+            if(debug >= 1)
+            {
+               printf("Iteration %6d Overlaps Statistics\n", iteration);
+               printf("   A: %-g +/- %-g, max: %-g (%s - %s overlap)\n",   avea, sigmaa, maxa, imgs[fits[iamax].plusind].fname, imgs[fits[iamax].minusind].fname);
+               printf("   B: %-g +/- %-g, max: %-g (%s - %s overlap)\n",   aveb, sigmab, maxb, imgs[fits[ibmax].plusind].fname, imgs[fits[ibmax].minusind].fname);
+               printf("   C: %-g +/- %-g, max: %-g (%s - %s overlap)\n\n", avec, sigmac, maxc, imgs[fits[icmax].plusind].fname, imgs[fits[icmax].minusind].fname);
+               fflush(stdout);
+            }
          }
+
+
+         /*************************************/
+         /* Apply the corrections to each fit */
+         /*************************************/
+
+         for(i=0; i<nfits; ++i)
+         {
+            // To avoid instabilities, don't allow corrections that are more
+            // than 10 times the RMS correction.
+            
+            if(badslope && (fittype == SLOPE || fittype == BOTH))
+            {
+               if(fabs(fits[i].plusimg->acorrection) > 4.*sigmaa)
+               {
+                  printf("Ignoring fit %d\n", i);
+                  fflush(stdout);
+                  continue;
+               }
+
+               if(fabs(fits[i].plusimg->bcorrection) > 4.*sigmab)
+               {
+                  printf("Ignoring fit %d\n", i);
+                  fflush(stdout);
+                  continue;
+               }
+            }
+
+            fits[i].a -= fits[i].plusimg->acorrection;
+            fits[i].b -= fits[i].plusimg->bcorrection;
+            fits[i].c -= fits[i].plusimg->ccorrection;
+
+
+            // If a transform is defined (cross-gap 'overlaps') we need to 
+            // apply it to the 'minus' corrections.  Otherwise, it is the 
+            // same correction as the plus image but opposite sign.
+            
+            acorrection = fits[i].minusimg->acorrection;
+            bcorrection = fits[i].minusimg->bcorrection;
+            ccorrection = fits[i].minusimg->ccorrection;
+
+            if(fits[i].have_transform)
+            {
+               acorrection = fits[i].transform[0][0] * fits[i].minusimg->acorrection
+                           + fits[i].transform[0][1] * fits[i].minusimg->bcorrection
+                           + fits[i].transform[0][2] * fits[i].minusimg->ccorrection;
+
+               bcorrection = fits[i].transform[1][0] * fits[i].minusimg->acorrection
+                           + fits[i].transform[1][1] * fits[i].minusimg->bcorrection
+                           + fits[i].transform[1][2] * fits[i].minusimg->ccorrection;
+
+               ccorrection = fits[i].transform[2][0] * fits[i].minusimg->acorrection
+                           + fits[i].transform[2][1] * fits[i].minusimg->bcorrection
+                           + fits[i].transform[2][2] * fits[i].minusimg->ccorrection;
+            }
+            
+            fits[i].a += acorrection;
+            fits[i].b += bcorrection;
+            fits[i].c += ccorrection;
+
+            if(debug >= 2)
+            {
+               if(i == 0)
+                  printf("\n");
+
+               printf("Corrected fit (fit %4d / Iteration %5d) ", 
+                  i, iteration+1);
+
+                    if(fittype == LEVEL) printf(" (LEVEL): ");
+               else if(fittype == SLOPE) printf(" (SLOPE): ");
+               else if(fittype == BOTH)  printf(" (BOTH ): ");
+               else                      printf(" (ERROR): ");
+
+               printf(" %12.5e ",  fits[i].a);
+               printf(" %12.5e ",  fits[i].b);
+               printf(" %12.5e\n", fits[i].c);
+
+               fflush(stdout);
+            }
+         }
+
+
+         ++iteration;
+
+         if(iteration >= niteration)
+            break;
       }
-
-
-      ++iteration;
-
-      if(iteration >= niteration)
-         break;
    }
 
 
@@ -1440,18 +1968,30 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
    fputs("|   id   |      a       |      b       |      c       |\n", fout);
 
+   nancnt = 0;
+
    for(i=0; i<ncorrs; ++i)
+   {
+      if(mNaN(corrs[i].a)) ++nancnt;
+      if(mNaN(corrs[i].b)) ++nancnt;
+      if(mNaN(corrs[i].c)) ++nancnt;
+
       fprintf(fout, " %8d  %13.5e  %13.5e  %13.5e\n", 
          corrs[i].id, corrs[i].a, corrs[i].b, corrs[i].c);
+   }
    
    fflush(fout);
    fclose(fout);
 
+   sprintf(montage_msgstr, "nnan=%d", nancnt);
+   sprintf(montage_json, "{\"nnan\":%d}", nancnt);
 
    returnStruct->status = 0;
 
-   strcpy(returnStruct->msg,  "");
-   strcpy(returnStruct->json, "{}");
+   strcpy(returnStruct->msg,  montage_msgstr);
+   strcpy(returnStruct->json, montage_json);
+
+   returnStruct->nnan = nancnt;
 
    return returnStruct;
 }
@@ -1587,5 +2127,5 @@ int *mBgModel_ivector(int nh)
 
 void mBgModel_free_ivector(int *v)
 {
-   free((char *) v);
+      free((char *) v);
 }

@@ -83,14 +83,15 @@ int naxis;
 
 int main(int argc, char **argv)
 {
-   int  level, c, pad, count, ncols, nplate;
-   int  id, iplate, i, j, bin, onebin;
+   int  level, level_only, c, pad, count, ncols, nplate;
+   int  id, iplate, i, j, bin, onebin, status, nimages, exists;
    int  iid, ii, ij, ibin, location, background, processing;
 
    char cwd       [1024];
    char survey    [1024];
    char band      [1024];
    char datadir   [1024];
+   char outfile   [1024];
    char scriptfile[1024];
    char driverfile[1024];
    char mosaicdir [1024];
@@ -99,6 +100,8 @@ int main(int argc, char **argv)
    char platelist [1024];
    char platename [1024];
    char tmpdir    [1024];
+
+   struct stat buf;
 
    FILE *fscript;
    FILE *fdriver;
@@ -112,23 +115,28 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-s(ingle-threaded)[-p(roject-only)] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-s(ingle-threaded)[-p(roject-only)] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
       fflush(stdout);
       exit(1);
    }
 
    debug = 0;
+   level_only = 0;
 
    location   = ARCHIVE;
    background = BACKGROUND_CORRECTION;
    processing = CLUSTER;
 
-   while ((c = getopt(argc, argv, "dsp")) != EOF)
+   while ((c = getopt(argc, argv, "dlsp")) != EOF)
    {
       switch (c)
       {
          case 'd':
             debug = 1;
+            break;
+
+         case 'l':
+            level_only = 1;
             break;
 
          case 's':
@@ -179,6 +187,15 @@ int main(int argc, char **argv)
       strcat(tmpdir, mosaicdir);
 
       strcpy(mosaicdir, tmpdir);
+   }
+      
+   if(platelist[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, platelist);
+
+      strcpy(platelist, tmpdir);
    }
       
    if(scriptdir[strlen(scriptdir)-1] != '/')
@@ -331,10 +348,15 @@ int main(int argc, char **argv)
 
    ncols = topen(platelist);
 
+   nimages = 0;
+   exists  = 0;
+
    while(1)
    {
       if(tread() < 0)
          break;
+
+      ++nimages;
 
       id = atoi(tval(iid));
 
@@ -345,16 +367,31 @@ int main(int argc, char **argv)
 
       bin = atoi(tval(ibin));
 
+      sprintf(outfile, "%splate_%02d_%02d.fits", mosaicdir, i, j);
+
+
       if(debug)
       {
-         printf("DEBUG> id    = %d\n", id);
-         printf("DEBUG> plate = [%s]\n", platename);
-         printf("DEBUG> i     = %d\n", i);
-         printf("DEBUG> j     = %d\n", j);
-         printf("DEBUG> bin   = %d\n", bin);
+         printf("DEBUG> id      = %d\n", id);
+         printf("DEBUG> plate   = [%s]\n", platename);
+         printf("DEBUG> i       = %d\n", i);
+         printf("DEBUG> j       = %d\n", j);
+         printf("DEBUG> bin     = %d\n", bin);
+         printf("DEBUG> outfile = [%s]\n", outfile);
          fflush(stdout);
       }
 
+      status = stat(outfile, &buf);
+
+      if(status == 0)
+      {
+         ++exists;
+
+         printf("[struct stat=\"WARNING\", msg=\"%s already exists. Delete it first if you want it regenerated.\"]\n",
+            outfile);
+         fflush(stdout);
+         continue;
+      }
 
       sprintf(scriptfile, "%sjobs/plate_%02d_%02d.sh", scriptdir, i, j);
 
@@ -373,14 +410,13 @@ int main(int argc, char **argv)
          exit(0);
       }
 
-
       if(location == ARCHIVE)
       {
          fprintf(fscript, "#!/bin/sh\n\n");
 
-         fprintf(fscript, "echo jobs/plate_%02d_%02d.sh", i, j);
+         fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n", i, j);
 
-         fprintf(fscript, "mkdir $1\n");
+         fprintf(fscript, "mkdir -p $1\n");
 
          fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
 
@@ -391,12 +427,17 @@ int main(int argc, char **argv)
          fprintf(fscript, "mTileHdr $1/hpx%d_%02d_%02d.hdr $1/plate_%02d_%02d.hdr %d %d %d %d %d %d\n", 
             level, i, j, i, j, nplate, nplate, i, j, pad, pad);
 
-         fprintf(fscript, "mExec -q -a -l -c -d 3 -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
-             i, j, i, j, survey, band, i, j);
+         if(level_only)
+            fprintf(fscript, "mExec -q -a -l -c -d 2 -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
+                i, j, i, j, survey, band, i, j);
+         else
+            fprintf(fscript, "mExec -q -a -c -d 2 -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
+                i, j, i, j, survey, band, i, j);
 
          fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
          fprintf(fscript, "rm -f $1/hpx%d_%02d_%02d.hdr\n", level, i, j);
          fprintf(fscript, "rm -f $1/plate_%02d_%02d.hdr\n", i, j);
+         fprintf(fscript, "rm -f $1/plate_%02d_%02d_area.fits\n", i, j);
 
          fflush(fscript);
          fclose(fscript);
@@ -406,9 +447,9 @@ int main(int argc, char **argv)
       {
          fprintf(fscript, "#!/bin/sh\n\n");
 
-         fprintf(fscript, "echo jobs/plate_%02d_%02d.sh\n\n", i, j);
+         fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n\n", i, j);
 
-         fprintf(fscript, "mkdir $1\n");
+         fprintf(fscript, "mkdir -p $1\n");
 
          fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
 
@@ -445,10 +486,10 @@ int main(int argc, char **argv)
       if(processing == CLUSTER)
       {
          if(onebin)
-            fprintf(fdriver, "sbatch submitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
+            fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 submitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
                scriptdir, i, j, mosaicdir);
          else
-            fprintf(fdriver, "sbatch submitMosaic.bash %sjobs/plate_%02d_%02d.sh %ssubset%d\n",
+            fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 submitMosaic.bash %sjobs/plate_%02d_%02d.sh %ssubset%d\n",
                scriptdir, i, j, mosaicdir, bin);
       }
 
@@ -464,8 +505,8 @@ int main(int argc, char **argv)
    fclose(fdriver);
    chmod(driverfile, 0777);
 
-   printf("[struct stat=\"OK\", module=\"mHPXMosaicScripts\", level=%d, pixlevel=%d,count=%d]\n",
-      level, level+9, count);
+   printf("[struct stat=\"OK\", module=\"mHPXMosaicScripts\", level=%d, pixlevel=%d,count=%d, nimages=%d, exists=%d]\n",
+      level, level+9, count, nimages, exists);
    fflush(stdout);
    exit(0);
 } 

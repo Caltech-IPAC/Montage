@@ -763,10 +763,6 @@ void mViewer_smooth_line(double x1, double y1,
    double xend, yend, xf, yf;
    double brightness1, brightness2;
 
-   printf("XXX> smooth_line(%8.2f, %8.2f, %8.2f, %8.2f, %7.4f, %7.4f, %7.4f, %5.2f)\n", 
-         x1, y1, x2, y2, red, green, blue, linewidth);
-   fflush(stdout);
-
    if(linewidth != 1.)
    {
       mViewer_thick_line(x1, y1, x2, y2, red, green, blue, linewidth);
@@ -947,10 +943,6 @@ void mViewer_thick_line(double x1, double y1,
    int    nxfine, nyfine;
 
    int    nsamp, narray;
-
-   printf("XXX> thick_line(%8.2f, %8.2f, %8.2f, %8.2f, %7.4f, %7.4f, %7.4f, %5.2f)\n", 
-         x1, y1, x2, y2, red, green, blue, width);
-   fflush(stdout);
 
    nsamp = 3;
 

@@ -39,14 +39,14 @@ int main(int argc, char **argv)
    int  count, order, single_threaded;
 
    char cwd       [MAXSTR];
-   char imgtbl    [MAXSTR];
+   char platelist [MAXSTR];
    char platedir  [MAXSTR];
    char hipsdir   [MAXSTR];
    char scriptdir [MAXSTR];
    char scriptfile[MAXSTR];
    char driverfile[MAXSTR];
    char tmpdir    [MAXSTR];
-   char file      [MAXSTR];
+   char plate     [MAXSTR];
 
    char *ptr;
 
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
    FILE *fdriver;
 
    int    iid;
-   int    ifname;
+   int    iplate;
 
    int    id;
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
                 break;
 
            default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] order scriptdir platedir hipsdir images.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] order scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
                 exit(1);
                 break;
         }
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 5)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] order scriptdir platedir hipsdir images.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] order scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
       exit(1);
    }
 
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
    strcpy(scriptdir, argv[optind + 1]);
    strcpy(platedir,  argv[optind + 2]);
    strcpy(hipsdir,   argv[optind + 3]);
-   strcpy(imgtbl,    argv[optind + 4]);
+   strcpy(platelist, argv[optind + 4]);
 
    if(scriptdir[0] != '/')
    {
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
       printf("DEBUG> scriptdir:  [%s]\n", scriptdir);
       printf("DEBUG> platedir:   [%s]\n", platedir);
       printf("DEBUG> hipsdir:    [%s]\n", hipsdir);
-      printf("DEBUG> imgtbl:     [%s]\n", imgtbl);
+      printf("DEBUG> platelist:  [%s]\n", platelist);
       fflush(stdout);
    }
 
@@ -172,20 +172,20 @@ int main(int argc, char **argv)
    /* Read through the image list */
    /*******************************/
 
-   ncols = topen(imgtbl);
+   ncols = topen(platelist);
 
-   ifname = tcol( "fname");
+   iplate = tcol( "plate");
 
    if(debug)
    {
       printf("\nDEBUG> Image metdata table\n");
-      printf("DEBUG> ifname = %d\n", ifname);
+      printf("DEBUG> iplate = %d\n", iplate);
       fflush(stdout);
    }
 
-   if(ifname < 0)
+   if(iplate < 0)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Need column fname in image list.\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Need column 'plate' in plate list table.\"]\n");
       fflush(stdout);
       exit(0);
    }
@@ -197,11 +197,11 @@ int main(int argc, char **argv)
       if(tread() < 0)
          break;
 
-      strcpy(file, tval(ifname));
+      strcpy(plate, tval(iplate));
 
       if(debug)
       {
-         printf("DEBUG> Record %5d: %s\n", count, file);
+         printf("DEBUG> Record %5d: %s\n", count, plate);
          fflush(stdout);
       }
 
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
      if(fscript == (FILE *)NULL)
      {
-        printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file [%s] for %s.\"]\n", scriptfile, file);
+        printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file [%s] for plate %s.\"]\n", scriptfile, plate);
         fflush(stdout);
         exit(0);
      }
@@ -223,12 +223,12 @@ int main(int argc, char **argv)
      if(single_threaded)
      {
         for(iorder=order; iorder>=0; --iorder)
-           fprintf(fscript, "mHiPSTiles $1order%d/%s $2\n", iorder, file);
+           fprintf(fscript, "mHiPSTiles $1order%d/%s.fits $2\n", iorder, plate);
      }
      else
      {
         for(iorder=order; iorder>=0; --iorder)
-           fprintf(fscript, "mHiPSTiles $1order%d/%s $2\n", iorder, file);
+           fprintf(fscript, "mHiPSTiles $1order%d/%s.fits $2\n", iorder, plate);
      }
 
      fflush(fscript);
@@ -237,10 +237,10 @@ int main(int argc, char **argv)
      chmod(scriptfile, 0777);
 
      if(single_threaded)
-        fprintf(fdriver, "%sjobs/tiles%03d.sh %s %s\n", scriptdir, count, platedir, hipsdir);
+        fprintf(fdriver, "%sjobs/tiles%03d.sh %s %s\n", scriptdir, count, platedir, hipsdir, platedir);
      else
-        fprintf(fdriver, "sbatch submitHiPSTiles.bash %sjobs/tiles%03d.sh %s %s\n", 
-           scriptdir, count, platedir, hipsdir);
+        fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitHiPSTiles.bash %sjobs/tiles%03d.sh %s %s\n", 
+           scriptdir, count, platedir, hipsdir, platedir);
      fflush(fdriver);
 
       ++count;

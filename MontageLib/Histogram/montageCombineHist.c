@@ -1,4 +1,4 @@
-/* Module: mHistogram.c
+/* Module: mCombineHist.c
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
@@ -25,7 +25,7 @@ Version  Developer        Date     Change
 #define NBIN 200000
 
 
-static int     mHistogram_debug;
+static int     mCombineHist_debug;
 static int     hdu;
 static int     grayPlaneCount;
 
@@ -52,7 +52,7 @@ static char montage_msgstr[1024];
 
 /*-*********************************************************************************************/
 /*                                                                                             */
-/*  mHistogram                                                                                 */
+/*  mCombineHist                                                                               */
 /*                                                                                             */
 /*  This program is essentially a subset of mViewer containing the code that determines        */
 /*  the stretch for an image.  With it we can generate stretch information for a whole         */
@@ -75,7 +75,7 @@ static char montage_msgstr[1024];
 /*                                                                                             */
 /***********************************************************************************************/
 
-struct mHistogramReturn *mHistogram(char *grayfile, char *histfile, 
+struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile, 
                                     char *grayminstr, char *graymaxstr, char *graytype, int graylogpower, char *graybetastr, int debugin)
 {
    int       i, grayType;
@@ -99,14 +99,14 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
 
    fitsfile *grayfptr;
 
-   struct mHistogramReturn *returnStruct;
+   struct mCombineHistReturn *returnStruct;
 
 
    /*******************************/
    /* Initialize return structure */
    /*******************************/
 
-   returnStruct = (struct mHistogramReturn *)malloc(sizeof(struct mHistogramReturn));
+   returnStruct = (struct mCombineHistReturn *)malloc(sizeof(struct mCombineHistReturn));
 
    memset((void *)returnStruct, 0, sizeof(returnStruct));
 
@@ -120,7 +120,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    /* Process the command-line parameters */
    /***************************************/
 
-   mHistogram_debug = debugin;
+   mCombineHist_debug = debugin;
 
      if(strcmp(graytype, "linear") == 0) graylogpower = 0;
        
@@ -144,7 +144,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
       return returnStruct;
    }
 
-   grayPlaneCount = mHistogram_getPlanes(grayfile, grayPlanes);
+   grayPlaneCount = mCombineHist_getPlanes(grayfile, grayPlanes);
 
    if(grayPlaneCount > 0)
       hdu = grayPlanes[0];
@@ -188,7 +188,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    status = 0;
    if(fits_read_key(grayfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
    {
-      mHistogram_printFitsError(status);
+      mCombineHist_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -197,12 +197,12 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    status = 0;
    if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
    {
-      mHistogram_printFitsError(status);
+      mCombineHist_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
 
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
    {
       printf("naxis1   = %d\n", naxis1);
       printf("naxis2   = %d\n", naxis2);
@@ -217,10 +217,10 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    /* we had naxis1, naxis2 which is why this */
    /* is here                                 */
 
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
       printf("\n GRAY RANGE:\n");
 
-   status = mHistogram_getRange(grayfptr,     grayminstr,  graymaxstr, 
+   status = mCombineHist_getRange(grayfptr,     grayminstr,  graymaxstr, 
                                &grayminval, &graymaxval,  grayType, 
                                graybetastr, &graybetaval, graydataval,
                                naxis1,       naxis2,
@@ -234,13 +234,13 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
       return returnStruct;
    }
 
-   grayminpercent = mHistogram_valuePercentile(grayminval);
-   graymaxpercent = mHistogram_valuePercentile(graymaxval);
+   grayminpercent = mCombineHist_valuePercentile(grayminval);
+   graymaxpercent = mCombineHist_valuePercentile(graymaxval);
 
    grayminsigma = (grayminval - median) / sigma;
    graymaxsigma = (graymaxval - median) / sigma;
 
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
    {
       printf("DEBUG> grayminval = %-g (%-g%%/%-gs)\n", grayminval, grayminpercent, grayminsigma);
       printf("DEBUG> graymaxval = %-g (%-g%%/%-gs)\n", graymaxval, graymaxpercent, graymaxsigma);
@@ -305,7 +305,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    for(i=0; i<256; ++i)
       fprintf(fout, "%d %13.6e\n", i, graydataval[i]);
 
-   fprintf(fout, "\n%d Histogram Bins\n", NBIN);
+   fprintf(fout, "\n%d CombineHist Bins\n", NBIN);
 
    for(i=0; i<NBIN; ++i)
       fprintf(fout, "%d %13.6e %d %13.6e %13.6e\n", i, datalev[i], hist[i], chist[i], gausslev[i]);
@@ -345,7 +345,7 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
 /*                                                */
 /**************************************************/
 
-int mHistogram_getPlanes(char *file, int *planes)
+int mCombineHist_getPlanes(char *file, int *planes)
 {
    int   count, len;
    char *ptr, *ptr1;
@@ -399,7 +399,7 @@ int mHistogram_getPlanes(char *file, int *planes)
 /*                                 */
 /***********************************/
 
-void mHistogram_printFitsError(int status)
+void mCombineHist_printFitsError(int status)
 {
    char status_str[FLEN_STATUS];
 
@@ -416,7 +416,7 @@ void mHistogram_printFitsError(int status)
 /*                                 */
 /***********************************/
 
-int mHistogram_parseRange(char const *str, char const *kind, double *val, double *extra, int *type) 
+int mCombineHist_parseRange(char const *str, char const *kind, double *val, double *extra, int *type) 
 {
    char const *ptr;
 
@@ -565,11 +565,11 @@ int mHistogram_parseRange(char const *str, char const *kind, double *val, double
 
 /***********************************/
 /*                                 */
-/*  Histogram percentile ranges    */
+/*  CombineHist percentile ranges    */
 /*                                 */
 /***********************************/
 
-int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
+int mCombineHist_getRange(fitsfile *fptr, char *minstr, char *maxstr,
                         double *rangemin, double *rangemax, 
                         int type, char *betastr, double *rangebeta, double *dataval,
                         int imnaxis1, int imnaxis2,  double *datamin, double *datamax,
@@ -598,7 +598,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    value;
 
    for(i=0; i<8; ++i)
-      value.c[i] = (char)255;
+      value.c[i] = 255;
 
    double nan;
 
@@ -611,14 +611,14 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    /* MIN/MAX: Determine what type of  */
    /* range string we are dealing with */
 
-   if(mHistogram_parseRange(minstr, "display min", &minval, &minextra, &mintype)) return 1;
-   if(mHistogram_parseRange(maxstr, "display max", &maxval, &maxextra, &maxtype)) return 1;
+   if(mCombineHist_parseRange(minstr, "display min", &minval, &minextra, &mintype)) return 1;
+   if(mCombineHist_parseRange(maxstr, "display max", &maxval, &maxextra, &maxtype)) return 1;
 
    betaval   = 0.;
    betaextra = 0.;
 
    if (type == ASINH)
-      if(mHistogram_parseRange(betastr, "beta value", &betaval, &betaextra, &betatype)) return 1;
+      if(mCombineHist_parseRange(betastr, "beta value", &betaval, &betaextra, &betatype)) return 1;
 
 
    /* If we don't have to generate the image */
@@ -662,7 +662,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    {
       if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
       {
-         mHistogram_printFitsError(status);
+         mCombineHist_printFitsError(status);
          return 1;
       }
       
@@ -685,9 +685,9 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    diff = rmax - rmin;
 
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
    {
-      printf("DEBUG> mHistogram_getRange(): rmin = %-g, rmax = %-g (diff = %-g)\n",
+      printf("DEBUG> mCombineHist_getRange(): rmin = %-g, rmax = %-g (diff = %-g)\n",
          rmin, rmax, diff);
       fflush(stdout);
    }
@@ -704,7 +704,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    {
       if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
       {
-         mHistogram_printFitsError(status);
+         mCombineHist_printFitsError(status);
          return 1;
       }
 
@@ -743,9 +743,9 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    /* Find the data value associated    */
    /* with the minimum percentile/sigma */
 
-   lev16 = mHistogram_percentileLevel(16.);
-   lev50 = mHistogram_percentileLevel(50.);
-   lev84 = mHistogram_percentileLevel(84.);
+   lev16 = mCombineHist_percentileLevel(16.);
+   lev50 = mCombineHist_percentileLevel(50.);
+   lev84 = mCombineHist_percentileLevel(84.);
 
    sigma = (lev84 - lev16) / 2.;
 
@@ -753,7 +753,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    *sig    = sigma;
 
    if(mintype == PERCENTILE)
-      *rangemin = mHistogram_percentileLevel(minval) + minextra;
+      *rangemin = mCombineHist_percentileLevel(minval) + minextra;
 
    else if(mintype == SIGMA)
       *rangemin = lev50 + minval * sigma + minextra;
@@ -763,7 +763,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    /* with the max percentile/sigma     */
 
    if(maxtype == PERCENTILE)
-      *rangemax = mHistogram_percentileLevel(maxval) + maxextra;
+      *rangemax = mCombineHist_percentileLevel(maxval) + maxextra;
    
    else if(maxtype == SIGMA)
       *rangemax = lev50 + maxval * sigma + maxextra;
@@ -775,7 +775,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if(type == ASINH)
    {
       if(betatype == PERCENTILE)
-         *rangebeta = mHistogram_percentileLevel(betaval) + betaextra;
+         *rangebeta = mCombineHist_percentileLevel(betaval) + betaextra;
 
       else if(betatype == SIGMA)
          *rangebeta = lev50 + betaval * sigma + betaextra;
@@ -784,13 +784,13 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if(*rangemin == *rangemax)
       *rangemax = *rangemin + 1.;
    
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
    {
       if(type == ASINH)
-         printf("DEBUG> mHistogram_getRange(): range = %-g to %-g (beta = %-g)\n", 
+         printf("DEBUG> mCombineHist_getRange(): range = %-g to %-g (beta = %-g)\n", 
             *rangemin, *rangemax, *rangebeta);
       else
-         printf("DEBUG> mHistogram_getRange(): range = %-g to %-g\n", 
+         printf("DEBUG> mCombineHist_getRange(): range = %-g to %-g\n", 
             *rangemin, *rangemax);
    }
 
@@ -804,7 +804,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
       for(i=0; i<nbin; ++i)
       {
          datalev [i] = rmin+delta*i;
-         gausslev[i] = mHistogram_snpinv(chist[i+1]/npix);
+         gausslev[i] = mCombineHist_snpinv(chist[i+1]/npix);
       }
 
 
@@ -893,7 +893,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 /* with the desired percentile     */
 /***********************************/
 
-double mHistogram_percentileLevel(double percentile)
+double mCombineHist_percentileLevel(double percentile)
 {
    int    i, count;
    double percent, maxpercent, minpercent;
@@ -917,9 +917,9 @@ double mHistogram_percentileLevel(double percentile)
 
    value = rmin + (i-1+fraction) * delta;
 
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
    {
-      printf("DEBUG> mHistogram_percentileLevel(%-g):\n", percentile);
+      printf("DEBUG> mCombineHist_percentileLevel(%-g):\n", percentile);
       printf("DEBUG> percent    = %-g -> count = %d -> bin %d\n",
          percent, count, i);
       printf("DEBUG> minpercent = %-g\n", minpercent);
@@ -941,7 +941,7 @@ double mHistogram_percentileLevel(double percentile)
 /* associated with a data value    */
 /***********************************/
 
-double mHistogram_valuePercentile(double value)
+double mCombineHist_valuePercentile(double value)
 {
    int    i;
    double maxpercent, minpercent;
@@ -961,9 +961,9 @@ double mHistogram_valuePercentile(double value)
 
    percentile = 100. *(minpercent * (1. - fraction) + maxpercent * fraction);
 
-   if(mHistogram_debug)
+   if(mCombineHist_debug)
    {
-      printf("DEBUG> mHistogram_valuePercentile(%-g):\n", value);
+      printf("DEBUG> mCombineHist_valuePercentile(%-g):\n", value);
       printf("DEBUG> rmin       = %-g\n", rmin);
       printf("DEBUG> delta      = %-g\n", delta);
       printf("DEBUG> value      = %-g -> bin %d (fraction %-g)\n",
@@ -986,12 +986,12 @@ double mHistogram_valuePercentile(double value)
 /*                                                                   */
 /*********************************************************************/
 
-double mHistogram_snpinv(double p)
+double mCombineHist_snpinv(double p)
 {
    if(p > 0.5)
-      return( sqrt(2) * mHistogram_erfinv(2.*p-1.0));
+      return( sqrt(2) * mCombineHist_erfinv(2.*p-1.0));
    else
-      return(-sqrt(2) * mHistogram_erfinv(1.0-2.*p));
+      return(-sqrt(2) * mCombineHist_erfinv(1.0-2.*p));
 }
 
 
@@ -1009,7 +1009,7 @@ double mHistogram_snpinv(double p)
 /*                                                                   */
 /*********************************************************************/
 
-double mHistogram_erfinv (double p)
+double mCombineHist_erfinv (double p)
 {
    double q, t, v, v1, s, retval;
 

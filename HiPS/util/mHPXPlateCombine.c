@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -178,7 +177,7 @@ int main(int argc, char **argv)
          }
 
          sprintf(filename, "%sorder%d/plate_%d_%d_area.fits",
-            platedir, order, i, j);
+            platedir, order, i, j, platedir, order, i, j);
 
          if(debug)
          {

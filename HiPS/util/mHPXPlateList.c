@@ -35,7 +35,7 @@ int naxis;
 
 int main(int argc, char **argv)
 {
-   int ch, level, nside, nstorage, nplate, nx, dx;
+   int ch, order, nside, nstorage, nplate, nx, dx;
    int k, nbin, outid, outshift, id;
    int i, imin, imax, xmin, xmax;
    int j, jmin, jmax, ymin, ymax;
@@ -63,6 +63,10 @@ int main(int argc, char **argv)
 
    // Command-line arguments
 
+   nstorage = 1;
+
+   for(i=0; i<argc; ++i)
+       printf("%d: [%s]\n", i, argv[i]);
 
    opterr = 0;
 
@@ -79,27 +83,30 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] level nplate platelist.tbl [xmin ymin xmax ymax]\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] order nplate platelist.tbl [xmin ymin xmax ymax] (1)\"]\n");
             fflush(stdout);
             exit(1);
       }
    }
 
-   if(argc - optind < 4)
+   argc -= optind;
+   argv += optind;
+
+   if(argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] level nplate platelist.tbl [xmin ymin xmax ymax]\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] order nplate platelist.tbl [xmin ymin xmax ymax] (2)\"]\n");
       fflush(stdout);
       exit(0);
    }
 
-   level    = atoi(argv[1]);
-   nplate   = atoi(argv[2]);
+   order    = atoi(argv[0]);
+   nplate   = atoi(argv[1]);
 
-   strcpy(outtbl, argv[3]);
+   strcpy(outtbl, argv[2]);
 
-   if(argc - optind > 4 && argc - optind < 8)
+   if(argc > 3 && argc < 7)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] level nplate platelist.tbl [xmin ymin xmax ymax]\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] order nplate platelist.tbl [xmin ymin xmax ymax] (3)\"]\n");
       fflush(stdout);
       exit(0);
    }
@@ -109,18 +116,18 @@ int main(int argc, char **argv)
    xmax = nplate-1;
    ymax = nplate-1;
 
-   if(argc - optind > 4)
+   if(argc > 3)
    {
-      xmin = atoi(argv[4]);
-      ymin = atoi(argv[5]);
-      xmax = atoi(argv[6]);
-      ymax = atoi(argv[7]);
+      xmin = atoi(argv[3]);
+      ymin = atoi(argv[4]);
+      xmax = atoi(argv[5]);
+      ymax = atoi(argv[6]);
    }
 
+   
+   // Basic parameters for this order
 
-   // Basic parameters for this level
-
-   nside = pow(2., (double)level);
+   nside = pow(2., (double)order);
 
    naxis = 5 * nside;
 
@@ -235,7 +242,7 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   fprintf(ftbl, "\\order = %d\n", level);
+   fprintf(ftbl, "\\order = %d\n", order);
    fprintf(ftbl, "\\nplate = %d\n\n", nplate);
 
    fprintf(ftbl, "| id  |    plate    |  i  |  j  | bin |\n");
@@ -250,7 +257,7 @@ int main(int argc, char **argv)
 
 
    printf("[struct stat=\"OK\", module=\"mHPXPlateList\", order=%d, nplates=%d]\n",
-      level, platecount);
+      order, platecount);
    fflush(stdout);
    exit(0);
 } 

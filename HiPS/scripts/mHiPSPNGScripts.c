@@ -182,7 +182,7 @@ int main(int argc, char **argv)
    if(ncore == 1)
       fprintf(fdriver, "%sjobs/png%03d.sh\n", scriptdir, count);
    else
-      fprintf(fdriver, "sbatch submitPNG.bash %sjobs/png%03d.sh\n", scriptdir, count);
+      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitPNG.bash %sjobs/png%03d.sh\n", scriptdir, count);
 
    fflush(fdriver);
 
@@ -446,7 +446,7 @@ int mHiPSPNGScripts_getFiles (char *pathname)
                   if(ncore == 1)
                      fprintf(fdriver, "%sjobs/png%03d.sh\n", scriptdir, count);
                   else
-                     fprintf(fdriver, "sbatch submitPNG.bash %sjobs/png%03d.sh\n", scriptdir, count);
+                     fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitPNG.bash %sjobs/png%03d.sh\n", scriptdir, count);
 
                   fflush(fdriver);
 

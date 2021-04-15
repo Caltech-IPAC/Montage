@@ -33,17 +33,18 @@ int debug;
 
 int main(int argc, char **argv)
 {
-   int  i, ch, istat, ncols, order;
+   int  i, ch, istat, ncols, order, njob, ijob;
    int  count, nocorrection, failed, noAreas;
-   int  subset, maxsubset, nset, found, nskip;
-   int  iset, irec, ndone, oneset;
+   int  found, nskip, nset, iset, irec, ndone;
 
+   char cwd       [MAXSTR];
    char platelist [MAXSTR];
    char corrfile  [MAXSTR];
    char template  [MAXSTR];
    char mosaicdir [MAXSTR];
    char platedir  [MAXSTR];
    char scriptdir [MAXSTR];
+   char tmpstr    [MAXSTR];
    char scriptfile[MAXSTR];
    char driverfile[MAXSTR];
 
@@ -75,10 +76,9 @@ int main(int argc, char **argv)
    int    *have;
 
    char  **fnames;
-   int    *sets;
 
-   int    *setrec;
-   int    *done;
+
+   getcwd(cwd, MAXSTR);
 
 
    /***************************************/
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
                 break;
 
            default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] order scriptdir mosaicdir platedir images.tbl corrections.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] order scriptdir mosaicdir platedir images.tbl corrections.tbl [njob]\"]\n", argv[0]);
                 exit(1);
                 break;
         }
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 6)
    {
-        printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] order scriptdir mosaicdir platedir images.tbl corrections.tbl\"]\n", argv[0]);
+        printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] order scriptdir mosaicdir platedir images.tbl corrections.tbl [njob]\"]\n", argv[0]);
         exit(1);
    }
 
@@ -122,6 +122,58 @@ int main(int argc, char **argv)
    strcpy(platedir,  argv[optind + 3]);
    strcpy(platelist, argv[optind + 4]);
    strcpy(corrfile,  argv[optind + 5]);
+
+   njob = 0;
+   if(argc - optind > 6)
+      njob = atoi(argv[optind + 6]);
+
+   if(njob <= 0)
+      njob = 1;
+
+   if(scriptdir[0] != '/')
+   {
+      strcpy(tmpstr, cwd);
+      strcat(tmpstr, "/");
+      strcat(tmpstr, scriptdir);
+
+      strcpy(scriptdir, tmpstr);
+   }
+
+   if(mosaicdir[0] != '/')
+   {
+      strcpy(tmpstr, cwd);
+      strcat(tmpstr, "/");
+      strcat(tmpstr, mosaicdir);
+
+      strcpy(mosaicdir, tmpstr);
+   }
+
+   if(platedir[0] != '/')
+   {
+      strcpy(tmpstr, cwd);
+      strcat(tmpstr, "/");
+      strcat(tmpstr, platedir);
+
+      strcpy(platedir, tmpstr);
+   }
+
+   if(platelist[0] != '/')
+   {
+      strcpy(tmpstr, cwd);
+      strcat(tmpstr, "/");
+      strcat(tmpstr, platelist);
+
+      strcpy(platelist, tmpstr);
+   }
+
+   if(corrfile[0] != '/')
+   {
+      strcpy(tmpstr, cwd);
+      strcat(tmpstr, "/");
+      strcat(tmpstr, corrfile);
+
+      strcpy(corrfile, tmpstr);
+   }
 
    if(scriptdir[strlen(scriptdir)-1] != '/')
       strcat(scriptdir, "/");
@@ -169,9 +221,8 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   maxcntr   = 0;
-   maxsubset = 0;
-   oneset    = 0;
+   maxcntr = 0;
+   count   = 0;
 
    while(1)
    {
@@ -183,56 +234,20 @@ int main(int argc, char **argv)
       if(cntr > maxcntr)
          maxcntr = cntr;
 
-      strcpy(file, tval(ifname));
-
-      ptr = strstr(file, "subset");
-
-      if(ptr == (char *)NULL)
-      {
-         oneset = 1;
-      }
-      else
-      {
-         ptr += 6;
-
-         subset = atoi(ptr);
-
-         if(subset > maxsubset)
-            maxsubset = subset;
-      }
+      ++count;
    }
 
-   tclose();
+   tclose(); 
 
-   if(oneset)
-      maxsubset = 0;
+   ++maxcntr;
+   ++count;
 
-   nset = maxsubset + 1;
-
-   setrec = (int *)malloc(nset * sizeof(int));
-   done   = (int *)malloc(nset * sizeof(int));
-
-   for(i=0; i<nset; ++i)
-   {
-      setrec[i] = -1;
-      done  [i] =  0;
-   }
-
-   if(debug)
-   {
-      printf("oneset  = %d\n", oneset);
-      printf("maxcntr = %d\n", maxcntr);
-      printf("nset    = %d\n", nset);
-      fflush(stdout);
-   }
-
+   nset = count / njob;
 
 
    /**************************************/ 
    /* Allocate space for the corrections */
    /**************************************/ 
-
-   ++maxcntr;
 
    if(debug)
    {
@@ -261,15 +276,12 @@ int main(int argc, char **argv)
    /*************************/
 
    fnames = (char **)malloc(maxcntr * sizeof(char *));
-   sets   = (int   *)malloc(maxcntr * sizeof(int));
 
    for(i=0; i<maxcntr; ++i)
    {
       fnames[i] = (char *)malloc(128 * sizeof(char));
 
       strcpy(fnames[i], "--------------------------------------------------------");
-
-      sets[i] = 999;
    }
 
 
@@ -361,22 +373,7 @@ int main(int argc, char **argv)
 
       cntr = atoi(tval(icntr));
 
-      strcpy(file, tval(ifname));
-
-      subset = 0;
-
-      if(!oneset)
-      {
-         ptr = strstr(file, "subset");
-
-         ptr += 6;
-
-         subset = atoi(ptr);
-      }
-
-      strcpy(fnames[cntr], file);
-
-      sets[cntr] = subset;
+      strcpy(fnames[cntr], tval(ifname));
    }
 
    if(debug)
@@ -407,10 +404,8 @@ int main(int argc, char **argv)
 
 
    /***************************************************/ 
-   /* Iterate over the sets, identifying the next     */
-   /* file for each one round-robin.  This will       */
-   /* spread the processing over the storage units    */
-   /* evenly in time.                                 */
+   /* Iterate over the files. Collect sets of         */
+   /* mBackground commands together in scripts.       */
    /*                                                 */
    /* If there is no correction for an image file,    */
    /* increment 'nocorrection' and copy it unchanged. */
@@ -424,84 +419,85 @@ int main(int argc, char **argv)
    count        = 0;
    nocorrection = 0;
 
-   iset = -1;
+   iset = 0;
+   ijob = 0;
 
-   while(1)
+   for(irec=0; irec<maxcntr; ++irec)
    {
-      iset = (iset + 1) % nset;
-
-      found = 0;
-      nskip = 0;
-      for(irec=setrec[iset]+1; irec<maxcntr; ++irec)
+      if(debug)
       {
-         if(sets[irec] == iset)
-         {
-            found = 1;
-            break;
-         }
-
-         ++nskip;
+         printf("Record %5d (%d:%d): %s -> Plane %-g %-g %-g (have: %d)\n", irec, ijob, iset, fnames[irec], a[irec], b[irec], c[irec], have[irec]);
+         fflush(stdout);
       }
 
-      if(found)
+      if(fnames[irec][0] == '-')
+         continue;
+
+      if(iset == 0)
       {
-         setrec[iset] = irec;
-
-         if(debug)
-         {
-            printf("Record %5d: %s (set %d) -> Plane %-g %-g %-g\n", irec, fnames[irec], sets[irec], a[irec], b[irec], c[irec]);
-            fflush(stdout);
-         }
-
-         sprintf(scriptfile, "%sjobs/background%03d.sh", scriptdir, count);
+         sprintf(scriptfile, "%sjobs/background_%04d.sh", scriptdir, ijob);
          
          fscript = fopen(scriptfile, "w+");
 
-        if(fscript == (FILE *)NULL)
-        {
-           printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file [%s].\"]\n", scriptfile);
-           fflush(stdout);
-           exit(0);
-        }
+         if(fscript == (FILE *)NULL)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file [%s].\"]\n", scriptfile);
+            fflush(stdout);
+            exit(0);
+         }
 
-        fprintf(fscript, "#!/bin/sh\n\n");
+         fprintf(fscript, "#!/bin/sh\n\n");
 
-         fprintf(fscript, "echo jobs/background%03d.sh\n\n", count);
+         fprintf(fscript, "echo jobs/background_%04d.sh\n", ijob);
+      }
 
-        if(!have[irec])
-        {
-           ++nocorrection;
-           fprintf(fscript, "cp $1%s $2%s\n", fnames[irec], fnames[irec]);
-        }
-        else
-        {
-           if(noAreas) 
-              fprintf(fscript, "mBackground -n $1%s $2order%d/%s %-g %-g %-g\n", fnames[irec], order, fnames[irec], a[irec], b[irec], c[irec]);
-           else
-              fprintf(fscript, "mBackground $1%s $2order%d/%s %-g %-g %-g\n", fnames[irec], order, fnames[irec], a[irec], b[irec], c[irec]);
-        }
-
-        fflush(fscript);
-        fclose(fscript);
-
-        chmod(scriptfile, 0777);
-
-        fprintf(fdriver, "sbatch submitBackground.bash %sjobs/background%03d.sh %s %s\n", 
-           scriptdir, count, mosaicdir, platedir);
-        fflush(fdriver);
-
-         ++count;
+      if(!have[irec])
+      {
+         ++nocorrection;
+         fprintf(fscript, "cp $1%s $2%s\n", fnames[irec], fnames[irec]);
       }
       else
-         done[iset] = 1;
+      {
+         if(noAreas) 
+            fprintf(fscript, "mBackground -n $1%s $2order%d/%s %-g %-g %-g\n", fnames[irec], order, fnames[irec], a[irec], b[irec], c[irec]);
+         else
+            fprintf(fscript, "mBackground $1%s $2order%d/%s %-g %-g %-g\n", fnames[irec], order, fnames[irec], a[irec], b[irec], c[irec]);
+      }
+ 
+      if(iset == nset-1)
+      {
+         fflush(fscript);
+         fclose(fscript);
 
-      ndone = 0;
-      for(i=0; i<nset; ++i)
-         if(done[i] == 1)
-            ++ndone; 
+         chmod(scriptfile, 0777);
 
-      if(ndone >= nset)
-         break;
+         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitBackground.bash %sjobs/background_%04d.sh %s %s\n", 
+            scriptdir, ijob, mosaicdir, platedir);
+         fflush(fdriver);
+
+         ++ijob;
+
+         iset = 0;
+      }
+      else
+         ++iset;
+
+      ++count;
+   }
+
+
+   // The last set may not have been closed yet
+   
+   if(iset < nset-1)
+   {
+      fflush(fscript);
+      fclose(fscript);
+
+      chmod(scriptfile, 0777);
+
+      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitBackground.bash %sjobs/background_%04d.sh %s %s\n", 
+         scriptdir, ijob, mosaicdir, platedir);
+      fflush(fdriver);
    }
 
    chmod(driverfile, 0777);
@@ -516,9 +512,6 @@ int main(int argc, char **argv)
    free(b);
    free(c);
    free(have);
-   free(setrec);
-   free(done);
-   free(sets);
 
    for(i=0; i<maxcntr; ++i)
       free(fnames[i]);

@@ -19,15 +19,18 @@ int STRLEN  = 1024;
 
 int main(int argc, char **argv)
 {
-   int  i, level, ncore, nsubset, count, ncols, set, nread;
+   int  i, level, njob, nsubset, count, ncols, set, nread;
    int  j, xbase, ybase, xref, yref, namelen, nmatches;
 
+   char cwd       [STRLEN];
+   char tmpdir    [STRLEN];
    char scriptdir [STRLEN];
    char scriptfile[STRLEN];
    char driverfile[STRLEN];
    char combofile [STRLEN];
    char mosaicdir [STRLEN];
    char imgfile   [STRLEN];
+
    char difffile  [STRLEN];
    char outfile   [STRLEN];
    char fmt       [STRLEN];
@@ -47,12 +50,14 @@ int main(int argc, char **argv)
 
    int debug = 0;
 
+   getcwd(cwd, 1024);
+
 
    // Command-line arguments
 
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d] scriptdir mosaicdir images.tbl order ncore\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d] scriptdir mosaicdir images.tbl order njob\"]\n");
       fflush(stdout);
       exit(0);
    }
@@ -66,7 +71,7 @@ int main(int argc, char **argv)
 
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d] scriptdir mosaicdir images.tbl order ncore\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d] scriptdir mosaicdir images.tbl order njob\"]\n");
       fflush(stdout);
       exit(0);
    }
@@ -76,7 +81,34 @@ int main(int argc, char **argv)
    strcpy(imgfile,   argv[3]);
 
    level = atoi(argv[4]);
-   ncore = atoi(argv[5]);
+   njob  = atoi(argv[5]);
+
+   if(scriptdir[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, scriptdir);
+
+      strcpy(scriptdir, tmpdir);
+   }
+
+   if(mosaicdir[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, mosaicdir);
+
+      strcpy(mosaicdir, tmpdir);
+   }
+
+   if(imgfile[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, imgfile);
+
+      strcpy(imgfile, tmpdir);
+   }
 
    if(scriptdir[strlen(scriptdir)-1] != '/')
       strcat(scriptdir, "/");
@@ -214,7 +246,8 @@ int main(int argc, char **argv)
 
          if((xref == xbase   && yref == ybase+1)
          || (xref == xbase+1 && yref == ybase+1)
-         || (xref == xbase+1 && yref == ybase))
+         || (xref == xbase+1 && yref == ybase  )
+         || (xref == xbase+1 && yref == ybase-1))
          {
             ++nmatches;
 
@@ -226,9 +259,9 @@ int main(int argc, char **argv)
 
    fclose(fout);
 
-   nsubset = nmatches / ncore;
+   nsubset = nmatches / njob;
 
-   if(ncore * nsubset < nmatches)
+   if(njob * nsubset < nmatches)
       ++nsubset;
 
 
@@ -319,7 +352,7 @@ int main(int argc, char **argv)
 
    set = 0;
 
-   sprintf(outfile, "%sdiffs_%d.tbl", mosaicdir, set);
+   sprintf(outfile, "%sdiffs_%03d.tbl", mosaicdir, set);
 
    if(debug)
    {
@@ -339,7 +372,7 @@ int main(int argc, char **argv)
       free(yindex);
       free(cntr);
 
-      printf("[struct stat=\"ERROR\", msg=\"Error opening diffs_%d.tbl file.\"]\n", set);
+      printf("[struct stat=\"ERROR\", msg=\"Error opening diffs_%03d.tbl file.\"]\n", set);
       fflush(stdout);
       exit(0);
    }
@@ -369,7 +402,7 @@ int main(int argc, char **argv)
 
          fclose(fout);
 
-         sprintf(outfile, "%sdiffs_%d.tbl", mosaicdir, set);
+         sprintf(outfile, "%sdiffs_%03d.tbl", mosaicdir, set);
 
          if(debug)
          {
@@ -389,7 +422,7 @@ int main(int argc, char **argv)
             free(yindex);
             free(cntr);
 
-            printf("[struct stat=\"ERROR\", msg=\"Error opening diffs_%d.tbl file.\"]\n", set);
+            printf("[struct stat=\"ERROR\", msg=\"Error opening diffs_%03d.tbl file.\"]\n", set);
             fflush(stdout);
             exit(0);
          }
@@ -399,7 +432,7 @@ int main(int argc, char **argv)
 
          // Create a script to run mDiffFitExec on the set we just created
 
-         sprintf(scriptfile, "%sjobs/diffFit%0d.sh", scriptdir, set-1);
+         sprintf(scriptfile, "%sjobs/diffFit_%03d.sh", scriptdir, set-1);
 
          if(debug)
          {
@@ -426,14 +459,16 @@ int main(int argc, char **argv)
 
          fprintf(fscript, "#!/bin/sh\n\n");
 
-         fprintf(fscript, "echo jobs/diffFit%03d.sh\n\n", set-1);
+         fprintf(fscript, "echo jobs/diffFit_%03d.sh\n\n", set-1);
 
-         fprintf(fscript, "mHPXHdr %d $1hpx%d_%d.hdr\n", level+9, level+9, set-1);
+         fprintf(fscript, "mkdir -p $1diffs\n");
 
-         fprintf(fscript, "mDiffFitExec -d -n -p $1 $1diffs_%d.tbl $1hpx%d_%d.hdr $1diffs $1fits%d.tbl\n", 
+         fprintf(fscript, "mHPXHdr %d $1hpx%02d_%03d.hdr\n", level+9, level+9, set-1);
+
+         fprintf(fscript, "mDiffFitExec -d -n -p $1 $1diffs_%03d.tbl $1hpx%02d_%03d.hdr $1diffs $1fits_%03d.tbl\n", 
             set-1, level+9, set-1, set-1);
 
-         fprintf(fscript, "rm -f $1hpx%d_%d.hdr\n", level+9, set-1);
+         fprintf(fscript, "rm -f $1hpx%02d_%03d.hdr\n", level+9, set-1);
 
          fflush(fscript);
          fclose(fscript);
@@ -441,14 +476,14 @@ int main(int argc, char **argv)
          chmod(scriptfile, 0777);
 
 
-         fprintf(fdriver, "sbatch submitDiffFit.bash %sjobs/diffFit_%d.sh %s\n", 
+         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitDiffFit.bash %sjobs/diffFit_%03d.sh %s\n", 
             scriptdir, set-1, mosaicdir);
          fflush(fdriver);
 
          if(count == 0)
-            fprintf(fcombo, "cat  $1/fits%d.tbl >  $1/fitcombo.tbl\n", set-1);
+            fprintf(fcombo, "cat  $1/fits_%03d.tbl >  $1/fitcombo.tbl\n", set-1);
          else
-            fprintf(fcombo, "grep -v \"|\" $1/fits%d.tbl >> $1/fitcombo.tbl\n", set-1);
+            fprintf(fcombo, "grep -v \"|\" $1/fits_%03d.tbl >> $1/fitcombo.tbl\n", set-1);
 
          fflush(fcombo);
 
@@ -472,8 +507,8 @@ int main(int argc, char **argv)
    free(yindex);
    free(cntr);
 
-   printf("[struct stat=\"OK\", module=\"mHPXDiffScripts\", nmatches=%d, ncore=%d, nsubset=%d]\n",
-      nmatches, ncore, nsubset);
+   printf("[struct stat=\"OK\", module=\"mHPXDiffScripts\", nmatches=%d, njob=%d, nsubset=%d]\n",
+      nmatches, njob, nsubset);
    fflush(stdout);
    exit(0);
 } 

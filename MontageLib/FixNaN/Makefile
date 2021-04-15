@@ -1,4 +1,4 @@
-# Filename: Makefile.Darwin
+# Filename: Makefile
 
 # Version  Developer        Date     Change
 # -------  ---------------  -------  -----------------------

@@ -8082,10 +8082,6 @@ int mViewer_setPixel(int i, int j, double brightness, double red, double green, 
 
    int valmag, refmag;
 
-   printf("XXX> setPixel(%d, %d, alpha=%.2f, [%.2f, %.2f, %.2f], %d)\n", 
-      i, j, brightness, red, green, blue, replace);
-   fflush(stdout);
-
    if(i < 0 || i >= nx)
       return 0;
 
@@ -8209,13 +8205,6 @@ void mViewer_addOverlay(double alpha)
       for(i=0; i<nx; ++i)
       {
          brightness = ovlyweight[j][i] * alpha;
-
-         printf("XXX> addOverlay: (%d %d) [%d %d %d] + [%d %d %d]  weight=%-g alpha=%-g brightness=%-g\n", 
-            i, j,
-            pngData[offset + 0], pngData[offset + 1], pngData[offset + 2],
-            pngOvly[offset + 0], pngOvly[offset + 1], pngOvly[offset + 2],
-            ovlyweight[j][i], alpha, brightness);
-         fflush(stdout);
 
          if(outType == JPEG)
          {
@@ -8629,10 +8618,6 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
               red, green, blue, linewidth);
       fflush(stdout);
    }
-
-   printf("\n\n\nXXX> LATITUDE_LINE\n");
-   fflush(stdout);
-
 
    if(lat >= 90. || lat <= -90.)
       return;

@@ -1094,9 +1094,6 @@ void mViewer_great_circle(struct WorldCoor *wcs, int flipY,
 
    dtr = atan(1.)/45.;
    
-   printf("\n\n\nXXX> GREAT_CIRCLE\n");
-   fflush(stdout);
-
    convert = 0;
    if(csys != csysimg || epoch != epochimg)
       convert = 1;

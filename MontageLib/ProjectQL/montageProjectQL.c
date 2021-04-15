@@ -77,6 +77,15 @@ static struct
 }
 input, weight, output, output_area;
 
+static double *buffer   = (double *)NULL;
+static double *area     = (double *)NULL;
+
+static double **data    = (double **)NULL;
+static double **weights = (double **)NULL;
+
+static double **lanczos = (double **)NULL;
+
+static int    nfilter, noAreas;
 
 static double cnpix1, cnpix2;
 static double crpix1, crpix2;
@@ -129,7 +138,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*   int    hdu            Optional HDU offset for input file            */
 /*   int    interp         Interpolation scheme for value lookup.        */
-/*                         Currently NEAREST of LANCZOS.                 */
+/*                         Currently NEAREST or LANCZOS.                 */
 /*                                                                       */
 /*   char  *weight_file    Optional pixel weight FITS file (must match   */
 /*                         input)                                        */
@@ -159,7 +168,7 @@ static char montage_msgstr[1024];
 
 struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *template_file, int hduin, int interp,
                                     char *weight_file, double fixedWeight, double threshold, char *borderstr,
-                                    double fluxScale, int expand, int fullRegion, int noAreas, int debugin)
+                                    double fluxScale, int expand, int fullRegion, int noAreasin, int debugin)
 {
    int       i, j;
    int       imx, jmy;
@@ -181,11 +190,6 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    int       jstart, jlength;
    double    xpos, ypos;
    int       offscl, border, bordertype;
-   double    *buffer;
-   double    *area;
-
-   double  **data;
-   double  **weights;
 
    int       status;
 
@@ -198,9 +202,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    double    pi, x, a;
    int       ia;
 
-   double  **lanczos;
-
-   int       nfilter, nsamp;
+   int       nsamp;
 
    struct mProjectQLReturn *returnStruct;
 
@@ -236,7 +238,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = (char)255;
+      value.c[i] = 255;
 
    nan = value.d;
 
@@ -272,7 +274,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    lanczos = (double **) malloc(nfilter * sizeof(double *));
 
    for(i=0; i<nfilter; ++i)
+   {
       lanczos[i] = (double *) malloc(nfilter * sizeof(double));
+
+      for(j=0; j<nfilter; ++j)
+         lanczos[i][j] = 0.;
+   }
 
    lanczos[0][0] = 1.;
 
@@ -294,6 +301,8 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    /***************************************/
 
    mProjectQL_debug = debugin;
+
+   noAreas = noAreasin;
    
    hdu = hduin;
 
@@ -323,6 +332,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
                borderstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
          else
@@ -336,6 +346,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(border < 0)
    {
       sprintf(returnStruct->msg, "Border value (%d) must be greater than or equal to zero", border);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -348,6 +359,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(checkHdr)
    {
       strcpy(returnStruct->msg, checkHdr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -356,6 +368,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(checkHdr)
    {
       strcpy(returnStruct->msg, checkHdr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -409,7 +422,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(mProjectQL_readFits(input_file, weight_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -761,7 +774,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(oxpixMin > oxpixMax || oypixMin > oypixMax)
    {
       sprintf(returnStruct->msg, "No overlap");
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -790,7 +803,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(data == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for input data image array");
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -801,7 +814,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(data[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for input data image array");
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
    }
@@ -824,7 +837,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(weights == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for input weights array");
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -835,7 +848,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(weights[j] == (void *)NULL)
          {
             sprintf(returnStruct->msg, "Not enough memory for input weights array");
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -879,7 +892,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -890,7 +903,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -902,7 +915,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -914,7 +927,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -966,7 +979,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -990,7 +1003,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1006,7 +1019,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1026,7 +1039,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1042,7 +1055,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1063,7 +1076,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1073,7 +1086,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1088,7 +1101,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1097,7 +1110,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1106,7 +1119,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1117,7 +1130,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1126,7 +1139,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
    }
@@ -1137,7 +1150,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1146,7 +1159,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
    }
@@ -1160,7 +1173,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1169,7 +1182,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1178,7 +1191,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1189,7 +1202,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
 
@@ -1198,7 +1211,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -1209,7 +1222,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
 
@@ -1218,7 +1231,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -1244,7 +1257,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    for(j=jmin; j<jmax; ++j)
    {
-      for(i=0; i<output.naxes[0]; ++i)
+      for(i=0; i<nelements; ++i)
       {
          buffer[i] = nan;
 
@@ -1254,6 +1267,8 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
       for(i=imin; i<imax; ++i)
       {
+         buffer[i] = nan;
+
          oxpix = i+1.0;  // Since the first pixel in a FITS image (index 0)
          oypix = j+1.0;  // is at coordinate 1 according to the WCS library
 
@@ -1341,7 +1356,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                   for(imx=-ia; imx<=ia; ++imx)
                   {
                      imgi = ix + imx;
-                     keri = fabs((imx+xoff)*nsamp);
+                     keri = abs((imx+xoff)*nsamp);
 
                      if(imgi < 0 || imgi > input.naxes[0]
                      || keri < 0 || keri > nfilter)
@@ -1350,29 +1365,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                      for(jmy=-ia; jmy<=ia; ++jmy)
                      {
                         imgj = jy + jmy;
-                        kerj = fabs((jmy+yoff)*nsamp);
+                        kerj = abs((jmy+yoff)*nsamp);
 
                         if(imgj < 0 || imgj >= input.naxes[1]
                         || kerj < 0 || kerj >= nfilter)
                            continue;
                            
-                        /*
-                        if(i == (imin+imax)/2 && j == (jmin+jmax)/2)
-                        {
-                           printf("DEBUG> i = %d, j = %d (output image index)\n", i, j);
-                           printf("DEBUG> ixpix = %.3f, iypix = %.3f (input image location)\n", ixpix, iypix);
-                           printf("DEBUG> ix = %d, jy = %d (nearest input pixel)\n", ix, jy);
-                           printf("DEBUG> xoff = %.3f, yoff = %.3f (pixel space offset)\n", xoff, yoff);
-                           printf("DEBUG> imx = %d, jmy = %d (loop over filter offsets)\n", imx, jmy);
-                           printf("DEBUG> imgi = %d, imgj = %d (image pixel for filter sum)\n", imgi, imgj);
-                           printf("DEBUG> keri = %d, kerj = %d (Lanczos filter array index)\n", keri, kerj);
-                           printf("DEBUG> (data = %.3f) * (kernel = %.3f) (buffer update)\n", 
-                              data[imgj][imgi], lanczos[kerj][keri]);
-                           printf("\n");
-                           fflush(stdout);
-                        }
-                        */
-
                         buffer[i-imin] += data[imgj][imgi] * lanczos[kerj][keri];
                      }
                   }
@@ -1391,7 +1389,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1401,7 +1399,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
-            mProjectQL_closeFiles();
+            mProjectQL_cleanup();
             return returnStruct;
          }
 
@@ -1431,7 +1429,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
-      mProjectQL_closeFiles();
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1449,7 +1447,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         mProjectQL_closeFiles();
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1471,7 +1469,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    returnStruct->time = (double)(currtime - start);
 
-   mProjectQL_closeFiles();
+   mProjectQL_cleanup();
    return returnStruct;
 }
 
@@ -2012,9 +2010,9 @@ int mProjectQL_readFits(char *filename, char *weightfile)
 /*                                  */
 /************************************/
 
-void mProjectQL_closeFiles()
+void mProjectQL_cleanup()
 {
-   int status;
+   int status, i;
 
    if(input.fptr != (fitsfile *)NULL)
       fits_close_file(input.fptr, &status);
@@ -2028,10 +2026,48 @@ void mProjectQL_closeFiles()
    if(output_area.fptr != (fitsfile *)NULL)
       fits_close_file(output_area.fptr, &status);
 
+
    input.fptr       = (fitsfile *)NULL;
    weight.fptr      = (fitsfile *)NULL;
    output.fptr      = (fitsfile *)NULL;
    output_area.fptr = (fitsfile *)NULL;
+
+
+   if(lanczos)
+   {
+      for(i=0; i<nfilter; ++i)
+         free(lanczos[i]);
+
+      free(lanczos);
+   }
+
+
+   if(area)   free(area);
+   if(buffer) free(buffer);
+
+
+   if(data)
+   {
+      for(i=0; i<input.naxes[1]; ++i)
+         free(data[i]);
+
+      free(data);
+   }
+
+
+   if(weights)
+   {
+      for(i=0; i<input.naxes[1]; ++i)
+         free(weights[i]);
+
+      free(weights);
+   }
+
+   lanczos = (double **)NULL;
+   area    = (double  *)NULL;
+   buffer  = (double  *)NULL;
+   data    = (double **)NULL;
+   weights = (double **)NULL;
 
    return;
 }
