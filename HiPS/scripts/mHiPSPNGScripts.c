@@ -61,7 +61,12 @@ int main(int argc, char **argv)
 {
    int i;
 
+   char cwd       [MAXSTR];
+   char tmpdir    [MAXSTR];
    char driverfile[MAXSTR];
+
+   getcwd(cwd, MAXSTR);
+
 
    if(argc < 6)
    {
@@ -92,6 +97,42 @@ int main(int argc, char **argv)
 
    ncore = atoi(argv[5]);
 
+   if(scriptdir[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, scriptdir);
+
+      strcpy(scriptdir, tmpdir);
+   }
+
+   if(directory1[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, directory1);
+
+      strcpy(directory1, tmpdir);
+   }
+
+   if(histfile1[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, histfile1);
+
+      strcpy(histfile1, tmpdir);
+   }
+
+   if(outdir[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, outdir);
+
+      strcpy(outdir, tmpdir);
+   }
+
    if(scriptdir[strlen(scriptdir)-1] != '/')
       strcat(scriptdir, "/");
 
@@ -109,6 +150,51 @@ int main(int argc, char **argv)
       {
          printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts -d scriptdir hipsdir histfile [hipsdir2 histfile2 hipsdir3 histfile3] outdir ncore\"]\n");
          exit(1);
+      }
+
+      if(directory1[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, directory1);
+
+         strcpy(directory1, tmpdir);
+      }
+
+      if(histfile2[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, histfile2);
+
+         strcpy(histfile2, tmpdir);
+      }
+
+      if(directory3[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, directory3);
+
+         strcpy(directory3, tmpdir);
+      }
+
+      if(histfile3[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, histfile3);
+
+         strcpy(histfile3, tmpdir);
+      }
+
+      if(outdir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, outdir);
+
+         strcpy(outdir, tmpdir);
       }
 
       strcpy(directory2, argv[4]);
@@ -182,7 +268,7 @@ int main(int argc, char **argv)
    if(ncore == 1)
       fprintf(fdriver, "%sjobs/png%03d.sh\n", scriptdir, count);
    else
-      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitPNG.bash %sjobs/png%03d.sh\n", scriptdir, count);
+      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitPNG.bash %sjobs/png%03d.sh\n", scriptdir, scriptdir, count);
 
    fflush(fdriver);
 

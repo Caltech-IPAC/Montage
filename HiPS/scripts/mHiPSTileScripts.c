@@ -36,7 +36,7 @@ int debug;
 int main(int argc, char **argv)
 {
    int  i, ch, istat, ncols, iorder;
-   int  count, order, single_threaded;
+   int  count, maxorder, minorder, single_threaded;
 
    char cwd       [MAXSTR];
    char platelist [MAXSTR];
@@ -65,8 +65,8 @@ int main(int argc, char **argv)
    /* Process the command-line parameters */
    /***************************************/
 
-   debug = 0;
-   order = -1;
+   debug     = 0;
+   maxorder = -1;
    single_threaded = 0;
 
    opterr = 0;
@@ -84,25 +84,26 @@ int main(int argc, char **argv)
                 break;
 
            default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] order scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
                 exit(1);
                 break;
         }
    }
 
-   if (argc - optind < 5)
+   if (argc - optind < 6)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] order scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
       exit(1);
    }
 
 
-   order = atoi(argv[optind]);
+   maxorder = atoi(argv[optind]);
+   minorder = atoi(argv[optind + 1]);
 
-   strcpy(scriptdir, argv[optind + 1]);
-   strcpy(platedir,  argv[optind + 2]);
-   strcpy(hipsdir,   argv[optind + 3]);
-   strcpy(platelist, argv[optind + 4]);
+   strcpy(scriptdir, argv[optind + 2]);
+   strcpy(platedir,  argv[optind + 3]);
+   strcpy(hipsdir,   argv[optind + 4]);
+   strcpy(platelist, argv[optind + 5]);
 
    if(scriptdir[0] != '/')
    {
@@ -174,7 +175,10 @@ int main(int argc, char **argv)
 
    ncols = topen(platelist);
 
-   iplate = tcol( "plate");
+   iplate = tcol("plate");
+
+   if(iplate < 0)
+      iplate = tcol("fname");
 
    if(debug)
    {
@@ -199,6 +203,9 @@ int main(int argc, char **argv)
 
       strcpy(plate, tval(iplate));
 
+      if(strcmp(plate+strlen(plate)-5, ".fits") != 0)
+         strcat(plate, ".fits");
+
       if(debug)
       {
          printf("DEBUG> Record %5d: %s\n", count, plate);
@@ -222,13 +229,13 @@ int main(int argc, char **argv)
 
      if(single_threaded)
      {
-        for(iorder=order; iorder>=0; --iorder)
-           fprintf(fscript, "mHiPSTiles $1order%d/%s.fits $2\n", iorder, plate);
+        for(iorder=maxorder; iorder>=minorder; --iorder)
+           fprintf(fscript, "mHiPSTiles $1order%d/%s $2\n", iorder, plate);
      }
      else
      {
-        for(iorder=order; iorder>=0; --iorder)
-           fprintf(fscript, "mHiPSTiles $1order%d/%s.fits $2\n", iorder, plate);
+        for(iorder=maxorder; iorder>=minorder; --iorder)
+           fprintf(fscript, "mHiPSTiles $1order%d/%s $2\n", iorder, plate);
      }
 
      fflush(fscript);

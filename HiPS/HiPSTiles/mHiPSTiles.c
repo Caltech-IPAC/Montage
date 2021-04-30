@@ -160,10 +160,10 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG (main)> plateFile: [%s]\n", plateFile);
+      printf("DEBUG> (main)> plateFile: [%s]\n", plateFile);
       fflush(stdout);
 
-      printf("DEBUG (main)> hipsDir  : [%s]\n", hipsDir);
+      printf("DEBUG> (main)> hipsDir  : [%s]\n", hipsDir);
       fflush(stdout);
    }
 
@@ -230,18 +230,18 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG (main)> Input HiPS plate:\n\n");
+      printf("\nDEBUG> (main)> Input HiPS plate:\n\n");
 
-      printf("DEBUG (main)> ctype1     = [%s]\n", ctype1);
-      printf("DEBUG (main)> ctype2     = [%s]\n", ctype2);
-      printf("DEBUG (main)> naxis1     =  %-g\n", naxis1);
-      printf("DEBUG (main)> naxis2     =  %-g\n", naxis2);
-      printf("DEBUG (main)> crval1     =  %-g\n", crval1);
-      printf("DEBUG (main)> crval2     =  %-g\n", crval2);
-      printf("DEBUG (main)> crpix1     =  %.1f\n", crpix1);
-      printf("DEBUG (main)> crpix2     =  %.1f\n", crpix2);
-      printf("DEBUG (main)> cdelt1     =  %-g\n", cdelt1);
-      printf("DEBUG (main)> cdelt2     =  %-g\n", cdelt2);
+      printf("DEBUG> (main)> ctype1     = [%s]\n", ctype1);
+      printf("DEBUG> (main)> ctype2     = [%s]\n", ctype2);
+      printf("DEBUG> (main)> naxis1     =  %-g\n", naxis1);
+      printf("DEBUG> (main)> naxis2     =  %-g\n", naxis2);
+      printf("DEBUG> (main)> crval1     =  %-g\n", crval1);
+      printf("DEBUG> (main)> crval2     =  %-g\n", crval2);
+      printf("DEBUG> (main)> crpix1     =  %.1f\n", crpix1);
+      printf("DEBUG> (main)> crpix2     =  %.1f\n", crpix2);
+      printf("DEBUG> (main)> cdelt1     =  %-g\n", cdelt1);
+      printf("DEBUG> (main)> cdelt2     =  %-g\n", cdelt2);
       fflush(stdout);
    }
 
@@ -272,9 +272,9 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG (main)> hpxLevel  =  %d\n", hpxLevel);
-      printf("\nDEBUG (main)> tileLevel =  %d\n", tileLevel);
-      printf("DEBUG (main)> fullscale =  %d\n", fullscale);
+      printf("\nDEBUG> (main)> hpxLevel  =  %d\n", hpxLevel);
+      printf("\nDEBUG> (main)> tileLevel =  %d\n", tileLevel);
+      printf("DEBUG> (main)> fullscale =  %d\n", fullscale);
       fflush(stdout);
    }
 
@@ -284,6 +284,11 @@ int main(int argc, char **argv)
    /* HiPS tiles.  Since we usually pad the "plates" */
    /* by 256 pixels, we would expect to start that   */
    /* many pixels in from the bottom and left side.  */
+   /*                                                */
+   /* However, some for various reasons, some plates */
+   /* might not have padding, so we have to watch    */
+   /* out for that.                                  */
+   /*                                                */
    /**************************************************/
 
    ibegin = fullscale/2. - (crpix1 - 0.5) + 0.5;
@@ -307,15 +312,22 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG (main)> ibegin    =  %d\n", ibegin);
-      printf("DEBUG (main)> iend      =  %d\n", iend);
-      printf("\nDEBUG (main)> jbegin    =  %d\n", jbegin);
-      printf("DEBUG (main)> jend      =  %d\n", jend);
+      printf("\nDEBUG> (main)> ibegin    =  %d\n", ibegin);
+      printf("DEBUG> (main)> iend      =  %d\n", iend);
+      printf("\nDEBUG> (main)> jbegin    =  %d\n", jbegin);
+      printf("DEBUG> (main)> jend      =  %d\n", jend);
       fflush(stdout);
    }
 
-   iTileBegin = ibegin / 512. + 1;
-   jTileBegin = jbegin / 512. + 1;
+   if((ibegin%512) == 0)
+      iTileBegin = ibegin / 512;
+   else
+      iTileBegin = ibegin / 512. + 1;
+
+   if((jbegin%512) == 0)
+      jTileBegin = jbegin / 512;
+   else
+      jTileBegin = jbegin / 512. + 1;
 
    iTileEnd = iend / 512.;
    jTileEnd = jend / 512.;
@@ -328,16 +340,16 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("\nDEBUG (main)> iTileBegin    =  %d\n", iTileBegin);
-      printf("DEBUG (main)> iTileEnd      =  %d\n", iTileEnd);
-      printf("\nDEBUG (main)> jTileBegin    =  %d\n", jTileBegin);
-      printf("DEBUG (main)> jTileEnd      =  %d\n", jTileEnd);
+      printf("\nDEBUG> (main)> iTileBegin    =  %d\n", iTileBegin);
+      printf("DEBUG> (main)> iTileEnd      =  %d\n", iTileEnd);
+      printf("\nDEBUG> (main)> jTileBegin    =  %d\n", jTileBegin);
+      printf("DEBUG> (main)> jTileEnd      =  %d\n", jTileEnd);
 
       printf("\n");
-      printf("DEBUG (main)> padLeft   = %d\n", padLeft);
-      printf("DEBUG (main)> padBottom = %d\n", padBottom);
-      printf("DEBUG (main)> padRight  = %d\n", padRight);
-      printf("DEBUG (main)> padTop    = %d\n", padTop);
+      printf("DEBUG> (main)> padLeft   = %d\n", padLeft);
+      printf("DEBUG> (main)> padBottom = %d\n", padBottom);
+      printf("DEBUG> (main)> padRight  = %d\n", padRight);
+      printf("DEBUG> (main)> padTop    = %d\n", padTop);
       fflush(stdout);
    }
 
@@ -348,12 +360,18 @@ int main(int argc, char **argv)
 
    jrow = 0;
 
-   fpixel[1] = padBottom;
+   fpixel[1] = padBottom+1;
 
    fpixelo[0] = 1;
    fpixelo[1] = 1;
 
    ntot = 0;
+
+   if(debug > 1)
+   {
+      printf("\n");
+      fflush(stdout);
+   }
 
    for(j=jbegin+padBottom; j<jend-padTop; ++j)
    {
@@ -364,6 +382,12 @@ int main(int argc, char **argv)
          nhips = 0;
 
          it = 0;
+
+         if(debug)
+         {
+            printf("\n");
+            fflush(stdout);
+         }
 
          for(icenter=ibegin+padLeft+256; icenter<iend-padRight+256; icenter+=512)
          {
@@ -437,7 +461,7 @@ int main(int argc, char **argv)
 
             if(debug)
             {
-               printf("DEBUG (main)> %3d: icenter=%d, jcenter=%d  -->  %s (nhips=%d)\n", it, icenter, jcenter, path, nhips-1);
+               printf("DEBUG> (main)> %3d: icenter=%d, jcenter=%d  -->  %s (nhips=%d)\n", it, icenter, jcenter, path, nhips-1);
                fflush(stdout);
             }
 
@@ -447,22 +471,28 @@ int main(int argc, char **argv)
 
       // Copy data
 
+      if(debug > 1)
+      {
+         printf("READ>  fpixel  = %6ld %6ld, nelements  = %6ld\n", fpixel[0], fpixel[1], nelements);
+         fflush(stdout);
+      }
+
       status = 0;
       if(fits_read_pix(plate, TDOUBLE, fpixel, nelements, &dnan, indata, &nullcnt, &status))
          mHiPSTiles_printFitsError(status);
-
-      if(debug && fpixel[1] == padBottom)
-         printf("DEBUG> READ line.  fpixel = %d %d\n", fpixel[0], fpixel[1]);
 
       nelementso = 512;
 
       for(l=0; l<nhips; ++l)
       {
-         if(debug && fpixel[1] == padBottom)
-             printf("DEBUG> WRITE line %d [image %3d].  outdata[0] = indata[%d]\n", fpixelo[1], l, padLeft + 512*l);
-
          for(m=0; m<512; ++m)
             outdata[m] = indata[padLeft + 512*l + m];
+
+         if(debug > 1)
+         {
+            printf("WRITE> fpixelo = %6ld %6ld, nelementso = %6ld\n", fpixelo[0], fpixelo[1], nelementso);
+            fflush(stdout);
+         }
 
          status = 0;
          if (fits_write_pix(hips[l], TDOUBLE, fpixelo, nelementso,
@@ -537,9 +567,9 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSID)> nside     = %lld\n", nside);
-      printf("DEBUG (HiPSID)> nsideout  = %lld\n\n", nsideout);
-      printf("DEBUG (HiPSID)> Pixel coord:   X = %9.1f, Y = %9.1f (level %ld)\n", x, y, pixlev); 
+      printf("\nDEBUG> (HiPSID)> nside     = %lld\n", nside);
+      printf("DEBUG> (HiPSID)> nsideout  = %lld\n\n", nsideout);
+      printf("DEBUG> (HiPSID)> Pixel coord:   X = %9.1f, Y = %9.1f (level %ld)\n", x, y, pixlev); 
       fflush(stdout);
    }
 
@@ -554,8 +584,8 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSID)> ibase     = %lld\n", ibase);
-      printf("DEBUG (HiPSID)> jbase     = %lld\n", jbase);
+      printf("\nDEBUG> (HiPSID)> ibase     = %lld\n", ibase);
+      printf("DEBUG> (HiPSID)> jbase     = %lld\n", jbase);
       fflush(stdout);
    }
 
@@ -578,7 +608,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSID)> Base tile = %d\n\n", baseTile);
+      printf("DEBUG> (HiPSID)> Base tile = %d\n\n", baseTile);
       fflush(stdout);
    }
 
@@ -593,7 +623,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev); 
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev); 
       fflush(stdout);
    }
 
@@ -605,7 +635,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev-9); 
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev-9); 
       fflush(stdout);
    }
 
@@ -617,7 +647,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSID)> Tile starting index = %lld (level %ld)\n\n", index, pixlev-9);
+      printf("\nDEBUG> (HiPSID)> Tile starting index = %lld (level %ld)\n\n", index, pixlev-9);
       fflush(stdout);
    }
 
@@ -634,7 +664,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (of %d)\n", xintile, yintile, nsideout);
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (of %d)\n", xintile, yintile, nsideout);
       fflush(stdout);
    }
 
@@ -645,7 +675,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSID)> Integer tile:  X = %9d, Y = %9d (of %d)\n", xi, yi, nsideout);
+      printf("DEBUG> (HiPSID)> Integer tile:  X = %9d, Y = %9d (of %d)\n", xi, yi, nsideout);
       fflush(stdout);
    }
 
@@ -659,8 +689,8 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSID)> Tile index   = %ld (i.e., index inside base tile)\n", id);
-      printf("DEBUG (HiPSID)> Tile index   = %o (octal)\n\n", id);
+      printf("\nDEBUG> (HiPSID)> Tile index   = %ld (i.e., index inside base tile)\n", id);
+      printf("DEBUG> (HiPSID)> Tile index   = %o (octal)\n\n", id);
       fflush(stdout);
    }
 
@@ -703,9 +733,9 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSHdr)> pixel level  = %ld (input)\n", pixlev);
-      printf("\nDEBUG (HiPSHdr)> tile level   = %ld\n", level);
-      printf("DEBUG (HiPSHdr)> tile         = %ld (input)\n", tile);
+      printf("\nDEBUG> (HiPSHdr)> pixel level  = %ld (input)\n", pixlev);
+      printf("\nDEBUG> (HiPSHdr)> tile level   = %ld\n", level);
+      printf("DEBUG> (HiPSHdr)> tile         = %ld (input)\n", tile);
       fflush(stdout);
    }
 
@@ -718,8 +748,8 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSHdr)> nside(tile)  = %ld\n", nside);
-      printf("DEBUG (HiPSHdr)> nside(pixel) = %ld\n", nsidePix);
+      printf("\nDEBUG> (HiPSHdr)> nside(tile)  = %ld\n", nside);
+      printf("DEBUG> (HiPSHdr)> nside(pixel) = %ld\n", nsidePix);
       fflush(stdout);
    }
 
@@ -734,7 +764,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSHdr)> Base tile    = %d (offset %d %d)\n", 
+      printf("\nDEBUG> (HiPSHdr)> Base tile    = %d (offset %d %d)\n", 
          baseTile, xoffset[baseTile], yoffset[baseTile]);
       fflush(stdout);
    }
@@ -748,7 +778,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSHdr)> Tile index   = %ld (i.e., index inside base tile)\n", index);
+      printf("DEBUG> (HiPSHdr)> Tile index   = %ld (i.e., index inside base tile)\n", index);
       fflush(stdout);
    }
 
@@ -768,7 +798,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSHdr)> Relative tile: X = %7d, Y = %7d (of %d) [X was originally %d]\n", x, y, nside, nside - 1 - x);
+      printf("\nDEBUG> (HiPSHdr)> Relative tile: X = %7d, Y = %7d (of %d) [X was originally %d]\n", x, y, nside, nside - 1 - x);
       fflush(stdout);
    }
 
@@ -780,7 +810,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSHdr)> Absolute:      X = %7d, Y = %7d (level %ld)\n", x, y, level);
+      printf("DEBUG> (HiPSHdr)> Absolute:      X = %7d, Y = %7d (level %ld)\n", x, y, level);
       fflush(stdout);
    }
 
@@ -792,7 +822,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("DEBUG (HiPSHdr)> Pixels:        X = %7d, Y = %7d (level %ld)\n", x, y, pixlev);
+      printf("DEBUG> (HiPSHdr)> Pixels:        X = %7d, Y = %7d (level %ld)\n", x, y, pixlev);
       fflush(stdout);
    }
 
@@ -804,9 +834,9 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG (HiPSHdr)> Full scale       = %ld pixels\n", fullscale);
-      printf("\nDEBUG (HiPSHdr)> Scaled coords  X = %.2f%%, Y = %.2f%%\n", 100.*x/fullscale, 100.*y/fullscale);
-      printf("\nDEBUG (HiPSHdr)> CRPIX            = %.1f, Y = %.1f\n\n", (fullscale + 1.)/2. - x, (fullscale + 1.)/2. - y);
+      printf("\nDEBUG> (HiPSHdr)> Full scale       = %ld pixels\n", fullscale);
+      printf("\nDEBUG> (HiPSHdr)> Scaled coords  X = %.2f%%, Y = %.2f%%\n", 100.*x/fullscale, 100.*y/fullscale);
+      printf("\nDEBUG> (HiPSHdr)> CRPIX            = %.1f, Y = %.1f\n\n", (fullscale + 1.)/2. - x, (fullscale + 1.)/2. - y);
       fflush(stdout);
    }
 

@@ -135,7 +135,7 @@ int main(int argc, char **argv)
          i = xoffset[face];
          j = yoffset[face];
 
-         sprintf(cmd, "mTileHdr %shpx%d.hdr %shpx%d_%d_%d.hdr 5 5 %d %d",
+         sprintf(cmd, "mTileHdr %shpx%d.hdr %shpx%d_%02d_%02d.hdr 5 5 %02d %02d",
             platedir, order, platedir, order, i, j, i, j);
 
          if(debug)
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
          }
 
 
-         sprintf(cmd, "mAdd -n -p %sorder%d.orig %sorder%d.tbl %shpx%d_%d_%d.hdr %sorder%d/plate_%d_%d.fits",
+         sprintf(cmd, "mAdd -n -p %sorder%d.orig %sorder%d.tbl %shpx%d_%02d_%02d.hdr %sorder%d/plate_%02d_%02d.fits",
             platedir, order, platedir, order, platedir, order, i, j, platedir, order, i, j);
 
          if(debug)
@@ -176,26 +176,26 @@ int main(int argc, char **argv)
             }
          }
 
-         sprintf(filename, "%sorder%d/plate_%d_%d_area.fits",
+         sprintf(filename, "%sorder%d/plate_%02d_%02d_area.fits",
             platedir, order, i, j, platedir, order, i, j);
 
          if(debug)
          {
-            printf("rm %s\n", filename);
+            printf("unlink %s\n", filename);
             fflush(stdout);
          }
-         else
-            unlink(filename);
+         
+         unlink(filename);
 
-         sprintf(filename, "%shpx%d_%d_%d.hdr", platedir, order, i, j);
+         sprintf(filename, "%shpx%d_%02d_%02d.hdr", platedir, order, i, j);
 
          if(debug)
          {
-            printf("rm %s\n", filename);
+            printf("unlink %s\n", filename);
             fflush(stdout);
          }
-         else
-            unlink(filename);
+         
+         unlink(filename);
       }
    }
 

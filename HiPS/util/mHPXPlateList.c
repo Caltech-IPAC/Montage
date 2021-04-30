@@ -19,220 +19,69 @@ int sky[5][5] = {{1,1,0,0,0},
                  {0,0,1,1,1},
                  {0,0,0,1,1}};
 
-int naxis;
+//  Order:          0     1     2     3    4     5     6     7     8      9
+//                 --------------------------------------------------------
+int nplate[10] = {  5,    5,    5,    5,  80,   80,   80,   80,  80,     80};
+int naxis [10] = {512, 1024, 2048, 4096, 512, 1024, 2048, 4096, 8192, 16384};
 
 
 /****************************************************************************/
 /*                                                                          */
-/*  By carefully constructing the order in which we process plates, we      */
-/*  can balance the I/O load for a set of storage units while still keeping */
-/*  sets of plates that are contiguous on the sky co-located on disk.       */
+/*  This program makes a list of plates for the sky, taking into account    */
+/*  the regions of the HPX projection that are undefined.  The regions that */
+/*  have data represent a diagonal set of 13 of a 5x5 cell grid.            */
 /*                                                                          */
-/*  This program takes a range of plates (by default the whole sky) and     */
-/*  outputs a list of plates to process in optimal order.                   */
+/*  We will choose a plate count based on the maximum HiPS order.           */
+/*                                                                          */
+/*  The size (naxis x naxis) we show here is a minimum; in general we pad   */
+/*  the plate so there is some overlap we can use to match backgrounds      */
+/*  globally, at least for the highest order.                               */
 /*                                                                          */
 /****************************************************************************/
 
 int main(int argc, char **argv)
 {
-   int ch, order, nside, nstorage, nplate, nx, dx;
-   int k, nbin, outid, outshift, id;
+   int ch, id;
+   int order, nside, ntotal, dx;
    int i, imin, imax, xmin, xmax;
    int j, jmin, jmax, ymin, ymax;
 
-   int  platecount, maxplates;
-
-   char outtbl[1024];
-
-   struct plates
-   {
-      int  id;
-      int  i;
-      int  j;
-      char platename[64];
-      int  bin;
-   };
+   char outtbl   [1024];
+   char platename[1024];
 
    FILE *ftbl;
-
-   struct plates *platelist;
-
-
-   int debug = 0;
 
 
    // Command-line arguments
 
-   nstorage = 1;
-
-   for(i=0; i<argc; ++i)
-       printf("%d: [%s]\n", i, argv[i]);
-
-   opterr = 0;
-
-   while ((ch = getopt(argc, argv, "ds:")) != EOF)
-   {
-      switch (ch)
-      {
-         case 'd':
-            debug = 1;
-            break;
-
-         case 's':
-            nstorage = atoi(optarg);
-            break;
-
-         default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] order nplate platelist.tbl [xmin ymin xmax ymax] (1)\"]\n");
-            fflush(stdout);
-            exit(1);
-      }
-   }
-
-   argc -= optind;
-   argv += optind;
-
    if(argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] order nplate platelist.tbl [xmin ymin xmax ymax] (2)\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList order platelist.tbl\"]\n");
       fflush(stdout);
       exit(0);
    }
 
-   order    = atoi(argv[0]);
-   nplate   = atoi(argv[1]);
+   order = atoi(argv[1]);
+
+   if(order < 0 || order > 9)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Order must be 0-9.]\"]\n");
+      fflush(stdout);
+      exit(0);
+   }
 
    strcpy(outtbl, argv[2]);
 
-   if(argc > 3 && argc < 7)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-d][-s nstorage] order nplate platelist.tbl [xmin ymin xmax ymax] (3)\"]\n");
-      fflush(stdout);
-      exit(0);
-   }
 
-   xmin = 0;
-   ymin = 0;
-   xmax = nplate-1;
-   ymax = nplate-1;
-
-   if(argc > 3)
-   {
-      xmin = atoi(argv[3]);
-      ymin = atoi(argv[4]);
-      xmax = atoi(argv[5]);
-      ymax = atoi(argv[6]);
-   }
-
-   
    // Basic parameters for this order
 
-   nside = pow(2., (double)order);
+   ntotal = naxis[order] * nplate[order];
 
-   naxis = 5 * nside;
+   dx = ntotal/5;
 
-   nx = naxis/nplate;
-   dx = naxis/5;
-
-   if(nx*nplate < nside)
-      ++nx;
-
-   if(debug)
-   {
-      printf("DEBUG> nside = %d\n", nside);
-      printf("DEBUG> naxis = %d\n", naxis);
-      printf("DEBUG> nx    = %d\n", nx);
-      printf("DEBUG> dx    = %d\n", dx);
-      printf("DEBUG> xmin  = %d\n", xmin);
-      printf("DEBUG> xmax  = %d\n", xmax);
-      printf("DEBUG> ymin  = %d\n", ymin);
-      printf("DEBUG> ymax  = %d\n", ymax);
-      fflush(stdout);
-   }
-
-
-   // We'll need to do this loop twice since we
-   // need the overall plate count early.
-
-   platecount = 0;
-
-   for(i=xmin; i<=xmax; ++i)
-   {
-      imin = i*nx;
-      imax = (i+1)*nx - 1;
-
-      for(j=ymin; j<=ymax; ++j)
-      {
-         jmin = j*nx;
-         jmax = (j+1)*nx - 1;
-
-         if(sky[imin/dx][jmin/dx]
-         || sky[imin/dx][jmax/dx]
-         || sky[imax/dx][jmin/dx]
-         || sky[imax/dx][jmax/dx])
-         
-            ++platecount;
-      }
-   }
-
-
-   // Find out how many plates we should have per storage container
-
-   nbin = (int)((double)platecount / (double)nstorage);
-
-   if(debug)
-   {
-      printf("DEBUG> nbin  = %d\n", nbin);
-      fflush(stdout);
-   }
-
+   
    // Generate the plate list.
    
-   platelist = (struct plates *)malloc(platecount * sizeof(struct plates));
-
-   id         = 0;
-   outid      = 0;
-   outshift   = 0;
-
-   for(i=xmin; i<=xmax; ++i)
-   {
-      imin = i*nx;
-      imax = (i+1)*nx - 1;
-
-      for(j=ymin; j<=ymax; ++j)
-      {
-         jmin = j*nx;
-         jmax = (j+1)*nx - 1;
-
-         if(sky[imin/dx][jmin/dx]
-         || sky[imin/dx][jmax/dx]
-         || sky[imax/dx][jmin/dx]
-         || sky[imax/dx][jmax/dx])
-         {
-            platelist[outid].id = id;
-
-            platelist[outid].i = i;
-            platelist[outid].j = j;
-
-            sprintf(platelist[outid].platename, "plate_%02d_%02d", i, j);
-
-            platelist[outid].bin = id / nbin;
-
-            outid += nstorage;
-
-            if(outid >= platecount)
-            {
-               ++outshift;
-
-               outid = outshift;
-            }
-
-            ++id;
-         }
-      }
-   }
-
-
    ftbl = fopen(outtbl, "w+");
 
    if(ftbl == (FILE *)NULL)
@@ -242,22 +91,49 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   fprintf(ftbl, "\\order = %d\n", order);
-   fprintf(ftbl, "\\nplate = %d\n\n", nplate);
+   fprintf(ftbl, "\\order  = %d\n", order);
+   fprintf(ftbl, "\\nplate = %d\n", nplate[order]);
+   fprintf(ftbl, "\\naxis  = %d\n", naxis [order]);
+   fprintf(ftbl, "\\total  = %d\n", ntotal);
+   fprintf(ftbl, "\\\n");
 
-   fprintf(ftbl, "| id  |    plate    |  i  |  j  | bin |\n");
-   fprintf(ftbl, "| int |    char     | int | int | int |\n");
+   fprintf(ftbl, "| id  |    plate    |\n");
+   fprintf(ftbl, "| int |    char     |\n");
 
-   for(i=0; i<platecount; ++i)
-      fprintf(ftbl, " %5d %13s %5d %5d %5d \n",
-         platelist[i].id, platelist[i].platename, platelist[i].i, platelist[i].j, platelist[i].bin); 
+   fflush(ftbl);
+
+   id = 0;
+
+   for(i=0; i<nplate[order]; ++i)
+   {
+      imin = i*naxis[order];
+      imax = (i+1)*naxis[order] - 1;
+
+      for(j=0; j<nplate[order]; ++j)
+      {
+         jmin = j*naxis[order];
+         jmax = (j+1)*naxis[order] - 1;
+
+         if(sky[imin/dx][jmin/dx]
+         || sky[imin/dx][jmax/dx]
+         || sky[imax/dx][jmin/dx]
+         || sky[imax/dx][jmax/dx])
+         {
+            sprintf(platename, "plate_%02d_%02d", i, j);
+
+            fprintf(ftbl, " %5d %13s \n",
+               id, platename); 
+
+            ++id;
+         }
+      }
+   }
 
    fflush(ftbl);
    fclose(ftbl);
 
 
-   printf("[struct stat=\"OK\", module=\"mHPXPlateList\", order=%d, nplates=%d]\n",
-      order, platecount);
+   printf("[struct stat=\"OK\", module=\"mHPXPlateList\", nplates=%d]\n", id);
    fflush(stdout);
    exit(0);
 } 
