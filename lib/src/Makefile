@@ -1,6 +1,6 @@
 all:
 	(cd bzip2-1.0.6 && $(MAKE) && cp libbz2.a ../.. && cp bzlib.h ../../include)
-	(cd cfitsio-3.25 && ./configure && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
+	(cd cfitsio-3.49 && ./configure && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
 	(cd cmd && $(MAKE) && $(MAKE) install)
 	(cd coord && $(MAKE) && $(MAKE) install)
 	(cd mtbl && $(MAKE) && $(MAKE) install)
@@ -20,7 +20,7 @@ all:
 clean:
 	rm -rf ../include/* ../freetype ../*.a
 	(cd bzip2-1.0.6 && $(MAKE) clean)
-	test ! -e cfitsio-3.25/Makefile || (cd cfitsio-3.25 && $(MAKE) clean && rm -rf config.log config.cache config.status lib)
+	test ! -e cfitsio-3.49/Makefile || (cd cfitsio-3.49 && $(MAKE) clean && rm -rf config.log config.cache config.status lib)
 	(cd cmd && $(MAKE) clean)
 	(cd coord && $(MAKE) clean)
 	(cd mtbl && $(MAKE) clean)
