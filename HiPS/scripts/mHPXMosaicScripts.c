@@ -37,14 +37,11 @@ int naxis;
 /*  the plate size and padding should be powers of two.  Some of the        */
 /*  downstream processing depends on this.                                  */
 /*                                                                          */
-/*  We need the same array of plates all through the processing.  Also,     */
-/*  if we are making use of a cluster for processing and want to balance    */
-/*  the I/O across a set of storage units we need to round-robin the        */
-/*  processing accordingly.  For both these reasons, we have separated the  */
-/*  plate list generation out into a separate program (mHPXPlateList) and   */
-/*  just read that back in here.                                            */
+/*  We need the same array of plates all through the processing so we have  */
+/*  separated the plate list generation out into a separate program         */
+/*  (mHPXPlateList) and just read that back in here.                        */
 /*                                                                          */
-/*  There are three binary modes here.  The data can be a set of local      */
+/*  There are three binary decisions.  The data can be a set of local       */
 /*  files or it can be downloaded as part of the processing (using the      */
 /*  mArchive tools); the processing may only need to reproject the data or  */
 /*  it may need to adjust the backgrounds of each image; and we may wish to */
@@ -84,8 +81,8 @@ int naxis;
 int main(int argc, char **argv)
 {
    int  level, level_only, c, pad, count, ncols, nplate;
-   int  id, iplate, i, j, bin, onebin, status, nimages, exists;
-   int  iid, ii, ij, ibin, location, background, processing;
+   int  id, iplate, i, j, status, nimages, exists;
+   int  iid, ii, ij, location, background, processing;
 
    char cwd       [1024];
    char survey    [1024];
@@ -299,11 +296,10 @@ int main(int argc, char **argv)
    iplate = tcol("plate");
    ii     = tcol("i");
    ij     = tcol("j");
-   ibin   = tcol("bin");
 
-   if(iid < 0 || iplate < 0 || ii < 0 || ij < 0 || ibin < 0)
+   if(iid < 0 || iplate < 0 || ii < 0 || ij < 0)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Need columns id, plate, i, j, bin in plate list file [%s].\"]\n", platelist);
+      printf("[struct stat=\"ERROR\", msg=\"Need columns id, plate, i, j in plate list file [%s].\"]\n", platelist);
       fflush(stdout);
       exit(0);
    }
@@ -321,30 +317,11 @@ int main(int argc, char **argv)
       printf("DEBUG> iplate = %d\n", iplate);
       printf("DEBUG> ii     = %d\n", ii);
       printf("DEBUG> ij     = %d\n", ij);
-      printf("DEBUG> ibin   = %d\n", ibin);
       printf("DEBUG> level  = %d\n", level);
       printf("DEBUG> nplate = %d\n", nplate);
       printf("DEBUG> pad    = %d\n", pad);
       fflush(stdout);
    }
-
-   onebin = 1;
-
-   while(1)
-   {
-      if(tread() < 0)
-         break;
-
-      bin = atoi(tval(ibin));
-
-      if(bin > 0)
-      {
-         onebin = 0;
-         break;
-      }
-   }
-
-   tclose();
 
    ncols = topen(platelist);
 
@@ -365,8 +342,6 @@ int main(int argc, char **argv)
       i = atoi(tval(ii));
       j = atoi(tval(ij));
 
-      bin = atoi(tval(ibin));
-
       sprintf(outfile, "%splate_%02d_%02d.fits", mosaicdir, i, j);
 
 
@@ -376,7 +351,6 @@ int main(int argc, char **argv)
          printf("DEBUG> plate   = [%s]\n", platename);
          printf("DEBUG> i       = %d\n", i);
          printf("DEBUG> j       = %d\n", j);
-         printf("DEBUG> bin     = %d\n", bin);
          printf("DEBUG> outfile = [%s]\n", outfile);
          fflush(stdout);
       }
@@ -428,10 +402,10 @@ int main(int argc, char **argv)
             level, i, j, i, j, nplate, nplate, i, j, pad, pad);
 
          if(level_only)
-            fprintf(fscript, "mExec -q -a -l -c -d 2 -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
+            fprintf(fscript, "mExec -q -a -l -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
                 i, j, i, j, survey, band, i, j);
          else
-            fprintf(fscript, "mExec -q -a -c -d 2 -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
+            fprintf(fscript, "mExec -q -a -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
                 i, j, i, j, survey, band, i, j);
 
          fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
@@ -464,7 +438,7 @@ int main(int argc, char **argv)
 
          fprintf(fscript, "mImgtbl %s $1/work_%02d_%02d/rimages.tbl\n", datadir, i, j);
 
-         fprintf(fscript, "mProjExec -d -q -p %s $1/work_%02d_%02d/rimages.tbl $1/plate_%02d_%02d.hdr $1/work_%02d_%02d/projected $1/work_%02d_%02d/stats.tbl\n",
+         fprintf(fscript, "mProjExec -q -p %s $1/work_%02d_%02d/rimages.tbl $1/plate_%02d_%02d.hdr $1/work_%02d_%02d/projected $1/work_%02d_%02d/stats.tbl\n",
             datadir, i, j, i, j, i, j, i, j);
 
          fprintf(fscript, "mImgtbl $1/work_%02d_%02d/projected $1/work_%02d_%02d/pimages.tbl\n", i, j, i, j);
@@ -484,14 +458,8 @@ int main(int argc, char **argv)
       chmod(scriptfile, 0777);
 
       if(processing == CLUSTER)
-      {
-         if(onebin)
-            fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 submitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
-               scriptdir, i, j, mosaicdir);
-         else
-            fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 submitMosaic.bash %sjobs/plate_%02d_%02d.sh %ssubset%d\n",
-               scriptdir, i, j, mosaicdir, bin);
-      }
+         fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 submitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
+            scriptdir, i, j, mosaicdir);
 
       if(processing == SINGLE_THREADED)
          fprintf(fdriver, "%sjobs/plate_%02d_%02d.sh %s\n",

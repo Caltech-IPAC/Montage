@@ -97,8 +97,8 @@ int main(int argc, char **argv)
    fprintf(ftbl, "\\total  = %d\n", ntotal);
    fprintf(ftbl, "\\\n");
 
-   fprintf(ftbl, "| id  |    plate    |\n");
-   fprintf(ftbl, "| int |    char     |\n");
+   fprintf(ftbl, "| id  |   i   |   j   |     plate    |\n");
+   fprintf(ftbl, "| int |  int  |  int  |     char     |\n");
 
    fflush(ftbl);
 
@@ -121,8 +121,8 @@ int main(int argc, char **argv)
          {
             sprintf(platename, "plate_%02d_%02d", i, j);
 
-            fprintf(ftbl, " %5d %13s \n",
-               id, platename); 
+            fprintf(ftbl, " %5d  %6d  %6d  %13s \n",
+               id, i, j, platename); 
 
             ++id;
          }

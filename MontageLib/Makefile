@@ -9,11 +9,9 @@ endif
 all: pgm lib pythonlibs
 
 pgm: 
-
 		(cd util          && $(MAKE))
 		(cd Add           && $(MAKE) && $(MAKE) install)
 		(cd AddCube       && $(MAKE) && $(MAKE) install)
-		(cd AddMem        && $(MAKE) && $(MAKE) install)
 		(cd ArchiveList   && $(MAKE) && $(MAKE) install)
 		(cd ArchiveGet    && $(MAKE) && $(MAKE) install)
 		(cd ArchiveExec   && $(MAKE) && $(MAKE) install)
@@ -41,7 +39,6 @@ pgm:
 		(cd Shrink        && $(MAKE) && $(MAKE) install)
 		(cd SubCube       && $(MAKE) && $(MAKE) install)
 		(cd Subimage      && $(MAKE) && $(MAKE) install)
-		(cd SubHdr        && $(MAKE) && $(MAKE) install)
 		(cd TANHdr        && $(MAKE) && $(MAKE) install)
 		(cd Transpose     && $(MAKE) && $(MAKE) install)
 		(cd WWT           && $(MAKE) && $(MAKE) install)
@@ -53,13 +50,12 @@ pgm:
 		(cd ProjExec      && $(MAKE) && $(MAKE) install)
 
 lib:
-		-rm -f libmontage.a libmontage.so libmontagepy.so
-		-ar q  libmontage.a \
+		rm -f libmontage.a libmontage.so libmontagepy.so
+		ar q  libmontage.a \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
-			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -87,7 +83,6 @@ lib:
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
 			Subimage/montageSubimage.o \
-			SubHdr/montageSubHdr.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
@@ -98,12 +93,11 @@ lib:
 			FitExec/montageFitExec.o \
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o 
-		-gcc -shared $(SO_FLAG) -o libmontage.so \
+		gcc -shared $(SO_FLAG) -o libmontage.so \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
-			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -131,7 +125,6 @@ lib:
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
 			Subimage/montageSubimage.o \
-			SubHdr/montageSubHdr.o \
 			TANHdr/montageTANHdr.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
@@ -144,9 +137,9 @@ lib:
 			ProjExec/montageProjExec.o 
 
 pythonlibs:
-		-rm -f ../python/MontagePy/lib/*.o
-		-mkdir -p ../python/MontagePy/lib
-		-cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
+		rm -f ../python/MontagePy/lib/*.o
+		mkdir -p ../python/MontagePy/lib
+		cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
@@ -188,69 +181,69 @@ pythonlibs:
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o \
 			../lib/src/boundaries/boundaries.o \
-			../lib/src/cfitsio-3.25/buffers.o \
-			../lib/src/cfitsio-3.25/cfileio.o \
-			../lib/src/cfitsio-3.25/checksum.o \
-			../lib/src/cfitsio-3.25/drvrfile.o \
-			../lib/src/cfitsio-3.25/drvrgsiftp.o \
-			../lib/src/cfitsio-3.25/drvrmem.o \
-			../lib/src/cfitsio-3.25/drvrnet.o \
-			../lib/src/cfitsio-3.25/drvrsmem.o \
-			../lib/src/cfitsio-3.25/editcol.o \
-			../lib/src/cfitsio-3.25/edithdu.o \
-			../lib/src/cfitsio-3.25/eval_f.o \
-			../lib/src/cfitsio-3.25/eval_l.o \
-			../lib/src/cfitsio-3.25/eval_y.o \
-			../lib/src/cfitsio-3.25/f77_wrap1.o \
-			../lib/src/cfitsio-3.25/f77_wrap2.o \
-			../lib/src/cfitsio-3.25/f77_wrap3.o \
-			../lib/src/cfitsio-3.25/f77_wrap4.o \
-			../lib/src/cfitsio-3.25/fitscore.o \
-			../lib/src/cfitsio-3.25/fits_hcompress.o \
-			../lib/src/cfitsio-3.25/fits_hdecompress.o \
-			../lib/src/cfitsio-3.25/getcolb.o \
-			../lib/src/cfitsio-3.25/getcold.o \
-			../lib/src/cfitsio-3.25/getcole.o \
-			../lib/src/cfitsio-3.25/getcoli.o \
-			../lib/src/cfitsio-3.25/getcolj.o \
-			../lib/src/cfitsio-3.25/getcolk.o \
-			../lib/src/cfitsio-3.25/getcoll.o \
-			../lib/src/cfitsio-3.25/getcol.o \
-			../lib/src/cfitsio-3.25/getcolsb.o \
-			../lib/src/cfitsio-3.25/getcols.o \
-			../lib/src/cfitsio-3.25/getcolui.o \
-			../lib/src/cfitsio-3.25/getcoluj.o \
-			../lib/src/cfitsio-3.25/getcoluk.o \
-			../lib/src/cfitsio-3.25/getkey.o \
-			../lib/src/cfitsio-3.25/group.o \
-			../lib/src/cfitsio-3.25/grparser.o \
-			../lib/src/cfitsio-3.25/histo.o \
-			../lib/src/cfitsio-3.25/imcompress.o \
-			../lib/src/cfitsio-3.25/iraffits.o \
-			../lib/src/cfitsio-3.25/modkey.o \
-			../lib/src/cfitsio-3.25/pliocomp.o \
-			../lib/src/cfitsio-3.25/putcolb.o \
-			../lib/src/cfitsio-3.25/putcold.o \
-			../lib/src/cfitsio-3.25/putcole.o \
-			../lib/src/cfitsio-3.25/putcoli.o \
-			../lib/src/cfitsio-3.25/putcolj.o \
-			../lib/src/cfitsio-3.25/putcolk.o \
-			../lib/src/cfitsio-3.25/putcoll.o \
-			../lib/src/cfitsio-3.25/putcol.o \
-			../lib/src/cfitsio-3.25/putcolsb.o \
-			../lib/src/cfitsio-3.25/putcols.o \
-			../lib/src/cfitsio-3.25/putcolui.o \
-			../lib/src/cfitsio-3.25/putcoluj.o \
-			../lib/src/cfitsio-3.25/putcoluk.o \
-			../lib/src/cfitsio-3.25/putcolu.o \
-			../lib/src/cfitsio-3.25/putkey.o \
-			../lib/src/cfitsio-3.25/quantize.o \
-			../lib/src/cfitsio-3.25/region.o \
-			../lib/src/cfitsio-3.25/ricecomp.o \
-			../lib/src/cfitsio-3.25/scalnull.o \
-			../lib/src/cfitsio-3.25/swapproc.o \
-			../lib/src/cfitsio-3.25/wcssub.o \
-			../lib/src/cfitsio-3.25/wcsutil.o \
+			../lib/src/cfitsio-3.49/buffers.o \
+			../lib/src/cfitsio-3.49/cfileio.o \
+			../lib/src/cfitsio-3.49/checksum.o \
+			../lib/src/cfitsio-3.49/drvrfile.o \
+			../lib/src/cfitsio-3.49/drvrmem.o \
+			../lib/src/cfitsio-3.49/drvrnet.o \
+			../lib/src/cfitsio-3.49/drvrsmem.o \
+			../lib/src/cfitsio-3.49/editcol.o \
+			../lib/src/cfitsio-3.49/edithdu.o \
+			../lib/src/cfitsio-3.49/eval_f.o \
+			../lib/src/cfitsio-3.49/eval_l.o \
+			../lib/src/cfitsio-3.49/eval_y.o \
+			../lib/src/cfitsio-3.49/f77_wrap1.o \
+			../lib/src/cfitsio-3.49/f77_wrap2.o \
+			../lib/src/cfitsio-3.49/f77_wrap3.o \
+			../lib/src/cfitsio-3.49/f77_wrap4.o \
+			../lib/src/cfitsio-3.49/fitscore.o \
+			../lib/src/cfitsio-3.49/fits_hcompress.o \
+			../lib/src/cfitsio-3.49/fits_hdecompress.o \
+			../lib/src/cfitsio-3.49/getcolb.o \
+			../lib/src/cfitsio-3.49/getcold.o \
+			../lib/src/cfitsio-3.49/getcole.o \
+			../lib/src/cfitsio-3.49/getcoli.o \
+			../lib/src/cfitsio-3.49/getcolj.o \
+			../lib/src/cfitsio-3.49/getcolk.o \
+			../lib/src/cfitsio-3.49/getcoll.o \
+			../lib/src/cfitsio-3.49/getcol.o \
+			../lib/src/cfitsio-3.49/getcolsb.o \
+			../lib/src/cfitsio-3.49/getcols.o \
+			../lib/src/cfitsio-3.49/getcolui.o \
+			../lib/src/cfitsio-3.49/getcoluj.o \
+			../lib/src/cfitsio-3.49/getcoluk.o \
+			../lib/src/cfitsio-3.49/getkey.o \
+			../lib/src/cfitsio-3.49/group.o \
+			../lib/src/cfitsio-3.49/grparser.o \
+			../lib/src/cfitsio-3.49/histo.o \
+			../lib/src/cfitsio-3.49/imcompress.o \
+			../lib/src/cfitsio-3.49/iraffits.o \
+			../lib/src/cfitsio-3.49/modkey.o \
+			../lib/src/cfitsio-3.49/pliocomp.o \
+			../lib/src/cfitsio-3.49/putcolb.o \
+			../lib/src/cfitsio-3.49/putcold.o \
+			../lib/src/cfitsio-3.49/putcole.o \
+			../lib/src/cfitsio-3.49/putcoli.o \
+			../lib/src/cfitsio-3.49/putcolj.o \
+			../lib/src/cfitsio-3.49/putcolk.o \
+			../lib/src/cfitsio-3.49/putcoll.o \
+			../lib/src/cfitsio-3.49/putcol.o \
+			../lib/src/cfitsio-3.49/putcolsb.o \
+			../lib/src/cfitsio-3.49/putcols.o \
+			../lib/src/cfitsio-3.49/putcolui.o \
+			../lib/src/cfitsio-3.49/putcoluj.o \
+			../lib/src/cfitsio-3.49/putcoluk.o \
+			../lib/src/cfitsio-3.49/putcolu.o \
+			../lib/src/cfitsio-3.49/putkey.o \
+			../lib/src/cfitsio-3.49/quantize.o \
+			../lib/src/cfitsio-3.49/region.o \
+			../lib/src/cfitsio-3.49/ricecomp.o \
+			../lib/src/cfitsio-3.49/scalnull.o \
+			../lib/src/cfitsio-3.49/simplerng.o \
+			../lib/src/cfitsio-3.49/swapproc.o \
+			../lib/src/cfitsio-3.49/wcssub.o \
+			../lib/src/cfitsio-3.49/wcsutil.o \
 			../lib/src/cmd/cmd.o \
 			../lib/src/coord/ccalc.o \
 			../lib/src/coord/computeFKCorrections.o \
@@ -389,11 +382,9 @@ pythonlibs:
 			../lib/src/bzip2-1.0.6/decompress.o \
 			../lib/src/bzip2-1.0.6/bzlib.o \
          ../python/MontagePy/lib
-		-cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
-		-cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
-		-cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
-		-cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
-# The last four lines are needed because we have .o file name conflicts
+		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
+		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
+# The last two lines are needed because we have .o file name conflicts
 
 doc:
 			gcc -o mLibDoc mLibDoc.c
