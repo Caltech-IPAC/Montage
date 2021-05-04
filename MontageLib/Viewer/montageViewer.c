@@ -210,6 +210,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    double    x, y;
    double    ix, iy;
    double    xpos, ypos;
+   double    brightness, contrast, cfactor;
 
    int       grayType;
    int       redType;
@@ -632,6 +633,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    hpx    = 0;
    hpxPix = 0;
 
+   brightness = 0.;
+   contrast   = 0.;
+   cfactor    = 1.;
+
 
    /*******************************/
    /* Initialize return structure */
@@ -878,6 +883,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             strcpy(returnStruct->msg, "Alpha parameter must a number between zero and one.");
             return returnStruct;
          }
+      }
+
+
+      /* BRIGHTNESS */
+
+      if(json_val(layout, "brightness", valstr))
+      {
+         brightness = strtod(valstr, &end);
+
+         if(brightness < -255. || brightness > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Brightness parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+      }
+
+
+      /* CONTRAST */
+
+      if(json_val(layout, "contrast", valstr))
+      {
+         contrast = strtod(valstr, &end);
+
+         if(contrast < -255. || contrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+         {
+            strcpy(returnStruct->msg, "Contrast parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+
+         cfactor = 259./255. * (255. + contrast) / (259.-contrast);
       }
 
 
@@ -2073,6 +2108,40 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                strcpy(returnStruct->msg, "Image opacity (alpha) must a number between zero and one.");
                return returnStruct;
             }
+
+            ++i;
+         }
+      
+         
+         /* BRIGHTNESS  */
+
+         else if(strcmp(argv[i], "-brightness") == 0)
+         {
+            brightness = strtod(argv[i+1], &end);
+
+            if(brightness < -255. || brightness > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Brightness parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* CONTRAST  */
+
+         else if(strcmp(argv[i], "-contrast") == 0)
+         {
+            contrast = strtod(argv[i+1], &end);
+
+            if(contrast < -255. || contrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Contrast parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            cfactor = 259./255. * (255. + contrast) / (259.-contrast);
 
             ++i;
          }
@@ -4759,6 +4828,39 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
 
             
+            /* Apply brightness/contrast tranforms */
+
+            if(brightness != 0.)
+            {
+               redImVal   = redImVal   + brightness;
+               greenImVal = greenImVal + brightness;
+               blueImVal  = blueImVal  + brightness;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+
+            if(cfactor != 1.)
+            {
+               redImVal   = cfactor * (redImVal   - 128) + 128;
+               greenImVal = cfactor * (greenImVal - 128) + 128;
+               blueImVal  = cfactor * (blueImVal  - 128) + 128;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+
+
             /* Populate the output JPEG array */
 
             if(outType == JPEG)
