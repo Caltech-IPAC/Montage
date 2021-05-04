@@ -63,6 +63,8 @@ HiPS/scripts/mHPXMosaicScripts
 HiPS/scripts/mHPXShrinkScripts
 HiPS/scripts/mHiPSPNGScripts
 HiPS/scripts/mHiPSTileScripts
+HiPS/tiles/mHiPSTileDiffs
+HiPS/tiles/mHiPSTiles
 HiPS/util/mHPXPlateCombine
 HiPS/util/mHPXPlateList
 HiPS/util/mHiPSAllSky
