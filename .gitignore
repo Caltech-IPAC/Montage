@@ -56,6 +56,7 @@ MontageLib/WWT/mProjWWTExec
 MontageLib/libmontage.so
 HiPS/hdrs/mHPXHdr
 HiPS/hdrs/mHiPSHdr
+HiPS/pngs/mHiPSPNGs
 HiPS/scripts/mHPXBgScripts
 HiPS/scripts/mHPXDiffScripts
 HiPS/scripts/mHPXMosaicScripts

@@ -26,6 +26,9 @@ void mHiPSPNGs_printFitsError(int status);
 int  mHiPSPNGs_mkdir(const char *path);
 
 int  nimage;
+
+double brightness, contrast;
+
 char directory1[1024];
 char directory2[1024];
 char directory3[1024];
@@ -55,9 +58,9 @@ int main(int argc, char **argv)
 {
    int i;
 
-   if(argc < 3)
+   if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs -d directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] brightness contrast directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
       exit(1);
    }
 
@@ -77,28 +80,31 @@ int main(int argc, char **argv)
       --argc;
    }
 
-   strcpy(directory1, argv[1]);
-   strcpy(histfile1,  argv[2]);
+   brightness = atof(argv[1]);
+   contrast   = atof(argv[2]);
+
+   strcpy(directory1, argv[3]);
+   strcpy(histfile1,  argv[4]);
 
    if(directory1[strlen(directory1)-1] != '/')
       strcat(directory1, "/");
 
    len1 = strlen(directory1);
 
-   if(argc > 3)
+   if(argc > 5)
    {
-      if(argc < 8)
+      if(argc < 10)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs -d directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] brightness contrast directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
          exit(1);
       }
 
-      strcpy(directory2, argv[3]);
-      strcpy(histfile2,  argv[4]);
-      strcpy(directory3, argv[5]);
-      strcpy(histfile3,  argv[6]);
+      strcpy(directory2, argv[5]);
+      strcpy(histfile2,  argv[6]);
+      strcpy(directory3, argv[7]);
+      strcpy(histfile3,  argv[8]);
 
-      strcpy(outdir, argv[7]);
+      strcpy(outdir, argv[9]);
 
       if(directory2[strlen(directory2)-1] != '/')
          strcat(directory2, "/");
@@ -289,8 +295,8 @@ int mHiPSPNGs_getFiles (char *pathname)
 
                   svc_run(cmd);
 
-                  sprintf(cmd, "mViewer -blue %s -histfile %s -green %s -histfile %s -red %s -histfile %s -png %s",
-                     transfile1, histfile1, transfile2, histfile2, transfile3, histfile3, pngfile);
+                  sprintf(cmd, "mViewer -brightness %-g -contrast %-g -blue %s -histfile %s -green %s -histfile %s -red %s -histfile %s -png %s",
+                     brightness, contrast, transfile1, histfile1, transfile2, histfile2, transfile3, histfile3, pngfile);
 
                   if(debug)
                   {
@@ -321,7 +327,8 @@ int mHiPSPNGs_getFiles (char *pathname)
 
                   svc_run(cmd);
 
-                  sprintf(cmd, "mViewer -ct 0 -gray %s -histfile %s -png %s", transfile1, histfile1, pngfile);
+                  sprintf(cmd, "mViewer -ct 0 -brightness %-g -contrast %-g -gray %s -histfile %s -png %s",
+                     brightness, contrast, transfile1, histfile1, pngfile);
 
                   if(debug)
                   {
