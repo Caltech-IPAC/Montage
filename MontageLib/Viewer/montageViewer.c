@@ -540,8 +540,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    char     *ptr;
 
-   FILE     *jpegfp;
-   FILE     *fjson;
+   FILE     *jpegfp = (FILE *)NULL;
+   FILE     *fjson  = (FILE *)NULL;
 
    JSAMPARRAY  jpegptr;
 
@@ -4588,7 +4588,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             else if(redType == ASINH)
             {
-               redImVal  = (redval - redminval)/(redmaxval - redminval);
+               redImVal = (redval - redminval)/(redmaxval - redminval);
 
                if(redImVal < 0.0)
                   redImVal = 0.;
@@ -5358,6 +5358,11 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                           fitsbuf, &nullcnt, &status))
             mViewer_printFitsError(status);
 
+
+         grayImVal = 0.;
+
+         index = 0;
+
          for(i=0; i<nx; ++i)
          {
             /* Special case: blank pixel */
@@ -5365,7 +5370,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             grayval = fitsbuf[i-istart];
 
             if(mNaN(grayval))
-               index = saturationValue;
+               grayImVal = saturationValue;
 
 
             /* Gaussian histogram equalization */
@@ -5381,6 +5386,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
                if(index <   0) index =   0;
                if(index > 255) index = 255;
+
+               grayImVal = index;
             }
 
 
@@ -5431,19 +5438,56 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                index = (int)(grayImVal+0.5);
             }
 
+            redImVal   = color_table[index][0];
+            greenImVal = color_table[index][1];
+            blueImVal  = color_table[index][2];
+
+            
+            /* Apply brightness/contrast tranforms */
+
+            if(brightness != 0.)
+            {
+               redImVal   = redImVal   + brightness;
+               greenImVal = greenImVal + brightness;
+               blueImVal  = blueImVal  + brightness;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+
+            if(cfactor != 1.)
+            {
+               redImVal   = cfactor * (redImVal   - 128) + 128;
+               greenImVal = cfactor * (greenImVal - 128) + 128;
+               blueImVal  = cfactor * (blueImVal  - 128) + 128;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+
             if(outType == JPEG)
             {
                if(flipX)
                {
-                  jpegData[jj][3*(nx-1-i)  ] = color_table[index][0];
-                  jpegData[jj][3*(nx-1-i)+1] = color_table[index][1];
-                  jpegData[jj][3*(nx-1-i)+2] = color_table[index][2];
+                  jpegData[jj][3*(nx-1-i)  ] = redImVal;
+                  jpegData[jj][3*(nx-1-i)+1] = greenImVal;
+                  jpegData[jj][3*(nx-1-i)+2] = blueImVal;
                }
                else
                {
-                  jpegData[jj][3*i  ] = color_table[index][0];
-                  jpegData[jj][3*i+1] = color_table[index][1];
-                  jpegData[jj][3*i+2] = color_table[index][2];
+                  jpegData[jj][3*i  ] = redImVal;
+                  jpegData[jj][3*i+1] = greenImVal;
+                  jpegData[jj][3*i+2] = blueImVal;
                }
             }
 
@@ -5453,9 +5497,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                {
                   ii = 4 * nx * jj + 4 * (nx-1-i);
 
-                  pngData[ii + 0] = color_table[index][0];
-                  pngData[ii + 1] = color_table[index][1];
-                  pngData[ii + 2] = color_table[index][2];
+                  pngData[ii + 0] = redImVal;
+                  pngData[ii + 1] = greenImVal;
+                  pngData[ii + 2] = blueImVal;
                   pngData[ii + 3] = (int)(255 * imgalpha);
 
                   if(tzero && grayImVal == 0.)
@@ -5465,9 +5509,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                {
                   ii = 4 * nx * jj + 4 * i;
 
-                  pngData[ii + 0] = color_table[index][0];
-                  pngData[ii + 1] = color_table[index][1];
-                  pngData[ii + 2] = color_table[index][2];
+                  pngData[ii + 0] = redImVal;
+                  pngData[ii + 1] = greenImVal;
+                  pngData[ii + 2] = blueImVal;
                   pngData[ii + 3] = (int)(255 * imgalpha);
 
                   if(tzero && grayImVal == 0.)
@@ -7323,7 +7367,8 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    double  glow, ghigh, gaussval, gaussstep;
    double  dlow, dhigh;
-   double  gaussmin, gaussmax;
+
+   double  gaussmin=0., gaussmax=0.;
 
 
    nbin = NBIN - 1;

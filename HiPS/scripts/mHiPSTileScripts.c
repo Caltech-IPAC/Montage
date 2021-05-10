@@ -246,8 +246,8 @@ int main(int argc, char **argv)
      if(single_threaded)
         fprintf(fdriver, "%sjobs/tiles%03d.sh %s %s\n", scriptdir, count, platedir, hipsdir, platedir);
      else
-        fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitHiPSTiles.bash %sjobs/tiles%03d.sh %s %s\n", 
-           scriptdir, count, platedir, hipsdir, platedir);
+        fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitHiPSTiles.bash %sjobs/tiles%03d.sh %s %s\n", 
+           scriptdir, scriptdir, count, platedir, hipsdir, platedir);
      fflush(fdriver);
 
       ++count;

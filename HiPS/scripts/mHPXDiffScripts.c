@@ -476,8 +476,8 @@ int main(int argc, char **argv)
          chmod(scriptfile, 0777);
 
 
-         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitDiffFit.bash %sjobs/diffFit_%03d.sh %s\n", 
-            scriptdir, set-1, mosaicdir);
+         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitDiffFit.bash %sjobs/diffFit_%03d.sh %s\n", 
+            scriptdir, scriptdir, set-1, mosaicdir);
          fflush(fdriver);
 
          if(count == 0)

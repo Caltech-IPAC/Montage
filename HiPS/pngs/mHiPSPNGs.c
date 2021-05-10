@@ -25,7 +25,7 @@ int  mHiPSPNGs_getFiles (char *pathname);
 void mHiPSPNGs_printFitsError(int status);
 int  mHiPSPNGs_mkdir(const char *path);
 
-int  nimage;
+int  nimage, nerror;
 
 double brightness, contrast;
 
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 {
    int i;
 
-   if(argc < 5)
+   if(argc < 6)
    {
       printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] brightness contrast directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
       exit(1);
@@ -80,6 +80,7 @@ int main(int argc, char **argv)
       --argc;
    }
 
+
    brightness = atof(argv[1]);
    contrast   = atof(argv[2]);
 
@@ -91,7 +92,10 @@ int main(int argc, char **argv)
 
    len1 = strlen(directory1);
 
-   if(argc > 5)
+   strcpy(outdir, argv[5]);
+
+
+   if(argc > 6)
    {
       if(argc < 10)
       {
@@ -121,10 +125,12 @@ int main(int argc, char **argv)
    }
 
    nimage = 0;
+   nerror = 0;
 
    mHiPSPNGs_getFiles(directory1);
 
-   printf("[struct stat=\"OK\", module=\"mHiPSPNGs\", nimage=%d]\n", nimage);
+   printf("[struct stat=\"OK\", module=\"mHiPSPNGs\", directory=\"%s\", nimage=%d, nerror=%d]\n", 
+         directory1, nimage, nerror);
    fflush(stdout);
    exit(0);
 }
@@ -151,6 +157,8 @@ int mHiPSPNGs_getFiles (char *pathname)
    char            tmpfile   [MAXSTR];
    char            newdir    [MAXSTR];
    char            cmd       [MAXSTR];
+
+   char            status[32];
 
    char           *ptr;
 
@@ -306,6 +314,11 @@ int mHiPSPNGs_getFiles (char *pathname)
 
                   svc_run(cmd);
 
+                  strcpy(status, svc_value("stat"));
+                  
+                  if(strcmp(status, "ERROR") == 0)
+                     ++nerror;
+
                   svc_closeall();
 
                   unlink(transfile1);
@@ -337,6 +350,11 @@ int mHiPSPNGs_getFiles (char *pathname)
                   }
 
                   svc_run(cmd);
+
+                  strcpy(status, svc_value("stat"));
+                  
+                  if(strcmp(status, "ERROR") == 0)
+                     ++nerror;
 
                   unlink(transfile1);
                }

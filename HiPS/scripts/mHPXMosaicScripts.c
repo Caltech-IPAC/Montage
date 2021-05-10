@@ -80,7 +80,7 @@ int naxis;
 
 int main(int argc, char **argv)
 {
-   int  level, level_only, c, pad, count, ncols, nplate;
+   int  level, level_only, c, pad, ncols, nplate;
    int  id, iplate, i, j, status, nimages, exists;
    int  iid, ii, ij, location, background, processing;
 
@@ -195,6 +195,18 @@ int main(int argc, char **argv)
       strcpy(platelist, tmpdir);
    }
       
+   if(location == LOCAL)
+   {
+      if(datadir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, datadir);
+
+         strcpy(datadir, tmpdir);
+      }
+   }
+      
    if(scriptdir[strlen(scriptdir)-1] != '/')
       strcat(scriptdir, "/");
 
@@ -263,8 +275,6 @@ int main(int argc, char **argv)
    // Create the scripts. We double check that the plate intersects with
    // at least a part of the sky
    
-   count = 0;
-
    ncols = topen(platelist);
 
    if(ncols < 0)
@@ -458,23 +468,21 @@ int main(int argc, char **argv)
       chmod(scriptfile, 0777);
 
       if(processing == CLUSTER)
-         fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 submitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
-            scriptdir, i, j, mosaicdir);
+         fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 %ssubmitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
+            scriptdir, scriptdir, i, j, mosaicdir);
 
       if(processing == SINGLE_THREADED)
          fprintf(fdriver, "%sjobs/plate_%02d_%02d.sh %s\n",
             scriptdir, i, j, mosaicdir);
 
       fflush(fdriver);
-
-      ++count;
    }
 
    fclose(fdriver);
    chmod(driverfile, 0777);
 
-   printf("[struct stat=\"OK\", module=\"mHPXMosaicScripts\", level=%d, pixlevel=%d,count=%d, nimages=%d, exists=%d]\n",
-      level, level+9, count, nimages, exists);
+   printf("[struct stat=\"OK\", module=\"mHPXMosaicScripts\", level=%d, pixlevel=%d, nimages=%d, exists=%d]\n",
+      level, level+9, nimages, exists);
    fflush(stdout);
    exit(0);
 } 

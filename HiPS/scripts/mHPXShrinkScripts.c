@@ -213,8 +213,8 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 submitShrink.bash %sjobs/shrink%03d.sh %s\n", 
-            scriptdir, count, platedir);
+         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitShrink.bash %sjobs/shrink%03d.sh %s\n", 
+            scriptdir, scriptdir, count, platedir);
          fflush(fdriver);
       }
 

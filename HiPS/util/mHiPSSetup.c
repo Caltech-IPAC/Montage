@@ -39,65 +39,56 @@ void mSymLink(char *linkdir, char *directory);
 
 int main(int argc, char **argv)
 {
-   int    i, j, ndata;
+   int    i, j;
 
-   char   mapname  [STRLEN];
-   char   basedir  [STRLEN];
-   char   sname    [STRLEN];
-   char   directory[STRLEN];
-   char   linkdir  [STRLEN];
-   char   cmd      [STRLEN];
-
-   char **datadir;
+   char   mapname         [STRLEN];
+   char   basedir         [STRLEN];
+   char   sname           [STRLEN];
+   char   directory       [STRLEN];
+   char   script_directory[STRLEN];
+   char   jobs_directory  [STRLEN];
+   char   logs_directory  [STRLEN];
+   char   cmd             [STRLEN];
+   char   cwd             [STRLEN];
 
    FILE *fout;
+
+   getcwd(cwd, STRLEN);
 
 
    // Parse the command-line
 
    if(argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSSetup mapname basedir [datadir2 ... datadirN]\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSSetup mapname basedir\"]\n");
       exit(1);
    }
 
-   ndata = argc - 2;
-
-   datadir = (char **)malloc(ndata * sizeof(char *));
-
    strcpy(mapname, argv[1]);
+   strcpy(basedir, argv[2]);
 
-   for(i=0; i<ndata; ++i)
-   {
-      datadir[i] = (char *)malloc(STRLEN * sizeof(char));
-
-      strcpy(datadir[i], argv[i+2]);
-   }
-
-   strcpy(basedir, datadir[0]);
+   if(basedir[0] != '/')
+      sprintf(basedir, "%s/%s", cwd, argv[2]);
 
 
    // Create the storage location(s)
 
-   for(i=0; i<ndata; ++i)
-   {
-      sprintf(directory, "%s/%s", datadir[i], mapname);
+   sprintf(directory, "%s/%s", basedir, mapname);
 
-      mMkDir(directory, 1);
-   }
+   mMkDir(directory, 1);
 
 
    // In the base location, we need a scripts directory.
 
-   sprintf(directory, "%s/%s/scripts",      basedir, mapname); mMkDir(directory, 0);
-   sprintf(directory, "%s/%s/scripts/jobs", basedir, mapname); mMkDir(directory, 0);
-   sprintf(directory, "%s/%s/scripts/logs", basedir, mapname); mMkDir(directory, 0);
+   sprintf(script_directory, "%s/%s/scripts",      basedir, mapname); mMkDir(script_directory, 0);
+   sprintf(  jobs_directory, "%s/%s/scripts/jobs", basedir, mapname); mMkDir(  jobs_directory, 0);
+   sprintf(  logs_directory, "%s/%s/scripts/logs", basedir, mapname); mMkDir(  logs_directory, 0);
 
    
    // Create a few support scripts in the scripts directory
 
 
-   sprintf(sname, "%s/%s/scripts/submitMosaic.bash", basedir, mapname);
+   sprintf(sname, "%s/submitMosaic.bash", script_directory);
    fout = fopen(sname, "w+");
 
    fprintf(fout, "#!/bin/bash\n");
@@ -105,8 +96,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/mosaic.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/mosaic.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/mosaic.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/mosaic.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2 $3\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -120,8 +111,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/diffFit.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/diffFit.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/diffFit.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/diffFit.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -135,8 +126,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/gap.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/gap.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/gap.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/gap.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -150,8 +141,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/background.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/background.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/background.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/background.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2 $3\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -165,8 +156,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/shrink.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/shrink.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/shrink.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/shrink.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -180,8 +171,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/tiles.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/tiles.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/tiles.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/tiles.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2 $3\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -195,8 +186,8 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
    fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(fout, "#SBATCH -o logs/png.%%N.%%j.out # STDOUT\n");
-   fprintf(fout, "#SBATCH -e logs/png.%%N.%%j.err # STDERR\n");
+   fprintf(fout, "#SBATCH -o %s/png.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/png.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1\n");
    fclose(fout);
    chmod(sname, 0755);
@@ -223,17 +214,6 @@ int main(int argc, char **argv)
    sprintf(directory, "%s/%s/mosaics",         basedir, mapname); mMkDir(directory, 0);
    sprintf(directory, "%s/%s/mosaics/diffs",   basedir, mapname); mMkDir(directory, 0);
 
-   if(ndata > 1)
-   {
-      sprintf(directory, "%s/%s/mosaics/subset0", basedir, mapname); mMkDir(directory, 0);
-
-      for(i=1; i<ndata; ++i)
-      {
-         sprintf(linkdir,   "%s/%s/mosaics",          datadir[i], mapname);    mMkDir  (linkdir, 0);
-         sprintf(directory, "%s/%s/mosaics/subset%d", basedir,    mapname, i); mSymLink(linkdir, directory);
-      }
-   }
-
 
    // The plates directory is the most complicated, since we want to make
    // use of the multiple storage locations and we have to support the 
@@ -241,28 +221,10 @@ int main(int argc, char **argv)
 
    sprintf(directory, "%s/%s/plates", basedir, mapname); mMkDir(directory, 0);
 
-   for(i=1; i<ndata; ++i)
-   {
-      sprintf(directory, "%s/%s/plates", datadir[i], mapname, j); mMkDir(directory, 0);
-   }
-
    for(j=0; j<10; ++j)
-   {
       sprintf(directory, "%s/%s/plates/order%d",         basedir, mapname, j); mMkDir(directory, 0);
 
-      if(ndata > 1)
-         sprintf(directory, "%s/%s/plates/order%d/subset0", basedir, mapname, j); mMkDir(directory, 0);
-
-      for(i=1; i<ndata; ++i)
-      {
-         sprintf(linkdir,   "%s/%s/plates/order%d",          datadir[i], mapname, j);    mMkDir(linkdir, 0);
-
-         if(ndata > 1)
-            sprintf(directory, "%s/%s/plates/order%d/subset%d", basedir,    mapname, j, i); mSymLink(linkdir, directory);
-      }
-   }
-
-   printf("[struct stat=\"OK\", module=\"mHiPSSetup\", ndata=%d]\n", ndata);
+   printf("[struct stat=\"OK\", module=\"mHiPSSetup\"]\n");
    fflush(stdout);
    exit(0);
 }
