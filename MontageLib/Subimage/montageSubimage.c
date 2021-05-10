@@ -260,6 +260,26 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       return returnStruct;
    }
 
+   if(fits_read_key_lng(infptr, "NAXIS", &params.naxis, (char *)NULL, &status))
+   {
+      sprintf(returnStruct->msg, "Header doesn't have NAXIS keyword.");
+      return returnStruct;
+   }
+   
+   if(fits_read_keys_lng(infptr, "NAXIS", 1, params.naxis, params.naxes, &params.nfound, &status))
+   {
+      sprintf(returnStruct->msg, "Header doesn't have NAXIS1,2 keywords.");
+      return returnStruct;
+   }
+
+   if(mSubimage_debug)
+   {
+      printf("DEBUG> NAXIS  = %ld\n", params.naxis);
+      printf("DEBUG> NAXIS1 = %ld\n", params.naxes[0]);
+      printf("DEBUG> NAXIS2 = %ld\n", params.naxes[1]);
+      fflush(stdout);
+   }
+
    if(shrinkWrap)
    {
       if(mSubimage_dataRange(infptr, &imin, &imax, &jmin, &jmax) > 0)
@@ -278,10 +298,10 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       }
    }
 
-   wcs = mSubimage_getFileInfo(infptr, header, &params);
-
    if (!nowcs) 
    {
+      wcs = mSubimage_getFileInfo(infptr, header, &params);
+
       if(mSubimage_debug) 
       {
          printf("WCS handling\n");
