@@ -51,16 +51,16 @@ static char montage_msgstr[1024];
 
 struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int debug)
 {
-   int    i, ihdu, hdu, bestHDU, stat, ncols, inside;
+   int    i, ihdu, hdu, bestHDU = 0, stat, ncols, inside;
    int    inext, nimages, corners;
    double xpos, ypos;
    double xcenter, ycenter;
    double x0, y0, z0;
-   double x, y, z, dist, mindist, bestdist, dtr;
-   double ra1, dec1;
-   double ra2, dec2;
-   double ra3, dec3;
-   double ra4, dec4;
+   double x, y, z, dist, mindist, bestdist = 0., dtr;
+   double ra1 = 0., dec1 = 0.;
+   double ra2 = 0., dec2 = 0.;
+   double ra3 = 0., dec3 = 0.;
+   double ra4 = 0., dec4 = 0.;
    int    index[4];
 
    char   bestURL [MAXSTR];
@@ -100,19 +100,19 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    int               equinox;
    char              ctype1[16];
    char              ctype2[16];
-   int               naxis1;
-   int               naxis2;
-   double            crpix1;
-   double            crpix2;
-   double            crval1;
-   double            crval2;
-   double            cdelt1;
-   double            cdelt2;
-   double            crota2;
-   double            cd1_1;
-   double            cd1_2;
-   double            cd2_1;
-   double            cd2_2;
+   int               naxis1 = 0;
+   int               naxis2 = 0;
+   double            crpix1 = 0.;
+   double            crpix2 = 0.;
+   double            crval1 = 0.;
+   double            crval2 = 0.;
+   double            cdelt1 = 0.;
+   double            cdelt2 = 0.;
+   double            crota2 = 0.;
+   double            cd1_1 = 0.;
+   double            cd1_2 = 0.;
+   double            cd2_1 = 0.;
+   double            cd2_2 = 0.;
    Vec               center;
    Vec               corner[4];
    Vec               normal[4];
@@ -208,9 +208,9 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    corners = 0;
 
    if(ira1 >= 0 && idec1 >= 0
-         && ira2 >= 0 && idec2 >= 0
-         && ira3 >= 0 && idec3 >= 0
-         && ira4 >= 0 && idec4 >= 0)
+   && ira2 >= 0 && idec2 >= 0
+   && ira3 >= 0 && idec3 >= 0
+   && ira4 >= 0 && idec4 >= 0)
    {
       corners = 1;
 
@@ -236,7 +236,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    }
 
    if(ictype1 < 0 || ictype2 < 0 || inl < 0 || ins < 0 
-         || icrval1 < 0 || icrval2 < 0 || icrpix1 < 0 || icrpix2 < 0)
+   || icrval1 < 0 || icrval2 < 0 || icrpix1 < 0 || icrpix2 < 0)
    {
       if(!corners)
       {
@@ -246,7 +246,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
    }
 
    if(!corners
-         && !(   (  icdelt1 >= 0 && icdelt2 >= 0 && icrota2 >= 0)
+         && !( (  icdelt1 >= 0 && icdelt2 >= 0 && icrota2 >= 0)
             || (   icd1_1 >= 0 && icd1_2  >= 0 && icd1_1  >= 0 && icd1_2 >= 0)))
    {
       sprintf(returnStruct->msg, "Need columns: fname ctype1 ctype2 nl ns crval1 crval2 crpix1 crpix2 cdelt1 cdelt2 and crota2 or cd matrix / ra dec ra1 ... dec4");
@@ -282,14 +282,14 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
       if(ictype1 >= 0) strcpy(ctype1, tval(ictype1));
       if(ictype2 >= 0) strcpy(ctype2, tval(ictype2));
 
-      if(ins     >= 0) naxis1    = atoi(tval(ins));
-      if(inl     >= 0) naxis2    = atoi(tval(inl));
+      if(ins     >= 0) naxis1 = atoi(tval(ins));
+      if(inl     >= 0) naxis2 = atoi(tval(inl));
 
-      if(icrpix1 >= 0) crpix1    = atof(tval(icrpix1));
-      if(icrpix2 >= 0) crpix2    = atof(tval(icrpix2));
+      if(icrpix1 >= 0) crpix1 = atof(tval(icrpix1));
+      if(icrpix2 >= 0) crpix2 = atof(tval(icrpix2));
 
-      if(icrval1 >= 0) crval1    = atof(tval(icrval1));
-      if(icrval2 >= 0) crval2    = atof(tval(icrval2));
+      if(icrval1 >= 0) crval1 = atof(tval(icrval1));
+      if(icrval2 >= 0) crval2 = atof(tval(icrval2));
 
       if(icdelt1 >= 0) cdelt1 = atof(tval(icdelt1));
       if(icdelt2 >= 0) cdelt2 = atof(tval(icdelt2));
@@ -378,8 +378,8 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          for(i=0; i<4; ++i)
          {
             dist = acos(corner[i].x*center.x 
-                  + corner[i].y*center.y 
-                  + corner[i].z*center.z) / dtr;
+                      + corner[i].y*center.y 
+                      + corner[i].z*center.z) / dtr;
 
             if(dist > maxRadius) 
                maxRadius = dist;
@@ -451,7 +451,7 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
          /* We need to get the corners in "clockwise" order */
 
          if((wcs->xinc < 0 && wcs->yinc < 0)
-               || (wcs->xinc > 0 && wcs->yinc > 0))
+         || (wcs->xinc > 0 && wcs->yinc > 0))
          {
             index[0] = 0;
             index[1] = 1;
@@ -620,18 +620,19 @@ struct mBestImageReturn *mBestImage(char *tblfile, double ra, double dec, int de
             fflush(stdout);
          }
 
-         if(mBestImage_Dot(&normal[i], &point) < 0)
+         if(mBestImage_Dot(&normal[i], &point) > 0)
          {
             if(debug)
             {
                printf("Outside side %d\n", i);
                fflush(stdout);
             }
+
             inside = 0;
             break;
          }
 
-         dist = 90. - acos(mBestImage_Dot(&normal[i], &point)) / dtr;
+         dist = acos(mBestImage_Dot(&normal[i], &point)) / dtr - 90.;
 
          if(debug)
          {

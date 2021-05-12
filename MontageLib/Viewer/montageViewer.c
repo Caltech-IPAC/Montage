@@ -5586,11 +5586,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(ira  < 0) ira  = tcol("lon");
          if(idec < 0) idec = tcol("lat");
 
+         if(ira  < 0) ira  = tcol("crval1");
+         if(idec < 0) idec = tcol("crval2");
+
          if(ira < 0 || idec < 0)
          {
             tclose();
             mViewer_memCleanup();
-            sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat') in table [%s]", cat[i].file);
+            sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat' or 'crval1','crval2') in table [%s]", cat[i].file);
             return returnStruct;
          }
 
