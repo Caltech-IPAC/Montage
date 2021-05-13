@@ -2409,6 +2409,14 @@ int main(int argc, char **argv, char **envp)
 
          ncols = topen("pimages.tbl");
 
+         icntr = tcol('cntr');
+
+         if(icntr < 0)
+         {
+            printerr("Need columns: icntr in projected images file");
+            exit(1);
+         }
+
          count        = 0;
          nocorrection = 0;
          failed       = 0;
