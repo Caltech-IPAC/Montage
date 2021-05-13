@@ -298,6 +298,7 @@ int mHiPSPNGScripts_processDirs (char *pathname)
    char            dirname1[MAXSTR];
    char            dirname2[MAXSTR];
    char            dirname3[MAXSTR];
+   char            pngdir  [MAXSTR];
    DIR            *dp;
    struct dirent  *entry;
    struct stat     type;
@@ -355,23 +356,26 @@ int mHiPSPNGScripts_processDirs (char *pathname)
             exit(0);
          }
        
+         sprintf(pngdir, "%s%s", outdir, dirname1+len1);
+
+
          fprintf(fscript, "#!/bin/sh\n\n");
 
          fprintf(fscript, "echo jobs/png%03d.sh\n\n", count);
 
          if(color)
          {
-            sprintf(dirname2, "%s%s", directory2, entry->d_name);
-            sprintf(dirname3, "%s%s", directory3, entry->d_name);
+            sprintf(dirname2, "%s%s", directory2, dirname1+len1);
+            sprintf(dirname3, "%s%s", directory3, dirname1+len1);
 
             fprintf(fscript, "mHiPSPNGs %-g %-g %s %s %s %s  %s %s %s\n",
-               brightness, contrast, dirname1, histfile1, dirname2, histfile2, dirname3, histfile3, outdir);
+               brightness, contrast, dirname1, histfile1, dirname2, histfile2, dirname3, histfile3, pngdir);
             fflush(fscript);
          }
          else
          {
             fprintf(fscript, "mHiPSPNGs %-g %-g %s %s %s\n",
-               brightness, contrast, dirname1, histfile1, outdir);
+               brightness, contrast, dirname1, histfile1, pngdir);
             fflush(fscript);
          }
 

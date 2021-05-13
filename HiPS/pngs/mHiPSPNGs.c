@@ -154,7 +154,6 @@ int mHiPSPNGs_getFiles (char *pathname)
    char            transfile2[MAXSTR];
    char            transfile3[MAXSTR];
    char            pngfile   [MAXSTR];
-   char            tmpfile   [MAXSTR];
    char            newdir    [MAXSTR];
    char            cmd       [MAXSTR];
 
@@ -181,7 +180,7 @@ int mHiPSPNGs_getFiles (char *pathname)
    {
       if(debug)
       {
-         printf("DEBUG:  entry [%s]\n", entry->d_name);
+         printf("\nDEBUG:  entry [%s]\n", entry->d_name);
          fflush(stdout);
       }
 
@@ -215,7 +214,12 @@ int mHiPSPNGs_getFiles (char *pathname)
          }
          else
          {
-            len = strlen(dirname1);
+            sprintf(pngfile, "%s%s", outdir, dirname1+len1);
+
+            pngfile[strlen(pngfile)-5] = '\0';
+
+            strcat(pngfile, ".png");
+
 
             if(color)
             {
@@ -223,26 +227,29 @@ int mHiPSPNGs_getFiles (char *pathname)
                sprintf(dirname3, "%s%s", directory3, dirname1+len1);
             }
 
-            if(debug)
+            if (strncmp(dirname1+strlen(dirname1)-5, ".fits", 5) == 0)
             {
-               printf("DEBUG: Found file [%s]\n", dirname1);
-               fflush(stdout);
-            }
+               if(debug)
+               {
+                  printf("DEBUG: Found FITS file [%s]\n", dirname1);
+                  fflush(stdout);
+               }
 
-            if (strncmp(dirname1+len-5, ".fits", 5) == 0)
-            {
-               strcpy(pngfile, dirname1);
-
-               pngfile[len-5] = '\0';
-
-               strcat(pngfile, ".png");
+               if(debug)
+               {
+                  printf("DEBUG> directory1: [%s]\n", directory1);
+                  printf("DEBUG> len1:        %d \n", len1);
+                  printf("DEBUG> directory2: [%s]\n", directory2);
+                  printf("DEBUG> directory3: [%s]\n", directory3);
+                  printf("DEBUG> dirname1:   [%s]\n", dirname1);
+                  printf("DEBUG> dirname2:   [%s]\n", dirname2);
+                  printf("DEBUG> dirname3:   [%s]\n", dirname3);
+                  printf("DEBUG> pngfile:    [%s]\n", pngfile);
+                  fflush(stdout);
+               }
 
                if(color)
                {
-                  strcpy(tmpfile, pngfile);
-
-                  sprintf(pngfile, "%s%s", outdir, tmpfile+len1);
-
                   strcpy(newdir, pngfile);
 
                   ptr = (char *)NULL;
