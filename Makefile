@@ -1,3 +1,9 @@
+top_srcdir=.
+CONFIG_MAKE=$(top_srcdir)/config.make
+
+-include $(top_srcdir)/config.make
+
+
 all:
 	mkdir -p bin
 	mkdir -p lib/include
@@ -8,6 +14,11 @@ all:
 	test ! -d MontageLib || (cd MontageLib && $(MAKE))
 	test ! -d ancillary  || (cd ancillary  && $(MAKE) && $(MAKE) install)
 	test ! -d HiPS       || (cd HiPS       && $(MAKE))
+
+
+install:
+	cp bin/* $(montage_prefix)/bin
+
 
 clean:
 	mkdir -p bin
