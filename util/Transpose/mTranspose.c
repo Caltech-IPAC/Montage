@@ -224,8 +224,6 @@ int main(int argc, char **argv)
    else if(bitpix == -32) datatype = TFLOAT;
    else if(bitpix == -64) datatype = TDOUBLE;
 
-   printf("XXX> %d %d\n", bitpix, datatype);
-
    status = 0;
    if(fits_read_keys_lng(inFptr, "NAXIS", 1, 4, nAxisIn, &nfound, &status))
       printFitsError(status);

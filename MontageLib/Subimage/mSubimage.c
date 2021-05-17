@@ -62,7 +62,7 @@ int main(int argc, char **argv)
       
    if(argc < 4)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xendpix yendpix (relative to crpix) | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-h hdu][-s statusfile] in.fits out.fits ra dec xsize [ysize]  |  %s -p(ixel-mode) [-d][-h hdu][-n(o-wcs)][-s statusfile] in.fits out.fits xstartpix ystartpix xpixsize [ypixsize]  |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xend pix yendpix (relative to crpix)  |  %s -a(ll-pixels) [-d][-h hdu][-s statusfile] in.fits out.fits (to extract HDU)  |  %s -c(rop-nulls) [-d][-h hdu][-s statusfile] in.fits out.fits\"]\n", appname, appname, appname, appname, appname);
       exit(1);
    }
 
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 
    if((shrinkWrap || allPixels) && argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xendpix yendpix (relative to crpix) | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-h hdu][-s statusfile] in.fits out.fits ra dec xsize [ysize]  |  %s -p(ixel-mode) [-d][-h hdu][-n(o-wcs)][-s statusfile] in.fits out.fits xstartpix ystartpix xpixsize [ypixsize]  |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xend pix yendpix (relative to crpix)  |  %s -a(ll-pixels) [-d][-h hdu][-s statusfile] in.fits out.fits (to extract HDU)  |  %s -c(rop-nulls) [-d][-h hdu][-s statusfile] in.fits out.fits\"]\n", appname, appname, appname, appname, appname);
       exit(1);
    }
 

@@ -90,6 +90,7 @@ static int mSubimage_debug;
 static int isflat;
 static int bitpix;
 
+static int  haveBlank;
 static long blank;
 
 static char content[128];
@@ -152,12 +153,12 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
 
    int       i, offscl;
    double    cdelt[10];
-   int       pixMode, shrinkWrap;
+   int       shrinkWrap, pixMode, allPixels;
    int       imin, imax, jmin, jmax;
-   int       haveBlank;
 
-   int       sys;
-   double    epoch;
+   int       sys   = 0;
+   double    epoch = 0.;
+
    double    lon, lat;
    double    xpix, ypix;
    double    xoff, yoff;
@@ -183,11 +184,19 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
    mSubimage_debug = debugin;
 
    pixMode    = 0;
+   allPixels  = 0;
    shrinkWrap = 0;
    
    if(mode == PIX)    pixMode    = 1;
-   if(mode == IMGPIX) pixMode    = 2;
+   if(mode == HDU)    allPixels  = 1;
    if(mode == SHRINK) shrinkWrap = 1;
+   if(mode == IMGPIX) pixMode    = 2;
+
+   cdelt[0] = 0.;
+   cdelt[1] = 0.;
+
+   xoff = 0.;
+   yoff = 0.;
 
 
    /*******************************/
@@ -204,12 +213,31 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
    strcpy(returnStruct->msg, "");
 
 
-   /****************************************/
-   /* Open the (unsubsetted) original file */
-   /* to get the WCS info                  */
-   /****************************************/
+   /*******************************************************************************************/
+   /*                                                                                         */
+   /* MODES:  allPixel, pixMode=1, pixMode=2, default and shrinkWrap                          */
+   /*                                                                                         */
+   /* The primary difference between the various modes is how they determine the              */
+   /* set of pixels to extract.  For the "all pixels" mode (used primarily to extract         */
+   /* an HDU in it entirety), we just want the full range (1 to NAXIS) in both dimensions.    */
+   /* For "pixels" mode, we get the range from the command line (for the alternate "relative  */
+   /* pixels" it is still pixel coordinates from the command line but relative to the         */
+   /* CRPIX location in the FITS WCS header.                                                  */
+   /*                                                                                         */
+   /* The default mode is also driven from the command line but here the parameters are       */
+   /* the center (RA, Dec) and size, all of which we compute based on what the FITS WCS       */
+   /* specifies for the image projection and coordinate system.                               */
+   /*                                                                                         */
+   /* The final mode also doesn't care about the projection but it does need to know          */
+   /* what pixels should be considered as "blank" as it will attempt to "shrink-wrap"         */
+   /* the image by removing any blank border (NaN or integer FITS BLANK value).               */
+   /*                                                                                         */
+   /*******************************************************************************************/
 
-   if (!pixMode && !nowcs) 
+
+   // Unless we explicitly know there is no WCS in the header, do a generic check
+   
+   if (!nowcs) 
    {
       checkHdr = montage_checkHdr(infile, 0, hdu);
 
@@ -220,6 +248,9 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       }
    }
 
+
+   // Open the original FITS file 
+
    header[0] = malloc(32768);
    header[1] = (char *)NULL;
 
@@ -229,6 +260,9 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       return returnStruct;
    }
 
+
+   // Move to the right HDU
+   
    if(hdu > 0)
    {
       if(fits_movabs_hdu(infptr, hdu+1, NULL, &status))
@@ -254,12 +288,9 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       fflush(stdout);
    }
 
-   if(bitpix != -64 && shrinkWrap)
-   {
-      strcpy(returnStruct->msg, "Shrinkwrap mode only works for double precision floating point data.");
-      return returnStruct;
-   }
 
+   // Get the image size before anything else, just in case
+   
    if(fits_read_key_lng(infptr, "NAXIS", &params.naxis, (char *)NULL, &status))
    {
       sprintf(returnStruct->msg, "Header doesn't have NAXIS keyword.");
@@ -280,6 +311,18 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       fflush(stdout);
    }
 
+
+   // We will probably override this later, but it is a good default
+   
+   params.ibegin = 1;
+   params.iend   = params.naxes[0];
+
+   params.jbegin = 1;
+   params.jend   = params.naxes[1];
+
+
+   // Get the non-blank data range (for shrinkWrapMode)
+   
    if(shrinkWrap)
    {
       if(mSubimage_dataRange(infptr, &imin, &imax, &jmin, &jmax) > 0)
@@ -296,9 +339,21 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
          printf("jmax  = %d\n", jmax);
          fflush(stdout);
       }
+      
+      params.ibegin = imin;
+      params.iend   = imax;
+
+      params.jbegin = jmin;
+      params.jend   = jmax;
    }
 
-   if (!nowcs) 
+
+   /************************************************/
+   /* By default, we want the analyze the WCS info */
+   /* in the header.                               */
+   /************************************************/
+   
+   if (allPixels==0 && nowcs==0) 
    {
       wcs = mSubimage_getFileInfo(infptr, header, &params);
 
@@ -343,8 +398,8 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       }
 
 
-   /* Kludge to get around bug in WCS library:   */
-   /* 360 degrees sometimes added to pixel coord */
+      /* Kludge to get around bug in WCS library:   */
+      /* 360 degrees sometimes added to pixel coord */
 
       ix = 0.5;
       iy = 0.5;
@@ -363,7 +418,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       ycorrection = y-iy;
 
 
-   /* Extract the coordinate system and epoch info */
+      /* Extract the coordinate system and epoch info */
 
       if(wcs->syswcs == WCS_J2000)
       {
@@ -414,31 +469,14 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
    }
   
 
-   /******************************************/
-   /* If we are working in shrinkwrap mode,  */
-   /* we use the ranges determined above.    */
-   /*                                        */
-   /* If we are working in pixel mode, we    */
-   /* already have the info needed to subset */
-   /* the image.                             */
-   /*                                        */
-   /* Otherwise, we need to convert the      */
-   /* coordinates to pixel space.            */
-   /******************************************/
+   /******************************************************/
+   /* Now we can determine the pixel ranges for any mode */
+   /******************************************************/
 
-   if(shrinkWrap)
+   if(pixMode)
    {
-      params.ibegin = (int) imin;
-      params.iend   = (int) imax;
-
-      params.jbegin = (int) jmin;
-      params.jend   = (int) jmax;
-   }
-
-
-   else if(pixMode)
-   {
-      if(mSubimage_debug) {
+      if(mSubimage_debug) 
+      {
          printf("xsize= [%lf]\n", xsize);
          printf("ysize= [%lf]\n", ysize);
 
@@ -446,7 +484,6 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
          printf("jmin= [%d] jmax = [%d]\n", jmin, jmax);
          fflush(stdout);
       }
- 
       
       if(pixMode == 1)
       {
@@ -456,6 +493,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
          params.jbegin = (int)dec;
          params.jend   = (int)(dec + ysize + 0.5);
       }
+
       else  // pixMode = 2
       {
          params.ibegin = params.crpix[0] + ra;
@@ -481,6 +519,8 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
          fflush(stdout);
       }
 
+      // Make sure we aren't asking for pixels outside the image
+      
       if(params.ibegin < 1              ) params.ibegin = 1;
       if(params.ibegin > params.naxes[0]) params.ibegin = params.naxes[0];
       if(params.iend   > params.naxes[0]) params.iend   = params.naxes[0];
@@ -502,7 +542,7 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       }
    }
    
-   else
+   else if(mode == SKY)
    {
       /**********************************/
       /* Find the pixel location of the */
@@ -516,14 +556,6 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       wcs2pix(wcs, lon, lat, &xpix, &ypix, &offscl);
 
       mSubimage_fixxy(&xpix, &ypix, &offscl);
-
-      /****** Skip this check: the location may be off the image but part of the region **********
-      if(offscl == 1)
-      {
-         sprintf(returnStruct->msg, "Location is off image");
-         return returnStruct;
-      }
-      ********************************************************************************************/
 
       if(mSubimage_debug)
       {
@@ -572,36 +604,36 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       if(params.jbegin > params.naxes[1]) params.jbegin = params.naxes[1];
       if(params.jend   > params.naxes[1]) params.jend   = params.naxes[1];
       if(params.jend   < 1              ) params.jend   = 1;
-
-      if(mSubimage_debug)
-      {
-         printf("\npixMode = FALSE\n");
-         printf("cdelt1  = %-g\n", cdelt[0]);
-         printf("cdelt2  = %-g\n", cdelt[1]);
-         printf("xsize   = %-g\n", xsize);
-         printf("ysize   = %-g\n", ysize);
-         printf("xoff    = %-g\n", xoff);
-         printf("yoff    = %-g\n", yoff);
-         printf("ibegin  = %d\n",  params.ibegin);
-         printf("iend    = %d\n",  params.iend);
-         printf("jbegin  = %d\n",  params.jbegin);
-         printf("jend    = %d\n",  params.jend);
-         fflush(stdout);
-      }
-
-      if(params.ibegin > params.iend
-      || params.jbegin > params.jend)
-      {
-         sprintf(returnStruct->msg, "No pixels match area.");
-         return returnStruct;
-      }
    }
 
+   if(mSubimage_debug)
+   {
+      printf("\npixMode = FALSE\n");
+      printf("cdelt1  = %-g\n", cdelt[0]);
+      printf("cdelt2  = %-g\n", cdelt[1]);
+      printf("xsize   = %-g\n", xsize);
+      printf("ysize   = %-g\n", ysize);
+      printf("xoff    = %-g\n", xoff);
+      printf("yoff    = %-g\n", yoff);
+      printf("ibegin  = %d\n",  params.ibegin);
+      printf("iend    = %d\n",  params.iend);
+      printf("jbegin  = %d\n",  params.jbegin);
+      printf("jend    = %d\n",  params.jend);
+      fflush(stdout);
+   }
+
+   if(params.ibegin > params.iend
+   || params.jbegin > params.jend)
+   {
+      sprintf(returnStruct->msg, "No pixels match area.");
+      return returnStruct;
+   }
       
    params.nelements = params.iend - params.ibegin + 1;
 
    if(mSubimage_debug)
    {
+      printf("SKY mode:\n");
       printf("ibegin    = %d\n",  params.ibegin);
       printf("iend      = %d\n",  params.iend);
       printf("nelements = %ld\n", params.nelements);
@@ -609,7 +641,6 @@ struct mSubimageReturn *mSubimage(char *infile, char *outfile, double ra, double
       printf("jend      = %d\n",  params.jend);
       fflush(stdout);
    }
-
 
 
    /**************************/
@@ -918,11 +949,24 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
    dnan = value.d8;
    fnan = value.d4[0];
 
+   buffer_double   = (double             *) NULL;
+   buffer_float    = (float              *) NULL;
+   buffer_longlong = (unsigned long long *) NULL;
+   buffer_long     = (unsigned long      *) NULL;
+   buffer_short    = (unsigned short     *) NULL;
+   buffer_byte     = (unsigned char      *) NULL;
 
    fpixel[0] = params->ibegin;
    fpixel[1] = params->jbegin;
    fpixel[2] = 1;
    fpixel[3] = 1;
+
+   if(mSubimage_debug)
+   {
+      printf("fpixel[0] = %ld\n", fpixel[0]);
+      printf("fpixel[1] = %ld\n", fpixel[1]);
+      fflush(stdout);
+   }
 
         if(bitpix == -64) buffer_double   = (double             *)malloc(params->nelements * sizeof(double));
    else if(bitpix == -32) buffer_float    = (float              *)malloc(params->nelements * sizeof(float));
@@ -947,9 +991,9 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
 
    for (j=params->jbegin; j<=params->jend; ++j)
    {
-      if(mSubimage_debug >= 2)
+      if(mSubimage_debug)
       {
-         printf("Processing input image row %5d\n", j);
+         printf("Reading  input image row %5d\n", j);
          fflush(stdout);
       }
 
@@ -1041,6 +1085,11 @@ int mSubimage_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubimagePara
          }    
       }    
 
+      if(mSubimage_debug)
+      {
+         printf("Writing output image row %5d\n", j);
+         fflush(stdout);
+      }
 
       if(bitpix      == -64) 
          fits_write_pix(outfptr, TDOUBLE,   fpixelo, params->nelements, (void *)buffer_double,   &status);
@@ -1155,9 +1204,24 @@ int mSubimage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *
 
       for(i=1; i<=naxes[0]; ++i)
       {
-         if(!mNaN(buffer[i-1]))
+         // If the data is actually float/double
+         
+         if(bitpix < 0)
          {
-            if(buffer[i-1] != nan)
+            if(!mNaN(buffer[i-1]))
+            {
+               if(i < *imin) *imin = i;
+               if(i > *imax) *imax = i;
+               if(j < *jmin) *jmin = j;
+               if(j > *jmax) *jmax = j;
+            }
+         }
+
+         // If the data is actually integer
+         
+         else
+         {
+            if(haveBlank && (int)buffer[i-1] == blank)
             {
                if(i < *imin) *imin = i;
                if(i > *imax) *imax = i;
