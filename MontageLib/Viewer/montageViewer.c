@@ -699,7 +699,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    alpha       = 1.;
    imgalpha    = 1.;
 
-   tzero = 1;
+   tzero = 0;
 
    strcpy(symSizeColumn,  "");
    strcpy(symShapeColumn, "");
@@ -4644,7 +4644,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                greenImVal = saturationValue;
 
 
-            /* Special case: blank pixel */
+            /* Special case: no green image */
 
             else if(greenOff)
                greenImVal = 0.;
@@ -4820,12 +4820,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   }
                }
             }
-            else
-            {
-               if(blueImVal  > 255.) blueImVal  = 255.;
-               if(greenImVal > 255.) greenImVal = 255.;
-               if(redImVal   > 255.) redImVal   = 255.;
-            }
 
             
             /* Apply brightness/contrast tranforms */
@@ -4859,6 +4853,15 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                greenImVal = fmin(greenImVal, 255.);
                blueImVal  = fmin(blueImVal,  255.);
             }
+
+
+            if(blueImVal  <   0.) blueImVal  =   0.;
+            if(greenImVal <   0.) greenImVal =   0.;
+            if(redImVal   <   0.) redImVal   =   0.;
+
+            if(blueImVal  > 255.) blueImVal  = 255.;
+            if(greenImVal > 255.) greenImVal = 255.;
+            if(redImVal   > 255.) redImVal   = 255.;
 
 
             /* Populate the output JPEG array */
@@ -5365,9 +5368,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
          for(i=0; i<nx; ++i)
          {
-            /* Special case: blank pixel */
-
             grayval = fitsbuf[i-istart];
+
+
+            /* Special case: blank pixel */
 
             if(mNaN(grayval))
                grayImVal = saturationValue;
@@ -5438,9 +5442,18 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                index = (int)(grayImVal+0.5);
             }
 
-            redImVal   = color_table[index][0];
-            greenImVal = color_table[index][1];
-            blueImVal  = color_table[index][2];
+            if(mNaN(grayval))
+            {
+               redImVal   = saturationValue;
+               greenImVal = saturationValue;
+               blueImVal  = saturationValue;
+            }
+            else
+            {
+               redImVal   = color_table[index][0];
+               greenImVal = color_table[index][1];
+               blueImVal  = color_table[index][2];
+            }
 
             
             /* Apply brightness/contrast tranforms */
@@ -5474,6 +5487,16 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                greenImVal = fmin(greenImVal, 255.);
                blueImVal  = fmin(blueImVal,  255.);
             }
+
+
+            if(blueImVal  <   0.) blueImVal  =   0.;
+            if(greenImVal <   0.) greenImVal =   0.;
+            if(redImVal   <   0.) redImVal   =   0.;
+
+            if(blueImVal  > 255.) blueImVal  = 255.;
+            if(greenImVal > 255.) greenImVal = 255.;
+            if(redImVal   > 255.) redImVal   = 255.;
+
 
             if(outType == JPEG)
             {

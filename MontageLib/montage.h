@@ -135,7 +135,7 @@ struct mBgModelReturn
    int    nnan;          // Number of fit parameters that are NaNs
 };
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int zones, char *gapdir, int noslope, int useall, 
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int noslope, int useall, 
                                 int niterations, int debug);
 
 //-------------------

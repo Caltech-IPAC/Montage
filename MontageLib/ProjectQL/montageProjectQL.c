@@ -211,6 +211,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    output.fptr      = (fitsfile *)NULL;
    output_area.fptr = (fitsfile *)NULL;
 
+   input.wcs  = (struct WorldCoor *)NULL;
+   output.wcs = (struct WorldCoor *)NULL;
+
    hpx    = 0;
    hpxPix = 0;
 
@@ -1377,6 +1380,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                }
             }
          }
+
+         else
+            buffer[i-imin] = nan;
       }
 
 
@@ -2012,7 +2018,7 @@ int mProjectQL_readFits(char *filename, char *weightfile)
 
 void mProjectQL_cleanup()
 {
-   int status, i;
+   int     status, i;
 
    if(input.fptr != (fitsfile *)NULL)
       fits_close_file(input.fptr, &status);
@@ -2032,6 +2038,11 @@ void mProjectQL_cleanup()
    output.fptr      = (fitsfile *)NULL;
    output_area.fptr = (fitsfile *)NULL;
 
+   if(input.wcs)
+      wcsfree(input.wcs);
+
+   if(output.wcs)
+      wcsfree(output.wcs);
 
    if(lanczos)
    {

@@ -10,6 +10,40 @@ int MAXFILE = 1024;
 
 int STRLEN  = 1024;
 
+
+struct 
+{
+   int n;
+   int x[5000];
+   int y[5000];
+}
+cellList;
+
+
+struct 
+{
+   int  n;
+   int  x1    [50000];
+   int  y1    [50000];
+   int  x2    [50000];
+   int  y2    [50000];
+   int  cntr1 [50000];
+   int  cntr2 [50000];
+   char plate1[50000][1024];
+   char plate2[50000][1024];
+}
+cellPair;
+
+
+struct
+{
+   int n;
+   int cntr  [5000];
+   char fname[5000][1024];
+}
+plates;
+
+
 /***************************************************************************/
 /*                                                                         */
 /*  Split a diffs table up unto subsets.  We will run mDiffFitExec on      */
@@ -21,6 +55,7 @@ int main(int argc, char **argv)
 {
    int  i, level, njob, nsubset, count, ncols, set, nread;
    int  j, xbase, ybase, xref, yref, namelen, nmatches;
+   int  level_only;
 
    char cwd       [STRLEN];
    char tmpdir    [STRLEN];
@@ -55,23 +90,25 @@ int main(int argc, char **argv)
 
    // Command-line arguments
 
+   level_only = 0;
+
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d] scriptdir mosaicdir images.tbl order njob\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-l(evel-only)] scriptdir mosaicdir images.tbl order njob\"]\n");
       fflush(stdout);
       exit(0);
    }
 
-   if(strcmp(argv[1], "-d") == 0)
+   if(strcmp(argv[1], "-l") == 0)
    {
-      debug = 1;
+      level_only = 1;
       ++argv;
       --argc;
    }
 
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d] scriptdir mosaicdir images.tbl order njob\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-l(evel-only)] scriptdir mosaicdir images.tbl order njob\"]\n");
       fflush(stdout);
       exit(0);
    }
@@ -118,12 +155,8 @@ int main(int argc, char **argv)
 
 
    // The plates follow a regular pattern so we can define
-   // the differences that exist algorithmically.  Each tile
-   // can have up to eight neighbors, though we need to check
-   // for file existence in each case.
+   // the differences that exist algorithmically.  
    
-   // First read in the list of files we actually have.
-
    ncols = topen(imgfile);
 
    icntr = tcol("cntr");
@@ -136,87 +169,50 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   cntr   = (int   *)malloc(MAXFILE * sizeof(int));
-   xindex = (int   *)malloc(MAXFILE * sizeof(int));
-   yindex = (int   *)malloc(MAXFILE * sizeof(int));
-   fname  = (char **)malloc(MAXFILE * sizeof(char *));
 
-   for(i=0; i<MAXFILE; ++i)
-      fname[i] = (char *)malloc(STRLEN * sizeof(char));
-
-   nfile   = 0;
-   namelen = 0;
+   plates.n = 0;
 
    while(1)
    {
       if(tread() < 0)
          break;
 
-      cntr[nfile] = atoi(tval(icntr));
+      plates.cntr[plates.n] = atoi(tval(icntr));
 
-      strcpy(fname[nfile], tval(ifile));
+      strcpy(plates.fname[plates.n], tval(ifile));
 
-      if(strlen(fname[nfile]) > namelen)
-         namelen = strlen(fname[nfile]);
+      ++plates.n;
+   }
 
-      ptr = fname[nfile] + strlen(fname[nfile]);
+   tclose();
 
-      while(*ptr != '_' && ptr > fname[nfile])
-         --ptr;
 
-      if(ptr > fname[nfile])
-         --ptr;
+   makeCellList();
 
-      while(*ptr != '_' && ptr > fname[nfile])
-         --ptr;
+   makeCellPairs();
 
-      ++ptr;
+   namelen = strlen(plates.fname[0]);
 
-      xindex[nfile] = atoi(ptr);
-
-      while(*ptr != '_' && ptr < fname[nfile] + strlen(fname[nfile]))
-         ++ptr;
-
-      ++ptr;
-
-      yindex[nfile] = atoi(ptr);
-
-      ++nfile;
-
-      if(nfile >= MAXFILE)
-      {
-         MAXFILE += NFILE;
-
-         cntr   = (int   *)realloc(cntr,   MAXFILE * sizeof(int));
-         xindex = (int   *)realloc(xindex, MAXFILE * sizeof(int));
-         yindex = (int   *)realloc(yindex, MAXFILE * sizeof(int));
-         fname  = (char **)realloc(fname,  MAXFILE * sizeof(char *));
-
-         for(i=MAXFILE-NFILE; i<MAXFILE; ++i)
-            fname[i] = (char *)malloc(STRLEN * sizeof(char));
-      }
+   for(i=0; i<cellPair.n; ++i)
+   {
+      printf("%5d:  plate_%02d_%02d (%4d:%s) vs. plate_%02d_%02d (%4d:%s)\n", 
+            i, cellPair.x1[i], cellPair.y1[i], cellPair.cntr1[i], cellPair.plate1[i],
+               cellPair.x2[i], cellPair.y2[i], cellPair.cntr2[i], cellPair.plate2[i]);
+      fflush(stdout);
    }
 
 
-   // Now we check for overlaps with each image.  We only
-   // need to check above right and above-right. All others
-   // will get found as we work our way through the other
-   // images.
+   // Using the list of differences, we need to build a set of scripts to
+   // generate them.
    
+   nmatches = cellPair.n;
+
    sprintf(difffile, "%s/diffs.tbl", mosaicdir);
 
    fout = fopen(difffile, "w+");
 
    if(fout == (FILE *)NULL)
    {
-      for(i=0; i<nfile; ++i)
-         free(fname[i]);
-
-      free(fname);
-      free(xindex);
-      free(yindex);
-      free(cntr);
-
       printf("[struct stat=\"ERROR\", msg=\"Cannot create diffs.tbl file (in %s).\n", mosaicdir);
       fflush(stdout);
       exit(0);
@@ -232,29 +228,10 @@ int main(int argc, char **argv)
 
    sprintf(fmt, "%%8d%%8d %%%ds  %%%ds  diff.%%06d.%%06d.fits\n", namelen, namelen);
 
-   nmatches = 0;
-
-   for(i=0; i<nfile; ++i)
+   for(i=0; i<nmatches; ++i)
    {
-      xbase = xindex[i];
-      ybase = yindex[i];
-
-      for(j=0; j<nfile; ++j)
-      {
-         xref = xindex[j];
-         yref = yindex[j];
-
-         if((xref == xbase   && yref == ybase+1)
-         || (xref == xbase+1 && yref == ybase+1)
-         || (xref == xbase+1 && yref == ybase  )
-         || (xref == xbase+1 && yref == ybase-1))
-         {
-            ++nmatches;
-
-            fprintf(fout, fmt, cntr[i], cntr[j], fname[i], fname[j], cntr[i], cntr[j]);
-            fflush(fout);
-         }
-      }
+      fprintf(fout, fmt, cellPair.cntr1[i], cellPair.cntr2[i], cellPair.plate1[i], cellPair.plate2[i], cellPair.cntr1[i], cellPair.cntr2[i]);
+      fflush(fout);
    }
 
    fclose(fout);
@@ -280,14 +257,6 @@ int main(int argc, char **argv)
 
    if(fdriver == (FILE *)NULL)
    {
-      for(i=0; i<nfile; ++i)
-         free(fname[i]);
-
-      free(fname);
-      free(xindex);
-      free(yindex);
-      free(cntr);
-
       printf("[struct stat=\"ERROR\", msg=\"Cannot open output driver script file.\"]\n");
       fflush(stdout);
       exit(0);
@@ -311,14 +280,6 @@ int main(int argc, char **argv)
 
    if(fcombo == (FILE *)NULL)
    {
-      for(i=0; i<nfile; ++i)
-         free(fname[i]);
-
-      free(fname);
-      free(xindex);
-      free(yindex);
-      free(cntr);
-
       printf("[struct stat=\"ERROR\", msg=\"Cannot open fit combo script file.\"]\n");
       fflush(stdout);
       exit(0);
@@ -328,8 +289,7 @@ int main(int argc, char **argv)
    fflush(fcombo);
 
 
-   // Create the scripts. We double check that the plate intersects with
-   // at least a part of the sky
+   // Create the scripts. 
    
    count = 0;
 
@@ -337,14 +297,6 @@ int main(int argc, char **argv)
 
    if(ncols < 0)
    {
-      for(i=0; i<nfile; ++i)
-         free(fname[i]);
-
-      free(fname);
-      free(xindex);
-      free(yindex);
-      free(cntr);
-
       printf("[struct stat=\"ERROR\", msg=\"Error opening diffs.tbl file.\"]\n");
       fflush(stdout);
       exit(0);
@@ -364,14 +316,6 @@ int main(int argc, char **argv)
 
    if(fout == (FILE *)NULL)
    {
-      for(i=0; i<nfile; ++i)
-         free(fname[i]);
-
-      free(fname);
-      free(xindex);
-      free(yindex);
-      free(cntr);
-
       printf("[struct stat=\"ERROR\", msg=\"Error opening diffs_%03d.tbl file.\"]\n", set);
       fflush(stdout);
       exit(0);
@@ -414,14 +358,6 @@ int main(int argc, char **argv)
 
          if(fout == (FILE *)NULL)
          {
-            for(i=0; i<nfile; ++i)
-               free(fname[i]);
-
-            free(fname);
-            free(xindex);
-            free(yindex);
-            free(cntr);
-
             printf("[struct stat=\"ERROR\", msg=\"Error opening diffs_%03d.tbl file.\"]\n", set);
             fflush(stdout);
             exit(0);
@@ -444,14 +380,6 @@ int main(int argc, char **argv)
 
          if(fscript == (FILE *)NULL)
          {
-            for(i=0; i<nfile; ++i)
-               free(fname[i]);
-
-            free(fname);
-            free(xindex);
-            free(yindex);
-            free(cntr);
-
             printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file for diff subset %d.\"]\n", set-1);
             fflush(stdout);
             exit(0);
@@ -465,8 +393,12 @@ int main(int argc, char **argv)
 
          fprintf(fscript, "mHPXHdr %d $1hpx%02d_%03d.hdr\n", level+9, level+9, set-1);
 
-         fprintf(fscript, "mDiffFitExec -d -n -p $1 $1diffs_%03d.tbl $1hpx%02d_%03d.hdr $1diffs $1fits_%03d.tbl\n", 
-            set-1, level+9, set-1, set-1);
+         if(level_only)
+            fprintf(fscript, "mDiffFitExec -d -n -l -p $1 $1diffs_%03d.tbl $1hpx%02d_%03d.hdr $1diffs $1fits_%03d.tbl\n", 
+               set-1, level+9, set-1, set-1);
+         else
+            fprintf(fscript, "mDiffFitExec -d -n -p $1 $1diffs_%03d.tbl $1hpx%02d_%03d.hdr $1diffs $1fits_%03d.tbl\n", 
+               set-1, level+9, set-1, set-1);
 
          fprintf(fscript, "rm -f $1hpx%02d_%03d.hdr\n", level+9, set-1);
 
@@ -499,16 +431,122 @@ int main(int argc, char **argv)
    fclose(fcombo);
    chmod(combofile, 0777);
 
-   for(i=0; i<nfile; ++i)
-      free(fname[i]);
-
-   free(fname);
-   free(xindex);
-   free(yindex);
-   free(cntr);
-
    printf("[struct stat=\"OK\", module=\"mHPXDiffScripts\", nmatches=%d, njob=%d, nsubset=%d]\n",
       nmatches, njob, nsubset);
    fflush(stdout);
    exit(0);
 } 
+
+
+int makeCellList()
+{
+   int i, j, imin, imax;
+
+   cellList.n = 0;
+
+   for(j = 0; j<80; ++j)
+   {
+      if     (j < 16) { imin = 00; imax=32;}
+      else if(j < 32) { imin = 00; imax=48;}
+      else if(j < 48) { imin = 16; imax=64;}
+      else if(j < 64) { imin = 32; imax=80;}
+      else if(j < 80) { imin = 48; imax=80;}
+
+      for(i=imin; i<imax; ++i)
+      {
+         cellList.x[cellList.n] = i;
+         cellList.y[cellList.n] = j;
+
+         ++cellList.n;
+      }
+   }
+}
+      
+
+
+int makeCellPairs()
+{
+   int i, i1, i2, found, found2;
+
+   cellPair.n = 0;
+
+   for(i1=0; i1<cellList.n; ++i1)
+   {
+      for(i2=0; i2<cellList.n; ++i2)
+      {
+         if((cellList.x[i2] == cellList.x[i1]   && cellList.y[i2] == cellList.y[i1]-1)
+         || (cellList.x[i2] == cellList.x[i1]   && cellList.y[i2] == cellList.y[i1]+1)
+         || (cellList.x[i2] == cellList.x[i1]-1 && cellList.y[i2] == cellList.y[i1])
+         || (cellList.x[i2] == cellList.x[i1]+1 && cellList.y[i2] == cellList.y[i1]))
+         {
+            found = 0;
+
+            for(i=0; i<cellPair.n; ++i)
+            {
+               if(cellList.x[i1] == cellPair.x1[i]
+               && cellList.y[i1] == cellPair.y1[i]
+               && cellList.x[i2] == cellPair.x2[i]
+               && cellList.y[i2] == cellPair.y2[i])
+               {
+                  found = 1;
+                  break;
+               }
+
+               if(cellList.x[i1] == cellPair.x2[i]
+               && cellList.y[i1] == cellPair.y2[i]
+               && cellList.x[i2] == cellPair.x1[i]
+               && cellList.y[i2] == cellPair.y1[i])
+               {
+                  found = 1;
+                  break;
+               }
+            }
+
+            if(!found)
+            {
+               cellPair.x1[cellPair.n] = cellList.x[i1];
+               cellPair.y1[cellPair.n] = cellList.y[i1];
+               cellPair.x2[cellPair.n] = cellList.x[i2];
+               cellPair.y2[cellPair.n] = cellList.y[i2];
+
+               sprintf(cellPair.plate1[cellPair.n], "plate_%02d_%02d.fits", 
+                  cellList.x[i1], cellList.y[i1]);
+
+               sprintf(cellPair.plate2[cellPair.n], "plate_%02d_%02d.fits", 
+                  cellList.x[i2], cellList.y[i2]);
+
+               found2 = 0;
+
+               for(i=0; i<plates.n; ++i)
+               {
+                  if(strcmp(cellPair.plate1[cellPair.n], plates.fname[i]) == 0)
+                  {
+                     cellPair.cntr1[cellPair.n] = plates.cntr[i];
+                     found2 = 1;
+                  }
+               }
+
+               if(!found2)
+                  break;
+
+               found2 = 0;
+
+               for(i=0; i<plates.n; ++i)
+               {
+                  if(strcmp(cellPair.plate2[cellPair.n], plates.fname[i]) == 0)
+                  {
+                     cellPair.cntr2[cellPair.n] = plates.cntr[i];
+                     found2 = 1;
+                  }
+               }
+
+               if(!found2)
+                  break;
+
+               if(found2)
+                  ++cellPair.n;
+            }
+         }
+      }
+   }
+}

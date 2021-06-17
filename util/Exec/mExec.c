@@ -2310,7 +2310,7 @@ int main(int argc, char **argv, char **envp)
          if(levelOnly)
             sprintf(cmd, "mBgModel -i 100000 -l -a pimages.tbl fits.tbl corrections.tbl");
          else
-            sprintf(cmd, "mBgModel -i 100000 pimages.tbl fits.tbl corrections.tbl");
+            sprintf(cmd, "mBgModel -i 100000 -t -a pimages.tbl fits.tbl corrections.tbl");
 
          if(debug >= 4)
          {
@@ -2408,17 +2408,6 @@ int main(int argc, char **argv, char **envp)
          ib  = tcol( "b");
          ic  = tcol( "c");
       
-         if(debug >= 4)
-         {
-            printf("\nCorrections table\n");
-            printf("iid = %d\n", iid);
-            printf("ia  = %d\n", ia);
-            printf("ib  = %d\n", ib);
-            printf("ic  = %d\n", ic);
-            printf("\n");
-            fflush(stdout);
-         }
-      
          if(iid < 0
          || ia  < 0
          || ib  < 0
@@ -2489,9 +2478,9 @@ int main(int argc, char **argv, char **envp)
             if(have[cntr] == 0)
                ++nocorrection;
 
-            if(debug >= 4)
+            if(debug >= 3)
             {
-               fprintf(fdebug, "[%s] (have corrections: %d)\n", cmd, have[cntr]);
+               fprintf(fdebug, "%s\n", cmd); 
                fflush(fdebug);
             }
 
@@ -3201,14 +3190,14 @@ int main(int argc, char **argv, char **envp)
    /* full resolution (grayscale or color)       */
    /**********************************************/
 
-   if(debug >= 1)
-   {
-      fprintf(fdebug, "PNG file: [%s]\n", pngFile);
-      fflush(fdebug);
-   }
-
    if(strlen(pngFile) > 0)
    {
+      if(debug >= 1)
+      {
+         fprintf(fdebug, "PNG file: [%s]\n", pngFile);
+         fflush(fdebug);
+      }
+
       if(nband == 1)
       {
          if(finfo)

@@ -44,7 +44,7 @@ int yoffset[] = {2, 1, 4, 3, 2, 1, 0, 3, 1, 0, 3, 2, 4};
 
 /*************************************************************************/
 /*                                                                       */
-/*  mHiPSTiles                                                            */
+/*  mHiPSTiles                                                           */
 /*                                                                       */
 /*  This program splits an HPX plate up into HiPS tiles. It is specific  */
 /*  to the process of making HiPS sets and depends on the plates having  */

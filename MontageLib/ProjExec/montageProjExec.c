@@ -173,7 +173,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
    int    fitsstat = 0;
 
-   inheader = malloc(MAXHDR);
+   inheader = (char *)NULL;
 
    mProjExec_debug = debugin;
 
@@ -184,6 +184,8 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       strcpy(path, ".");
    else
       strcpy(path, inpath);
+
+   fout = (FILE *)NULL;
 
 
    /*******************************/
@@ -203,14 +205,12 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    if(montage_checkFile(tblfile) != 0)
    {
       sprintf(returnStruct->msg, "Image metadata file (%s) does not exist", tblfile);
-      free(inheader);
       return returnStruct;
    }
 
    if(montage_checkFile(projdir) != 2)
    {
       sprintf(returnStruct->msg, "Output directory (%s) does not exist", projdir);
-      free(inheader);
       return returnStruct;
    }
 
@@ -239,7 +239,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(fout == (FILE *)NULL)
       {
          sprintf(returnStruct->msg, "Can't open output file.");
-         free(inheader);
          return returnStruct;
       }
    }
@@ -337,7 +336,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    if(ncols < 0)
    {
       sprintf(returnStruct->msg, "Error opening image list table file.");
-      free(inheader);
 
       if(strlen(stats) > 0)
          fclose(fout);
@@ -352,7 +350,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    if(ifname < 0)
    {
       sprintf(returnStruct->msg, "Need column fname in input");
-      free(inheader);
 
       if(strlen(stats) > 0)
          fclose(fout);
@@ -370,7 +367,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(iweight < 0)
       {
          sprintf(returnStruct->msg, "Need column %s in input", weightCol);
-         free(inheader);
 
          if(strlen(stats) > 0)
             fclose(fout);
@@ -389,7 +385,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(iscale < 0)
       {
          sprintf(returnStruct->msg, "Need column %s in input", scaleCol);
-         free(inheader);
 
          if(strlen(stats) > 0)
             fclose(fout);
@@ -456,10 +451,11 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(strcmp(infile, outfile) == 0)
       {
          sprintf(returnStruct->msg, "Output would overwrite input");
-         free(inheader);
 
          if(strlen(stats) > 0)
             fclose(fout);
+
+         wcsfree(wcsout);
 
          return returnStruct;
       }
@@ -508,6 +504,9 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
             continue;
          }
       }
+
+      if(inheader)
+         free(inheader);
 
       if(fits_get_image_wcs_keys(infptr, &inheader, &fitsstat))
       {
@@ -578,6 +577,8 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          inp2p = INTRINSIC;
       }
+
+      wcsfree(wcsin);
 
       if(tryAltIn)
       {
@@ -863,8 +864,12 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       }
    }
 
+   tclose();
+
    if(strlen(stats) > 0)
       fclose(fout);
+
+   wcsfree(wcsout);
 
    free(inheader);
 
@@ -893,7 +898,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
 int mProjExec_readTemplate(char *filename)
 {
-   int       j, naxes;
+   int       j, naxes = 0;
    FILE     *fp;
    char      line[MAXSTR];
    char      header[80000];
