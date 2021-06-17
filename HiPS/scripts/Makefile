@@ -9,7 +9,7 @@ LIBS   = -L../../lib -lwcs -lboundaries -lmtbl -lsvc -lm
 			$(CC) $(CFLAGS)  -c  $*.c
 
 
-all:      mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts mHiPSTileCheck
+all:      mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts 
 
 mHPXMosaicScripts: mHPXMosaicScripts.o
 			gcc -o mHPXMosaicScripts mHPXMosaicScripts.o $(LIBS)
@@ -29,11 +29,8 @@ mHiPSTileScripts: mHiPSTileScripts.o
 mHiPSPNGScripts: mHiPSPNGScripts.o
 			gcc -o mHiPSPNGScripts mHiPSPNGScripts.o $(LIBS)
 
-mHiPSTileCheck: mHiPSTileCheck.o
-			gcc -o mHiPSTileCheck mHiPSTileCheck.o $(LIBS)
-
 install:
-			cp mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts mHiPSTileCheck ../../bin
+			cp mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts ../../bin
 
 clean:
-			rm -f mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts mHiPSTileCheck *.o
+			rm -f mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts *.o
