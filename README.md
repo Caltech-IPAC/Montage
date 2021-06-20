@@ -1,3 +1,5 @@
+[![Build Status](http://vmmontage.ipac.caltech.edu:8080/buildStatus/icon?job=FreestyleMontageTest)](http://vmmontage.ipac.caltech.edu:8080/job/FreestyleMontageTest/)
+
 Montage: Astronomical Image Mosaics, Examination, and Visualization
 ===================================================================
 
