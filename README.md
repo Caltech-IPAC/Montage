@@ -5,7 +5,7 @@ Montage (http://montage.ipac.caltech.edu) is an Open Source toolkit,
 distributed with a BSD 3-clause license, for assembling Flexible 
 Image Transport System (FITS) images into mosaics according to 
 the user's custom specifications of coordinates, projection,
-spatial sampling and rotation.
+spatial sampling, rotation and background matching.
 
 The toolkit contains utilities for reprojecting and background 
 matching images, assembling them into mosaics, visualizing the
