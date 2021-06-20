@@ -42,6 +42,10 @@ pipelines or as the basis for interactive image exploration and there
 is Python support for the latter (It has also been used in web/Javascript
 applications).
 
+We are in the process of adding automated regression testing using Jenkins.
+At the moment, this only includes a couple of dummy tests (after a build)
+on a Jenkins server that we maintain specifically for the Montage project).
+
 Montage was funded from 2002 to 2005 by the National Aeronautics and
 Space Administration's Earth Science Technology Office, Computation
 Technologies Project, under Cooperative Agreement Number NCC5-626
