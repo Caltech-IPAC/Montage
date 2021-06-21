@@ -12,6 +12,7 @@ pipeline {
           sh 'make'
           buildBadge.setStatus('passed')
           buildBadge.setColor('yellow')
+          echo 'Build successful.'
         }
       }
     }
@@ -19,9 +20,10 @@ pipeline {
     stage("test") {
       steps {
         script {
-          echo 'TBD tests ...'
+          echo 'TBD regression tests ...'
           testBadge.setStatus('231 passed, 2 failed')
           testBadge.setColor('pink')
+          echo 'Regression test complete.'
         }
       }
     }
