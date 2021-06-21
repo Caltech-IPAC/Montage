@@ -10,7 +10,7 @@ pipeline {
       steps {
         script {
           sh 'make'
-          buildBadge.setXXStatus('passed')
+          buildBadge.setStatus('passed')
           buildBadge.setColor('yellow')
           echo 'Badge constructed.'
           sh 'pwd'
