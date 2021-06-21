@@ -10,7 +10,9 @@ pipeline {
     }
     
     stage("test") {
-      echo 'TBD tests ...'
+      steps {
+        echo 'TBD tests ...'
+      }
     }
   }
 }  
