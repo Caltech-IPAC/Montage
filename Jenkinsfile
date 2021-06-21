@@ -1,3 +1,6 @@
+def buildBadge = addEmbeddableBadgeConfiguration(id: "MontageBuild", subject: "Montage Build")
+def testBadge = addEmbeddableBadgeConfiguration(id: "MontageTest", subject: "Montage Tests")
+
 pipeline {
   
   agent any
@@ -6,12 +9,17 @@ pipeline {
     stage("build") {
       steps {
         sh 'make'
+        buildBadge.setStatus('passed')
+        buildBadge.setColor('yellow')
+
       }
     }
     
     stage("test") {
       steps {
         echo 'TBD tests ...'
+        testBadge.setStatus('231 passed, 2 failed')
+        testBadge.setColor('pink')
       }
     }
   }
