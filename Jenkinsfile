@@ -1,5 +1,5 @@
-def buildBadge = addEmbeddableBadgeConfiguration(id: "MontageBuild", subject: "Montage Build")
-def testBadge = addEmbeddableBadgeConfiguration(id: "MontageTest", subject: "Montage Tests")
+def buildBadge = addEmbeddableBadgeConfiguration(id: "mBuild", subject: "Montage Build")
+def testBadge = addEmbeddableBadgeConfiguration(id: "mTest", subject: "Montage Tests")
 
 pipeline {
   
