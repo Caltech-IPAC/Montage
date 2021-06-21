@@ -8,18 +8,21 @@ pipeline {
   stages {   
     stage("build") {
       steps {
-        sh 'make'
-        buildBadge.setStatus('passed')
-        buildBadge.setColor('yellow')
-
+        script {
+          sh 'make'
+          buildBadge.setStatus('passed')
+          buildBadge.setColor('yellow')
+        }
       }
     }
     
     stage("test") {
       steps {
-        echo 'TBD tests ...'
-        testBadge.setStatus('231 passed, 2 failed')
-        testBadge.setColor('pink')
+        script {
+          echo 'TBD tests ...'
+          testBadge.setStatus('231 passed, 2 failed')
+          testBadge.setColor('pink')
+        }
       }
     }
   }
