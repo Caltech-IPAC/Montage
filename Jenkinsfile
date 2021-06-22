@@ -23,6 +23,7 @@ pipeline {
       steps {
         script {
           echo 'TBD regression tests ...'
+          addInfoBadge('131 tests')
           testBadge.setStatus('231 passed, 2 failed')
           testBadge.setColor('pink')
           echo 'Regression test complete.'
