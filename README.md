@@ -1,6 +1,5 @@
 
-[![Build Status](http://vmmontage.ipac.caltech.edu:8080/job/Montage/job/develop/badge/icon)](http://vmmontage.ipac.caltech.edu:8080/job/Montage/job/develop/)
-![GitHub Repo Size](https://img.shields.io/github/repo-size/Caltech-IPAC/Montage)
+[![Build Status](http://vmmontage.ipac.caltech.edu:8080/buildStatus/icon?job=Montage%2Fdevelop&build=13)](http://vmmontage.ipac.caltech.edu:8080/job/Montage/job/develop/13/)![GitHub Repo Size](https://img.shields.io/github/repo-size/Caltech-IPAC/Montage)
 
 Montage: Astronomical Image Mosaics, Examination, and Visualization
 ===================================================================
