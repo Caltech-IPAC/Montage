@@ -2,8 +2,8 @@
 Montage: Astronomical Image Mosaics, Examination, and Visualization
 ===================================================================
 
-![Jenkins](https://img.shields.io/jenkins/build?jobUrl=http%3A%2F%2Fvmmontage.ipac.caltech.edu%3A8080%2Fjob%2FMontage%2Fjob%2Fdevelop%2F&label=Jenkins%20build)
-![Jenkins tests](https://img.shields.io/jenkins/tests?compact_message&failed_label=fail&jobUrl=http%3A%2F%2Fvmmontage.ipac.caltech.edu%3A8080%2Fjob%2FMontage%2Fjob%2Fdevelop%2F&label=Jenkins%20tests&passed_label=pass&skipped_label=skip)
+[![Build Status](http://vmmontage.ipac.caltech.edu:8080/buildStatus/icon?job=Montage%2Fdevelop)](http://vmmontage.ipac.caltech.edu:8080/job/Montage/job/develop/)
+![Jenkins tests](https://img.shields.io/jenkins/tests?compact_message&failed_label=fail&jobUrl=http%3A%2F%2Fvmmontage.ipac.caltech.edu%3A8080%2Fjob%2FMontage%2Fjob%2Fdevelop%2F&label=tests&passed_label=pass&skipped_label=skip)
 ![GitHub Repo Size](https://img.shields.io/github/repo-size/Caltech-IPAC/Montage)
 ![Lines of code](https://img.shields.io/tokei/lines/github/Caltech-IPAC/Montage)
 
