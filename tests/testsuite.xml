@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="" tests="5" failures= "1" errors="0" skipped="0" time="41.6">
+<testsuite name="" tests="17" failures= "1" errors="0" skipped="0" time="41.6">
 
   <testcase classname="mProject" name="mProject_bad_input_WCS1" time="0.05">
     <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
@@ -15,6 +15,11 @@
 
   <testcase classname="mProject" name="mProject_bad_input_WCS4" time="0.05">
     <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_basic_reprojection" time="33.2">
+    <system-out>[struct stat="OK", module="mProject", time=32.1]</system-out>
+    <failure>1 result image mismatch.</failure>
   </testcase>
   
   <testcase classname="mProject" name="mProject_bad_input_WCS5" time="0.05">
