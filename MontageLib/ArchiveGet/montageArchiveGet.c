@@ -45,7 +45,7 @@ Version  Developer        Date     Change
    
 struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, int debug)
 {
-   int    i, ch, status, nnew, imgsize, retcode, child, waitstatus;
+   int    i, ch, status, nnew, imgsize, retcode, child, waitstatus, ncmd;
 
    char  *begin, *end, *endptr;
 
@@ -77,8 +77,8 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
    strcpy(returnStruct->msg, "");
 
 
-   // Both wget and curl will take five command-line
-   // arguments.  For execvp(), the sixth argument must
+   // wget and curl will take different number of command-line
+   // arguments.  For execvp(), the last argument must
    // be (char *)NULL.
 
    cmdv = (char **)malloc(16 * sizeof(char *));
@@ -86,8 +86,7 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
    for(i=0; i<16; ++i)
       cmdv[i] = (char *)NULL;
 
-   for(i=0; i<7; ++i)
-      cmdv[i] = (char *)malloc(1024 * sizeof(char));
+   ncmd = 0;
 
 
 
@@ -95,13 +94,18 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
 
    // Set up arguments for wget
 
+   ncmd = 8;
+   for(i=0; i<ncmd; ++i)
+      cmdv[i] = (char *)malloc(1024 * sizeof(char));
+
    strcpy(cmdv[0], "wget");
    strcpy(cmdv[1], "-nv");
    strcpy(cmdv[2], "-T");
    strcpy(cmdv[3], timestr);
    strcpy(cmdv[4], "-O");
    strcpy(cmdv[5], datafile);
-   strcpy(cmdv[6], url);
+   strcpy(cmdv[6], "--no-check-certificate");
+   strcpy(cmdv[7], url);
 
    if(debug)
    {
@@ -275,15 +279,21 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
       }
    }
 
-   
+
 
    // CURL
 
    // If we need to, now try curl.
 
-   cmdv[7] = (char *)malloc(1024 * sizeof(char));
-   cmdv[8] = (char *)malloc(1024 * sizeof(char));
-   cmdv[9] = (char *)malloc(1024 * sizeof(char));
+   for(i=0; i<16; ++i)
+   {
+      if(cmdv[i])
+         free(cmdv[i]);
+   }
+   
+   ncmd = 11;
+   for(i=0; i<ncmd; ++i)
+      cmdv[i] = (char *)malloc(1024 * sizeof(char));
 
    strcpy(cmdv[0], "curl");
    strcpy(cmdv[1], "-s");
@@ -294,7 +304,9 @@ struct mArchiveGetReturn *mArchiveGet(char *url, char *datafile, int timeout, in
    strcpy(cmdv[6], "%{size_download}:%{http_code}");
    strcpy(cmdv[7], "-o");
    strcpy(cmdv[8], datafile);
-   strcpy(cmdv[9], url);
+   strcpy(cmdv[9], "--insecure");
+
+   strcpy(cmdv[10], url);
 
 
    // Create a pipe to allow the child (wget) to communicate

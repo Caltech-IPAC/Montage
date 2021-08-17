@@ -5,6 +5,7 @@ import sys
 import requests
 import urllib.parse
 import urllib.request
+import ssl
 import json
 import bz2
 
@@ -57,7 +58,11 @@ def mArchiveDownload(survey, location, size, path):
     # Retrieve the image metadata and convert
     # the JSON to a Python dictionary
     
-    fjson = urllib.request.urlopen(url)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    fjson = urllib.request.urlopen(url, context=ctx)
     
     data = json.load(fjson)
     
