@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOCKCROSS_IMAGE=quay.io/pypa/manylinux1_x86_64
+DOCKCROSS_IMAGE=docker.io/dockcross/manylinux1-x64
 
 docker run -i -t \
    -v $PWD/..:/build \
