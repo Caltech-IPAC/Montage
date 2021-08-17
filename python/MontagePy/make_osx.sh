@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script is for building the Python 2.7/3.6 versions of
+# This script is for building the Python 2.7/3.8 versions of
 # the MontagePy wheels for Mac OSX.  It assumes you have already
 # installed 'python2' and 'python3' and have 'Cython', 'jinja2'
 # and 'wheel' installed as Python packages in both.

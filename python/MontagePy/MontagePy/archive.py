@@ -107,7 +107,7 @@ def mArchiveDownload(survey, location, size, path):
                 datafile = datafile[:-4]
                 bzfile = True
     
-            r = requests.get(url, stream=True)
+            r = requests.get(url, stream=True, verify=False)
 
             decompressor = bz2.BZ2Decompressor()
 
