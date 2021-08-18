@@ -219,7 +219,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    int       jstart, jlength;
    int       offscl, offscl1, use, border, bordertype;
    double    *buffer;
-   double    *weights;
+   double    *weights = (double *)NULL;
    double    datamin, datamax;
    double    areamin, areamax;
 
@@ -231,7 +231,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    double  **data;
    double  **area;
 
-   double    overlapArea;
+   double    overlapArea = 0.;
 
    int       status;
 
@@ -1150,8 +1150,6 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
 
             if(weight_value < threshold)
                weight_value = 0.;
-
-            weight_value *= fixedWeight;
          }
 
          if(mNaN(pixel_value))
@@ -1302,19 +1300,19 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
                   if(energyMode)
                   {
                      if (mNaN(data[m-jstart][l-istart]))
-                        data[m-jstart][l-istart] = pixel_value * overlapArea/inPixelArea * weight_value;
+                        data[m-jstart][l-istart] = pixel_value * overlapArea/inPixelArea * weight_value * fixedWeight;
                      else
-                        data[m-jstart][l-istart] += pixel_value * overlapArea/inPixelArea * weight_value;
+                        data[m-jstart][l-istart] += pixel_value * overlapArea/inPixelArea * weight_value * fixedWeight;
                   }
                   else
                   {
                      if (mNaN(data[m-jstart][l-istart]))
-                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value * fixedWeight;
                      else
-                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value * fixedWeight;
                   }
 
-                  area[m-jstart][l-istart] += overlapArea * weight_value;
+                  area[m-jstart][l-istart] += overlapArea * weight_value * fixedWeight;
 
                   if(mProjectPP_debug >= 3)
                   {

@@ -1045,60 +1045,92 @@ int main(int argc, char **argv, char **envp)
          epoch = 2000.;
       }
 
-
       npts = 2*(naxis1 + 1) + 2*(naxis2 + 1);
 
-      lons = (double *)malloc(npts * sizeof(double));
-      lats = (double *)malloc(npts * sizeof(double));
+      lons = (double *)malloc(2 * npts * sizeof(double));
+      lats = (double *)malloc(2 * npts * sizeof(double));
 
       npts = 0;
 
+
+      // BOTTOM
+      
       for(i=0; i<=naxis1; ++i)
       {
-         pix2wcs(wcs, i+0.5,        0.5, &xpos, &ypos);
+         for(j=0; j<=naxis2; ++j)
+         {
+            pix2wcs(wcs, i-0.5, j-0.5, &xpos, &ypos);
 
-         convertCoordinates(sys, epoch, xpos, ypos,
-                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+            if(wcs->offscl)
+               continue;
 
-         if(xpos == 0.)
-            --npts;
+            convertCoordinates(sys, epoch, xpos, ypos,
+                               EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+            ++npts;
 
-         ++npts;
-
-         pix2wcs(wcs, i+0.5, naxis2+0.5, &xpos, &ypos);
-
-         convertCoordinates(sys, epoch, xpos, ypos,
-                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
-
-         if(xpos == 0.)
-            --npts;
-
-         ++npts;
+            break;
+         }
       }
 
+
+      // TOP   
+      
+      for(i=0; i<=naxis1; ++i)
+      {
+         for(j=naxis2; j>=0; --j)
+         {
+            pix2wcs(wcs, i-0.5, j-0.5, &xpos, &ypos);
+
+            if(wcs->offscl)
+               continue;
+
+            convertCoordinates(sys, epoch, xpos, ypos,
+                               EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+            ++npts;
+
+            break;
+         }
+      }
+
+      
+      // LEFT
+      
       for(j=0; j<=naxis2; ++j)
       {
-         pix2wcs(wcs, 0.5,        j+0.5, &xpos, &ypos);
+         for(i=0; i<=naxis1; ++i)
+         {
+            pix2wcs(wcs, i-0.5, j-0.5, &xpos, &ypos);
 
-         convertCoordinates(sys, epoch, xpos, ypos,
-                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+            if(wcs->offscl)
+               continue;
 
-         if(xpos == 0.)
-            --npts;
+            convertCoordinates(sys, epoch, xpos, ypos,
+                               EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+            ++npts;
 
-         ++npts;
-
-         pix2wcs(wcs, naxis1+0.5, j+0.5, &xpos, &ypos);
-
-         convertCoordinates(sys, epoch, xpos, ypos,
-                            EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
-
-         if(xpos == 0.)
-            --npts;
-
-         ++npts;
+            break;
+         }
       }
 
+
+      // RIGHT
+      
+      for(j=0; j<=naxis2; ++j)
+      {
+         for(i=naxis1; i>=0; --i)
+         {
+            pix2wcs(wcs, i-0.5, j-0.5, &xpos, &ypos);
+
+            if(wcs->offscl)
+               continue;
+
+            convertCoordinates(sys, epoch, xpos, ypos,
+                               EQUJ, 2000., &lons[npts], &lats[npts], 0.0);
+            ++npts;
+
+            break;
+         }
+      }
 
       fout = fopen("boundary.tbl", "w+");
 

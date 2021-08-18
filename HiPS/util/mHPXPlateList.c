@@ -41,7 +41,7 @@ int naxis [10] = {512, 1024, 2048, 4096, 512, 1024, 2048, 4096, 8192, 16384};
 
 int main(int argc, char **argv)
 {
-   int ch, id;
+   int ch, id, inplate, inaxis;
    int order, nside, ntotal, dx;
    int i, imin, imax, xmin, xmax;
    int j, jmin, jmax, ymin, ymax;
@@ -53,10 +53,27 @@ int main(int argc, char **argv)
 
 
    // Command-line arguments
+   
+   inplate = 0;
 
    if(argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList order platelist.tbl\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-n nplate] order platelist.tbl\"]\n");
+      fflush(stdout);
+      exit(0);
+   }
+
+   if(strcmp(argv[1], "-n") == 0)
+   {
+      inplate = atoi(argv[2]);
+
+      argc -= 2;
+      argv += 2;
+   }
+
+   if(argc < 3)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXPlateList [-n nplate] order platelist.tbl\"]\n");
       fflush(stdout);
       exit(0);
    }
@@ -77,6 +94,15 @@ int main(int argc, char **argv)
 
    ntotal = naxis[order] * nplate[order];
 
+   if(inplate <= 0)
+   {
+      inplate = nplate[order];
+
+      inaxis = naxis[order];
+   }
+   else
+      inaxis = ntotal / inplate;
+
    dx = ntotal/5;
 
    
@@ -92,8 +118,8 @@ int main(int argc, char **argv)
    }
 
    fprintf(ftbl, "\\order  = %d\n", order);
-   fprintf(ftbl, "\\nplate = %d\n", nplate[order]);
-   fprintf(ftbl, "\\naxis  = %d\n", naxis [order]);
+   fprintf(ftbl, "\\nplate = %d\n", inplate);
+   fprintf(ftbl, "\\naxis  = %d\n", inaxis );
    fprintf(ftbl, "\\total  = %d\n", ntotal);
    fprintf(ftbl, "\\\n");
 
@@ -104,15 +130,15 @@ int main(int argc, char **argv)
 
    id = 0;
 
-   for(i=0; i<nplate[order]; ++i)
+   for(i=0; i<inplate; ++i)
    {
-      imin = i*naxis[order];
-      imax = (i+1)*naxis[order] - 1;
+      imin = i*inaxis;
+      imax = (i+1)*inaxis - 1;
 
-      for(j=0; j<nplate[order]; ++j)
+      for(j=0; j<inplate; ++j)
       {
-         jmin = j*naxis[order];
-         jmax = (j+1)*naxis[order] - 1;
+         jmin = j*inaxis;
+         jmax = (j+1)*inaxis - 1;
 
          if(sky[imin/dx][jmin/dx]
          || sky[imin/dx][jmax/dx]

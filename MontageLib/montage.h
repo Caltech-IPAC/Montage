@@ -80,8 +80,8 @@ struct mArchiveListReturn
    int    count;         // Number of lines in output file.
 };
 
-struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *locstr, double width, double height, 
-                                        char *outfile, int debug);
+struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile, char *locstr, 
+                                        double width, double height, char *outfile, int debug);
 
 //-------------------
 
@@ -135,9 +135,28 @@ struct mBgModelReturn
    int    nnan;          // Number of fit parameters that are NaNs
 };
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int noslope, int useall, 
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int noslope, int useall, 
                                 int niterations, int debug);
 
+//-------------------
+
+struct mCombineHistReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double minval;        // Data value associated with histogram minimum.
+   double minpercent;    // Percentile value of histogram minimum.
+   double minsigma;      // "Sigma" level of histogram minimum.
+   double maxval;        // Data value associated with histogram maximum.
+   double maxpercent;    // Percentile value of histogram maximum.
+   double maxsigma;      // "Sigma" level of histogram maximum.
+   double datamin;       // Minimum data value in file.
+   double datamax;       // Maximum data value in file.
+};
+
+struct mCombineHistReturn *mCombineHist(char **inhist, int nhist, char *minstr, char *maxstr, char *type,
+                                        char *betastr, int logpower, char *outhist, int debugin);
 //-------------------
 
 struct mCoverageCheckReturn
@@ -385,6 +404,30 @@ struct mHistogramReturn
 
 struct mHistogramReturn *mHistogram(char *imgfile, char *histfile,
                                     char *yminstr, char *maxstr, char *stretchtype, int logpower, char *betastr, int debug);
+
+//-------------------
+
+struct mImgBoundsReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[1024];    // Return parameters as JSON string
+   char   csys[32];      // Requested coordinate system
+   char   imsys[32];     // 'Image' coordinate system
+   double epoch;         // Requested coordinate system equinox
+   double imepoch;       // 'Image' coordinate system equinox 
+   double clon;          // Center longitude
+   double clat;          // Center latitude
+   double width;         // Region width
+   double height;        // Region height
+   double posang;        // Region rotation
+   double radius;        // Bounding radius
+   double lon[4];        // Region corners longitude
+   double lat[4];        // Region corners latitude
+};
+
+struct mImgBoundsReturn *mImgBounds(char *filename, int havesys, char *csysStr, double epoch, 
+                                    int northUp, int debugin);
 
 //-------------------
 

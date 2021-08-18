@@ -9,16 +9,23 @@ LIBS   = -L../../lib -lwcs -lboundaries -lmtbl -lsvc -lm
 			$(CC) $(CFLAGS)  -c  $*.c
 
 
-all:      mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts 
+all:      mHPXMosaicScripts mHPXProjectScripts mHPXDiffScripts mHPXBgScripts mHPXCoaddScripts \
+          mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts 
 
 mHPXMosaicScripts: mHPXMosaicScripts.o
 			gcc -o mHPXMosaicScripts mHPXMosaicScripts.o $(LIBS)
+
+mHPXProjectScripts: mHPXProjectScripts.o
+			gcc -o mHPXProjectScripts mHPXProjectScripts.o $(LIBS)
 
 mHPXDiffScripts: mHPXDiffScripts.o
 			gcc -o mHPXDiffScripts mHPXDiffScripts.o $(LIBS)
 
 mHPXBgScripts: mHPXBgScripts.o
 			gcc -o mHPXBgScripts mHPXBgScripts.o $(LIBS)
+
+mHPXCoaddScripts: mHPXCoaddScripts.o
+			gcc -o mHPXCoaddScripts mHPXCoaddScripts.o $(LIBS)
 
 mHPXShrinkScripts: mHPXShrinkScripts.o
 			gcc -o mHPXShrinkScripts mHPXShrinkScripts.o $(LIBS)
@@ -30,7 +37,9 @@ mHiPSPNGScripts: mHiPSPNGScripts.o
 			gcc -o mHiPSPNGScripts mHiPSPNGScripts.o $(LIBS)
 
 install:
-			cp mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts ../../bin
+			cp mHPXMosaicScripts mHPXProjectScripts mHPXDiffScripts mHPXBgScripts mHPXCoaddScripts \
+			   mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts ../../bin
 
 clean:
-			rm -f mHPXMosaicScripts mHPXDiffScripts mHPXBgScripts mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts *.o
+			rm -f mHPXMosaicScripts mHPXProjectScripts mHPXDiffScripts mHPXBgScripts mHPXCoaddScripts \
+			   mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts *.o

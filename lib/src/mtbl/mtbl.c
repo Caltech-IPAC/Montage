@@ -794,6 +794,10 @@ void tclose()
       free(keystr[i]);
       free(keyword[i]);
       free(value[i]);
+
+      keystr[i]  = (char *)NULL;
+      keyword[i] = (char *)NULL;
+      value[i]   = (char *)NULL;
    }
 
    free(keystr);
@@ -813,7 +817,10 @@ void tclose()
    mtbl_linelen = 0;
 
    if(tfile != (FILE *)NULL)
+   {
       fclose(tfile);
+      tfile = (FILE *)NULL;
+   }
 }
 
 

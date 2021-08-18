@@ -46,54 +46,12 @@ Version  Developer        Date     Change
 
 */
 
-/*
-
-Some temporariy notes on the processing of subsets of images needed to prevent the
-kind of background instability propogation we see in processing WISE all-sky (HiPS)
-maps.
-
-The problem appears to arise because the the background handling near the brightest
-part of the galactic plane (and in particular the galactic center) produces nasty
-offsets that then get propogated up and down / left and right as we try to globally
-match all the backgrounds.  Toggling back and forth between just background level 
-and just slopes helps a lot but not enough.
-
-To address this, I want to try fitting globally just those images away from the plane
-(i.e. ignoring the plane-related image entirely) then fit just the plane images but
-require them to match the first set which is now considered "fixed in place".
-
-This could be considered a specific case of a more general case where images are added-
-in in groups but I doubt that will ever be used so there is no reason to over-complicate
-the logic.  Likewise, any approach based on toggling sets on and off is equally overkill
-as it probably just leads back to the same problem we currently have.
-
-So basically, we just need to define the set of images out of the whole that are in
-the "first subset".  We do those and then do everything but do not allow the first 
-subset to actually change.  In the first subsubset processing we know about the 
-full set but don't include the second subset in any of the calculations.  In the
-second subset processing we "fit" everything but don't update the first subset images
-corrections.  That will eventually force the second subset images to conform to the
-first subset edges.
-
-Operationally, we can simply have an optional column in our image list that marks
-images as in the second subset (or equivalently as 0/1 two subset group indices).
-This might find application in more general processing where there is "background"
-versus "bright region" processing, say for large galaxy mosaics.
-
-Another way this technique could be used is where there are a handfull of input images
-with really bad backgounds.  By making just these "second subset" we could get 
-everything else right then essentially force them to fit to that as best the can.
-They'd still be included but would not torque things around.
-
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
 #include <math.h>
-#include <dirent.h>
 
 #include <mtbl.h>
 
@@ -113,6 +71,7 @@ They'd still be included but would not torque things around.
 
 #define SWAP(a,b) {temp=(a);(a)=(b);(b)=temp;}
 
+int mBgModel_corrCompare(const void *a, const void *b);
 
 
 /* This structure contains the basic geometry alignment          */
@@ -164,8 +123,6 @@ static struct FitInfo
    double Ymax;
    double boxangle;
    int    use;
-   int    have_transform;
-   double transform[3][3];
 
    struct CorrInfo *plusimg;
    struct CorrInfo *minusimg;
@@ -180,7 +137,7 @@ static int nfits, maxfits;
 /* It is used to update the FitInfo structure above. */
 
 
-static struct CorrInfo
+struct CorrInfo
 {
    int    id;
 
@@ -222,8 +179,6 @@ static char montage_json  [1024];
 /*   char  *fitfile        Set of image overlap difference fits          */
 /*   char  *corrtbl        Output table of corrections for images        */
 /*                         in input list                                 */
-/*   char  *gapdir         Optional directory containing special         */
-/*                         "gap" differences (e.g. for HPX projection).  */
 /*   int    mode           Three possible background matching modes:     */
 /*                         level fitting only; level fitting followed    */
 /*                         by fitting slope and level; and alternating   */
@@ -235,9 +190,9 @@ static char montage_json  [1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int mode, int useall, int niter, int debug)
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int mode, int useall, int niter, int debug)
 {
-   int     i, j, k, index, stat;
+   int     i, j, k, index, stat, single;
    int     ntoggle, toggle, nancnt;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
@@ -266,6 +221,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    int     iboxwidth;
    int     iboxheight;
    int     iboxangle;
+   int     isingle;
    int     icntr;
    int     ifname;
    int     inl;
@@ -275,6 +231,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
 
    int     nrms;
    char    rms_str[128];
+   char    single_str[128];
 
    double  boxx, boxy;
    double  width, height;
@@ -301,25 +258,9 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    double  Xmin, Xmax, Ymin, Ymax;
    double  theta, sinTheta, cosTheta;
 
-   double  xfsize,  yfsize;
-   double  xisize1, yisize1;
-   double  xisize2, yisize2;
-
-   double  linearLimit = 0.25;
    double  sigmaLimit  = 2.00;
    double  areaLimit   = 0.01;
 
-   char    cwd     [1024];
-   char    line    [1024];
-   char    filepath[1024];
-
-   char   *ptr;
-
-   FILE   *fgap;
-
-   DIR    *dirp;
-
-   struct dirent *direntp;
 
    struct mBgModelReturn *returnStruct;
 
@@ -549,6 +490,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    iboxwidth  = tcol("boxwidth");
    iboxheight = tcol("boxheight");
    iboxangle  = tcol("boxang");
+   isingle    = tcol("single");
 
    if(iplus      < 0
    || iminus     < 0
@@ -624,6 +566,17 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
       fits[nfits].npix      = atof(tval(inpix));
       fits[nfits].rms       = atof(tval(irms));
 
+      single = 0;
+
+      if(isingle >= 0)
+      {
+         strcpy(single_str, tval(isingle));
+
+         if(strcasecmp(single_str, "true") == 0
+         || strcasecmp(single_str, "1")    == 0)
+            single = 1;
+      }
+
       strcpy(rms_str, tval(irms));
       if(strcmp(rms_str, "Inf" ) == 0
       || strcmp(rms_str, "-Inf") == 0
@@ -654,8 +607,6 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
 
       fits[nfits].use =  1;
 
-      fits[nfits].have_transform = 0;
-
       ++nfits;
 
       if(nfits >= maxfits-2)
@@ -683,201 +634,52 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
       /* Use the same info for the complementary */
       /* comparison, with the fit reversed       */
 
-      fits[nfits].plus     =  atoi(tval(iminus));
-      fits[nfits].minus    =  atoi(tval(iplus));
-      fits[nfits].a        = -atof(tval(ia));
-      fits[nfits].b        = -atof(tval(ib));
-      fits[nfits].c        = -atof(tval(ic));
-      fits[nfits].xmin     =  atoi(tval(ixmin));
-      fits[nfits].xmax     =  atoi(tval(ixmax));
-      fits[nfits].ymin     =  atoi(tval(iymin));
-      fits[nfits].ymax     =  atoi(tval(iymax));
-      fits[nfits].xcenter  =  atof(tval(ixcenter));
-      fits[nfits].ycenter  =  atof(tval(iycenter));
-      fits[nfits].npix     =  atof(tval(inpix));
-      fits[nfits].rms      =  atof(tval(irms));
-      fits[nfits].Xmin     =  fits[nfits-1].Xmin;
-      fits[nfits].Xmax     =  fits[nfits-1].Xmax;
-      fits[nfits].Ymin     =  fits[nfits-1].Ymin;
-      fits[nfits].Ymax     =  fits[nfits-1].Ymax;
-      fits[nfits].boxangle =  fits[nfits-1].boxangle;
-
-      fits[nfits].use = 1;
-
-      fits[nfits].have_transform = 0;
-
-      ++nfits;
-
-      if(nfits >= maxfits-2)
+      if(!single)
       {
-         maxfits += MAXCNT;
+         fits[nfits].plus     =  atoi(tval(iminus));
+         fits[nfits].minus    =  atoi(tval(iplus));
+         fits[nfits].a        = -atof(tval(ia));
+         fits[nfits].b        = -atof(tval(ib));
+         fits[nfits].c        = -atof(tval(ic));
+         fits[nfits].xmin     =  atoi(tval(ixmin));
+         fits[nfits].xmax     =  atoi(tval(ixmax));
+         fits[nfits].ymin     =  atoi(tval(iymin));
+         fits[nfits].ymax     =  atoi(tval(iymax));
+         fits[nfits].xcenter  =  atof(tval(ixcenter));
+         fits[nfits].ycenter  =  atof(tval(iycenter));
+         fits[nfits].npix     =  atof(tval(inpix));
+         fits[nfits].rms      =  atof(tval(irms));
+         fits[nfits].Xmin     =  fits[nfits-1].Xmin;
+         fits[nfits].Xmax     =  fits[nfits-1].Xmax;
+         fits[nfits].Ymin     =  fits[nfits-1].Ymin;
+         fits[nfits].Ymax     =  fits[nfits-1].Ymax;
+         fits[nfits].boxangle =  fits[nfits-1].boxangle;
 
-         if(debug >= 2)
+         fits[nfits].use = 1;
+
+         ++nfits;
+
+         if(nfits >= maxfits-2)
          {
-            printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
-            fflush(stdout);
-         }
+            maxfits += MAXCNT;
 
-         fits = (struct FitInfo *)realloc(fits, 
-                                     maxfits * sizeof(struct FitInfo));
-
-         if(fits == (struct FitInfo *)NULL)
-         {
-            sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [3]", maxfits * sizeof(struct FitInfo));
-            return returnStruct;
-         }
-      }
-   }
-
-
-   /* If there is a "gap" directory, augment fits with data found there */
-
-   if(gapdir != (char *)NULL && strlen(gapdir) > 0)
-   {
-      dirp = opendir(gapdir);
-
-      if(dirp == NULL)
-      {
-         strcpy(returnStruct->msg, "\"Gap\" directory cannot be opened.");
-         return returnStruct;
-      }
-
-      getcwd(cwd, 1024);
-
-      chdir(gapdir);
-
-      while((direntp = readdir(dirp)) != NULL)
-      {
-         if(strlen(direntp->d_name) > 6 && strcmp(direntp->d_name+strlen(direntp->d_name)-5, ".diff") == 0)
-         {
-            // We are going to be a little lazy here.  The gap diff files do have parameter labels 
-            // but we are just going to assume a fixed structure for the files.
-
-            fgap = fopen(direntp->d_name, "r");
-
-            for(i=0; i<2; ++i)
+            if(debug >= 2)
             {
-               // Plus image
-               
-               fgets(line, 1024, fgap); sscanf(line+28, "%s", filepath);
-
-               ptr = filepath + strlen(filepath);
-
-               while(ptr > filepath && *ptr != '/')
-                  --ptr;
-
-               if(*ptr == '/')
-                  ++ptr;
-
-               for(j=0; j<nimages; ++j)
-                  if(strcmp(ptr, imgs[j].fname) == 0)
-                     break;
-
-               if(j == nimages)
-               {
-                  sprintf(returnStruct->msg, "Cannot find plus image '%s' in image list.", filepath);
-                  return returnStruct;
-               }
-
-               fits[nfits].plus = imgs[j].cntr;
-
-
-               // Minus image
-               
-               fgets(line, 1024, fgap); sscanf(line+28, "%s", filepath);
-
-               ptr = filepath + strlen(filepath);
-
-               while(ptr > filepath && *ptr != '/')
-                  --ptr;
-
-               if(*ptr == '/')
-                  ++ptr;
-
-               for(j=0; j<nimages; ++j)
-                  if(strcmp(ptr, imgs[j].fname) == 0)
-                     break;
-
-               if(j == nimages)
-               {
-                  sprintf(returnStruct->msg, "Cannot find minus image '%s' in image list.", filepath);
-                  return returnStruct;
-               }
-               
-
-               fits[nfits].minus = imgs[j].cntr;
-
-
-               // The rest of the parameters
-
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].a, &fits[nfits].b, &fits[nfits].c);
-
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf",     &fits[nfits].crpix1,  &fits[nfits].crpix2);
-               fgets(line, 1024, fgap); sscanf(line+28, "%d %d",       &fits[nfits].xmin,    &fits[nfits].xmax);
-               fgets(line, 1024, fgap); sscanf(line+28, "%d %d",       &fits[nfits].ymin,    &fits[nfits].ymax);
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf",     &fits[nfits].xcenter, &fits[nfits].ycenter);
-               fgets(line, 1024, fgap); sscanf(line+28, "%d %lf",      &fits[nfits].npix,    &fits[nfits].rms);
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf",     &boxx,  &boxy);
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &width, &height, &angle);
-
-               fgets(line, 1024, fgap);
-
-               fits[nfits].use =  1;
-
-               fits[nfits].have_transform = 1;
-
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].transform[0][0], &fits[nfits].transform[0][1], &fits[nfits].transform[0][2]);
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].transform[1][0], &fits[nfits].transform[1][1], &fits[nfits].transform[1][2]);
-               fgets(line, 1024, fgap); sscanf(line+28, "%lf %lf %lf", &fits[nfits].transform[2][0], &fits[nfits].transform[2][1], &fits[nfits].transform[2][2]);
-
-               angle = angle * dtr;
-
-               X0 =  boxx * cos(angle) + boxy * sin(angle);
-               Y0 = -boxx * sin(angle) + boxy * cos(angle);
-
-               fits[nfits].Xmin = X0 - width /2.;
-               fits[nfits].Xmax = X0 + width /2.;
-               fits[nfits].Ymin = Y0 - height/2.;
-               fits[nfits].Ymax = Y0 + height/2.;
-
-               fits[nfits].boxangle  = angle/dtr;
-
-               if(i == 0)
-                  fgets(line, 1024, fgap);
-
-               ++nfits;
-               
-
-               if(nfits >= maxfits-2)
-               {
-                  maxfits += MAXCNT;
-
-                  if(debug >= 2)
-                  {
-                     printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
-                     fflush(stdout);
-                  }
-
-                  fits = (struct FitInfo *)realloc(fits, 
-                                              maxfits * sizeof(struct FitInfo));
-
-                  if(fits == (struct FitInfo *)NULL)
-                  {
-                     sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [3]", maxfits * sizeof(struct FitInfo));
-                     return returnStruct;
-                  }
-               }
+               printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
+               fflush(stdout);
             }
 
-            fclose(fgap);
+            fits = (struct FitInfo *)realloc(fits, 
+                                        maxfits * sizeof(struct FitInfo));
+
+            if(fits == (struct FitInfo *)NULL)
+            {
+               sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [3]", maxfits * sizeof(struct FitInfo));
+               return returnStruct;
+            }
          }
       }
-
-      closedir(dirp);
-
-      chdir(cwd);
    }
-
 
    averms = averms / nrms;
 
@@ -1144,29 +946,6 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
             fits[k].use = 0;
 
             continue;
-         }
-
-         xfsize = fits[k].xmax - fits[k].xmin;
-         yfsize = fits[k].ymax - fits[k].ymin;
-
-         xisize1 = imgs[fits[k].plusind].naxis1;
-         yisize1 = imgs[fits[k].plusind].naxis2;
-
-         xisize2 = imgs[fits[k].minusind].naxis1;
-         yisize2 = imgs[fits[k].minusind].naxis2;
-
-         if(xfsize < xisize1 * linearLimit
-         && yfsize < yisize1 * linearLimit
-         && xfsize < xisize2 * linearLimit
-         && yfsize < yisize2 * linearLimit)
-         {
-            /*
-            if(debug >= 2)
-               printf("not using fit %d [%d|%d] (linear size too small: %-g %-g %-g %-g)\n",
-                  k, fits[k].plus, fits[k].minus, xfsize/xisize1, yfsize/yisize1, xfsize/xisize2, yfsize/yisize2);
-
-            fits[k].use = 0;
-            */
          }
       }
 
@@ -1726,33 +1505,10 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
          fits[i].b -= fits[i].plusimg->bcorrection;
          fits[i].c -= fits[i].plusimg->ccorrection;
 
+         fits[i].a += fits[i].minusimg->acorrection;
+         fits[i].b += fits[i].minusimg->bcorrection;
+         fits[i].c += fits[i].minusimg->ccorrection;
 
-         // If a transform is defined (cross-gap 'overlaps') we need to 
-         // apply it to the 'minus' corrections.  Otherwise, it is the 
-         // same correction as the plus image but opposite sign.
-         
-         acorrection = fits[i].minusimg->acorrection;
-         bcorrection = fits[i].minusimg->bcorrection;
-         ccorrection = fits[i].minusimg->ccorrection;
-
-         if(fits[i].have_transform)
-         {
-            acorrection = fits[i].transform[0][0] * fits[i].minusimg->acorrection
-                        + fits[i].transform[0][1] * fits[i].minusimg->bcorrection
-                        + fits[i].transform[0][2] * fits[i].minusimg->ccorrection;
-
-            bcorrection = fits[i].transform[1][0] * fits[i].minusimg->acorrection
-                        + fits[i].transform[1][1] * fits[i].minusimg->bcorrection
-                        + fits[i].transform[1][2] * fits[i].minusimg->ccorrection;
-
-            ccorrection = fits[i].transform[2][0] * fits[i].minusimg->acorrection
-                        + fits[i].transform[2][1] * fits[i].minusimg->bcorrection
-                        + fits[i].transform[2][2] * fits[i].minusimg->ccorrection;
-         }
-         
-         fits[i].a += acorrection;
-         fits[i].b += bcorrection;
-         fits[i].c += ccorrection;
 
          if(debug >= 2 || fits[i].plusimg->id == refimage || fits[i].plusimg->id == refimage)
          {
@@ -1781,6 +1537,14 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
       if(iteration >= niteration)
          break;
    }
+
+
+   /*****************************************/
+   /* Put the corrections in image ID order */
+   /*****************************************/
+
+   qsort(corrs, ncorrs, sizeof(struct CorrInfo), mBgModel_corrCompare);
+
 
 
    /*********************************************/
@@ -1963,4 +1727,15 @@ int *mBgModel_ivector(int nh)
 void mBgModel_free_ivector(int *v)
 {
       free((char *) v);
+}
+
+
+/* Sort the corrections structures in image ID order */
+
+int mBgModel_corrCompare(const void *a, const void *b)
+{
+   struct CorrInfo *corrA = (struct CorrInfo *)a;
+   struct CorrInfo *corrB = (struct CorrInfo *)b;
+
+   return corrA->id > corrB->id;
 }

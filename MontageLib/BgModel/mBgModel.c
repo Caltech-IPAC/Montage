@@ -24,7 +24,6 @@ int main(int argc, char **argv)
    char    imgfile[MAXSTR];
    char    fitfile[MAXSTR];
    char    corrtbl[MAXSTR];
-   char    gapdir [MAXSTR];
 
    char   *end;
 
@@ -43,8 +42,6 @@ int main(int argc, char **argv)
    niteration = 10000;
 
    opterr = 0;
-
-   strcpy(gapdir, "");
 
    montage_status = stdout;
 
@@ -83,10 +80,6 @@ int main(int argc, char **argv)
             }
             break;
 
-         case 'g':
-            strcpy(gapdir, optarg);
-            break;
-
          case 't':
             mode = 2;
             break;
@@ -106,7 +99,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-g gapdir] [-d level] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -114,7 +107,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 3) 
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-g gapdir] [-d level] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
       exit(1);
    }
 
@@ -122,7 +115,7 @@ int main(int argc, char **argv)
    strcpy(fitfile, argv[optind + 1]);
    strcpy(corrtbl, argv[optind + 2]);
 
-   returnStruct = mBgModel(imgfile, fitfile, corrtbl, gapdir, mode, useall, niteration, debug);
+   returnStruct = mBgModel(imgfile, fitfile, corrtbl, mode, useall, niteration, debug);
 
    if(returnStruct->status == 1)
    {

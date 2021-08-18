@@ -74,7 +74,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle-threaded)] order scriptdir platedir images.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle-threaded)] order scriptdir platedir platelist.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 3)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle-threaded)] order scriptdir platedir images.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle-threaded)] order scriptdir platedir platelist.tbl\"]\n", argv[0]);
       exit(1);
    }
 

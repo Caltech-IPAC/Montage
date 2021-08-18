@@ -272,6 +272,8 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
    /* Finish up */
 
+   ffailed = ffailed - dfailed;
+
    returnStruct->status = 0;
 
    sprintf(returnStruct->msg,  "count=%d, diff_failed=%d, fit_failed=%d, warning=%d", 

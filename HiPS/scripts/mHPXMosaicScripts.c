@@ -415,7 +415,7 @@ int main(int argc, char **argv)
             fprintf(fscript, "mExec -q -a -l -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
                 i, j, i, j, survey, band, i, j);
          else
-            fprintf(fscript, "mExec -q -a -t -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
+            fprintf(fscript, "mExec -q -a -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
                 i, j, i, j, survey, band, i, j);
 
          fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);

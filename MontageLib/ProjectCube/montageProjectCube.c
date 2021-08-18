@@ -242,12 +242,12 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
    double     weight_value = 1;
 
    double ****indata;
-   double  **inweights;
+   double  **inweights = (double **)NULL;
 
    double ****outdata;
    double   **outarea;
 
-   double     overlapArea;
+   double     overlapArea = 0.;
 
    int        status = 0;
 
@@ -1427,8 +1427,6 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
 
             if(weight_value < threshold)
                weight_value = 0.;
-
-            weight_value *= fixedWeight;
          }
 
          if(mProjectCube_debug >= 3 && !haveOut)
@@ -1635,7 +1633,7 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
 
                   /* Update the output data and area arrays */
 
-                  outarea[m-jstart][l-istart] += overlapArea * weight_value;
+                  outarea[m-jstart][l-istart] += overlapArea * weight_value * fixedWeight;
 
                   for(j3=0; j3<input.naxes[3]; ++j3)
                   {
@@ -1649,9 +1647,9 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
                         pixel_value *= fluxScale;
 
                         if (mNaN(outdata[j3][j2][m-jstart][l-istart]))
-                           outdata[j3][j2][m-jstart][l-istart] = pixel_value * overlapArea * areaRatio * weight_value;
+                           outdata[j3][j2][m-jstart][l-istart] = pixel_value * overlapArea * areaRatio * weight_value * fixedWeight;
                         else
-                           outdata[j3][j2][m-jstart][l-istart] += pixel_value * overlapArea * areaRatio * weight_value;
+                           outdata[j3][j2][m-jstart][l-istart] += pixel_value * overlapArea * areaRatio * weight_value * fixedWeight;
 
                         if(mProjectCube_debug >= 3)
                         {

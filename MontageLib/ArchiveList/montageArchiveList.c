@@ -33,11 +33,16 @@ static char montage_msgstr[1024];
 /* images.  The list contains enough information to support mArchiveGet  */
 /* downloads.                                                            */
 /*                                                                       */
+/* The region is defined either by a FITS/header file or by a center     */
+/* location and sizes.                                                   */
+/*                                                                       */
 /*   char  *survey         Data survey to search (e.g. 2MASS, SDSS,      */
 /*                         WISE, etc.)                                   */
 /*                                                                       */
 /*   char  *band           Wavelength band (e.g. J for 2MASS, g for      */
 /*                         SDSS)                                         */
+/*                                                                       */
+/*   char  *hdrfile        FITS or header file defining area             */
 /*                                                                       */
 /*   char  *locstr         A (quoted if necessary) string containing     */
 /*                         a coordinate or the name of an object on      */
@@ -53,11 +58,13 @@ static char montage_msgstr[1024];
 /*************************************************************************/
 
 
-struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location, double width, double height,
+struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile, 
+                                        char *location, double inwidth, double inheight,
                                         char *outfile, int debug)
 {
    int    socket, port, count;
-   double size;
+   double size, width, height;
+   double ra, dec;
   
    char   line      [MAXLEN];
    char   request   [MAXLEN];
@@ -65,6 +72,7 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    char   constraint[MAXLEN];
    char   server    [MAXLEN];
    char   source    [MAXLEN];
+   char   temp      [MAXLEN];
 
    FILE  *fout;
 
@@ -75,15 +83,20 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    int   pport;
 
    struct mArchiveListReturn *returnStruct;
+   struct mImgBoundsReturn   *imReturnStruct;
 
    char *surveystr;
    char *bandstr;
    char *locstr;
 
+   width  = inwidth;
+   height = inheight;
+
    if(debug)
    {
       printf("DEBUG> survey:   [%s]\n", survey);
       printf("DEBUG> band:     [%s]\n", band);
+      printf("DEBUG> hdrfile:  [%s]\n", hdrfile);
       printf("DEBUG> location: [%s]\n", location);
       printf("DEBUG> width:    %-g\n",  width);
       printf("DEBUG> height:   %-g\n",  height);
@@ -106,7 +119,23 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    strcpy(returnStruct->msg, "");
 
 
-   /* Process command-line parameters */
+   /* Special processing if header given */
+
+   if(strlen(hdrfile) > 0)
+   {
+      imReturnStruct = mImgBounds(hdrfile, 1, "EQUJ", 2000., 1, 0);
+
+      width  = imReturnStruct->width;
+      height = imReturnStruct->height;
+
+      ra  = imReturnStruct->clon;
+      dec = imReturnStruct->clat;
+   
+      free(imReturnStruct);
+   }
+
+
+   /* Process the parameters */
 
    strcpy(server, "montage-web.ipac.caltech.edu");
 
@@ -114,18 +143,30 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
 
    strcpy(base, "/cgi-bin/ArchiveList/nph-archivelist?");
 
-   surveystr = mArchiveList_url_encode(survey);
-   bandstr   = mArchiveList_url_encode(band);
-   locstr    = mArchiveList_url_encode(location);
-
    size = sqrt(width*width + height*height);
 
-   sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
-      surveystr, bandstr, locstr, size);
+   surveystr = mArchiveList_url_encode(survey);
+   bandstr   = mArchiveList_url_encode(band);
+
+   if(strlen(hdrfile) > 0)
+   {
+      sprintf(temp, "%.4f+%.4f+eq+J2000", ra, dec);
+
+      sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
+         surveystr, bandstr, temp, size);
+   }
+   else
+   {
+      locstr = mArchiveList_url_encode(location);
+
+      sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
+         surveystr, bandstr, locstr, size);
+
+      free(locstr);
+   }
 
    free(surveystr);
    free(bandstr);
-   free(locstr);
 
    fout = fopen(outfile, "w+");
 

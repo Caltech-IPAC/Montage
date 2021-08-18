@@ -2,8 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-1.1      John Good        08Sep15  fits_read_pix() incorrect null value
-1.0      John Good        20Jun15  Baseline code (essentially extracted from mViewer)
+1.0      John Good        27Jun21  Baseline code
 
 */
 
@@ -17,35 +16,26 @@ Version  Developer        Date     Change
 #include <sys/types.h>
 #include <errno.h>
 
-#include <fitsio.h>
-
-#include <mHistogram.h>
+#include <mCombineHist.h>
 #include <montage.h>
+
+#define MAXSTR 1024
 
 #define NBIN 200000
 
 
 static int     mCombineHist_debug;
-static int     hdu;
-static int     grayPlaneCount;
-
-static int     grayPlanes[256];
-
-static int     naxis1, naxis2;
 
 static int     nbin;
+
+static unsigned long npix;
 
 static int     hist    [NBIN];
 static double  chist   [NBIN];
 static double  datalev [NBIN];
 static double  gausslev[NBIN];
 
-static unsigned long npix;
-
 static double  delta, rmin, rmax;
-
-static FILE   *fout;
- 
 
 static char montage_msgstr[1024];
 
@@ -54,50 +44,50 @@ static char montage_msgstr[1024];
 /*                                                                                             */
 /*  mCombineHist                                                                               */
 /*                                                                                             */
-/*  This program is essentially a subset of mViewer containing the code that determines        */
-/*  the stretch for an image.  With it we can generate stretch information for a whole         */
-/*  file (or one reference file), then use it when we create a set of JPEG/PNG files           */
-/*  from a set of other subsets/files.                                                         */
+/*  This program combines the information is a collection of histogram files into a single     */
+/*  histogram (and stretch).  In this way, we can then display a set of images with the same   */
+/*  stretch (based on the correct stretch for all their pixels) or stretch a single image      */
+/*  based on the brightness of it and its neighbors.  We use this latter approach to           */
+/*  approximate a slowly varying stretch across a region.  This usually results in a uniform   */
+/*  looking image where sub-regions of very different brightness are still still distinct      */
+/*  (much like "dodging" while printing photographs in a darkroom).                            */
 /*                                                                                             */
-/*  Only one file is processed, so if we want color we need to run this program three          */
-/*  times.  The only arguments needed are the image / stretch min / stretch max / mode.        */
+/*   char **histfile      Input FITS file.                                                     */
+/*   int    nhist         Number of input histograms.                                          */
 /*                                                                                             */
-/*   char *imgFile       Input FITS file.                                                      */
-/*   char *histFile      Output histogram file.                                                */
-/*   char *minString     Data range minimum as a string (to allow '%' and 's' suffix.          */
-/*   char *maxString     Data range maximum as a string (to allow '%' and 's' suffix.          */
-/*   char *stretchType   Stretch type (linear, power(log**N), sinh, gaussian or gaussian-log)  */
+/*   char  *minString     Data range minimum as a string (to allow '%' and 's' suffix.         */
+/*   char  *maxString     Data range maximum as a string (to allow '%' and 's' suffix.         */
 /*                                                                                             */
-/*   int   grayLogPower  If the stretch type is log to a power, the power value.               */
-/*   char *betaString    If the stretch type is asinh, the transition data value.              */
+/*   int    logpower      If the stretch type is log to a power, the power value.              */
+/*   char  *betastr       If the stretch type is asinh, the transition data value.             */
 /*                                                                                             */
-/*   int   debug         Debugging output level.                                               */
+/*   char  *stretchType   Stretch type (linear, power(log**N), sinh, gaussian or gaussian-log) */
+/*                                                                                             */
+/*   char  *outhist       Output histogram file.                                               */
+/*                                                                                             */
+/*   int    debug         Debugging output level.                                              */
 /*                                                                                             */
 /***********************************************************************************************/
 
-struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile, 
-                                    char *grayminstr, char *graymaxstr, char *graytype, int graylogpower, char *graybetastr, int debugin)
+struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr, char *maxstr, char *stretchType,
+                                        char *betastr, int logpower, char *outhist, int debugin)
 {
-   int       i, grayType;
+   int    i, j, k, nbin, type;
+   double count, val, dval;
+   double datamin, datamax;
+   double indatamin, indatamax;
+   double minval, maxval, betaval, median, sigma;
+   double minpercent, maxpercent, minsigma, maxsigma;
+   double dataval[256];
 
-   int       status = 0;
+   char   line [MAXSTR];
+   char   label[MAXSTR];
 
-   double    median, sigma;
+   int    inhist[NBIN];
 
-   double    grayminval      = 0.;
-   double    graymaxval      = 0.;
-   double    grayminpercent  = 0.;
-   double    graymaxpercent  = 0.;
-   double    grayminsigma    = 0.;
-   double    graymaxsigma    = 0.;
-   double    graybetaval     = 0.;
+   static FILE *fhist, *fout;
 
-   double    graydataval[256];
-
-   double    graydatamin;
-   double    graydatamax;
-
-   fitsfile *grayfptr;
+   int    status = 0;
 
    struct mCombineHistReturn *returnStruct;
 
@@ -110,64 +100,31 @@ struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile,
 
    memset((void *)returnStruct, 0, sizeof(returnStruct));
 
-
    returnStruct->status = 1;
 
    strcpy(returnStruct->msg, "");
 
 
-   /***************************************/
-   /* Process the command-line parameters */
-   /***************************************/
+   /**********************************/
+   /* Process the calling parameters */
+   /**********************************/
 
    mCombineHist_debug = debugin;
 
-     if(strcmp(graytype, "linear") == 0) graylogpower = 0;
-       
-        if(strcmp(graytype, "linear")       == 0) grayType = POWER;
-   else if(strcmp(graytype, "power")        == 0) grayType = POWER;
-   else if(strcmp(graytype, "gaussian")     == 0) grayType = GAUSSIAN;
-   else if(strcmp(graytype, "gaussian-log") == 0) grayType = GAUSSIANLOG;
-   else if(strcmp(graytype, "gaussianlog")  == 0) grayType = GAUSSIANLOG;
-   else if(strcmp(graytype, "asinh")        == 0) grayType = ASINH;
-
-   if(strlen(grayfile) == 0)
-   {
-      strcpy(returnStruct->msg, "No input FITS file name given");
-      return returnStruct;
-   }
-
-
-   if(fits_open_file(&grayfptr, grayfile, READONLY, &status))
-   {
-      sprintf(returnStruct->msg, "Image file %s invalid FITS", grayfile);
-      return returnStruct;
-   }
-
-   grayPlaneCount = mCombineHist_getPlanes(grayfile, grayPlanes);
-
-   if(grayPlaneCount > 0)
-      hdu = grayPlanes[0];
-   else
-      hdu = 0;
-
-   if(hdu > 0)
-   {
-      if(fits_movabs_hdu(grayfptr, hdu+1, NULL, &status))
-      {
-         sprintf(returnStruct->msg, "Can't find HDU %d", hdu);
-         return returnStruct;
-      }
-   }
-
-   if(strlen(histfile) == 0)
+   if(strlen(outhist) == 0)
    {
       strcpy(returnStruct->msg, "No output histogram file name given.");
       return returnStruct;
    }
 
+        if(strcmp(stretchType, "linear")       == 0) type = POWER;
+   else if(strcmp(stretchType, "power")        == 0) type = POWER;
+   else if(strcmp(stretchType, "gaussian")     == 0) type = GAUSSIAN;
+   else if(strcmp(stretchType, "gaussian-log") == 0) type = GAUSSIANLOG;
+   else if(strcmp(stretchType, "gaussianlog")  == 0) type = GAUSSIANLOG;
+   else if(strcmp(stretchType, "asinh")        == 0) type = ASINH;
 
-   fout = fopen(histfile, "w+");
+   fout = fopen(outhist, "w+");
 
    if(fout == (FILE *)NULL)
    {
@@ -175,87 +132,182 @@ struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile,
       return returnStruct;
    }
 
-   /* Grayscale/pseudocolor mode */
 
-   /* Get the image dimensions */
+   /**************************************************************************/
+   /* First, a simple loop over the histograms to find the data value range  */
+   /* for the group.  We use this to set up the output histogram, which we   */
+   /* will populate the second time we loop through the input.               */
+   /**************************************************************************/
+    
+   nbin = NBIN - 1;
 
-   if(strlen(grayfile) == 0)
+   for(i=0; i<nhist; ++i)
    {
-      strcpy(returnStruct->msg, "Grayscale/pseudocolor mode but no gray image given");
-      return returnStruct;
+      fhist = fopen(histfile[i], "r");
+
+      if(fhist == (FILE *)NULL)
+      {
+         sprintf(returnStruct->msg, "Can't open histogram file [%s].", histfile[i]);
+         return returnStruct;
+      }
+
+      while(1)
+      {
+         fgets(line, 1024, fhist);
+
+         if(line[0] != '#')
+            break;
+      }
+
+      for(j=0; j<9; ++j)
+         fgets(line, 1024, fhist);
+
+      sscanf(line, "%s %lf", label, &indatamin);
+
+      fgets(line, 1024, fhist);
+
+      sscanf(line, "%s %lf", label, &indatamax);
+
+      if(i == 0 || indatamin < datamin)
+         datamin = indatamin;
+
+      if(i == 0 || indatamax > datamax)
+         datamax = indatamax;
+
+      fclose(fhist);
    }
 
-   status = 0;
-   if(fits_read_key(grayfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
-   {
-      mCombineHist_printFitsError(status);
-      strcpy(returnStruct->msg, montage_msgstr);
-      return returnStruct;
-   }
+   delta = (datamax - datamin)/nbin;
 
-
-   status = 0;
-   if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
-   {
-      mCombineHist_printFitsError(status);
-      strcpy(returnStruct->msg, montage_msgstr);
-      return returnStruct;
-   }
+   rmin = datamin;
+   rmax = datamax;
 
    if(mCombineHist_debug)
    {
-      printf("naxis1   = %d\n", naxis1);
-      printf("naxis2   = %d\n", naxis2);
-      printf("\n");
-
+      printf("DEBUG> datamin = %-g\n", datamin);
+      printf("DEBUG> datamax = %-g\n", datamax);
+      printf("DEBUG> rmin    = %-g\n", rmin);
+      printf("DEBUG> rmax    = %-g\n", rmax);
+      printf("DEBUG> delta   = %-g\n", delta);
       fflush(stdout);
    }
 
 
-   /* Now adjust the data range if the limits */
-   /* were percentiles.  We had to wait until */
-   /* we had naxis1, naxis2 which is why this */
-   /* is here                                 */
+   /************************************/
+   /* Set up the output histogram bins */
+   /************************************/
+
+   for(i=0; i<nbin+1; ++i)
+   {
+      datalev[i] = datamin + delta*i;
+      hist   [i] = 0;
+      chist  [i] = 0.;
+   }
 
    if(mCombineHist_debug)
-      printf("\n GRAY RANGE:\n");
+   {
+      printf("DEBUG> datalev and hist arrays initialized.\n");
+      fflush(stdout);
+   }
 
-   status = mCombineHist_getRange(grayfptr,     grayminstr,  graymaxstr, 
-                               &grayminval, &graymaxval,  grayType, 
-                               graybetastr, &graybetaval, graydataval,
-                               naxis1,       naxis2,
-                              &graydatamin, &graydatamax,
-                              &median,       &sigma,
-                               grayPlaneCount, grayPlanes);
+
+   /**************************************************************************/
+   /* Loop over the input histograms again, readining in the histogram data  */
+   /* We will ignore some of the parameters as we will later calculate those */
+   /* for the combined data.                                                 */
+   /**************************************************************************/
+    
+   npix = 0;
+
+   for(j=0; j<nhist; ++j)
+   {
+      mCombineHist_readHist(histfile[j], inhist, &indatamin, &indatamax);
+
+      
+      // Loop over the data values, adding them into the new histogram
+      
+      dval = (indatamax - indatamin) / nbin;
+
+      if(mCombineHist_debug)
+      {
+         printf("DEBUG> from readHist: file [%s]: inhist read (min: %-g, max: %-g, dval=%-g)\n",
+                histfile[j], indatamin, indatamax, dval);
+         fflush(stdout);
+      }
+
+      for(i=0; i<nbin; ++i)
+      {
+         val = indatamin + dval * i;
+
+         count = inhist[i];
+
+         k = (int)floor((val - datamin)/delta);
+
+         hist[k] += count;
+
+         if(mCombineHist_debug >= 2)
+         {
+            printf("DEBUG> %d (val=%-g): count=%-g (hist[%d] - > %d)\n", i, val, count, k, hist[k]);
+            fflush(stdout);
+         }
+
+         npix += count;
+      }
+   }
+
+
+   /************************************/
+   /* Compute the cumulative histogram */
+   /************************************/
+
+   for(i=1; i<=nbin; ++i)
+      chist[i] = chist[i-1] + hist[i-1];
+
+
+   /******************************************************************/
+   /* We no have all the data, though not net the gaussian equalized */
+   /* histogram, and need to determine that, what the range strings  */
+   /* translate to in terms of data ranges and finally the lookup    */
+   /* table (for gaussian/gaussian-log stretches.                    */
+   /******************************************************************/
+
+   if(mCombineHist_debug)
+      printf("\n RANGE:\n");
+   
+   status = mCombineHist_getRange(type, minstr,  maxstr, betastr, &minval, &maxval, &betaval,
+                                  &median,  &sigma, dataval);
 
    if(status)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      fclose(fout);
       return returnStruct;
    }
 
-   grayminpercent = mCombineHist_valuePercentile(grayminval);
-   graymaxpercent = mCombineHist_valuePercentile(graymaxval);
+   minpercent = mCombineHist_valuePercentile(minval);
+   maxpercent = mCombineHist_valuePercentile(maxval);
 
-   grayminsigma = (grayminval - median) / sigma;
-   graymaxsigma = (graymaxval - median) / sigma;
+   minsigma = (minval - median) / sigma;
+   maxsigma = (maxval - median) / sigma;
 
    if(mCombineHist_debug)
    {
-      printf("DEBUG> grayminval = %-g (%-g%%/%-gs)\n", grayminval, grayminpercent, grayminsigma);
-      printf("DEBUG> graymaxval = %-g (%-g%%/%-gs)\n", graymaxval, graymaxpercent, graymaxsigma);
+      printf("DEBUG> minval = %-g (%-g%%/%-gs)\n", minval, minpercent, minsigma);
+      printf("DEBUG> maxval = %-g (%-g%%/%-gs)\n", maxval, maxpercent, maxsigma);
 
-      printf("\ngraydataval array:\n");
+      printf("\ndataval array:\n");
 
       for(i=0; i<256; ++i)
-         printf("%3d: %-g\n", i, graydataval[i]);
+         printf("%3d: %-g\n", i, dataval[i]);
 
       printf("\n");
       fflush(stdout);
    }
 
 
+   /*********************************/
    /* Output histogram data to file */
+   /*********************************/
 
    fprintf(fout, "# HISTOGRAM DATA\n");
    fprintf(fout, "# \n");
@@ -280,19 +332,19 @@ struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile,
    fprintf(fout, "# chi^2 and sigma levels for the bin.\n");
    fprintf(fout, "# \n");
 
-   if(grayType == POWER)
-      fprintf(fout, "Type %d %d\n",  grayType, graylogpower);
+   if(type == POWER)
+      fprintf(fout, "Type %d %d\n",  type, logpower);
    else
-      fprintf(fout, "Type %d\n",  grayType);
+      fprintf(fout, "Type %d\n",  type);
 
    fprintf(fout, "\nRanges\n");
 
    fprintf(fout, "%s %-g %-g\n%s %-g %-g\n%s %-g %-g\n%s %-g %-g\n%s %-g %-g\n",
-      "Value",        grayminval,     graymaxval,
-      "Percentile",   grayminpercent, graymaxpercent,
-      "Sigma",        grayminsigma,   graymaxsigma,
-      "Min/Max",      graydatamin,    graydatamax,
-      "Median/Sigma", median,         sigma);
+      "Value",        minval,     maxval,
+      "Percentile",   minpercent, maxpercent,
+      "Sigma",        minsigma,   maxsigma,
+      "Min/Max",      datamin,    datamax,
+      "Median/Sigma", median,     sigma);
 
    fprintf(fout, "\n");
    fprintf(fout, "rmin %-g\n",  rmin);
@@ -303,7 +355,7 @@ struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile,
    fprintf(fout, "\nStretch Lookup\n");
 
    for(i=0; i<256; ++i)
-      fprintf(fout, "%d %13.6e\n", i, graydataval[i]);
+      fprintf(fout, "%d %13.6e\n", i, dataval[i]);
 
    fprintf(fout, "\n%d CombineHist Bins\n", NBIN);
 
@@ -317,97 +369,81 @@ struct mCombineHistReturn *mCombineHist(char **grayfile, char *histfile,
    returnStruct->status = 0;
 
    sprintf(returnStruct->msg, "min=%-g, minpercent=%.2f, minsigma=%.2f, max=%-g, maxpercent=%.2f, maxsigma=%.2f, datamin=%-g, datamax=%-g",
-      grayminval,  grayminpercent, grayminsigma,
-      graymaxval,  graymaxpercent, graymaxsigma,
-      graydatamin, graydatamax);
+      minval,  minpercent, minsigma,
+      maxval,  maxpercent, maxsigma,
+      datamin, datamax);
 
    sprintf(returnStruct->json, "{\"min\":%-g, \"minpercent\":%.2f, \"minsigma\":%.2f, \"max\":%-g, \"maxpercent\":%.2f, \"maxsigma\":%.2f, \"datamin\":%-g, \"datamax\":%-g}",
-      grayminval,  grayminpercent, grayminsigma,
-      graymaxval,  graymaxpercent, graymaxsigma,
-      graydatamin, graydatamax);
+      minval,  minpercent, minsigma,
+      maxval,  maxpercent, maxsigma,
+      datamin, datamax);
 
-   returnStruct->minval     = grayminval;
-   returnStruct->minpercent = grayminpercent;
-   returnStruct->minsigma   = grayminsigma;
-   returnStruct->maxval     = graymaxval;
-   returnStruct->maxpercent = graymaxpercent;
-   returnStruct->maxsigma   = graymaxsigma;
-   returnStruct->datamin    = graydatamin;
-   returnStruct->datamax    = graydatamax;
+   returnStruct->minval     = minval;
+   returnStruct->minpercent = minpercent;
+   returnStruct->minsigma   = minsigma;
+   returnStruct->maxval     = maxval;
+   returnStruct->maxpercent = maxpercent;
+   returnStruct->maxsigma   = maxsigma;
+   returnStruct->datamin    = datamin;
+   returnStruct->datamax    = datamax;
 
    return returnStruct;
 }
 
 
-/**************************************************/
-/*                                                */
-/*  Parse the HDU / plane info from the file name */
-/*                                                */
-/**************************************************/
 
-int mCombineHist_getPlanes(char *file, int *planes)
+int mCombineHist_readHist(char *histfile,  int *inhist, double *rmin, double *rmax)
 {
-   int   count, len;
-   char *ptr, *ptr1;
+   int   i;
 
-   count = 0;
+   FILE *fhist;
 
-   ptr = file;
+   char  line [1024];
+   char  label[1024];
 
-   len = strlen(file);
+   double level, comhist, gaussval;
 
-   while(ptr < file+len && *ptr != '[')
-      ++ptr;
+
+   fhist = fopen(histfile, "r");
+
+   if(fhist == (FILE *)NULL)
+   {
+      strcpy(montage_msgstr, "Cannot open histogram file.");
+      return 1;
+   }
 
    while(1)
    {
-      if(ptr >= file+len)
-         return count;
+      fgets(line, 1024, fhist);
 
-      if(*ptr != '[')
-         return count;
-
-      *ptr = '\0';
-      ++ptr;
-
-      ptr1 = ptr;
-
-      while(ptr1 < file+len && *ptr1 != ']')
-         ++ptr1;
-
-      if(ptr1 >= file+len)
-         return count;
-
-      if(*ptr1 != ']')
-         return count;
-
-      *ptr1 = '\0';
-
-      planes[count] = atoi(ptr);
-      ++count;
-
-      ptr = ptr1;
-      ++ptr;
+      if(line[0] != '#')
+         break;
    }
+
+   for(i=0; i<9; ++i)
+      fgets(line, 1024, fhist);
+
+   sscanf(line, "%s %lf", label, rmin);
+
+   fgets(line, 1024, fhist);
+   sscanf(line, "%s %lf", label, rmax);
+
+   for(i=0; i<3; ++i)
+      fgets(line, 1024, fhist);
+
+   for(i=0; i<258; ++i)
+      fgets(line, 1024, fhist);
+
+   for(i=0; i<NBIN; ++i)
+   {
+      fgets(line, 1024, fhist);
+      sscanf(line, "%s %lf %d %lf %lf", label, &level, inhist+i, &comhist, &gaussval);
+   }
+
+   fclose(fhist);
+
+   return 0;
 }
-      
-
-
-/***********************************/
-/*                                 */
-/*  Print out FITS library errors  */
-/*                                 */
-/***********************************/
-
-void mCombineHist_printFitsError(int status)
-{
-   char status_str[FLEN_STATUS];
-
-   fits_get_errstatus(status, status_str);
-
-   strcpy(montage_msgstr, status_str);
-}
-
 
 
 /***********************************/
@@ -416,7 +452,7 @@ void mCombineHist_printFitsError(int status)
 /*                                 */
 /***********************************/
 
-int mCombineHist_parseRange(char const *str, char const *kind, double *val, double *extra, int *type) 
+int mCombineHist_parseRange(char const *str, char const *kind, double *val, double *extra, int *type)
 {
    char const *ptr;
 
@@ -427,7 +463,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
    while (isspace(*ptr)) ++ptr;
 
-   if (*ptr == '-' || *ptr == '+') 
+   if (*ptr == '-' || *ptr == '+')
    {
       sign = (*ptr == '-') ? -1.0 : 1.0;
       ++ptr;
@@ -439,7 +475,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
    *val = strtod(ptr, &end) * sign;
 
-   if (errno != 0) 
+   if (errno != 0)
    {
       sprintf(montage_msgstr, "leading numeric term in %s '%s' "
             "cannot be converted to a finite floating point number",
@@ -447,20 +483,20 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
       return 1;
    }
 
-   if (ptr == end) 
+   if (ptr == end)
    {
       /* range string didn't start with a number, check for keywords */
 
-      if (strncmp(ptr, "min", 3) == 0) 
+      if (strncmp(ptr, "min", 3) == 0)
       {
          *val = 0.0;
-      } else if (strncmp(ptr, "max", 3) == 0) 
+      } else if (strncmp(ptr, "max", 3) == 0)
       {
          *val = 100.0;
-      } else if (strncmp(ptr, "med", 3) == 0) 
+      } else if (strncmp(ptr, "med", 3) == 0)
       {
          *val = 50.0;
-      } else 
+      } else
       {
          sprintf(montage_msgstr, "'%s' is not a valid %s",
                str, kind);
@@ -469,7 +505,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
       *type = PERCENTILE;
       ptr += 3;
    }
-   else 
+   else
    {
       /* range string began with a number, look for a type spec */
 
@@ -477,17 +513,17 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
       while (isspace(*ptr)) ++ptr;
 
-      switch (*ptr) 
+      switch (*ptr)
       {
          case '%':
-            if (*val < 0.0) 
+            if (*val < 0.0)
             {
                sprintf(montage_msgstr, "'%s': negative "
                      "percentile %s", str, kind);
                return 1;
             }
 
-            if (*val > 100.0) 
+            if (*val > 100.0)
             {
                sprintf(montage_msgstr, "'%s': percentile %s "
                      "larger than 100", str, kind);
@@ -523,7 +559,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
    while (isspace(*ptr)) ++ptr;
 
-   if (*ptr == '-' || *ptr == '+') 
+   if (*ptr == '-' || *ptr == '+')
    {
       sign = (*ptr == '-') ? -1.0 : 1.0;
 
@@ -533,7 +569,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
       *extra = strtod(ptr, &end) * sign;
 
-      if (errno != 0) 
+      if (errno != 0)
       {
          sprintf(montage_msgstr, "extra numeric term in %s '%s' "
                "cannot be converted to a finite floating point number",
@@ -541,7 +577,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
          return 1;
       }
 
-      if (ptr == end) 
+      if (ptr == end)
       {
          sprintf(montage_msgstr, "%s '%s' contains trailing "
                "junk", kind, str);
@@ -553,7 +589,7 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
    while (isspace(*ptr)) ++ptr;
 
-   if (*ptr != '\0') 
+   if (*ptr != '\0')
    {
       sprintf(montage_msgstr, "%s '%s' contains trailing junk", kind, str);
       return 1;
@@ -565,46 +601,22 @@ int mCombineHist_parseRange(char const *str, char const *kind, double *val, doub
 
 /***********************************/
 /*                                 */
-/*  CombineHist percentile ranges    */
+/*  CombineHist percentile ranges  */
 /*                                 */
 /***********************************/
 
-int mCombineHist_getRange(fitsfile *fptr, char *minstr, char *maxstr,
-                        double *rangemin, double *rangemax, 
-                        int type, char *betastr, double *rangebeta, double *dataval,
-                        int imnaxis1, int imnaxis2,  double *datamin, double *datamax,
-                        double *median, double *sig,
-                        int count, int *planes)
+int mCombineHist_getRange(int type, char *minstr,  char *maxstr, char *betastr, 
+                          double *rangemin, double *rangemax, double *rangebeta,
+                          double *median,  double *sig, double *dataval)
 {
-   int     i, j, k, mintype, maxtype, betatype, nullcnt, status;
-   long    fpixel[4], nelements;
-   double  d, diff, minval, maxval, betaval;
+   int     i, j, mintype, maxtype, betatype;
+   double  minval, maxval, betaval;
    double  lev16, lev50, lev84, sigma;
    double  minextra, maxextra, betaextra;
-   double *data;
 
    double  glow, ghigh, gaussval, gaussstep;
    double  dlow, dhigh;
-   double  gaussmin, gaussmax;
-
-
-   /* Make a NaN value to use setting blank pixels */
-
-   union
-   {
-      double d;
-      char   c[8];
-   }
-   value;
-
-   for(i=0; i<8; ++i)
-      value.c[i] = 255;
-
-   double nan;
-
-   nan = value.d;
-
-
+   double  gaussmin, gaussmax, sumpix;
 
    nbin = NBIN - 1;
 
@@ -620,10 +632,6 @@ int mCombineHist_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if (type == ASINH)
       if(mCombineHist_parseRange(betastr, "beta value", &betaval, &betaextra, &betatype)) return 1;
 
-
-   /* If we don't have to generate the image */
-   /* histogram, get out now                 */
-
    *rangemin  = minval + minextra;
    *rangemax  = maxval + maxextra;
    *rangebeta = betaval + betaextra;
@@ -633,111 +641,6 @@ int mCombineHist_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    && betatype == VALUE
    && (type == POWER || type == ASINH))
       return 0;
-
-
-   /* Find the min, max values in the image */
-
-   npix = 0;
-
-   rmin =  1.0e10;
-   rmax = -1.0e10;
-
-   fpixel[0] = 1;
-   fpixel[1] = 1;
-   fpixel[2] = 1;
-   fpixel[3] = 1;
-
-   if(count > 1)
-      fpixel[2] = planes[1];
-   if(count > 2)
-      fpixel[3] = planes[2];
-
-   nelements = imnaxis1;
-
-   data = (double *)malloc(nelements * sizeof(double));
-
-   status = 0;
-
-   for(j=0; j<imnaxis2; ++j) 
-   {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
-      {
-         mCombineHist_printFitsError(status);
-         return 1;
-      }
-      
-      for(i=0; i<imnaxis1; ++i) 
-      {
-         if(!mNaN(data[i])) 
-         {
-            if (data[i] > rmax) rmax = data[i];
-            if (data[i] < rmin) rmin = data[i];
-
-            ++npix;
-         }
-      }
-
-      ++fpixel[1];
-   }
-
-   *datamin = rmin;
-   *datamax = rmax;
-
-   diff = rmax - rmin;
-
-   if(mCombineHist_debug)
-   {
-      printf("DEBUG> mCombineHist_getRange(): rmin = %-g, rmax = %-g (diff = %-g)\n",
-         rmin, rmax, diff);
-      fflush(stdout);
-   }
-
-
-   /* Populate the histogram */
-
-   for(i=0; i<nbin+1; i++) 
-      hist[i] = 0;
-   
-   fpixel[1] = 1;
-
-   for(j=0; j<imnaxis2; ++j) 
-   {
-      if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
-      {
-         mCombineHist_printFitsError(status);
-         return 1;
-      }
-
-      for(i=0; i<imnaxis1; ++i) 
-      {
-         if(!mNaN(data[i])) 
-         {
-            d = floor(nbin*(data[i]-rmin)/diff);
-            k = (int)d;
-
-            if(k > nbin-1)
-               k = nbin-1;
-
-            if(k < 0)
-               k = 0;
-
-            ++hist[k];
-         }
-      }
-
-      ++fpixel[1];
-   }
-
-
-   /* Compute the cumulative histogram      */
-   /* and the histogram bin edge boundaries */
-
-   delta = diff/nbin;
-
-   chist[0] = 0;
-
-   for(i=1; i<=nbin; ++i)
-      chist[i] = chist[i-1] + hist[i-1];
 
 
    /* Find the data value associated    */
@@ -795,16 +698,20 @@ int mCombineHist_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    }
 
 
-   /* Find the data levels associated with */
-   /* a Guassian histogram stretch         */
+   /* Find the values associated with */
+   /* a Guassian histogram stretch    */
 
    if(type == GAUSSIAN
    || type == GAUSSIANLOG)
    {
       for(i=0; i<nbin; ++i)
       {
-         datalev [i] = rmin+delta*i;
-         gausslev[i] = mCombineHist_snpinv(chist[i+1]/npix);
+         sumpix = chist[i+1];
+         
+         if(sumpix > npix-1)
+            sumpix = npix-1;
+
+         gausslev[i] = mCombineHist_snpinv(sumpix/npix);
       }
 
 

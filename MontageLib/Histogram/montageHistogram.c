@@ -175,6 +175,11 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
       return returnStruct;
    }
 
+   for(i=0; i<256; ++i)
+      graydataval[i] = 0.;
+
+
+
    /* Grayscale/pseudocolor mode */
 
    /* Get the image dimensions */
@@ -272,6 +277,8 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    fprintf(fout, "# \n");
    fprintf(fout, "# Then the conclusions, starting with the 256 data values that correspond to \n");
    fprintf(fout, "# the lowest data value associated with a 'grayscale' output value.\n");
+   fprintf(fout, "# These are only saved for gaussian and gaussian-log stretches.  For the others\n");
+   fprintf(fout, "# We just compute on the fly.\n");
    fprintf(fout, "# \n");
    fprintf(fout, "# Finally, the NBIN histogram values.  The first column is the bin number.\n");
    fprintf(fout, "# The second is the lowest data value that will go into that bin.  This is\n");
@@ -281,11 +288,11 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    fprintf(fout, "# \n");
 
    if(grayType == POWER)
-      fprintf(fout, "Type %d %d\n",  grayType, graylogpower);
+      fprintf(fout, "Type %d %d (%s)\n", grayType, graylogpower, graytype);
    else
-      fprintf(fout, "Type %d\n",  grayType);
+      fprintf(fout, "Type %d (%s)\n",  grayType, graytype);
 
-   fprintf(fout, "\nRanges\n");
+   fprintf(fout, "\nRanges (%s %s)\n", grayminstr, graymaxstr);
 
    fprintf(fout, "%s %-g %-g\n%s %-g %-g\n%s %-g %-g\n%s %-g %-g\n%s %-g %-g\n",
       "Value",        grayminval,     graymaxval,
@@ -585,7 +592,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    double  glow, ghigh, gaussval, gaussstep;
    double  dlow, dhigh;
-   double  gaussmin, gaussmax;
+   double  gaussmin, gaussmax, sumpix;
 
 
    /* Make a NaN value to use setting blank pixels */
@@ -729,8 +736,9 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    }
 
 
-   /* Compute the cumulative histogram      */
-   /* and the histogram bin edge boundaries */
+   /* Compute the cumulative histogram  */
+   /* the histogram bin edge boundaries */
+   /* and the gaussian levels           */
 
    delta = diff/nbin;
 
@@ -738,6 +746,19 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    for(i=1; i<=nbin; ++i)
       chist[i] = chist[i-1] + hist[i-1];
+
+   for(i=0; i<nbin; ++i)
+   {
+      datalev [i] = rmin+delta*i;
+
+      sumpix = chist[i+1];
+
+      if(sumpix > npix -1)
+         sumpix = npix -1;
+
+      gausslev[i] = mHistogram_snpinv(sumpix/npix);
+   }
+
 
 
    /* Find the data value associated    */
@@ -801,13 +822,6 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if(type == GAUSSIAN
    || type == GAUSSIANLOG)
    {
-      for(i=0; i<nbin; ++i)
-      {
-         datalev [i] = rmin+delta*i;
-         gausslev[i] = mHistogram_snpinv(chist[i+1]/npix);
-      }
-
-
       /* Find the guassian levels associated */
       /* with the range min, max             */
 

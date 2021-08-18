@@ -8,16 +8,13 @@ pipeline {
   stages {   
     stage("build") {
       steps {
-        sh 'make'
+        sh 'tests/build.sh'
       }
     }
     
     stage("test") {
       steps {
-        script {
-          echo 'TBD regression tests ...'
-          echo 'Regression test complete.'
-        }
+        sh 'tests/tests.sh'
       }
     }
   }

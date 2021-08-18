@@ -91,6 +91,7 @@ static double cnpix1, cnpix2;
 static double crpix1, crpix2;
 
 static int    isDSS = 0;
+static int    isHPX = 0;
 
 static double xcorrection;
 static double ycorrection;
@@ -513,6 +514,8 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       hpx = 1;
 
+      isHPX = 1;
+
       hpxPix = 90.0 / fabs(output.wcs->xinc) / sqrt(2.0) + 0.5;
 
       hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
@@ -583,6 +586,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix > oypixMax) oypixMax = oypix;
       }
 
+      printf("XXX1> %-g %-g\n", oxpix, oypix);
+      fflush(stdout);
+
       pix2wcs(input.wcs, input.naxes[0]+0.5, j+0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -613,6 +619,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix < oypixMin) oypixMin = oypix;
          if(oypix > oypixMax) oypixMax = oypix;
       }
+
+      printf("XXX2> %-g %-g\n", oxpix, oypix);
+      fflush(stdout);
    }
 
 
@@ -651,6 +660,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix > oypixMax) oypixMax = oypix;
       }
 
+      printf("XXX3> %-g %-g\n", oxpix, oypix);
+      fflush(stdout);
+
       pix2wcs(input.wcs, i+0.5, input.naxes[1]+0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -681,7 +693,14 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix < oypixMin) oypixMin = oypix;
          if(oypix > oypixMax) oypixMax = oypix;
       }
+
+      printf("XXX4> %-g %-g\n", oxpix, oypix);
+      fflush(stdout);
    }
+
+   printf("XXX> %-g %-g\n", oxpixMin, oxpixMax);
+   printf("XXX> %-g %-g\n", oypixMin, oypixMax);
+   fflush(stdout);
 
 
    /************************************************/
@@ -1488,6 +1507,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
 void mProjectQL_fixxy(double *x, double *y, int *offscl)
 {
+   if(isHPX)
+      return;
+
    *x = *x - xcorrection;
    *y = *y - ycorrection;
 

@@ -88,6 +88,21 @@ int main(int argc, char **argv)
    // Create a few support scripts in the scripts directory
 
 
+   sprintf(sname, "%s/submitProject.bash", script_directory);
+   fout = fopen(sname, "w+");
+
+   fprintf(fout, "#!/bin/bash\n");
+   fprintf(fout, "#SBATCH -p debug # partition (queue)\n");
+   fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+   fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
+   fprintf(fout, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+   fprintf(fout, "#SBATCH -o %s/project.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/project.%%N.%%j.err # STDERR\n", logs_directory);
+   fprintf(fout, "$1 $2 $3\n");
+   fclose(fout);
+   chmod(sname, 0755);
+
+
    sprintf(sname, "%s/submitMosaic.bash", script_directory);
    fout = fopen(sname, "w+");
 
@@ -95,7 +110,7 @@ int main(int argc, char **argv)
    fprintf(fout, "#SBATCH -p debug # partition (queue)\n");
    fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
    fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
-   fprintf(fout, "#SBATCH -t 3-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+   fprintf(fout, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
    fprintf(fout, "#SBATCH -o %s/mosaic.%%N.%%j.out # STDOUT\n", logs_directory);
    fprintf(fout, "#SBATCH -e %s/mosaic.%%N.%%j.err # STDERR\n", logs_directory);
    fprintf(fout, "$1 $2 $3\n");
@@ -207,12 +222,14 @@ int main(int argc, char **argv)
    }
 
 
-   // For the mosaicking workspace, we will make use of of the multiple
-   // data directories by having soft-links in our base directory to this
-   // space as "subsets".
+   // For now, there are two alternate approaches: Making submosaics and 
+   // just reprojecting the images for a tile.
 
    sprintf(directory, "%s/%s/mosaics",         basedir, mapname); mMkDir(directory, 0);
    sprintf(directory, "%s/%s/mosaics/diffs",   basedir, mapname); mMkDir(directory, 0);
+
+   sprintf(directory, "%s/%s/project",         basedir, mapname); mMkDir(directory, 0);
+   sprintf(directory, "%s/%s/project/diffs",   basedir, mapname); mMkDir(directory, 0);
 
 
    // The plates directory is the most complicated, since we want to make

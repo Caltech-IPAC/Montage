@@ -19,9 +19,9 @@ int debug;
 
 /**********************************************************/
 /*                                                        */
-/*  mHPXBgScripts                                         */
+/*  mHPXCoaddScripts                                      */
 /*                                                        */
-/*  Simple scripts:  Run mBgExec in each of the project   */
+/*  Simple scripts:  Run mAdd in each of the project      */
 /*  plate subdirectories.                                 */
 /*                                                        */
 /*  Use the plate list determined originally for the      */
@@ -32,10 +32,11 @@ int debug;
 
 int main(int argc, char **argv)
 {
-   int  ch, noAreas, ncols, ijob;
+   int  ch, noAreas, ncols, ijob, order;
 
    char cwd       [MAXSTR];
    char platelist [MAXSTR];
+   char platedir  [MAXSTR];
    char projectdir[MAXSTR];
    char scriptdir [MAXSTR];
    char tmpstr    [MAXSTR];
@@ -77,21 +78,24 @@ int main(int argc, char **argv)
                 break;
 
            default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] scriptdir projectdir platelist.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] scriptdir projectdir platelist.tbl platedir order\"]\n", argv[0]);
                 exit(1);
                 break;
         }
    }
 
-   if (argc - optind < 3)
+   if (argc - optind < 5)
    {
-        printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] scriptdir projectdir platelist.tbl\"]\n", argv[0]);
+        printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-n(o-areas)] scriptdir projectdir platelist.tbl platedir order\"]\n", argv[0]);
         exit(1);
    }
 
    strcpy(scriptdir,  argv[optind]);
    strcpy(projectdir, argv[optind + 1]);
    strcpy(platelist,  argv[optind + 2]);
+   strcpy(platedir,   argv[optind + 3]);
+
+   order = atoi(argv[optind + 4]);
 
    if(scriptdir[0] != '/')
    {
@@ -120,12 +124,33 @@ int main(int argc, char **argv)
       strcpy(platelist, tmpstr);
    }
 
+   if(platedir[0] != '/')
+   {
+      strcpy(tmpstr, cwd);
+      strcat(tmpstr, "/");
+      strcat(tmpstr, platedir);
+
+      strcpy(platedir, tmpstr);
+   }
+
    if(scriptdir[strlen(scriptdir)-1] != '/')
       strcat(scriptdir, "/");
 
    if(projectdir[strlen(projectdir)-1] != '/')
       strcat(projectdir, "/");
 
+   if(platedir[strlen(platedir)-1] != '/')
+      strcat(platedir, "/");
+
+   if(debug)
+   {
+      printf("scriptdir:  [%s]\n", scriptdir);
+      printf("projectdir: [%s]\n", projectdir);
+      printf("platelist:  [%s]\n", platelist);
+      printf("platedir:   [%s]\n", platedir);
+      printf("order      = %d \n", order);
+      fflush(stdout);
+   }
 
 
    /*****************************/ 
@@ -165,9 +190,15 @@ int main(int argc, char **argv)
    /* Open the driver script file */
    /*******************************/
 
-   sprintf(driverfile, "%srunBgCorrections.sh", scriptdir);
+   sprintf(driverfile, "%srunCoadds.sh", scriptdir);
 
    fdriver = fopen(driverfile, "w+");
+
+   if(debug)
+   {
+      printf("Driver file: [%s]\n", driverfile);
+      fflush(stdout);
+   }
 
    if(fdriver == (FILE *)NULL)
    {
@@ -181,10 +212,10 @@ int main(int argc, char **argv)
 
 
 
-   /***************************************************/ 
-   /* Iterate over the plates. Create an mBgExec      */
-   /* script for each one.                            */
-   /***************************************************/ 
+   /*******************************************/ 
+   /* Iterate over the plates. Create an mAdd */
+   /* script for each one.                    */
+   /*******************************************/ 
 
    ijob = 0;
 
@@ -203,10 +234,15 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
-      sprintf(scriptfile, "%sjobs/background_%04d.sh", scriptdir, ijob);
+      sprintf(scriptfile, "%sjobs/coadd_%04d.sh", scriptdir, ijob);
       
       fscript = fopen(scriptfile, "w+");
 
+      if(debug)
+      {
+         printf("Script file: [%s]\n", scriptfile);
+         fflush(stdout);
+      }
       if(fscript == (FILE *)NULL)
       {
          printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file [%s].\"]\n", scriptfile);
@@ -216,20 +252,22 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "#!/bin/sh\n\n");
 
-      fprintf(fscript, "echo jobs/background_%04d.sh\n", ijob);
+      fprintf(fscript, "echo jobs/coadd_%04d.sh\n", ijob);
+
+      fprintf(fscript, "mImgtbl $1/corrected $1/cimages.tbl\n", ijob);
 
       if(noAreas) 
-         fprintf(fscript, "mBgExec -n -p $1projected $1pimages_global.tbl $1corrections.tbl $1corrected\n");
+         fprintf(fscript, "mAdd -n -p $1/corrected $1/cimages.tbl $1/region.hdr $2order$3/$4.fits\n");
       else
-         fprintf(fscript, "mBgExec -p $1projected $1pimages_global.tbl $1corrections.tbl $1corrected\n");
+         fprintf(fscript, "mAdd -p $1/corrected $1/cimages.tbl $1/region.hdr $2order$3/$4.fits\n");
 
       fflush(fscript);
       fclose(fscript);
 
       chmod(scriptfile, 0777);
 
-      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitBackground.bash %sjobs/background_%04d.sh %s%s/\n", 
-         scriptdir, scriptdir, ijob, projectdir, plate);
+      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitCoadd.bash %sjobs/coadd_%04d.sh %s%s %s %d %s\n", 
+         scriptdir, scriptdir, ijob, projectdir, plate, platedir, order, plate);
       fflush(fdriver);
 
       ++ijob;

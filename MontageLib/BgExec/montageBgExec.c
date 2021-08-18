@@ -80,7 +80,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
    int    ib;
    int    ic;
 
-   int    cntr, maxcntr;
+   int    cntr, maxcntr = 0;
    double *a;
    double *b;
    double *c;
@@ -152,6 +152,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
    if(icntr  < 0
    || ifname < 0)
    {
+      tclose();
       strcpy(returnStruct->msg, "Need columns: cntr and fname in image list");
       return returnStruct;
    }
@@ -206,6 +207,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
 
    if(ncols <= 0)
    {
+        tclose();
         sprintf(returnStruct->msg, "Invalid corrections  file: %s", fitfile);
         return returnStruct;
    }
@@ -318,7 +320,11 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
       ++count;
 
       free(background);
+
+      background = (struct mBackgroundReturn *)NULL;
    }
+
+   tclose();
 
    if(debug)
    {

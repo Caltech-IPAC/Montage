@@ -686,7 +686,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectCube(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectCube(%s weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -705,7 +705,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectQL(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectQL(%s weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -724,7 +724,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProject(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProject(%s, weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -743,7 +743,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectPP(%s) -> [%s] (COMPUTED/COMPUTED)\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectPP(%s weight=%-g) -> [%s] (COMPUTED/COMPUTED)\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -783,7 +783,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectPP(%s) -> [%s] (INTRINSIC/COMPUTED)\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectPP(%s weight=%-g) -> [%s] (INTRINSIC/COMPUTED)\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -804,7 +804,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectPP(%s) -> [%s] (INTRINSIC/INTRINSIC)\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectPP(%s weight=%-g) -> [%s] (INTRINSIC/INTRINSIC)\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -823,7 +823,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProject(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProject(%s weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }

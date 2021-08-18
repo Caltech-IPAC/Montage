@@ -289,7 +289,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double    xpos, ypos;
    int       offscl, use;
    double    *buffer;
-   double    *weights;
+   double    *weights = (double *)NULL;
    double    datamin, datamax;
    double    areamin, areamax;
    double    pixelArea;
@@ -315,7 +315,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double  **data;
    double  **area;
 
-   double    overlapArea;
+   double    overlapArea = 0.;
 
    int       status = 0;
 
@@ -1413,8 +1413,6 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
             if(weight_value < threshold)
                weight_value = 0.;
-
-            weight_value *= fixedWeight;
          }
 
          if(mNaN(pixel_value))
@@ -1628,19 +1626,19 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                   if(energyMode)
                   {
                      if (mNaN(data[m-jstart][l-istart]))
-                        data[m-jstart][l-istart] = pixel_value * overlapArea/pixelArea * weight_value;
+                        data[m-jstart][l-istart] = pixel_value * overlapArea/pixelArea * weight_value * fixedWeight;
                      else
-                        data[m-jstart][l-istart] += pixel_value * overlapArea/pixelArea * weight_value;
+                        data[m-jstart][l-istart] += pixel_value * overlapArea/pixelArea * weight_value * fixedWeight;
                   }
                  else
                   {
                      if (mNaN(data[m-jstart][l-istart]))
-                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value * fixedWeight;
                      else
-                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value * fixedWeight;
                   }
 
-                  area[m-jstart][l-istart] += overlapArea * weight_value;
+                  area[m-jstart][l-istart] += overlapArea * weight_value * fixedWeight;
 
                   if(mProject_debug >= 3)
                   {
