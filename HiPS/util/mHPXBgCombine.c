@@ -18,6 +18,11 @@
 #define MAXSTR  256
 #define MAXCNT  128
 
+#define OVERLAP  0
+#define ADJACENT 1
+#define GAP      2
+#define WRAP     3
+
 
 int mHPXBgCombine_imCompare(const void *a, const void *b);
 
@@ -38,6 +43,7 @@ int nplates;
 typedef struct
 {
    int    cntr;
+   int    plate_cntr;
    char   plate[1024];
    char   fname[1024];
    int    naxis1;
@@ -78,6 +84,13 @@ static struct FitInfo
    double boxwidth;
    double boxheight;
    double boxangle;
+   int    use;
+   int    type;
+   double xref;
+   double yref;
+   double xrefm;
+   double yrefm;
+   double trans[2][2];
 }
 *fits, *fragments;
 
@@ -119,7 +132,7 @@ int debug = 0;
 int main(int argc, char **argv)
 {
    int     i, j, k, ch, index, stat, imgoffset;
-   int     ntoggle, toggle, count;
+   int     ntoggle, toggle, count, nind, fitscntr;
    int     ncols, iteration, istatus, status;
    int     maxlevel, refimage, niteration;
    double  imin, imax, jmin, jmax;
@@ -192,6 +205,8 @@ int main(int argc, char **argv)
    struct WorldCoor *wcs;
 
    char *header;
+
+   struct mFitplaneReturn *fitplane;
 
 
    getcwd(cwd, 1024);
@@ -297,6 +312,8 @@ int main(int argc, char **argv)
       exit(1);
    }
 
+   fitscntr = 0;
+
 
    /**************************/ 
    /* Read in the plate list */
@@ -310,6 +327,8 @@ int main(int argc, char **argv)
       fflush(stdout);
       exit(1);
    }
+
+   nind = atoi(tfindkey("nplate"));
 
    nplates = tlen();
 
@@ -460,11 +479,12 @@ int main(int argc, char **argv)
          if(stat < 0)
             break;
 
-         imgs[nimages].cntr   = atoi(tval(icntr)) + imgoffset;
-         imgs[nimages].naxis1 = atoi(tval(ins));
-         imgs[nimages].naxis2 = atoi(tval(inl));
-         imgs[nimages].crpix1 = atof(tval(icrpix1));
-         imgs[nimages].crpix2 = atof(tval(icrpix2));
+         imgs[nimages].cntr       = atoi(tval(icntr)) + imgoffset;
+         imgs[nimages].plate_cntr = atoi(tval(icntr));
+         imgs[nimages].naxis1     = atoi(tval(ins));
+         imgs[nimages].naxis2     = atoi(tval(inl));
+         imgs[nimages].crpix1     = atof(tval(icrpix1));
+         imgs[nimages].crpix2     = atof(tval(icrpix2));
 
          strcpy(imgs[nimages].fname, tval(ifname));
          strcpy(imgs[nimages].plate, plates[k]);
@@ -635,17 +655,18 @@ int main(int argc, char **argv)
    /* Print back out the combined image lists and the combined difference fits. */
    /*****************************************************************************/
 
-   fprintf(fimg, "|  cntr  | naxis1 | naxis2 |     crpix1     |     crpix2     |    plate   |  %46s  |\n", "fname");
+   fprintf(fimg, "|  cntr  | naxis1 | naxis2 |     crpix1     |     crpix2     |    plate   |plate_cntr|  %100s  |\n", "fname");
 
    for(i=0; i<nimages; ++i)
    {
-      fprintf(fimg, " %8d %8d %8d %16.5f %16.5f %12s %50s \n",
+      fprintf(fimg, " %8d %8d %8d %16.5f %16.5f %12s %10d %50s \n",
          imgs[i].cntr,
          imgs[i].naxis1,
          imgs[i].naxis2,
          imgs[i].crpix1,
          imgs[i].crpix2,
          imgs[i].plate,
+         imgs[i].plate_cntr,
          imgs[i].fname);
 
       fflush(stdout);
@@ -656,11 +677,11 @@ int main(int argc, char **argv)
 
 
 
-      fprintf(ffit, "|   plus  |  minus  |         a      |        b       |        c       |    crpix1    |    crpix2    |   xmin   |   xmax   |   ymin   |   ymax   |   xcenter   |   ycenter   |    npixel   |      rms       |      boxx      |      boxy      |    boxwidth    |   boxheight    |     boxang     |single|\n");
+      fprintf(ffit, "|   plus  |  minus  |         a      |        b       |        c       |    crpix1    |    crpix2    |   xmin   |   xmax   |   ymin   |   ymax   |   xcenter   |   ycenter   |    npixel   |      rms       |      boxx      |      boxy      |    boxwidth    |   boxheight    |     boxang     |level_only|\n");
 
    for(i=0; i<nfits; ++i)
    {
-      fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f        \n",
+      fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f            \n",
          fits[i].plus,
          fits[i].minus,
          fits[i].a,
@@ -680,7 +701,9 @@ int main(int argc, char **argv)
          fits[i].boxy,
          fits[i].boxwidth,
          fits[i].boxheight,
-         fits[i].boxangle);
+         fits[i].boxangle,
+         fits[i[.use);
+      XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
       
       fflush(ffit);
    }
@@ -690,11 +713,15 @@ int main(int argc, char **argv)
    /* We won't close the fits file yet because we are going to add pseudo-overlap lines for   */
    /* images that were artificially split in half by tile boundaries.  We will also add lines */
    /* for images that appear in both the lower left and the upper right of the all-sky HPX    */
-   /* map, thus closing the -180/+180 wrap-around.                                            */
+   /* map, thus closing the -180/+180 wrap-around and for image that were split over gaps is  */
+   /* the projection.  For HPX, these are caused by the way the projection deals with the     */
+   /* poles.  For projections like AITOFF (which we don't handle, these are caused by the     */
+   /* curved +180/-180 outside edge.                                                          */
    /*******************************************************************************************/
 
    // To identify the split/duplicated images, we first sort the imgs structure array on the
-   // file name column.
+   // file name column.  Split/duplicate images will have either multiple pieces with the
+   // same file name in different plates or full duplicates in different plates.
    
    qsort(imgs, nimages, sizeof(ImgInfo), mHPXBgCombine_imCompare);
 
@@ -752,27 +779,267 @@ int main(int argc, char **argv)
       setcount += 1;
       dupcount += nset;
 
-      printf("\n");
 
-      if(nset >= 3)
-         printf("BIG SET\n\n");
-
-
-      // For each member of a set, we are going to need the "fitplane" parameters for
-      // that fragment.  These will be used to create new "overlap" entries in the 
-      // "fits" array just as the normal entries are made by defining a region in the
-      // middle of the fragment and treating that as if it were the overlap region from
-      // an image difference (and doing the same thing with all the corresponding
-      // fragments).  These patches will of course be set to have no difference
-      // (a,b,c all zero) since the really come from the same image.  In mBgModel, we
-      // will have to make sure we only apply the 'c' (constant offset) parameter to
-      // updating these specific differences because the locations can be quite different
-      // and including slopes would be quite messy.
-      //
+      // Just as we had for the basic overlaps, we are going to need a bunch of geometric
+      // information for each of these image fragments.  So we apply the same processing
+      // to these images that we did to the differences.  The actual plane fit for this 
+      // pseudo-difference is easy:  its the same image so the difference plane is zero.
+      
       for(j=0; j<nset; ++j)
       {
-         printf("XXX> %5d %2d: %7d [%s][%s]\n", setcount, j, set[j].cntr, set[j].plate, set[j].fname);
+         sprintf(filename, "%s/%s/projected/%s", projectdir, set[j].plate, set[j].fname);
 
+         fitplane = mFitplane(filename, 0, 0., 0);
+
+         fragment[j].use = 1;
+
+         if(fitplane->status)
+            fragment[j].use = 0;
+
+
+         fragments[j].plus      = set[j].cntr;
+         fragments[j].minus     = -1;
+         fragments[j].a         = 0.;
+         fragments[j].b         = 0.;
+         fragments[j].c         = 0.;
+         fragments[j].crpix1    = fitplane->crpix1;
+         fragments[j].crpix2    = fitplane->crpix2;
+         fragments[j].xmin      = fitplane->xmin;
+         fragments[j].xmax      = fitplane->xmax;
+         fragments[j].ymin      = fitplane->ymin;
+         fragments[j].ymax      = fitplane->ymax; 
+         fragments[j].xcenter   = fitplane->xcenter;
+         fragments[j].ycenter   = fitplane->xcenter;
+         fragments[j].npix      = fitplane->npix;
+         fragments[j].rms       = 0.;
+         fragments[j].boxx      = fitplane->boxx;
+         fragments[j].boxy      = fitplane->boxy;
+         fragments[j].boxwidth  = fitplane->boxwidth;
+         fragments[j].boxheight = fitplane->boxheight;
+         fragments[j].boxangle  = fitplane->boxangle;
+      }
+
+      // For each of the N*(N-1) pairs within the set, we create  create a pair
+      // of 'fits' entries.  For HPX projection, we have identified three types
+      // of these pairs and two of these types require additional information
+      // for use by the mBGModel module.  For the case where the fragments are
+      // 'ADJACENT' we don't need anything else, they can be handled the same
+      // as the standard 'OVERLAP' entries.
+      //
+      // For 'WRAP' fragments, we need to take into account the large XY offset
+      // through the xref, etc. parameters.  We will set xref,yref to the 
+      // current image boxx,boxy and the remote xrefm,yrefm location to the
+      // boxx,boxy of that fragment.  Since these two images are identical other
+      // than location, these should refer to the same pixel both images, which
+      // is all we need.
+      //
+      // 'GAP' fragments are the most difficult.  There is a shift in location
+      // and the coordinate system rotates and both of these are complicated to
+      // get right.
+      //
+      // Note:  Below, we have the fragment structures do double duty as we
+      // construct fits entries for output, but just those parts that change 
+      // from fit pair to fit pair.  The actual 'fragment' information stays 
+      // fixed at the values set above.
+      
+      int jindx, jindy, kindx, kindy;
+
+      for(j=0; j<nset; ++j)
+      {
+         jindx = (int)atoi(set[j].plate + 6);
+         jindy = (int)atoi(set[j].plate + 9);
+
+         for(k=j+1; k<nset; ++k)
+         {
+            kindx = (int)atoi(set[k].plate + 6);
+            kindy = (int)atoi(set[k].plate + 9);
+
+            // ADJACENT
+            
+            if(abs(jindx-kindx) <= 1 && abs(jindy-kindy) <= 1)
+            {
+               fragments[j].type = ADJACENT;
+
+               fragments[j].xref  = 0;
+               fragments[j].yref  = 0;
+               fragments[j].xrefm = 0;
+               fragments[j].yrefm = 0;
+
+               fragments[j].trans[0][0] = 1.;
+               fragments[j].trans[0][1] = 0.;
+               fragments[j].trans[1][0] = 0.;
+               fragments[j].trans[1][1] = 1.;
+
+
+               fragments[k].type = ADJACENT;
+
+               fragments[k].xref  = 0;
+               fragments[k].yref  = 0;
+               fragments[k].xrefm = 0;
+               fragments[k].yrefm = 0;
+
+               fragments[k].trans[0][0] = 1.;
+               fragments[k].trans[0][1] = 0.;
+               fragments[k].trans[1][0] = 0.;
+               fragments[k].trans[1][1] = 1.;
+            }
+
+
+            // GAP
+            
+            else if(abs(jindx-kindx) <= nind/5 && abs(jindy-kindy) <= nind/5)
+            {
+               // Determining whether the coordinate system rotation
+               // (which is always 90 degrees) is clockwise or counterclockwise
+               // can be parameterized by whether the gap is in the north
+               // (i.e., to the left of the HPX diagonal) or south (i.e., to 
+               // the right) and whether the "plus" image is at higher Y values
+               // in general.
+               
+               fragments[j].type = GAP;
+
+               if(fragments[j].boxx < fragments[j].boxy)  // Northern half of the map
+               {
+                  if(fragments[j].boxy < fragments[j].boxy) // So minus is up and to the right of plus
+                  {
+                     fragments[j].trans[0][0] =  0.;
+                     fragments[j].trans[0][1] = -1.;
+                     fragments[j].trans[1][0] =  1.;
+                     fragments[j].trans[1][1] =  0.;
+                  }
+                  else  // Minus is down and to the left
+                  {
+                     fragments[j].trans[0][0] =  0.;
+                     fragments[j].trans[0][1] =  1.;
+                     fragments[j].trans[1][0] = -1.;
+                     fragments[j].trans[1][1] =  0.;
+                  }
+               }
+
+               else  // Southern half of the map
+               {
+                  if(fragments[j].boxy > fragments[j].boxy) // So minus is down and to left right of plus
+                  {
+                     fragments[j].trans[0][0] =  0.;
+                     fragments[j].trans[0][1] = -1.;
+                     fragments[j].trans[1][0] =  1.;
+                     fragments[j].trans[1][1] =  0.;
+                  }
+                  else  // Minus is up and to the right
+                  {
+                     fragments[j].trans[0][0] =  0.;
+                     fragments[j].trans[0][1] =  1.;
+                     fragments[j].trans[1][0] = -1.;
+                     fragments[j].trans[1][1] =  0.;
+                  }
+               }
+
+             
+               // Finding matching reference pixels is even tricker.  
+               fragments[j].xref  = 0;
+               fragments[j].yref  = 0;
+               fragments[j].xrefm = 0;
+               fragments[j].yrefm = 0;
+
+
+               fragments[k].type = GAP;
+
+               fragments[k].xref  = 0;
+               fragments[k].yref  = 0;
+               fragments[k].xrefm = 0;
+               fragments[k].yrefm = 0;
+
+               fragments[k].trans[0][0] = 1.;
+               fragments[k].trans[0][1] = 0.;
+               fragments[k].trans[1][0] = 0.;
+               fragments[k].trans[1][1] = 1.;
+            }
+
+
+            // WRAP
+            
+            else
+            {
+               fragments[j].type = WRAP;
+
+               fragments[j].xref  = fragments[j].boxx;
+               fragments[j].yref  = fragments[j].boxy;
+               fragments[j].xrefm = fragments[k].boxx;
+               fragments[j].yrefm = fragments[k].boxy;
+
+               fragments[j].trans[0][0] = 1.;
+               fragments[j].trans[0][1] = 0.;
+               fragments[j].trans[1][0] = 0.;
+               fragments[j].trans[1][1] = 1.;
+
+
+               fragments[k].type = WRAP;
+
+               fragments[k].xref  = fragments[k].boxx;
+               fragments[k].yref  = fragments[k].boxy;
+               fragments[k].xrefm = fragments[j].boxx;
+               fragments[k].yrefm = fragments[j].boxy;
+
+               fragments[k].trans[0][0] = 1.;
+               fragments[k].trans[0][1] = 0.;
+               fragments[k].trans[1][0] = 0.;
+               fragments[k].trans[1][1] = 1.;
+            }
+
+            printf("XXXXXXX> Comparing %s: %2d %2d -> %2d %2d (%s)\n", 
+               set[j].fname, jindx, jindy, kindx, kindy, type);
+
+            fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f  %8s  \n",
+               set[k].cntr,
+               fragments[j].minus,
+               fragments[j].a,
+               fragments[j].b,
+               fragments[j].c,
+               fragments[j].crpix1,
+               fragments[j].crpix2,
+               fragments[j].xmin,
+               fragments[j].xmax,
+               fragments[j].ymin,
+               fragments[j].ymax,
+               fragments[j].xcenter,
+               fragments[j].ycenter,
+               fragments[j].npix,
+               fragments[j].rms,
+               fragments[j].boxx,
+               fragments[j].boxy,
+               fragments[j].boxwidth,
+               fragments[j].boxheight,
+               fragments[j].boxangle,
+               type);
+            
+            fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f    true    \n",
+               set[j].cntr,
+               fragments[k].minus,
+               fragments[k].a,
+               fragments[k].b,
+               fragments[k].c,
+               fragments[k].crpix1,
+               fragments[k].crpix2,
+               fragments[k].xmin,
+               fragments[k].xmax,
+               fragments[k].ymin,
+               fragments[k].ymax,
+               fragments[k].xcenter,
+               fragments[k].ycenter,
+               fragments[k].npix,
+               fragments[k].rms,
+               fragments[k].boxx,
+               fragments[k].boxy,
+               fragments[k].boxwidth,
+               fragments[k].boxheight,
+               fragments[k].boxangle,
+               type);
+            
+            fflush(ffit);
+         }
+      }
+      for(j=0; j<nset; ++j)
+      {
          sprintf(filename, "%s/%s/projected/%s", projectdir, set[j].plate, set[j].fname);
 
          status = 0;
@@ -854,7 +1121,7 @@ int main(int argc, char **argv)
       {
          for(k=j+1; k<nset; ++k)
          {
-            fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f  true  \n",
+            fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f    true    \n",
                set[k].cntr,
                fragments[j].minus,
                fragments[j].a,
@@ -876,7 +1143,7 @@ int main(int argc, char **argv)
                fragments[j].boxheight,
                fragments[j].boxangle);
             
-            fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f  true  \n",
+            fprintf(ffit, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13d %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f    true    \n",
                set[j].cntr,
                fragments[k].minus,
                fragments[k].a,

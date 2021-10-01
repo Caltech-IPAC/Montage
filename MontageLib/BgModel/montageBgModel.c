@@ -1,4 +1,9 @@
-/* Module: mBgModel.c
+/* Module: mBgModel.c.  In truth,
+ * getting actual (xref, yref) locations 
+ * doesn't really matter as it is the difference
+ * in x and the difference in y that are used.
+ * So here we use the dithe original
+ * image crpix values.
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
@@ -69,6 +74,11 @@ Version  Developer        Date     Change
 #define SLOPE 1
 #define BOTH  2
 
+#define OVERLAP  0
+#define ADJACENT 1
+#define GAP      2
+#define WRAP     3
+
 #define SWAP(a,b) {temp=(a);(a)=(b);(b)=temp;}
 
 int mBgModel_corrCompare(const void *a, const void *b);
@@ -83,6 +93,8 @@ int mBgModel_corrCompare(const void *a, const void *b);
 static struct ImgInfo
 {
    int               cntr;
+   int               plate_cntr;
+   char              plate[1024];
    char              fname[1024];
    int               naxis1;
    int               naxis2;
@@ -121,11 +133,25 @@ static struct FitInfo
    double Xmax;
    double Ymin;
    double Ymax;
+   double boxx;
+   double boxy;
+   double boxwidth;
+   double boxheight;
    double boxangle;
    int    use;
+   int    type;
+   int    level_only;
 
-   struct CorrInfo *plusimg;
-   struct CorrInfo *minusimg;
+   struct CorrInfo *pluscorr;
+   struct CorrInfo *minuscorr;
+
+   double xref;
+   double yref;
+
+   double xrefm;
+   double yrefm;
+
+   double trans[2][2];
 }
 *fits;
 
@@ -153,6 +179,8 @@ struct CorrInfo
 
    int nneighbors;
    int maxneighbors;
+
+   int type;
 }
 *corrs;
 
@@ -192,13 +220,16 @@ static char montage_json  [1024];
 
 struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int mode, int useall, int niter, int debug)
 {
-   int     i, j, k, index, stat, single;
-   int     ntoggle, toggle, nancnt;
+   int     i, j, k, index, stat;
+   int     ntoggle, toggle, nancnt, iplate, iplate_cntr;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
    double  averms, sigrms, avearea;
    double  imin, imax, jmin, jmax;
    double  A, B, C;
+   double  Am, Bm, Cm;
+   double  xref, yref;
+   double  xrefm, yrefm;
    FILE   *fout;
 
    int     iplus;
@@ -221,7 +252,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    int     iboxwidth;
    int     iboxheight;
    int     iboxangle;
-   int     isingle;
+   int     ilevel_only;
    int     icntr;
    int     ifname;
    int     inl;
@@ -231,7 +262,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
    int     nrms;
    char    rms_str[128];
-   char    single_str[128];
+   char    level_str[128];
 
    double  boxx, boxy;
    double  width, height;
@@ -263,6 +294,186 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
 
    struct mBgModelReturn *returnStruct;
+
+
+/*
+
+Overview of Background Matching in Montage
+------------------------------------------
+
+The background modelling is such a core part of Montage (second only to the
+basic reprojection) that it is important that we fully describe the general
+algorithm in detail.  This algorithm has recently been extended to include some
+unusual image-to-image comparisons in support of global background matching and
+these will be described as well.
+
+We start with a set of overlapping sky images.  Our approach is based on the
+assumption that these images represent some fixed sky plus an additive (planar)
+background per image.  This situation happens often enough in astronomy that a
+modelling process based on this assumption finds broad applicability.
+
+So what do we have and what do we want?  What we want is a set of correction
+parameters.  For us that will be Ax + By + C coefficients defining planes to be
+subtracted from each image to bring them all in line with each other.  For N
+images, that is 3N parameters.  What we have are the image, or more
+specifically, the differences between the images for a collection of overlap
+regions.  In principle, we could perform an iterative  non-linear least-squares
+fit to all 3N parameters using all the overlap pixel differences for all the
+differences.  We have use cases where this would involve the better part of
+10^12 such pixel differences (and probably thousands of iterations) and so 
+would take way to long to complete.
+
+Two simplifying approximations make the problem solvable in a manageable time.
+The first is that the sky is repeatable enough that differences between images
+covering the same piece of sky end up being planar (except for noise).  That is,
+to first order any sky structure subtracts  out and so difference images fit by 
+a plane can be approximated just by that plane.
+
+Where this first approximation involves the data values of the points we want to
+fit, the second approximation involves the area over which we sum.  For regular
+surveys, the image-to-image overlaps tend to be rather rectangular. We will
+assume that even where they aren't we can get away with summing over a
+rectangular bounding box around the region (i.e. around each difference image).
+Since the first approximation makes the data uniform (of the form Ax+By+C), this
+reduces the sums down to a collection of sum(x), sum(x^2), sum(xy) etc. all of
+which have analytical ssolutions.  In summation, we end up doing a good
+approximation to a full least-squares solution for the 3N parameters with very
+little real calcalculation and no large summations.
+
+The process is otherwise what you would expect for the iterative part of a
+non-linear least-squares: Use the least squares fitting to determine a delta to
+the parameters; adjust things accordingly; and use this the re-fit.  Iterate
+until convergence (in our case the process is so fast that we just use a very
+large number of iterations rather than trying to accurately determine
+convergence criteria.
+
+Here's how this works in practice.  We start off with a list of images and a set
+of "fits" to the all the possible image overlaps.  These fits were pre-generated
+(and this does take a fair amount of time) by creating a difference images and
+fitting a plane to each one.  This plane fitting ignores large excursions (in
+case the point sources don't in fact subtract out, to get rid of observing
+artifacts like radiation hits, etc.)  The fitting also draws a bounding box
+around the non-blank pixels which we can use for the boxes described above.  So
+for each overlap "fit" we have the "plus" and "minus" image reference for the
+difference, the fit plane and region parameters.  We then create a set of
+"correction" structures, one for each image, to keep track of the evolving
+correction plane for each image.  The corrections are initialized to a zero
+slope/offset and the fits to the planes fit to image differences but both are
+going to evolve through the iterations.
+
+It might sound odd at first but the fits are actually duplicated (with reversed
+plane parameters).  The reason for this is primarily that the fits as the are
+adjusted through the iteration are changed by the amounts associated with the
+primary (i.e. plus) image with which they are associated but then have to also
+be corrected by the other (minus) image amount.  The bookeepping of this is
+easiest if we do this in two steps, remembering the last delta offset associated
+with structure as we apply it and then going through the paired fit to get the
+value for its twin.  They both end up in the same place but without mental
+gymnastics and with simple localization of the information.  This also
+makes the addition of "special" pseudo-difference fits easily possible, as
+we shall describe later.
+
+So to summary, we loop over the images in the form of their corrections
+structures.  For each correction, we do a fast approximation of a least-squares
+fit to the set of all differences between the image and all its overlapping
+neighbors.  This difference (actually half of it to prevent oscillations) is
+applied to the cumulative correction (which starts as zero) and then to all of
+the differences.  The whole set (sometimes as big as the whole sky) is then tied
+together by finding the paired corrections for the other images and applying
+that to the fits as well.  The result is a set of corrections and the updated
+fits where everything has been brought closer to a global minimum in the
+differences.  After iterating enough, we are in a state where a change to any
+image would make a globally worse overall fit.
+
+
+---
+
+
+Special Overlaps and Differences for Global Matching
+----------------------------------------------------
+
+In the standard background matching described above, the paired fits are mirror
+images of each other:  the "plus" and "minus" images are reversed and the fit
+planes are simple negatives of each other.  Here we are going to describe a
+general technique for adding constraints that help solve unusual problems.  We
+will use the first of these cases we have implemented as an example but the
+approach is generalizable.  
+
+In processing the all-sky data for HEALPix-based HPX projections on large-scale
+parallel processing on parallel cluster or cloud computing, we run into three
+situations where the data doesn't give us the neat simple overlaps already
+described.  The projection itself is responsible for two of these.  First, HPX
+is one of those projections where the sky is split from the pole down to a
+reference latitude, leaving blank area in the projected area that don't
+correspond to location on the sphere.  This is used on the Earth, for example in
+the Interrupted Goode Homolosine projection where the splits are positioned in
+oceans and the continents are kept intact (except for Antarctia), or vice versa.
+This leaves us with input images that are split across these gaps and with the
+desire in general to have backgrounds match across them.
+
+The second situation created by the projection is global "wrap-around".  HPX
+actually duplicates part of the sky across the +180/-180 longitude line.  More
+generally we have issue with any all-sky projection that we want the background
+to be consistent across this wrap-around.  Any all-sky projection created edges
+across which we want the sky to remain smooth.
+
+The third situation get added if we try to subdivide the processing to take
+advantage of parallization. The easiest way to do this is the break things up
+into discrete regions, generally a rectangular grid imposed on the projection
+space.  As with the other two situations, this leaves us with images that get
+chopped into two or more pieces at the boundaries.  
+
+The details are different but the general approach is to create pair of "fits"
+that reflect how the pieces of these artificially divided image (which we will
+treat now as separate images for bookeepping) affect each other.  Mainly,
+this has to do with how the slope/offset of the plane defining a fit for
+one of the regions should be applied to the other in the last step in
+our iterations.  This is partiularly complex for the polar gaps above
+since the orientation of these planes switches by 90 degrees going
+across the gaps.  But the general approach is the same:  given a plane
+fit to one image, how does that translate to the corresponding image
+where that image, while adjacent on the sky, is widely separated in
+projection XY coordinates.
+
+---
+
+"Adjacent" Subimages (across a plate boundary)
+
+This situation is somewhat artificial but also the easiest to deal with.  The
+two images are actual parts of the same original and they are still in the same
+XY space as each other. So a plane fit to one part can be used for the other and
+the regions of the two are side by side.  So not transforming of either is
+required.  We can even use the bounding box of the original full image as the
+region for both.
+
+
+"Wrap-Around" Duplicate Images
+
+Here the same original image on the sky will appear it two location in the
+projection; one in the lower left of the all-sky near the +180/-180 longitude
+line and the other in the upper right near the other instance of this line.  the
+same slope/offset applied to one be applied to the other, but with a caveat.  We
+are defining our planes as Ax+By+C with x and y defined as the global pixel
+coordinates whereas the two planes here are the "same" relative to matching
+relative locations in the two instances of the image.  So the plane from one has
+to be transformed accordingly to the space of the other and each must similarly
+use the region covered by that copy.
+
+
+"Gap" Subimages 
+
+This is difficult to visualize without referring to all-sky example of the
+projection but is reasonably clear if you do.  One of the two subimages will be
+against a horizontal line defining the gap and the other will at the same offset
+along a similar vertical edge on the other side of the gap.  The two pieces are
+rotated 90 degrees relative to each other so the slopes are transposed.  The
+offsets need to match at corresponding points along the gap edges.  We can
+define all this when we create the pair of fits (same for the other two cases
+above) and this does not change with the iterating, so it is just a matter
+of applying the right tranforms to the planes associated with each iteration.
+ 
+*/
+
 
 
    /* Simultaneous equation stuff */
@@ -364,18 +575,23 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       return returnStruct;
    }
 
-   icntr    = tcol("cntr");
-   ifname   = tcol("fname");
-   inl      = tcol("nl");
-   ins      = tcol("ns");
-   icrpix1  = tcol("crpix1");
-   icrpix2  = tcol("crpix2");
+   icntr       = tcol("cntr");
+   iplate_cntr = tcol("plate_cntr");
+   ifname      = tcol("fname");
+   iplate      = tcol("plate");
+   inl         = tcol("nl");
+   ins         = tcol("ns");
+   icrpix1     = tcol("crpix1");
+   icrpix2     = tcol("crpix2");
 
    if(ins < 0)
       ins = tcol("naxis1");
 
    if(inl < 0)
       inl = tcol("naxis2");
+
+   if(ifname < 0)
+      inl = tcol("file");
 
    if(icntr   < 0
    || ifname  < 0
@@ -427,7 +643,17 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       imgs[nimages].crpix1    = atof(tval(icrpix1));
       imgs[nimages].crpix2    = atof(tval(icrpix2));
 
+      imgs[nimages].plate_cntr = -1;
+
+      if(iplate_cntr >= 0)
+         imgs[nimages].plate_cntr = atoi(tval(iplate_cntr));
+
       strcpy(imgs[nimages].fname, tval(ifname));
+
+      strcpy(imgs[nimages].plate, "");
+
+      if(iplate >= 0)
+         strcpy(imgs[nimages].plate, tval(iplate));
 
       avearea += imgs[nimages].naxis1*imgs[nimages].naxis2;
 
@@ -470,27 +696,27 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       return returnStruct;
    }
 
-   iplus      = tcol("plus");
-   iminus     = tcol("minus");
-   ia         = tcol("a");
-   ib         = tcol("b");
-   ic         = tcol("c");
-   icrpix1    = tcol("crpix1");
-   icrpix2    = tcol("crpix2");
-   ixmin      = tcol("xmin");
-   ixmax      = tcol("xmax");
-   iymin      = tcol("ymin");
-   iymax      = tcol("ymax");
-   ixcenter   = tcol("xcenter");
-   iycenter   = tcol("ycenter");
-   inpix      = tcol("npixel");
-   irms       = tcol("rms");
-   iboxx      = tcol("boxx");
-   iboxy      = tcol("boxy");
-   iboxwidth  = tcol("boxwidth");
-   iboxheight = tcol("boxheight");
-   iboxangle  = tcol("boxang");
-   isingle    = tcol("single");
+   iplus       = tcol("plus");
+   iminus      = tcol("minus");
+   ia          = tcol("a");
+   ib          = tcol("b");
+   ic          = tcol("c");
+   icrpix1     = tcol("crpix1");
+   icrpix2     = tcol("crpix2");
+   ixmin       = tcol("xmin");
+   ixmax       = tcol("xmax");
+   iymin       = tcol("ymin");
+   iymax       = tcol("ymax");
+   ixcenter    = tcol("xcenter");
+   iycenter    = tcol("ycenter");
+   inpix       = tcol("npixel");
+   irms        = tcol("rms");
+   iboxx       = tcol("boxx");
+   iboxy       = tcol("boxy");
+   iboxwidth   = tcol("boxwidth");
+   iboxheight  = tcol("boxheight");
+   iboxangle   = tcol("boxang");
+   ilevel_only = tcol("level_only");
 
    if(iplus      < 0
    || iminus     < 0
@@ -566,15 +792,15 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       fits[nfits].npix      = atof(tval(inpix));
       fits[nfits].rms       = atof(tval(irms));
 
-      single = 0;
+      fits[nfits].level_only = 0;
 
-      if(isingle >= 0)
+      if(ilevel_only >= 0)
       {
-         strcpy(single_str, tval(isingle));
+         strcpy(level_str, tval(ilevel_only));
 
-         if(strcasecmp(single_str, "true") == 0
-         || strcasecmp(single_str, "1")    == 0)
-            single = 1;
+         if(strcasecmp(level_str, "true") == 0
+         || strcasecmp(level_str, "1")    == 0)
+            fits[nfits].level_only = 1;
       }
 
       strcpy(rms_str, tval(irms));
@@ -583,8 +809,12 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       || strcmp(rms_str, "NaN" ) == 0)
          fits[nfits].rms = 1.e99;
 
-      boxx   = atof(tval(iboxx));
-      boxy   = atof(tval(iboxy));
+      boxx = atof(tval(iboxx));
+      boxy = atof(tval(iboxy));
+
+      fits[nfits].boxx = boxx;
+      fits[nfits].boxy = boxy;
+
       width  = atof(tval(iboxwidth ));
       height = atof(tval(iboxheight));
       angle  = atof(tval(iboxangle)) * dtr;
@@ -633,50 +863,54 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
       /* Use the same info for the complementary */
       /* comparison, with the fit reversed       */
+      /* For the special 'level_only' entries,   */
+      /* the reverse connection is already in    */
+      /* input fits.tbl file.                    */
 
-      if(!single)
+      if(fits[nfits-1].level_only == 0)
       {
-         fits[nfits].plus     =  atoi(tval(iminus));
-         fits[nfits].minus    =  atoi(tval(iplus));
-         fits[nfits].a        = -atof(tval(ia));
-         fits[nfits].b        = -atof(tval(ib));
-         fits[nfits].c        = -atof(tval(ic));
-         fits[nfits].xmin     =  atoi(tval(ixmin));
-         fits[nfits].xmax     =  atoi(tval(ixmax));
-         fits[nfits].ymin     =  atoi(tval(iymin));
-         fits[nfits].ymax     =  atoi(tval(iymax));
-         fits[nfits].xcenter  =  atof(tval(ixcenter));
-         fits[nfits].ycenter  =  atof(tval(iycenter));
-         fits[nfits].npix     =  atof(tval(inpix));
-         fits[nfits].rms      =  atof(tval(irms));
-         fits[nfits].Xmin     =  fits[nfits-1].Xmin;
-         fits[nfits].Xmax     =  fits[nfits-1].Xmax;
-         fits[nfits].Ymin     =  fits[nfits-1].Ymin;
-         fits[nfits].Ymax     =  fits[nfits-1].Ymax;
-         fits[nfits].boxangle =  fits[nfits-1].boxangle;
+         fits[nfits].plus       =  atoi(tval(iminus));
+         fits[nfits].minus      =  atoi(tval(iplus));
+         fits[nfits].a          = -atof(tval(ia));
+         fits[nfits].b          = -atof(tval(ib));
+         fits[nfits].c          = -atof(tval(ic));
+         fits[nfits].xmin       =  atoi(tval(ixmin));
+         fits[nfits].xmax       =  atoi(tval(ixmax));
+         fits[nfits].ymin       =  atoi(tval(iymin));
+         fits[nfits].ymax       =  atoi(tval(iymax));
+         fits[nfits].xcenter    =  atof(tval(ixcenter));
+         fits[nfits].ycenter    =  atof(tval(iycenter));
+         fits[nfits].npix       =  atof(tval(inpix));
+         fits[nfits].rms        =  atof(tval(irms));
+         fits[nfits].Xmin       =  fits[nfits-1].Xmin;
+         fits[nfits].Xmax       =  fits[nfits-1].Xmax;
+         fits[nfits].Ymin       =  fits[nfits-1].Ymin;
+         fits[nfits].Ymax       =  fits[nfits-1].Ymax;
+         fits[nfits].boxangle   =  fits[nfits-1].boxangle;
+         fits[nfits].level_only =  fits[nfits-1].level_only;
 
          fits[nfits].use = 1;
 
          ++nfits;
+      }
 
-         if(nfits >= maxfits-2)
+      if(nfits >= maxfits-2)
+      {
+         maxfits += MAXCNT;
+
+         if(debug >= 2)
          {
-            maxfits += MAXCNT;
+            printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
+            fflush(stdout);
+         }
 
-            if(debug >= 2)
-            {
-               printf("Reallocating fits to %d (size %lu) [16]\n", maxfits, maxfits * sizeof(struct FitInfo));
-               fflush(stdout);
-            }
+         fits = (struct FitInfo *)realloc(fits, 
+                                     maxfits * sizeof(struct FitInfo));
 
-            fits = (struct FitInfo *)realloc(fits, 
-                                        maxfits * sizeof(struct FitInfo));
-
-            if(fits == (struct FitInfo *)NULL)
-            {
-               sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [3]", maxfits * sizeof(struct FitInfo));
-               return returnStruct;
-            }
+         if(fits == (struct FitInfo *)NULL)
+         {
+            sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [3]", maxfits * sizeof(struct FitInfo));
+            return returnStruct;
          }
       }
    }
@@ -881,7 +1115,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       {
          if(fits[j].plus == corrs[i].id)
          {
-            fits[j].plusimg = &corrs[i];
+            fits[j].pluscorr = &corrs[i];
             break;
          }
       }
@@ -890,7 +1124,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
       {
          if(fits[j].minus == corrs[i].id)
          {
-            fits[j].minusimg = &corrs[i];
+            fits[j].minuscorr = &corrs[i];
             break;
          }
       }
@@ -900,8 +1134,8 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
          if(j == 0)
             printf("\n");
 
-         printf("fits[%3d]: (plusimg=%3d  minusimg=%3d) ", 
-            j, fits[j].plusimg->id, fits[j].minusimg->id);
+         printf("fits[%3d]: (pluscorr=%3d  minuscorr=%3d) ", 
+            j, fits[j].pluscorr->id, fits[j].minuscorr->id);
 
          printf(" %12.5e ",  fits[j].a);
          printf(" %12.5e ",  fits[j].b);
@@ -1206,13 +1440,32 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
             sumxx += dsumxx;
             sumxy += dsumxy;
             sumyy += dsumyy;
-
-            index = corrs[i].neighbors[j]->plusimg->id;
+            
+            index = corrs[i].neighbors[j]->pluscorr->id;
 
             A = corrs[i].neighbors[j]->a;
             B = corrs[i].neighbors[j]->b;
             C = corrs[i].neighbors[j]->c;
 
+            if(corrs[i].neighbors[j]->level_only == 1)
+            {
+               // In the case where the relationship between i and j is "level_only" 
+               // (basically to support special processing of HPX all-sky background
+               // matching, we want to apply a 'C' value that is the offset at the center
+               // of the 'overlap', with no slopes.  Really we just want to nudge the
+               // special cases, which really are the same image across a 'gap', in the
+               // all-sky wrap-around replication region, or oven just duplicated at a
+               // plate boundary, back to having the same level.  Slope (and most of the
+               // level info even) are controlled by real neighbors.
+
+               C = A * corrs[i].neighbors[j]->boxx
+                 + B * corrs[i].neighbors[j]->boxy
+                 + C;
+
+               A = 0.;
+               B = 0.;
+            }
+            
             sumz  += A * dsumx  + B * dsumy  + C * dsumn;
             sumxz += A * dsumxx + B * dsumxy + C * dsumx;
             sumyz += A * dsumxy + B * dsumyy + C * dsumy;
@@ -1418,9 +1671,9 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
 
          for(i=0; i<nfits; ++i)
          {
-            acorrection = fits[i].plusimg->acorrection;
-            bcorrection = fits[i].plusimg->bcorrection;
-            ccorrection = fits[i].plusimg->ccorrection;
+            acorrection = fits[i].pluscorr->acorrection;
+            bcorrection = fits[i].pluscorr->bcorrection;
+            ccorrection = fits[i].pluscorr->ccorrection;
 
             if(fits[i].use)
             {
@@ -1486,14 +1739,14 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
          
          if(badslope && (fittype == SLOPE || fittype == BOTH))
          {
-            if(fabs(fits[i].plusimg->acorrection) > 4.*sigmaa)
+            if(fabs(fits[i].pluscorr->acorrection) > 4.*sigmaa)
             {
                printf("Ignoring fit %d\n", i);
                fflush(stdout);
                continue;
             }
 
-            if(fabs(fits[i].plusimg->bcorrection) > 4.*sigmab)
+            if(fabs(fits[i].pluscorr->bcorrection) > 4.*sigmab)
             {
                printf("Ignoring fit %d\n", i);
                fflush(stdout);
@@ -1501,22 +1754,97 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
             }
          }
 
-         fits[i].a -= fits[i].plusimg->acorrection;
-         fits[i].b -= fits[i].plusimg->bcorrection;
-         fits[i].c -= fits[i].plusimg->ccorrection;
-
-         fits[i].a += fits[i].minusimg->acorrection;
-         fits[i].b += fits[i].minusimg->bcorrection;
-         fits[i].c += fits[i].minusimg->ccorrection;
+         fits[i].a -= fits[i].pluscorr->acorrection;
+         fits[i].b -= fits[i].pluscorr->bcorrection;
+         fits[i].c -= fits[i].pluscorr->ccorrection;
 
 
-         if(debug >= 2 || fits[i].plusimg->id == refimage || fits[i].plusimg->id == refimage)
+         // For our "special" overlaps, the "minus" correction may need to be transformed,
+         // since the plane there was calculated for a different region of the space but 
+         // needs to be treated as local to the "plus" location.
+
+         if(fits[i].minuscorr->type == ADJACENT)
+         {
+            // These don't need special treatment but 
+            // we'll give it a section just to call out
+            // its existence
+
+            fits[i].a += fits[i].minuscorr->acorrection;
+            fits[i].b += fits[i].minuscorr->bcorrection;
+            fits[i].c += fits[i].minuscorr->ccorrection;
+         }
+
+         else if(fits[i].minuscorr->type == WRAP)
+         {
+            // Here the slopes don't change, there is
+            // just a reference pixel shift.  In truth,
+            // getting actual (xref, yref) locations 
+            // doesn't really matter as it is the difference
+            // in x and the difference in y that are used.
+            // So here we use the difference in the original
+            // image crpix values.
+            
+            A = fits[i].minuscorr->acorrection;
+            B = fits[i].minuscorr->bcorrection;
+            C = fits[i].minuscorr->ccorrection;
+
+            xref = imgs[fits[i].plus].crpix1;
+            yref = imgs[fits[i].plus].crpix2;
+
+            xrefm = imgs[fits[i].minus].crpix1;
+            yrefm = imgs[fits[i].minus].crpix2;
+
+            C = A * (xref-xrefm) + B * (yref - yrefm) + C;
+
+            fits[i].a += A;
+            fits[i].b += B;
+            fits[i].c += C;
+         }
+
+         else if(fits[i].minuscorr->type == GAP)
+         {
+            // Going across a gap, the slopes get transposed through
+            // rotation.  This was taken care of in the program that 
+            // created the fits structure (by looking at whether a specific 
+            // transform was on the left or right side of the all-sky and
+            // whether the 'plus' image was above or below the 'minus' in 
+            // terms of Y coordiate.
+
+            A = fits[i].minuscorr->acorrection;
+            B = fits[i].minuscorr->bcorrection;
+            C = fits[i].minuscorr->ccorrection;
+
+            xref = fits[i].xref;
+            yref = fits[i].yref;
+           
+            xrefm = fits[i].xrefm;
+            yrefm = fits[i].yrefm;
+            
+            Am = fits[i].trans[0][0] * A + fits[i].trans[0][1] * B;
+            Bm = fits[i].trans[1][0] * A + fits[i].trans[1][1] * B;
+
+            Cm = Am * (xref-xrefm) + Bm * (yref - yrefm) + C;
+
+            fits[i].a += Am;
+            fits[i].b += Bm;
+            fits[i].c += Cm;
+         }
+
+         else  // Normal overlap
+         {
+            fits[i].a += fits[i].minuscorr->acorrection;
+            fits[i].b += fits[i].minuscorr->bcorrection;
+            fits[i].c += fits[i].minuscorr->ccorrection;
+         }
+
+
+         if(debug >= 2 || fits[i].pluscorr->id == refimage || fits[i].pluscorr->id == refimage)
          {
             if(i == 0)
                printf("\n");
 
             printf("Corrected fit (fit %5d / Iteration %5d / %4d vs %4d) ", 
-               i, iteration+1, fits[i].plusimg->id, fits[i].minusimg->id);
+               i, iteration+1, fits[i].pluscorr->id, fits[i].minuscorr->id);
 
                  if(fittype == LEVEL) printf(" (LEVEL): ");
             else if(fittype == SLOPE) printf(" (SLOPE): ");

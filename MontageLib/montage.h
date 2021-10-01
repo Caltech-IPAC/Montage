@@ -186,6 +186,36 @@ struct mDiffExecReturn *mDiffExec(char *path, char *tblfile, char *template, cha
 
 //-------------------
 
+struct mDiffFitReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double a;             // Plane fit coefficient for X axis.
+   double b;             // Plane fit coefficient for Y axis.
+   double c;             // Plane fit constant offset.
+   double crpix1;        // X-axis pixel coordinate for center of region.
+   double crpix2;        // Y-axis pixel coordinate for center of region.
+   double xmin;          // Minimum X-axis value.
+   double xmax;          // Maximum X-axis value.
+   double ymin;          // Minimum Y-axis value.
+   double ymax;          // Maximum Y-axis value.
+   double xcenter;       // Center X location.
+   double ycenter;       // Center Y location.
+   int    npixel;        // Total number of pixels fit.
+   double rms;           // RMS of fit (pixels with large offset values were excluded in fit).
+   double boxx;          // Rectanguar bounding box X center.
+   double boxy;          // Rectanguar bounding box Y center.
+   double boxwidth;      // Rectanguar bounding box width.
+   double boxheight;     // Rectanguar bounding box height.
+   double boxang;        // Rectanguar bounding box rotation angle.
+};
+
+struct mDiffFitReturn *mDiffFit(char *fname1, char *fname2, char *diffname, char *template_file,
+                                int keep, int levelOnly, int noAreas, int border, int debug);
+
+//-------------------
+
 struct mDiffFitExecReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -343,7 +373,7 @@ struct mFitplaneReturn
    double boxang;        // Rectanguar bounding box rotation angle.
 };
 
-struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, int debug);
+struct mFitplaneReturn *mFitplane(char *input_file, int nofit, int levelOnly, int border, int debug);
 
 //-------------------
 
@@ -402,7 +432,7 @@ struct mHistogramReturn
    double datamax;       // Maximum data value in file.
 };
 
-struct mHistogramReturn *mHistogram(char *imgfile, char *histfile,
+struct mHistogramReturn *mHistogram(char *imgfile, char *histfile, int xmin, int xmax, int ymin, int ymax,
                                     char *yminstr, char *maxstr, char *stretchtype, int logpower, char *betastr, int debug);
 
 //-------------------

@@ -130,6 +130,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
    double xmin, xmax, ymin, ymax;
    double dot, ra, dec, dist;
    double center_ra, center_dec;
+   double xoffset=0., yoffset=0.;
+
    double new_center_ra, new_center_dec;
    double center_dist, scale_factor;
    double xpix, ypix;
@@ -547,6 +549,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          if (debug)
          {
             printf("\nXsize= %11.6f, Ysize=%11.6f\n", xsize, ysize);
+            fflush(stdout);
          }
       }
    }
@@ -603,6 +606,28 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       {
          csys_region  = EQUJ;
          epoch_region = 2000.;
+      }
+
+      if (debug)
+      {
+         printf("\nHEADER mode.  wcsbox initialized: csys_region = %d, epoch_region = %-g\n\n", 
+               csys_region, epoch_region);
+         fflush(stdout);
+      }
+
+      pix2wcs(wcsbox, wcsbox->nxpix/2.+0.5, wcsbox->nypix/2.+0.5, &lon, &lat);
+
+      wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+      xoffset = xpix - (wcsbox->nxpix/2.+0.5);
+      yoffset = ypix - (wcsbox->nypix/2.+0.5);
+
+      if(xoffset != 0. || yoffset != 0.) offscl = 0;
+
+      if (debug)
+      {
+         printf("xoffset = %.2f. yoffset=%.2f\n", xoffset, yoffset);
+         fflush(stdout);
       }
    }
 
@@ -2233,6 +2258,26 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
          wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
 
+         if(xoffset != 0. 
+         || yoffset != 0.)
+         {
+            if(fabs(xpix) > fabs(xoffset)/2.
+            || fabs(ypix) > fabs(yoffset)/2.)
+            {
+               xpix -= xoffset;
+               ypix -= yoffset;
+
+               offscl = 0;
+            }
+         }
+
+         if(debug)
+         {
+            printf("Checking center (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)\n",
+                  lon, lat, xpix, ypix, offscl);
+            fflush(stdout);
+         }
+
          if(!offscl 
          && xpix >= -0.5
          && ypix >= -0.5
@@ -2251,6 +2296,19 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
                wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
 
+               if(xoffset != 0.) xpix -= xoffset;
+               if(yoffset != 0.) ypix -= yoffset;
+
+               if(xoffset != 0. || yoffset != 0.) offscl = 0;
+
+               if(debug)
+               {
+                  printf("Checking corner %d (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)\n",
+                        j, lon, lat, xpix, ypix, offscl);
+                  fflush(stdout);
+               }
+
+
                if(!offscl
                && xpix >= -0.5
                && ypix >= -0.5
@@ -2261,6 +2319,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                   break;
                }
             }
+         }
+
+         if(debug)
+         {
+            printf("found = %d\n", found);
+            fflush(stdout);
          }
 
          if(found)
