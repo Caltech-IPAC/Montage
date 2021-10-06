@@ -27,4 +27,4 @@ install:
 		cp mHPXPlateHist mHPXPlateComboHist mHPXPlatePNG mHiPSPNGs ../../bin
 
 clean:
-		rm - mHPXPlateHist mHPXPlateComboHist mHPXPlatePNG mHiPSPNGs *.o
+		rm -f mHPXPlateHist mHPXPlateComboHist mHPXPlatePNG mHiPSPNGs *.o

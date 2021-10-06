@@ -37,6 +37,7 @@ char histfile2 [1024];
 char histfile3 [1024];
 char outdir    [1024];
 
+int  no_transpose, is_dir, ct;
 int  len1, lenout;
 
 int  color = 0;
@@ -57,10 +58,15 @@ int  debug;
 int main(int argc, char **argv)
 {
    int i;
+   struct stat type;
+
+   no_transpose =  0;
+   is_dir       =  0;
+   ct           = -1;
 
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] brightness contrast directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] [-n(o-transpose)] brightness contrast directory histfile(/histdir) [directory2 histfile2 directory3 histfile3] outdir\"]\n");
       exit(1);
    }
 
@@ -72,6 +78,15 @@ int main(int argc, char **argv)
 
          svc_debug(stdout);
       }
+
+      if(strcmp(argv[i], "-n") == 0)
+         no_transpose = 1;
+
+      if(strcmp(argv[i], "-ct") == 0)
+      {
+         ct = atoi(argv[i+1]);
+         ++i;
+      }
    }
       
    if(debug)
@@ -79,7 +94,21 @@ int main(int argc, char **argv)
       ++argv;
       --argc;
    }
+      
+   if(no_transpose)
+   {
+      ++argv;
+      --argc;
+   }
+      
+   if(ct >= 0)
+   {
+      argv += 2;
+      argc -= 2;
+   }
 
+   if(ct < 0)
+      ct = 0;
 
    brightness = atof(argv[1]);
    contrast   = atof(argv[2]);
@@ -90,23 +119,40 @@ int main(int argc, char **argv)
    if(directory1[strlen(directory1)-1] != '/')
       strcat(directory1, "/");
 
+   if (stat(histfile1, &type) == 0) 
+      if (S_ISDIR(type.st_mode) == 1)
+         is_dir = 1;
+
+   if(is_dir && histfile1[strlen(histfile1)-1] != '/')
+      strcat(histfile1, "/");
+
    len1 = strlen(directory1);
 
    strcpy(outdir, argv[5]);
+
+   if(outdir[strlen(outdir)-1] != '/')
+      strcat(outdir, "/");
 
 
    if(argc > 6)
    {
       if(argc < 10)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] brightness contrast directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs [-d] [-n(o-transpose)] brightness contrast directory histfile(/histdir) [directory2 histfile2 directory3 histfile3] outdir\"]\n");
          exit(1);
       }
 
       strcpy(directory2, argv[5]);
       strcpy(histfile2,  argv[6]);
+
+      if(is_dir && histfile2[strlen(histfile2)-1] != '/')
+         strcat(histfile2, "/");
+
       strcpy(directory3, argv[7]);
       strcpy(histfile3,  argv[8]);
+
+      if(is_dir && histfile3[strlen(histfile3)-1] != '/')
+         strcat(histfile3, "/");
 
       strcpy(outdir, argv[9]);
 
@@ -137,11 +183,11 @@ int main(int argc, char **argv)
 
 
 
-/***********************************/
-/*                                 */
-/*  Print out FITS library errors  */
-/*                                 */
-/***********************************/
+/*******************************/
+/*                             */
+/*  Step through the directory */
+/*                             */
+/*******************************/
 
 int mHiPSPNGs_getFiles (char *pathname)
 {
@@ -153,6 +199,9 @@ int mHiPSPNGs_getFiles (char *pathname)
    char            transfile1[MAXSTR];
    char            transfile2[MAXSTR];
    char            transfile3[MAXSTR];
+   char            hist1     [MAXSTR];
+   char            hist2     [MAXSTR];
+   char            hist3     [MAXSTR];
    char            pngfile   [MAXSTR];
    char            newdir    [MAXSTR];
    char            cmd       [MAXSTR];
@@ -176,6 +225,11 @@ int mHiPSPNGs_getFiles (char *pathname)
    if (dp == NULL) 
       return 0;
 
+   // Histogram file logic:  If we are given a single histogram file
+   // for the image (or first image set if there are three), we use that.
+   // If what we are given turns out to be a directory, we assume it
+   // contains one histogram file per image, with the same base name.
+   
    while ((entry=(struct dirent *)readdir(dp)) != (struct dirent *)0) 
    {
       if(debug)
@@ -184,10 +238,8 @@ int mHiPSPNGs_getFiles (char *pathname)
          fflush(stdout);
       }
 
-      if(pathname[strlen(pathname)-1] == '/')
-         sprintf (dirname1, "%s%s", pathname, entry->d_name);
-      else
-         sprintf (dirname1, "%s/%s", pathname, entry->d_name);
+      sprintf (dirname1, "%s%s", pathname, entry->d_name);
+
 
       if(debug)
       {
@@ -220,11 +272,32 @@ int mHiPSPNGs_getFiles (char *pathname)
 
             strcat(pngfile, ".png");
 
+            if(is_dir)
+            {
+               sprintf(hist1, "%s%s", histfile1, entry->d_name);
+               *(hist1+strlen(hist1)-5) = '\0';
+               strcat(hist1, ".hist");
+            }
+            else
+            {
+               strcpy(hist1, histfile1);
+               strcpy(hist2, histfile2);
+               strcpy(hist3, histfile3);
+            }
+
 
             if(color)
             {
                sprintf(dirname2, "%s%s", directory2, dirname1+len1);
                sprintf(dirname3, "%s%s", directory3, dirname1+len1);
+
+               sprintf(hist2, "%s%s", histfile2, entry->d_name);
+               *(hist2+strlen(hist2)-5) = '\0';
+               strcat(hist2, ".hist");
+
+               sprintf(hist3, "%s%s", histfile3, entry->d_name);
+               *(hist3+strlen(hist3)-5) = '\0';
+               strcat(hist3, ".hist");
             }
 
             if (strncmp(dirname1+strlen(dirname1)-5, ".fits", 5) == 0)
@@ -244,6 +317,9 @@ int mHiPSPNGs_getFiles (char *pathname)
                   printf("DEBUG> dirname1:   [%s]\n", dirname1);
                   printf("DEBUG> dirname2:   [%s]\n", dirname2);
                   printf("DEBUG> dirname3:   [%s]\n", dirname3);
+                  printf("DEBUG> hist1:      [%s]\n", hist1);
+                  printf("DEBUG> hist2:      [%s]\n", hist2);
+                  printf("DEBUG> hist3:      [%s]\n", hist3);
                   printf("DEBUG> pngfile:    [%s]\n", pngfile);
                   fflush(stdout);
                }
@@ -262,7 +338,7 @@ int mHiPSPNGs_getFiles (char *pathname)
 
                   if(ptr == (char *)NULL)
                   {
-                     printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs -d directory histfile [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+                     printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGs -d directory histfile(/histdir) [directory2 histfile2 directory3 histfile3] outdir\"]\n");
                      exit(1);
                   }
 
@@ -280,38 +356,47 @@ int mHiPSPNGs_getFiles (char *pathname)
                   sprintf(transfile2, "%s_trans", dirname2);
                   sprintf(transfile3, "%s_trans", dirname3);
 
-                  sprintf(cmd, "mTranspose %s %s 2 1", dirname1, transfile1);
-
-                  if(debug)
+                  if(!no_transpose)
                   {
-                     printf("DEBUG: Command: [%s]\n", cmd);
-                     fflush(stdout);
+                     sprintf(cmd, "mTranspose %s %s 2 1", dirname1, transfile1);
+
+                     if(debug)
+                     {
+                        printf("DEBUG: Command: [%s]\n", cmd);
+                        fflush(stdout);
+                     }
+
+                     svc_run(cmd);
+
+                     sprintf(cmd, "mTranspose %s %s 2 1", dirname2, transfile2);
+
+                     if(debug)
+                     {
+                        printf("DEBUG: Command: [%s]\n", cmd);
+                        fflush(stdout);
+                     }
+
+                     svc_run(cmd);
+
+                     sprintf(cmd, "mTranspose %s %s 2 1", dirname3, transfile3);
+
+                     if(debug)
+                     {
+                        printf("DEBUG: Command: [%s]\n", cmd);
+                        fflush(stdout);
+                     }
                   }
-
-                  svc_run(cmd);
-
-                  sprintf(cmd, "mTranspose %s %s 2 1", dirname2, transfile2);
-
-                  if(debug)
+                  else
                   {
-                     printf("DEBUG: Command: [%s]\n", cmd);
-                     fflush(stdout);
-                  }
-
-                  svc_run(cmd);
-
-                  sprintf(cmd, "mTranspose %s %s 2 1", dirname3, transfile3);
-
-                  if(debug)
-                  {
-                     printf("DEBUG: Command: [%s]\n", cmd);
-                     fflush(stdout);
+                     strcpy(transfile1, dirname1);
+                     strcpy(transfile2, dirname2);
+                     strcpy(transfile3, dirname3);
                   }
 
                   svc_run(cmd);
 
                   sprintf(cmd, "mViewer -brightness %-g -contrast %-g -blue %s -histfile %s -green %s -histfile %s -red %s -histfile %s -png %s",
-                     brightness, contrast, transfile1, histfile1, transfile2, histfile2, transfile3, histfile3, pngfile);
+                     brightness, contrast, transfile1, hist1, transfile2, hist2, transfile3, hist3, pngfile);
 
                   if(debug)
                   {
@@ -328,27 +413,35 @@ int mHiPSPNGs_getFiles (char *pathname)
 
                   svc_closeall();
 
-                  unlink(transfile1);
-                  unlink(transfile2);
-                  unlink(transfile3);
+                  if(!no_transpose)
+                  {
+                     unlink(transfile1);
+                     unlink(transfile2);
+                     unlink(transfile3);
+                  }
                }
 
                else
                {
                   sprintf(transfile1, "%s_trans", dirname1);
 
-                  sprintf(cmd, "mTranspose %s %s 2 1", dirname1, transfile1);
-
-                  if(debug)
+                  if(!no_transpose)
                   {
-                     printf("DEBUG: Command: [%s]\n", cmd);
-                     fflush(stdout);
+                     sprintf(cmd, "mTranspose %s %s 2 1", dirname1, transfile1);
+
+                     if(debug)
+                     {
+                        printf("DEBUG: Command: [%s]\n", cmd);
+                        fflush(stdout);
+                     }
                   }
+                  else
+                     strcpy(transfile1, dirname1);
 
                   svc_run(cmd);
 
-                  sprintf(cmd, "mViewer -ct 0 -brightness %-g -contrast %-g -gray %s -histfile %s -png %s",
-                     brightness, contrast, transfile1, histfile1, pngfile);
+                  sprintf(cmd, "mViewer -ct %d -brightness %-g -contrast %-g -gray %s -histfile %s -png %s",
+                     ct, brightness, contrast, transfile1, hist1, pngfile);
 
                   if(debug)
                   {
@@ -363,7 +456,8 @@ int mHiPSPNGs_getFiles (char *pathname)
                   if(strcmp(status, "ERROR") == 0)
                      ++nerror;
 
-                  unlink(transfile1);
+                  if(!no_transpose)
+                     unlink(transfile1);
                }
 
                ++nimage;

@@ -65,14 +65,13 @@ int main(int argc, char **argv)
       printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-h hdu][-s statusfile] in.fits out.fits ra dec xsize [ysize]  |  %s -p(ixel-mode) [-d][-h hdu][-n(o-wcs)][-s statusfile] in.fits out.fits xstartpix ystartpix xpixsize [ypixsize]  |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xend pix yendpix (relative to crpix)  |  %s -a(ll-pixels) [-d][-h hdu][-s statusfile] in.fits out.fits (to extract HDU)  |  %s -c(rop-nulls) [-d][-h hdu][-s statusfile] in.fits out.fits\"]\n", appname, appname, appname, appname, appname);
       exit(1);
    }
-
    
    for(i=1; i<argc; ++i)
    {
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
       
-      if(strcmp(argv[i], "-nowcs") == 0)
+      if(strcmp(argv[i], "-n") == 0)
          nowcs = 1;
       
       if(strcmp(argv[i], "-a") == 0)
@@ -181,6 +180,11 @@ int main(int argc, char **argv)
       printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xendpix yendpix (relative to crpix) | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname, appname);
       exit(1);
    }
+
+   ra    = 0;
+   dec   = 0;
+   xsize = 0;
+   ysize = 0;
 
    strcpy(infile,  argv[1]);
    strcpy(outfile, argv[2]);

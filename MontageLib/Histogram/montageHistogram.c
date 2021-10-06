@@ -64,6 +64,10 @@ static char montage_msgstr[1024];
 /*                                                                                             */
 /*   char *imgFile       Input FITS file.                                                      */
 /*   char *histFile      Output histogram file.                                                */
+/*   int   xmin          xmin -- ymax define a region to use (in pixel coordinates) instead    */
+/*   int   xmax          of the full image.  If a value is "-1", that value is moved to the    */
+/*   int   ymin          maximum extent it can have (i.e. xmin=-1 -> 0 and xmax=-1 ->          */
+/*   int   ymax          naxis1-1).  All zeros goes to all -1.                                 */
 /*   char *minString     Data range minimum as a string (to allow '%' and 's' suffix.          */
 /*   char *maxString     Data range maximum as a string (to allow '%' and 's' suffix.          */
 /*   char *stretchType   Stretch type (linear, power(log**N), sinh, gaussian or gaussian-log)  */
@@ -75,12 +79,14 @@ static char montage_msgstr[1024];
 /*                                                                                             */
 /***********************************************************************************************/
 
-struct mHistogramReturn *mHistogram(char *grayfile, char *histfile, 
+struct mHistogramReturn *mHistogram(char *grayfile, char *histfile, int xminin, int xmaxin, int yminin, int ymaxin,
                                     char *grayminstr, char *graymaxstr, char *graytype, int graylogpower, char *graybetastr, int debugin)
 {
    int       i, grayType;
 
    int       status = 0;
+
+   int       xmin, xmax, ymin, ymax;
 
    double    median, sigma;
 
@@ -100,6 +106,19 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    fitsfile *grayfptr;
 
    struct mHistogramReturn *returnStruct;
+
+   for(i=0; i<NBIN; ++i)
+   {
+      hist    [i] = 0;
+      chist   [i] = 0.;
+      datalev [i] = 0.;
+      gausslev[i] = 0.;
+   }
+
+   xmin = xminin;
+   xmax = xmaxin;
+   ymin = yminin;
+   ymax = ymaxin;
 
 
    /*******************************/
@@ -216,6 +235,33 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
       fflush(stdout);
    }
 
+   /* We can now set/fix the pixel range */
+
+   if(xmin == 0
+   && xmax == 0
+   && ymin == 0
+   && ymax == 0)
+   {
+      xmin = -1;
+      xmax = -1;
+      ymin = -1;
+      ymax = -1;
+   }
+
+   if(xmin <       0) xmin = 0;
+   if(xmax <       0) xmax = naxis1-1;
+   if(xmax >= naxis1) xmax = naxis1-1;
+   if(ymin <       0) ymin = 0;
+   if(ymax <       0) ymax = naxis2-1;
+   if(ymax >= naxis2) ymax = naxis2-1;
+
+   if(xmax < xmin+1
+   || ymax < ymin+1)
+   {
+      strcpy(returnStruct->msg, "Invalid pixel range.");
+      return returnStruct;
+   }
+
 
    /* Now adjust the data range if the limits */
    /* were percentiles.  We had to wait until */
@@ -225,10 +271,11 @@ struct mHistogramReturn *mHistogram(char *grayfile, char *histfile,
    if(mHistogram_debug)
       printf("\n GRAY RANGE:\n");
 
-   status = mHistogram_getRange(grayfptr,     grayminstr,  graymaxstr, 
+   status = mHistogram_getRange(grayfptr,    grayminstr,  graymaxstr, 
                                &grayminval, &graymaxval,  grayType, 
                                graybetastr, &graybetaval, graydataval,
-                               naxis1,       naxis2,
+                               xmin,         xmax,  
+                               ymin,         ymax,
                               &graydatamin, &graydatamax,
                               &median,       &sigma,
                                grayPlaneCount, grayPlanes);
@@ -579,7 +626,7 @@ int mHistogram_parseRange(char const *str, char const *kind, double *val, double
 int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
                         double *rangemin, double *rangemax, 
                         int type, char *betastr, double *rangebeta, double *dataval,
-                        int imnaxis1, int imnaxis2,  double *datamin, double *datamax,
+                        int xmin, int xmax, int ymin, int ymax, double *datamin, double *datamax,
                         double *median, double *sig,
                         int count, int *planes)
 {
@@ -649,8 +696,8 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    rmin =  1.0e10;
    rmax = -1.0e10;
 
-   fpixel[0] = 1;
-   fpixel[1] = 1;
+   fpixel[0] = xmin+1;
+   fpixel[1] = ymin+1;
    fpixel[2] = 1;
    fpixel[3] = 1;
 
@@ -659,13 +706,13 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    if(count > 2)
       fpixel[3] = planes[2];
 
-   nelements = imnaxis1;
+   nelements = xmax - xmin + 1;
 
    data = (double *)malloc(nelements * sizeof(double));
 
    status = 0;
 
-   for(j=0; j<imnaxis2; ++j) 
+   for(j=ymin; j<=ymax; ++j) 
    {
       if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
       {
@@ -673,7 +720,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
          return 1;
       }
       
-      for(i=0; i<imnaxis1; ++i) 
+      for(i=0; i<nelements; ++i) 
       {
          if(!mNaN(data[i])) 
          {
@@ -705,9 +752,9 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
    for(i=0; i<nbin+1; i++) 
       hist[i] = 0;
    
-   fpixel[1] = 1;
+   fpixel[1] = ymin+1;
 
-   for(j=0; j<imnaxis2; ++j) 
+   for(j=ymin; j<=ymax; ++j) 
    {
       if(fits_read_pix(fptr, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
       {
@@ -715,7 +762,7 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
          return 1;
       }
 
-      for(i=0; i<imnaxis1; ++i) 
+      for(i=0; i<nelements; ++i) 
       {
          if(!mNaN(data[i])) 
          {
@@ -757,8 +804,13 @@ int mHistogram_getRange(fitsfile *fptr, char *minstr, char *maxstr,
          sumpix = npix -1;
 
       gausslev[i] = mHistogram_snpinv(sumpix/npix);
+
+      if(gausslev[i] < -1000.) gausslev[i] = -1000.;
+      if(gausslev[i] >  1000.) gausslev[i] =  1000.;
    }
 
+   datalev [NBIN-1] = datalev [NBIN-2] + 1;
+   gausslev[NBIN-1] = gausslev[NBIN-2] + 1;
 
 
    /* Find the data value associated    */

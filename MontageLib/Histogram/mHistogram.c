@@ -19,6 +19,7 @@
 int main(int argc, char **argv)
 {
    int       i, debug;
+   int       xmin, xmax, ymin, ymax;
 
    int       graylogpower = 0;
 
@@ -43,11 +44,16 @@ int main(int argc, char **argv)
    debug          = 0;
    montage_status = stdout;
 
+   xmin = -1;
+   xmax = -1;
+   ymin = -1;
+   ymax = -1;
+
    strcpy(grayfile,   "");
 
    if(argc < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] -file in.fits minrange maxrange [logpower/gaussian/gaussian-log/asinh [asinh-beta]] -out out.hist\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-range xmin xmax ymin ymax] -file in.fits minrange maxrange [logpower/gaussian/gaussian-log/asinh [asinh-beta]] -out out.hist\"]\n", argv[0]);
       exit(1);
    }
 
@@ -81,7 +87,7 @@ int main(int argc, char **argv)
          {
             if(argv[i+4][0] == 'g')
             {
-         strcpy(graytype, "gaussian");
+               strcpy(graytype, "gaussian");
 
                if(strlen(argv[i+4]) > 1 
                && (   argv[i+4][strlen(argv[i+4])-1] == 'g'
@@ -129,6 +135,23 @@ int main(int argc, char **argv)
          i += 2;
       }
 
+      else if(strcmp(argv[i], "-range") == 0)
+      {
+         if(i+4 >= argc)
+         {
+            printf ("[struct stat=\"ERROR\", msg=\"Too few arguments following -range flag\"]\n");
+            fflush(stdout);
+            exit(1);
+         }
+
+         xmin = atoi(argv[i+1]);
+         xmax = atoi(argv[i+2]);
+         ymin = atoi(argv[i+3]);
+         ymax = atoi(argv[i+4]);
+
+         i+=4;
+      }
+
       else if(strcmp(argv[i], "-out") == 0)
       {
          if(i+1 >= argc)
@@ -152,12 +175,16 @@ int main(int argc, char **argv)
       printf("DEBUG> graylogpower    = [%d]\n", graylogpower);
       printf("DEBUG> graytype        = [%s]\n", graytype);
       printf("DEBUG> graybetastr     = [%s]\n", graybetastr);
+      printf("DEBUG> xmin            =  %d \n", xmin);
+      printf("DEBUG> xmax            =  %d \n", xmax);
+      printf("DEBUG> ymin            =  %d \n", ymin);
+      printf("DEBUG> ymax            =  %d \n", ymax);
       printf("\n");
       fflush(stdout);
    }
 
 
-   returnStruct = mHistogram(grayfile, histfile, grayminstr, graymaxstr, graytype, graylogpower, graybetastr, debug);
+   returnStruct = mHistogram(grayfile, histfile, xmin, xmax, ymin, ymax, grayminstr, graymaxstr, graytype, graylogpower, graybetastr, debug);
 
    if(returnStruct->status == 1)
    {

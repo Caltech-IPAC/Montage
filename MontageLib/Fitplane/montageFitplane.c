@@ -77,7 +77,7 @@ static char montage_json  [1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, int debug)
+struct mFitplaneReturn *mFitplane(char *input_file, int nofit, int levelOnly, int border, int debug)
 {
    fitsfile *fptr;
    int       i, j, nfound;
@@ -89,6 +89,8 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
    double    pixel_value;
    double    xpos, ypos;
    int       status = 0;
+
+   tStack    top;
 
    double    sumxx, sumyy, sumxy, sumx, sumy;
 
@@ -293,7 +295,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
    if(nbound >= 3)
    {
-      cgeomInit(xbound, ybound, nbound);
+      top = cgeomInit(xbound, ybound, nbound);
 
       if(debug >= 1)
       {
@@ -314,6 +316,8 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
       boxwidth  = cgeomGetWidth();
       boxheight = cgeomGetHeight();
       boxang    = -1. * cgeomGetAngle();
+
+      cgeomClear(top);
    }
    else if(nbound > 0)
    {
@@ -379,37 +383,23 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
          b[i][j] = 0.;
    }
 
-
-   /******************/
-   /* Fit the pixels */
-   /******************/
-
-   rms        = 0.;
-   niteration = 20;
-
-   for(iteration=0; iteration<niteration; ++iteration)
+   if(nofit)
    {
-      sumxx = 0.;
-      sumyy = 0.;
-      sumxy = 0.;
-      sumx  = 0.;
-      sumy  = 0.;
-      sumxz = 0.;
-      sumyz = 0.;
-      sumz  = 0.;
-      sumn  = 0.;
+      /************************/
+      /* Find data range only */
+      /************************/
 
       xmin =  1000000;
       xmax = -1000000;
       ymin =  1000000;
       ymax = -1000000;
 
-      if(debug >= 1)
-      {
-         printf("\nUsing x %d to %d\n", border, (int)naxes[0]-border-1);
-         printf("Using y %d to %d\n\n", border, (int)naxes[1]-border-1);
-         fflush(stdout);
-      }
+      sumxx = 0.;
+      sumyy = 0.;
+      sumxy = 0.;
+      sumx  = 0.;
+      sumy  = 0.;
+      sumn  = 0.;
 
       for (j=border; j<naxes[1]-border; ++j)
       {
@@ -418,51 +408,23 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
          for (i=border; i<naxes[0]-border; ++i)
          {
             xpos = i - crpix[0];
-            
+
             pixel_value = data[j][i];
 
             if(mNaN(pixel_value))
                continue;
 
-            if(rms > 0.)
-            {
-               fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
-
-               dz = fabs(pixel_value - fit);
-
-               if(dz > 2*rms)
-                  continue;
-            }
-
-
-            if(debug >= 3)
-            {
-               printf("%12.4e at (%7.2f, %7.2f) [%4d,%4d]\n", 
-                  pixel_value, xpos, ypos, i, j);
-               fflush(stdout);
-            }
-
-
-            /* Sums needed for least-squares */
-            /* plane fitting                 */
+            if(xpos < xmin) xmin = xpos;
+            if(xpos > xmax) xmax = xpos;
+            if(ypos < ymin) ymin = ypos;
+            if(ypos > ymax) ymax = ypos;
 
             sumxx += xpos*xpos;
             sumyy += ypos*ypos;
             sumxy += xpos*ypos;
             sumx  += xpos;
             sumy  += ypos;
-            sumxz += xpos*pixel_value;
-            sumyz += ypos*pixel_value;
-            sumz  += pixel_value;
             sumn  += 1.;
-
-
-            /* Region info */
-
-            if(xpos < xmin) xmin = xpos;
-            if(xpos > xmax) xmax = xpos;
-            if(ypos < ymin) ymin = ypos;
-            if(ypos > ymax) ymax = ypos;
          }
       }
 
@@ -470,128 +432,224 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
       ycenter = sumy / sumn;
 
 
-      /***********************************/
-      /* Least-squares plane calculation */
-      /***********************************/
+      rms = 0.;
+   }
 
-      /*** Fill the matrix and vector  ****
+   else
+   {
+      /******************/
+      /* Fit the pixels */
+      /******************/
 
-           |a00  a01 a02| |A|   |b00|
-           |a10  a11 a12|x|B| = |b01|
-           |a20  a21 a22| |C|   |b02|
+      rms        = 0.;
+      niteration = 20;
 
-      *************************************/
-
-      if(levelOnly)
+      for(iteration=0; iteration<niteration; ++iteration)
       {
-         b[0][0] = 0.;
-         b[1][0] = 0.;
-         b[2][0] = sumz / sumn;
-      }
-      else
-      {
-         a[0][0] = sumxx;
-         a[1][0] = sumxy;
-         a[2][0] = sumx;
+         sumxx = 0.;
+         sumyy = 0.;
+         sumxy = 0.;
+         sumx  = 0.;
+         sumy  = 0.;
+         sumxz = 0.;
+         sumyz = 0.;
+         sumz  = 0.;
+         sumn  = 0.;
 
-         a[0][1] = sumxy;
-         a[1][1] = sumyy;
-         a[2][1] = sumy;
+         xmin =  1000000;
+         xmax = -1000000;
+         ymin =  1000000;
+         ymax = -1000000;
 
-         a[0][2] = sumx;
-         a[1][2] = sumy;
-         a[2][2] = sumn;
+         if(debug >= 1)
+         {
+            printf("\nUsing x %d to %d\n", border, (int)naxes[0]-border-1);
+            printf("Using y %d to %d\n\n", border, (int)naxes[1]-border-1);
+            fflush(stdout);
+         }
 
-         b[0][0] = sumxz;
-         b[1][0] = sumyz;
-         b[2][0] = sumz;
+         for (j=border; j<naxes[1]-border; ++j)
+         {
+            ypos = j - crpix[1];
+
+            for (i=border; i<naxes[0]-border; ++i)
+            {
+               xpos = i - crpix[0];
+               
+               pixel_value = data[j][i];
+
+               if(mNaN(pixel_value))
+                  continue;
+
+               if(rms > 0.)
+               {
+                  fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
+
+                  dz = fabs(pixel_value - fit);
+
+                  if(dz > 2*rms)
+                     continue;
+               }
+
+
+               if(debug >= 3)
+               {
+                  printf("%12.4e at (%7.2f, %7.2f) [%4d,%4d]\n", 
+                     pixel_value, xpos, ypos, i, j);
+                  fflush(stdout);
+               }
+
+
+               /* Sums needed for least-squares */
+               /* plane fitting                 */
+
+               sumxx += xpos*xpos;
+               sumyy += ypos*ypos;
+               sumxy += xpos*ypos;
+               sumx  += xpos;
+               sumy  += ypos;
+               sumxz += xpos*pixel_value;
+               sumyz += ypos*pixel_value;
+               sumz  += pixel_value;
+               sumn  += 1.;
+
+
+               /* Region info */
+
+               if(xpos < xmin) xmin = xpos;
+               if(xpos > xmax) xmax = xpos;
+               if(ypos < ymin) ymin = ypos;
+               if(ypos > ymax) ymax = ypos;
+            }
+         }
+
+         xcenter = sumx / sumn;
+         ycenter = sumy / sumn;
+
+
+         /***********************************/
+         /* Least-squares plane calculation */
+         /***********************************/
+
+         /*** Fill the matrix and vector  ****
+
+              |a00  a01 a02| |A|   |b00|
+              |a10  a11 a12|x|B| = |b01|
+              |a20  a21 a22| |C|   |b02|
+
+         *************************************/
+
+         if(levelOnly)
+         {
+            b[0][0] = 0.;
+            b[1][0] = 0.;
+            b[2][0] = sumz / sumn;
+         }
+         else
+         {
+            a[0][0] = sumxx;
+            a[1][0] = sumxy;
+            a[2][0] = sumx;
+
+            a[0][1] = sumxy;
+            a[1][1] = sumyy;
+            a[2][1] = sumy;
+
+            a[0][2] = sumx;
+            a[1][2] = sumy;
+            a[2][2] = sumn;
+
+            b[0][0] = sumxz;
+            b[1][0] = sumyz;
+            b[2][0] = sumz;
+
+            if(debug >= 2)
+            {
+               printf("\n");
+               printf("%12.5e %12.5e %12.5e     %12.5e \n", a[0][0], a[0][1], a[0][2], b[0][0]);
+               printf("%12.5e %12.5e %12.5e     %12.5e \n", a[1][0], a[1][1], a[1][2], b[1][0]);
+               printf("%12.5e %12.5e %12.5e     %12.5e \n", a[2][0], a[2][1], a[2][2], b[2][0]);
+               printf("\n");
+            }
+
+
+            /* Solve */
+
+            if(mFitplane_gaussj(a, n, b, m))
+            {
+               strcpy(returnStruct->msg, montage_msgstr);
+
+               for(i=0; i<naxes[1]; ++i)
+                  free(data[i]);
+
+               free(data);
+
+               free(xbound);
+               free(ybound);
+
+               for(i=0; i<n; ++i)
+                  free(a[i]);
+
+               free(a);
+
+               for(i=0; i<n; ++i)
+                  free(b[i]);
+
+               free(b);
+
+               return returnStruct;
+            }
+         }
 
          if(debug >= 2)
          {
             printf("\n");
-            printf("%12.5e %12.5e %12.5e     %12.5e \n", a[0][0], a[0][1], a[0][2], b[0][0]);
-            printf("%12.5e %12.5e %12.5e     %12.5e \n", a[1][0], a[1][1], a[1][2], b[1][0]);
-            printf("%12.5e %12.5e %12.5e     %12.5e \n", a[2][0], a[2][1], a[2][2], b[2][0]);
+            printf("a = %12.5e \n", b[0][0]);
+            printf("b = %12.5e \n", b[1][0]);
+            printf("c = %12.5e \n", b[2][0]);
             printf("\n");
          }
 
 
-         /* Solve */
+         /*******************/
+         /* Find RMS to fit */
+         /*******************/
 
-         if(mFitplane_gaussj(a, n, b, m))
+         sumzz = 0.;
+         sumn  = 0.;
+
+         for (j=border; j<naxes[1]-border; ++j)
          {
-            strcpy(returnStruct->msg, montage_msgstr);
+            ypos = j - crpix[1];
 
-            for(i=0; i<naxes[1]; ++i)
-               free(data[i]);
+            for (i=border; i<naxes[0]-border; ++i)
+            {
+               xpos = i - crpix[0];
 
-            free(data);
+               if(mNaN(data[j][i]))
+                  continue;
 
-            free(xbound);
-            free(ybound);
+               pixel_value = data[j][i];
 
-            for(i=0; i<n; ++i)
-               free(a[i]);
+               fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
 
-            free(a);
+               dz = fabs(pixel_value - fit);
 
-            for(i=0; i<m; ++i)
-               free(b[i]);
+               if(iteration > 0 && dz > 2*rms)
+                  continue;
 
-            free(b);
+               sumzz += dz * dz;
 
-            return returnStruct;
+               ++sumn;
+            }
          }
+
+         rms = sqrt(sumzz/sumn);
+
+         if(debug >= 1)
+            printf("iteration %d: rms=%-g (using %.0f values)\n",
+                  iteration, rms, sumn);
       }
-
-      if(debug >= 2)
-      {
-         printf("\n");
-         printf("a = %12.5e \n", b[0][0]);
-         printf("b = %12.5e \n", b[1][0]);
-         printf("c = %12.5e \n", b[2][0]);
-         printf("\n");
-      }
-
-
-      /*******************/
-      /* Find RMS to fit */
-      /*******************/
-
-      sumzz = 0.;
-      sumn  = 0.;
-
-      for (j=border; j<naxes[1]-border; ++j)
-      {
-         ypos = j - crpix[1];
-
-         for (i=border; i<naxes[0]-border; ++i)
-         {
-            xpos = i - crpix[0];
-
-            if(mNaN(data[j][i]))
-               continue;
-
-            pixel_value = data[j][i];
-
-            fit = b[0][0]*xpos +  b[1][0]*ypos +  b[2][0];
-
-            dz = fabs(pixel_value - fit);
-
-            if(iteration > 0 && dz > 2*rms)
-               continue;
-
-            sumzz += dz * dz;
-
-            ++sumn;
-         }
-      }
-
-      rms = sqrt(sumzz/sumn);
-
-      if(debug >= 1)
-         printf("iteration %d: rms=%-g (using %.0f values)\n",
-               iteration, rms, sumn);
    }
 
 
@@ -668,7 +726,7 @@ struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, i
 
    free(a);
 
-   for(i=0; i<m; ++i)
+   for(i=0; i<n; ++i)
       free(b[i]);
 
    free(b);
@@ -710,6 +768,9 @@ int mFitplane_gaussj(double **a, int n, double **b, int m)
    int   *indxc, *indxr, *ipiv;
    int    i, icol, irow, j, k, l, ll;
    double big, dum, pivinv, temp;
+
+   irow = 0;
+   icol = 0;
 
    indxc = mFitplane_ivector(n);
    indxr = mFitplane_ivector(n);

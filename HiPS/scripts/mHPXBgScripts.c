@@ -217,11 +217,12 @@ int main(int argc, char **argv)
       fprintf(fscript, "#!/bin/sh\n\n");
 
       fprintf(fscript, "echo jobs/background_%04d.sh\n", ijob);
+      fprintf(fscript, "mkdir $1/corrected\n");
 
       if(noAreas) 
-         fprintf(fscript, "mBgExec -n -p $1projected $1pimages_global.tbl $1corrections.tbl $1corrected\n");
+         fprintf(fscript, "mBgExec -n -p $1projected $1pimages.tbl $1corrections.tbl $1corrected\n");
       else
-         fprintf(fscript, "mBgExec -p $1projected $1pimages_global.tbl $1corrections.tbl $1corrected\n");
+         fprintf(fscript, "mBgExec -p $1projected $1pimages.tbl $1corrections.tbl $1corrected\n");
 
       fflush(fscript);
       fclose(fscript);

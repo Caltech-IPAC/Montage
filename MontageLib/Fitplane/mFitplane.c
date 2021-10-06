@@ -40,7 +40,7 @@ extern int getopt(int argc, char *const *argv, const char *options);
 
 int main(int argc, char **argv)
 {
-   int   c, levelOnly, border, debug;
+   int   c, nofit, levelOnly, border, debug;
 
    char  input_file[MAXSTR];
 
@@ -57,13 +57,14 @@ int main(int argc, char **argv)
 
    debug     = 0;
    border    = 0;
+   nofit     = 0;
    levelOnly = 0;
 
    opterr    = 0;
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "b:d:ls:")) != EOF) 
+   while ((c = getopt(argc, argv, "b:d:lns:")) != EOF) 
    {
       switch (c) 
       {
@@ -100,6 +101,10 @@ int main(int argc, char **argv)
             levelOnly = 1;
             break;
 
+         case 'n':
+            nofit = 1;
+            break;
+
          case 's':
             if((montage_status = fopen(optarg, "w+")) == (FILE *)NULL)
             {
@@ -124,16 +129,18 @@ int main(int argc, char **argv)
 
    strcpy(input_file, argv[optind]);
 
-   returnStruct = mFitplane(input_file, levelOnly, border, debug);
+   returnStruct = mFitplane(input_file, nofit, levelOnly, border, debug);
 
    if(returnStruct->status == 1)
    {
-       fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
-       exit(1);
+      fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
+      free(returnStruct);
+      exit(1);
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", module=\"mFitplane\", %s]\n", returnStruct->msg);
-       exit(0);
+      fprintf(montage_status, "[struct stat=\"OK\", module=\"mFitplane\", %s]\n", returnStruct->msg);
+      free(returnStruct);
+      exit(0);
    }
 }

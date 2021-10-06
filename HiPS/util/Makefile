@@ -3,14 +3,15 @@
 
 CC     = gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS = -g -O2 -I. -I../../lib/include -I../../MontageLib
-LIBS   = -L../../lib -lcfitsio -lwcs -lboundaries -lmtbl -lsvc -lm
+LIBS   = -L../../lib -lcfitsio -lwcs -lboundaries -lpixbounds -lmtbl -lsvc -lm
 
 .c.o:
 	$(CC) $(CFLAGS)  -c  $*.c
 
 
 all:   mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
-       mHPXBgCombine mHPXSplitCorrections mHPXxy2tile mHPXtile2xy
+       mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
+       mHPXxy2tile mHPXtile2xy mHPXCombineHist
 
 
 mHPXPlateList: mHPXPlateList.o
@@ -29,10 +30,16 @@ mHPXPlateCombine: mHPXPlateCombine.o
 	gcc -o mHPXPlateCombine mHPXPlateCombine.o $(LIBS)
 
 mHPXBgCombine: mHPXBgCombine.o
-	gcc -o mHPXBgCombine mHPXBgCombine.o $(LIBS)
+	gcc -o mHPXBgCombine mHPXBgCombine.o ../../MontageLib/Fitplane/montageFitplane.o $(LIBS)
+
+mHPXBgSplit: mHPXBgSplit.o
+	gcc -o mHPXBgSplit mHPXBgSplit.o ../../MontageLib/Fitplane/montageFitplane.o $(LIBS)
 
 mHPXSplitCorrections: mHPXSplitCorrections.o
 	gcc -o mHPXSplitCorrections mHPXSplitCorrections.o $(LIBS)
+
+mHPXRawHistogram: mHPXRawHistogram.o
+	gcc -o mHPXRawHistogram mHPXRawHistogram.o $(LIBS)
 
 mHPXxy2tile: mHPXxy2tile.o
 	gcc -o mHPXxy2tile mHPXxy2tile.o $(LIBS)
@@ -40,13 +47,16 @@ mHPXxy2tile: mHPXxy2tile.o
 mHPXtile2xy: mHPXtile2xy.o
 	gcc -o mHPXtile2xy mHPXtile2xy.o $(LIBS)
 
+mHPXCombineHist: mHPXCombineHist.o
+	gcc -o mHPXCombineHist mHPXCombineHist.o $(LIBS)
+
 
 install:
 	cp mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
-	mHPXBgCombine mHPXSplitCorrections mHPXxy2tile mHPXtile2xy \
-	../../bin
+	mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
+	mHPXxy2tile mHPXtile2xy mHPXCombineHist ../../bin
 
 clean:
 	rm -f mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
-	mHPXBgCombine mHPXSplitCorrections mHPXxy2tile mHPXtile2xy \
-	*.o
+	mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
+	mHPXxy2tile mHPXtile2xy mHPXCombineHist *.o

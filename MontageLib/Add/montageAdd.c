@@ -1623,12 +1623,17 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
                }
             }
 
-            if(fabs(imgWCS->cd[0] - hdrWCS->cd[0]) > 1.e-8
-            || fabs(imgWCS->cd[1] - hdrWCS->cd[1]) > 1.e-8
-            || fabs(imgWCS->cd[2] - hdrWCS->cd[2]) > 1.e-8
-            || fabs(imgWCS->cd[3] - hdrWCS->cd[3]) > 1.e-8)
+            if(fabs(imgWCS->cd[0] - hdrWCS->cd[0]) > 1.e-8)
             {
-               sprintf(errstr, "Image %s header CD/CDELT does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CD/CDELT1 does not match template (%.8f vs %.8f)", infile[ifile], imgWCS->cd[0], hdrWCS->cd[0]);
+               mAdd_printError(errstr);
+               strcpy(returnStruct->msg, montage_msgstr);
+               return returnStruct;
+            }
+
+            if(fabs(imgWCS->cd[1] - hdrWCS->cd[1]) > 1.e-8)
+            {
+               sprintf(errstr, "Image %s header CD/CDELT2 does not match template (%.8f vs %.8f)", infile[ifile], imgWCS->cd[1], hdrWCS->cd[1]);
                mAdd_printError(errstr);
                strcpy(returnStruct->msg, montage_msgstr);
                return returnStruct;

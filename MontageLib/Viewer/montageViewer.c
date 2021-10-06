@@ -69,8 +69,18 @@ Version  Developer        Date     Change
 
 #define FOURCORNERS  0
 #define WCS          1
+#define NBIN    200000
 
+int     nbin;
 
+int     hist    [NBIN];
+double  chist   [NBIN];
+double  datalev [NBIN];
+double  gausslev[NBIN];
+
+unsigned long npix;
+
+double  delta, rmin, rmax;
 
 static char fontfile[1024];
 
@@ -637,6 +647,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    contrast   = 0.;
    cfactor    = 1.;
 
+   for(i=0; i<NBIN; ++i)
+   {
+      hist    [i] = 0;
+      chist   [i] = 0.;
+      datalev [i] = 0.;
+      gausslev[i] = 0.;
+   }
+
 
    /*******************************/
    /* Initialize return structure */
@@ -906,7 +924,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       {
          contrast = strtod(valstr, &end);
 
-         if(contrast < -255. || contrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+         if(contrast < -255. || contrast > 255. || end < valstr+strlen(valstr))
          {
             strcpy(returnStruct->msg, "Contrast parameter must a number between -255 and 255.");
             return returnStruct;
@@ -5188,6 +5206,48 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       grayminsigma = (grayminval - median) / sigma;
       graymaxsigma = (graymaxval - median) / sigma;
 
+      /*
+      printf("\n");
+
+      printf("XXX> grayminval       = %-g\n", grayminval);
+      printf("XXX> graymaxval       = %-g\n", graymaxval);
+      printf("XXX> graydatamin      = %-g\n", graydatamin);
+      printf("XXX> graydatamax      = %-g\n", graydatamax);
+      printf("XXX> median           = %-g\n", median);
+      printf("XXX> sigma            = %-g\n", sigma);
+      printf("XXX> grayType         = %d \n", grayType);
+      printf("\n");
+
+      for(i=0; i<30; ++i)
+      {
+         printf("XXX> graydataval[%3d] = %-g\n", i, graydataval[i]);
+         fflush(stdout);
+      }
+
+      printf("XXX> ...\n");
+
+      for(i=255; i>=226; --i)
+      {
+         printf("XXX> graydataval[%3d] = %-g\n", i, graydataval[i]);
+         fflush(stdout);
+      }
+
+      printf("\n");
+
+      for(i=0; i<30; ++i)
+         printf("XXX>  %6d: %8.2f %6d %10.2f %10.2f\n", i, datalev[i], hist[i], chist[i], gausslev[i]);
+      
+      printf("XXX> ...\n");
+
+      for(i=NBIN-1; i>NBIN-31; --i)
+         printf("XXX>  %6d: %8.2f %6d %10.2f %10.2f\n", i, datalev[i], hist[i], chist[i], gausslev[i]);
+      
+      printf("\n");
+
+
+      printf("\n");
+      */
+
       graydiff = graymaxval - grayminval;
 
       if(mViewer_debug)
@@ -5316,6 +5376,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("Image (PNG/JPEG) space allocated\n");
          fflush(stdout);
       }
+
+      /*
+      for(index=0; index<256; ++index)
+      {
+         printf("XXX> Just before use, graydataval[%d] = %-g\n", index, graydataval[index]);
+         fflush(stdout);
+      }
+      */
 
       ovlyweight = (double  **)malloc(ny * sizeof (double *));
       ovlylock   = (int     **)malloc(ny * sizeof (int    *));
@@ -7364,19 +7432,6 @@ int mViewer_parseRange(char const *str, char const *kind, double *val, double *e
 /*                                 */
 /***********************************/
 
-#define NBIN 200000
-
-int     nbin;
-
-int     hist    [NBIN];
-double  chist   [NBIN];
-double  datalev [NBIN];
-double  gausslev[NBIN];
-
-unsigned long npix;
-
-double  delta, rmin, rmax;
- 
 int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
                      double *rangemin, double *rangemax, 
                      int type, char *betastr, double *rangebeta, double *dataval,
@@ -7598,7 +7653,13 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
       {
          datalev [i] = rmin+delta*i;
          gausslev[i] = mViewer_snpinv(chist[i+1]/npix);
+
+         if(gausslev[i] < -1000.) gausslev[i] = -1000.;
+         if(gausslev[i] >  1000.) gausslev[i] =  1000.;
       }
+
+      datalev [NBIN-1] = datalev [NBIN-2] + 1;
+      gausslev[NBIN-1] = gausslev[NBIN-2] + 1;
 
 
       /* Find the guassian levels associated */
@@ -7734,6 +7795,7 @@ int mViewer_readHist(char *histfile,  double *minval,  double *maxval, double *d
    fgets(line, 1024, fhist);
    sscanf(line, "%s %lu", label, &npix);
 
+   fgets(line, 1024, fhist);
    fgets(line, 1024, fhist);
 
    for(i=0; i<256; ++i)

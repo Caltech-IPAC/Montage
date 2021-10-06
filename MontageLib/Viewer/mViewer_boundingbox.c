@@ -260,7 +260,7 @@ void mViewer_boundingbox(int n, int *x, int *y,
                          double *a, double *b, double *c,
                          double *xcorner, double *ycorner)
 {
-   int    i, j, inext, iref, imax;
+   int    i, j, inext, iref, imax = 0;
    
    double a0, at;
    double b0, bt;
@@ -269,7 +269,7 @@ void mViewer_boundingbox(int n, int *x, int *y,
    double d, denom, dmax, lmin, pad;
    double dleft, dright;
    int    ileft, iright;
-   double area, minarea;
+   double area, minarea = 0.;
 
    double sgn, temp;
 

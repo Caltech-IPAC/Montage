@@ -10,20 +10,12 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lpixbounds -lm
 .c.o:
 		$(CC) $(CFLAGS)  -c  $*.c
 
-all:		mHiPSTiles mHiPSTileDiffs
+all:		mHiPSTiles
 
 mHiPSTiles:	mHiPSTiles.o
 		$(CC) -o mHiPSTiles mHiPSTiles.o $(LIBS)
 
-mHiPSTileDiffs:	mHiPSTileDiffs.o
-		$(CC) -o mHiPSTileDiffs mHiPSTileDiffs.o \
-	        ../../MontageLib/Fitplane/montageFitplane.o \
-	        ../../MontageLib/Background/montageBackground.o \
-	        ../../MontageLib/util/checkHdr.o \
-	        ../../MontageLib/util/checkWCS.o \
-		$(LIBS)
-
 install:
-		cp mHiPSTiles mHiPSTileDiffs ../../bin
+		cp mHiPSTiles ../../bin
 clean:
-		rm -f mHiPSTiles mHiPSTileDiffs *.o
+		rm -f mHiPSTiles *.o

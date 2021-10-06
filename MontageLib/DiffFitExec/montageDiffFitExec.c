@@ -199,7 +199,7 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
       free(diff);
 
-      fitplane = mFitplane(montage_filePath(diffdir, diffname), levelOnly, 0., 0);
+      fitplane = mFitplane(montage_filePath(diffdir, diffname), 0, levelOnly, 0., 0);
 
       if(mDiffFitExec_debug)
       {

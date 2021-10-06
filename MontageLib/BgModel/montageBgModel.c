@@ -591,7 +591,7 @@ of applying the right tranforms to the planes associated with each iteration.
       inl = tcol("naxis2");
 
    if(ifname < 0)
-      inl = tcol("file");
+      ifname = tcol("file");
 
    if(icntr   < 0
    || ifname  < 0

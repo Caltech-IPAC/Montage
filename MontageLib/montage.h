@@ -417,6 +417,21 @@ struct mHdrReturn *mHdr(char *locstr, double width, double height, char *outfile
 
 //-------------------
 
+struct mHistExecReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    count;         // Number of images reprojected
+   int    failed;        // Number of reprojections that failed
+   int    missing;       // Images in input table that were not found
+};
+
+struct mHistExecReturn *mHistExec(char *datadir, char *imgfile, char *histdir, char *minstr, char *maxstr, 
+                                  char *stretchtype, int logpower, char *betastr, int debug);
+
+//-------------------
+
 struct mHistogramReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -433,7 +448,7 @@ struct mHistogramReturn
 };
 
 struct mHistogramReturn *mHistogram(char *imgfile, char *histfile, int xmin, int xmax, int ymin, int ymax,
-                                    char *yminstr, char *maxstr, char *stretchtype, int logpower, char *betastr, int debug);
+                                    char *minstr, char *maxstr, char *stretchtype, int logpower, char *betastr, int debug);
 
 //-------------------
 
@@ -532,6 +547,19 @@ struct mOverlapsReturn
 };
 
 struct mOverlapsReturn *mOverlaps(char *tblfile, char *difftbl, int quickmode, int debug);
+
+//-------------------
+
+struct mPNGBackgroundReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    width;         // Number of pixels horizontal
+   int    height;        // Number of pixels vertical
+};
+
+struct mPNGBackgroundReturn *mPNGBackground(char *infile, char *outfile, int debug);
 
 //-------------------
 

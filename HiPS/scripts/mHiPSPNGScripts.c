@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
    if(argc < 7)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts -d brightness contrast scriptdir hipsdir histfile [hipsdir2 histfile2 hipsdir3 histfile3] outdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts -d brightness contrast scriptdir hipsdir histfile(/histdir) [hipsdir2 histfile2 hipsdir3 histfile3] outdir\"]\n");
       exit(1);
    }
 
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
    {
       if(argc < 11)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts -d brightness contrast scriptdir hipsdir histfile [hipsdir2 histfile2 hipsdir3 histfile3] outdir\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts -d brightness contrast scriptdir hipsdir histfile(/histdir) [hipsdir2 histfile2 hipsdir3 histfile3] outdir\"]\n");
          exit(1);
       }
 

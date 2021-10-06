@@ -219,10 +219,6 @@ int main(int argc, char **argv)
 
    long    fpixel[4], nelements;
 
-   long    naxis[2];
-   double  crpix[2];
-   int     nfound;
-
    char   *ptr;
 
    fitsfile *ffits;
@@ -408,8 +404,6 @@ int main(int argc, char **argv)
       ++count;
    }
 
-   tclose();
-
    if(count < nplates)
    {
       printf("[struct stat=\"ERROR\", msg=\"Should be %d plates; only found %d.\"]\n", nplates, count);
@@ -559,8 +553,6 @@ int main(int argc, char **argv)
          }
       }
 
-      tclose();
-
 
       /**************************************/ 
       /* Open the difference fit table file */
@@ -683,8 +675,6 @@ int main(int argc, char **argv)
          }
       }
 
-      tclose();
-
       if(debug)
       {
          printf("DEBUG> nfits -> %d\n", nfits);
@@ -791,8 +781,6 @@ int main(int argc, char **argv)
          1.0);
       
       fflush(ffit);
-
-      // Note: We are consciously not closing ffit yet.
    }
 
 
@@ -817,42 +805,6 @@ int main(int argc, char **argv)
    // same file name in different plates or full duplicates in different plates.
    
    qsort(imgs, nimages, sizeof(ImgInfo), mHPXFindFragments_imCompare);
-
-
-   /*********************************************************************/
-   /* Print the combined image list in processing (alphabetical) order. */
-   /*********************************************************************/
-
-   strcat(outimg, ".sorted");
-
-   fimg = fopen(outimg, "w+");
-
-   if(fimg == (FILE *)NULL)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Failed to open output images file [%s].\"]\n", outimg);
-      fflush(stdout);
-      exit(1);
-   }
-
-   fprintf(fimg, "|  cntr  | naxis1 | naxis2 |     crpix1     |     crpix2     |    plate   |plate_cntr|  %100s  |\n", "fname");
-
-   for(i=0; i<nimages; ++i)
-   {
-      fprintf(fimg, " %8d %8d %8d %16.5f %16.5f %12s %10d %50s \n",
-         imgs[i].cntr,
-         imgs[i].naxis1,
-         imgs[i].naxis2,
-         imgs[i].crpix1,
-         imgs[i].crpix2,
-         imgs[i].plate,
-         imgs[i].plate_cntr,
-         imgs[i].fname);
-
-      fflush(stdout);
-   }
-
-   fflush(fimg);
-   fclose(fimg);
 
 
    // For each image, collect it and any following image with the same name
@@ -922,7 +874,7 @@ int main(int argc, char **argv)
          fitplane = mFitplane(filename, 1, 0, 0., 0);
          gettimeofday(&end, NULL);
 
-         printf("XXX> mFitplane (%s): %.6f\n", filename, 
+         printf("XXX> mFitplane (%s): %.6f\n", filename,
             (end.tv_sec-start.tv_sec) + (end.tv_usec-start.tv_usec)/1000000.);
          fflush(stdout);
 
@@ -1127,32 +1079,17 @@ int main(int argc, char **argv)
 
                if(fits_open_file(&ffits, filename, READONLY, &status))
                {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to open FITS file [%s].\"]\n", filename);
+                  printf("[struct stat=\"ERROR\", msg=\"Failed open FITS file [%s].\"]\n", filename);
                   fflush(stdout);
                   exit(1);
                }
-
-               if(fits_read_keys_lng(ffits, "NAXIS", 1, 2, naxis, &nfound, &status))
-               {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to find parameters NAXIS1, NAXIS2 in [%s].\"]\n", filename);
-                  fflush(stdout);
-                  exit(1);
-               }
-
-               if(fits_read_keys_dbl(ffits, "CRPIX", 1, 2, crpix, &nfound, &status))
-               {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to find parameters CRPIX1, CRPIX2 in [%s].\"]\n", filename);
-                  fflush(stdout);
-                  exit(1);
-               }
-
 
                fpixel[0] = 1;
                fpixel[1] = 1;
                fpixel[2] = 1;
                fpixel[3] = 1;
 
-               nelements = naxis[0];
+               nelements = imgs[fits[j].plus].naxis1;
 
                data = (double *) malloc(nelements * sizeof(double));
 
@@ -1161,19 +1098,10 @@ int main(int argc, char **argv)
 
                if(side == NORTH)
                {
-                  fpixel[1] = naxis[1];
-
-                  status = 0;
+                  fpixel[1] = imgs[fits[j].plus].naxis2;
 
                   if(fits_read_pix(ffits, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
                   {
-                        printf("XXX> First image j=%d fits[j].plus=%d NORTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
-                              j, fits[j].plus,
-                           (int)naxis[0],
-                           (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
-                           (int)nelements, status);
-                     fflush(stdout);
                      printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
                      fflush(stdout);
                      exit(1);
@@ -1184,7 +1112,7 @@ int main(int argc, char **argv)
                      if(!mNaN(data[l]))
                      {
                         fragments[j].xref = l + fragments[j].crpix1;
-                        fragments[j].yref = naxis[1] + fragments[j].crpix2;
+                        fragments[j].yref = imgs[fits[j].plus].naxis2 + fragments[j].crpix2;
 
                         break;
                      }
@@ -1196,17 +1124,8 @@ int main(int argc, char **argv)
 
                else
                {
-                  status = 0;
-
                   if(fits_read_pix(ffits, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
                   {
-                        printf("XXX> First image SOUTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
-                           (int)naxis[0],
-                           (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
-                           (int)nelements, status);
-                     printf("XXX> First image SOUTH fpixel = %d %d %d %d, nelements = %d, status = %d\n", fpixel[0], fpixel[1], fpixel[2], fpixel[3], (int)nelements, status);
-                     fflush(stdout);
                      printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
                      fflush(stdout);
                      exit(1);
@@ -1225,16 +1144,7 @@ int main(int argc, char **argv)
                }
 
                free(data);
-
-               status = 0;
-
-               if(fits_close_file(ffits, &status))
-               {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to close FITS file [%s].\"]\n", filename);
-                  fflush(stdout);
-                  exit(1);
-               }
-
+               fits_close_file(ffits, &status);
                wcsfree(wcs);
                
 
@@ -1246,30 +1156,17 @@ int main(int argc, char **argv)
 
                if(fits_open_file(&ffits, filename, READONLY, &status))
                {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to open FITS file [%s].\"]\n", filename);
+                  printf("[struct stat=\"ERROR\", msg=\"Failed open FITS file [%s].\"]\n", filename);
                   fflush(stdout);
                   exit(1);
                }
 
-               if(fits_read_keys_lng(ffits, "NAXIS", 1, 2, naxis, &nfound, &status))
-               {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to find parameters NAXIS1, NAXIS2 in [%s].\"]\n", filename);
-                  fflush(stdout);
-                  exit(1);
-               }
-
-               if(fits_read_keys_dbl(ffits, "CRPIX", 1, 2, crpix, &nfound, &status))
-               {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to find parameters CRPIX1, CRPIX2 in [%s].\"]\n", filename);
-                  fflush(stdout);
-                  exit(1);
-               }
                fpixel[0] = 1;
                fpixel[1] = 1;
                fpixel[2] = 1;
                fpixel[3] = 1;
 
-               nelements = naxis[0];
+               nelements = imgs[fits[k].plus].naxis1;
 
                data = (double *) malloc(nelements * sizeof(double));
 
@@ -1278,20 +1175,10 @@ int main(int argc, char **argv)
 
                if(side == NORTH)
                {
-                  for(m=0; m<naxis[1]; ++m)
+                  for(m=0; m<imgs[fits[k].plus].naxis2; ++m)
                   {
-                     fpixel[1] = m+1;
-
-                     status = 0;
-
                      if(fits_read_pix(ffits, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
                      {
-                        printf("XXX> Second image NORTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
-                           (int)naxis[0],
-                           (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
-                           (int)nelements, status);
-                        fflush(stdout);
                         printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
                         fflush(stdout);
                         exit(1);
@@ -1299,7 +1186,7 @@ int main(int argc, char **argv)
 
                      if(!mNaN(data[0]))
                      {
-                        fragments[j].xrefm = naxis[0] + fragments[k].crpix1;
+                        fragments[j].xrefm = imgs[fits[k].plus].naxis1 + fragments[k].crpix1;
                         fragments[j].yrefm = m + fragments[k].crpix2;
 
                         break;
@@ -1312,20 +1199,10 @@ int main(int argc, char **argv)
 
                else
                {
-                  for(m=0; m<naxis[1]; ++m)
+                  for(m=0; m<imgs[fits[k].plus].naxis2; ++m)
                   {
-                     fpixel[1] = m+1;
-
-                     status = 0;
-
                      if(fits_read_pix(ffits, TDOUBLE, fpixel, nelements, &nan, data, &nullcnt, &status))
                      {
-                        printf("XXX> Second image SOUTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
-                           (int)naxis[0],
-                           (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
-                           (int)nelements, status);
-                        fflush(stdout);
                         printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
                         fflush(stdout);
                         exit(1);
@@ -1348,16 +1225,7 @@ int main(int argc, char **argv)
                fragments[k].yrefm = fragments[j].yref;
 
                free(data);
-
-               status = 0;
-
-               if(fits_close_file(ffits, &status))
-               {
-                  printf("[struct stat=\"ERROR\", msg=\"Failed to close FITS file [%s].\"]\n", filename);
-                  fflush(stdout);
-                  exit(1);
-               }
-               
+               fits_close_file(ffits, &status);
                wcsfree(wcs);
             }
 

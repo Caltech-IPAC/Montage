@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <math.h>
 #include <cmd.h>
 #include <mNaN.h>
@@ -220,6 +221,11 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
 
 
    /* Find the min/max lat/lon for the corners */
+
+   lonmin = 0.;
+   lonmax = 0.;
+   latmin = 0.;
+   latmax = 0.;
 
    for(i=0; i<4; ++i)
    {
@@ -1211,7 +1217,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
 {
    int    i, k;
    double cosc, colat, sina, dlon, vang, dvang, vangmax, lat, lon;
-   double rad, type, lonprev, latprev;
+   double rad, type, lonprev = 0., latprev = 0.;
    double xpix, ypix;
    double clon, clat;
    int    naxis1, naxis2;
@@ -1421,7 +1427,7 @@ void mViewer_symbol(struct WorldCoor *wcs, int flipY,
 
 void mViewer_drawing(char *filename, int flipY, struct WorldCoor *wcs, int csysimg,  double epochimg, char *fontfile)
 {
-   int    i, n, csys, offscl;
+   int    i, n, csys = EQUJ, offscl;
    int    cmdc;
    char  *cmdv[256];
 
