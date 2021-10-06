@@ -922,10 +922,6 @@ int main(int argc, char **argv)
          fitplane = mFitplane(filename, 1, 0, 0., 0);
          gettimeofday(&end, NULL);
 
-         printf("XXX> mFitplane (%s): %.6f\n", filename, 
-            (end.tv_sec-start.tv_sec) + (end.tv_usec-start.tv_usec)/1000000.);
-         fflush(stdout);
-
          fragments[j].use = 1;
 
          if(fitplane->status)
