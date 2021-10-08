@@ -80,7 +80,7 @@ struct mArchiveListReturn
    int    count;         // Number of lines in output file.
 };
 
-struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile, char *locstr, 
+struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *locstr, 
                                         double width, double height, char *outfile, int debug);
 
 //-------------------

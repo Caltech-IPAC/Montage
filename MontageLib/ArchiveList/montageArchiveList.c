@@ -42,8 +42,6 @@ static char montage_msgstr[1024];
 /*   char  *band           Wavelength band (e.g. J for 2MASS, g for      */
 /*                         SDSS)                                         */
 /*                                                                       */
-/*   char  *hdrfile        FITS or header file defining area             */
-/*                                                                       */
 /*   char  *locstr         A (quoted if necessary) string containing     */
 /*                         a coordinate or the name of an object on      */
 /*                         the sky                                       */
@@ -58,8 +56,7 @@ static char montage_msgstr[1024];
 /*************************************************************************/
 
 
-struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile, 
-                                        char *location, double inwidth, double inheight,
+struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location, double inwidth, double inheight,
                                         char *outfile, int debug)
 {
    int    socket, port, count;
@@ -83,7 +80,6 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile,
    int   pport;
 
    struct mArchiveListReturn *returnStruct;
-   struct mImgBoundsReturn   *imReturnStruct;
 
    char *surveystr;
    char *bandstr;
@@ -96,7 +92,6 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile,
    {
       printf("DEBUG> survey:   [%s]\n", survey);
       printf("DEBUG> band:     [%s]\n", band);
-      printf("DEBUG> hdrfile:  [%s]\n", hdrfile);
       printf("DEBUG> location: [%s]\n", location);
       printf("DEBUG> width:    %-g\n",  width);
       printf("DEBUG> height:   %-g\n",  height);
@@ -119,22 +114,6 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile,
    strcpy(returnStruct->msg, "");
 
 
-   /* Special processing if header given */
-
-   if(strlen(hdrfile) > 0)
-   {
-      imReturnStruct = mImgBounds(hdrfile, 1, "EQUJ", 2000., 1, 0);
-
-      width  = imReturnStruct->width;
-      height = imReturnStruct->height;
-
-      ra  = imReturnStruct->clon;
-      dec = imReturnStruct->clat;
-   
-      free(imReturnStruct);
-   }
-
-
    /* Process the parameters */
 
    strcpy(server, "montage-web.ipac.caltech.edu");
@@ -147,24 +126,12 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *hdrfile,
 
    surveystr = mArchiveList_url_encode(survey);
    bandstr   = mArchiveList_url_encode(band);
+   locstr    = mArchiveList_url_encode(location);
 
-   if(strlen(hdrfile) > 0)
-   {
-      sprintf(temp, "%.4f+%.4f+eq+J2000", ra, dec);
+   sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
+      surveystr, bandstr, locstr, size);
 
-      sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
-         surveystr, bandstr, temp, size);
-   }
-   else
-   {
-      locstr = mArchiveList_url_encode(location);
-
-      sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
-         surveystr, bandstr, locstr, size);
-
-      free(locstr);
-   }
-
+   free(locstr);
    free(surveystr);
    free(bandstr);
 
