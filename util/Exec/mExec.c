@@ -2512,7 +2512,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 3)
             {
-               fprintf(fdebug, "%s\n", cmd); 
+               fprintf(fdebug, "%d: %s\n", cntr, cmd); 
                fflush(fdebug);
             }
 
