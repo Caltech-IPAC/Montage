@@ -14,7 +14,7 @@ LIBS   =	-L../../lib -lsvc -lmtbl -lcmd -lwcs -lcfitsio -lcoord -lboundaries -lm
 .c.o:
 		$(CC) $(CFLAGS)  -c  $*.c
 
-all:		mExec mImgBounds
+all:		mExec
 
 mExec:		mExec.o
 		$(CC) -o mExec mExec.o \
@@ -22,14 +22,8 @@ mExec:		mExec.o
 		../../Montage/filePath.o   \
 		$(LIBS)
 
-mImgBounds:	mImgBounds.o
-		$(CC) -o mImgBounds mImgBounds.o \
-		../../Montage/debugCheck.o   \
-		../../Montage/filePath.o   \
-		$(LIBS)
-
 install:
-		cp mExec mImgBounds ../../bin
+		cp mExec ../../bin
 
 clean:
-		rm -f mExec mImgBounds *.o
+		rm -f mExec *.o

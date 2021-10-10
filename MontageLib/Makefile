@@ -24,7 +24,6 @@ pgm:
 		(cd Hdr           && $(MAKE) && $(MAKE) install)
 		(cd Histogram     && $(MAKE) && $(MAKE) install)
 		(cd Imgtbl        && $(MAKE) && $(MAKE) install)
-		(cd ImgBounds     && $(MAKE) && $(MAKE) install)
 		(cd ArchiveList   && $(MAKE) && $(MAKE) install)
 		(cd ArchiveGet    && $(MAKE) && $(MAKE) install)
 		(cd ArchiveExec   && $(MAKE) && $(MAKE) install)
@@ -72,7 +71,6 @@ lib:
 			Hdr/montageHdr.o \
 			Histogram/montageHistogram.o \
 			Imgtbl/montageImgtbl.o \
-			ImgBounds/montageImgBounds.o \
 			MakeHdr/montageMakeHdr.o \
 			MakeImg/montageMakeImg.o \
 			Overlaps/montageOverlaps.o \
@@ -115,7 +113,6 @@ lib:
 			Hdr/montageHdr.o \
 			Histogram/montageHistogram.o \
 			Imgtbl/montageImgtbl.o \
-			ImgBounds/montageImgBounds.o \
 			MakeHdr/montageMakeHdr.o \
 			MakeImg/montageMakeImg.o \
 			Overlaps/montageOverlaps.o \
@@ -161,7 +158,6 @@ pythonlibs:
 			Hdr/montageHdr.o \
 			Histogram/montageHistogram.o \
 			Imgtbl/montageImgtbl.o \
-			ImgBounds/montageImgBounds.o \
 			MakeHdr/montageMakeHdr.o \
 			MakeImg/montageMakeImg.o \
 			Overlaps/montageOverlaps.o \
@@ -409,7 +405,6 @@ doc:
 			mLibDoc Hdr
 			mLibDoc Histogram
 			mLibDoc Imgtbl
-			mLibDoc ImgBounds
 			mLibDoc MakeHdr
 			mLibDoc MakeImg
 			mLibDoc Overlaps
@@ -450,7 +445,6 @@ jupyter:
 			mJupyter Hdr
 			mJupyter Histogram
 			mJupyter Imgtbl
-			mJupyter ImgBounds
 			mJupyter MakeHdr
 			mJupyter MakeImg
 			mJupyter Overlaps
@@ -491,7 +485,6 @@ clean:
 		(cd Hdr           && test ! -e Makefile || $(MAKE) clean)
 		(cd Histogram     && $(MAKE) clean)
 		(cd Imgtbl        && test ! -e Makefile || $(MAKE) clean)
-		(cd ImgBounds     && test ! -e Makefile || $(MAKE) clean)
 		(cd MakeHdr       && test ! -e Makefile || $(MAKE) clean)
 		(cd MakeImg       && test ! -e Makefile || $(MAKE) clean)
 		(cd Overlaps      && test ! -e Makefile || $(MAKE) clean)
