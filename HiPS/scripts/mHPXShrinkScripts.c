@@ -39,6 +39,7 @@ int main(int argc, char **argv)
    char scriptdir [MAXSTR];
    char scriptfile[MAXSTR];
    char driverfile[MAXSTR];
+   char taskfile  [MAXSTR];
    char tmpdir    [MAXSTR];
    char plate     [MAXSTR];
    char cwd       [MAXSTR];
@@ -47,6 +48,7 @@ int main(int argc, char **argv)
 
    FILE *fscript;
    FILE *fdriver;
+   FILE *ftask;
 
    getcwd(cwd, 1024);
 
@@ -134,7 +136,7 @@ int main(int argc, char **argv)
    /* Open the driver script file */
    /*******************************/
 
-   sprintf(driverfile, "%srunShrink.sh", scriptdir);
+   sprintf(driverfile, "%sshrinkSubmit.sh", scriptdir);
 
    fdriver = fopen(driverfile, "w+");
 
@@ -147,6 +149,45 @@ int main(int argc, char **argv)
 
    fprintf(fdriver, "#!/bin/sh\n\n");
    fflush(fdriver);
+
+
+
+   /******************************************/
+   /* Create the task submission script file */
+   /******************************************/
+
+   if(!single_threaded)
+   {
+      sprintf(taskfile, "%sshrinkTask.bash", scriptdir);
+
+      if(debug)
+      {
+         printf("DEBUG> taskfile:   [%s]\n", taskfile);
+         fflush(stdout);
+      }
+
+      ftask = fopen(taskfile, "w+");
+
+      if(ftask == (FILE *)NULL)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+         fflush(stdout);
+         exit(0);
+      }
+
+      fprintf(ftask, "#!/bin/bash\n");
+      fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+      fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+      fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+      fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+      fprintf(ftask, "#SBATCH -o %slogs/shrink.%N.%%j.out # STDOUT\n", scriptdir);
+      fprintf(ftask, "#SBATCH -e %slogs/shrink.%N.%%j.err # STDERR\n", scriptdir);
+      fprintf(ftask, "%sjobs/shrink_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+      fflush(ftask);
+      fclose(ftask);
+   }
+
 
 
    /*****************************************************************/
@@ -171,9 +212,11 @@ int main(int argc, char **argv)
       if(tread() < 0)
          break;
 
+      ++count;
+
       strcpy(plate, tval(iplate));
 
-      sprintf(scriptfile, "%s/jobs/shrink%03d.sh", scriptdir, count);
+      sprintf(scriptfile, "%s/jobs/shrink_%d.sh", scriptdir, count);
       
       fscript = fopen(scriptfile, "w+");
 
@@ -187,7 +230,7 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "#!/bin/sh\n\n");
 
-      fprintf(fscript, "echo jobs/shrink%03d.sh\n\n", count);
+      fprintf(fscript, "echo Plate %s, Task %d\n\n", plate, count);
 
       for(iorder=order; iorder>=1; --iorder)
       {
@@ -197,8 +240,13 @@ int main(int argc, char **argv)
 
          pixscale  = 90.0 / nsidePix / sqrt(2.0);
 
-         fprintf(fscript, "mShrink -p %.8f $1order%d/%s.fits $1order%d/%s.fits 2\n", 
-            pixscale, iorder, plate, iorder-1, plate);
+         fprintf(fscript, "mkdir %sorder%d\n", platedir, iorder-1);
+
+         fprintf(fscript, "echo mShrink -p %.8f %sorder%d/%s.fits %sorder%d/%s.fits 2\n", 
+            pixscale, platedir, iorder, plate, platedir, iorder-1, plate);
+
+         fprintf(fscript, "mShrink -p %.8f %sorder%d/%s.fits %sorder%d/%s.fits 2\n", 
+            pixscale, platedir, iorder, plate, platedir, iorder-1, plate);
       }
 
       fflush(fscript);
@@ -208,18 +256,19 @@ int main(int argc, char **argv)
 
       if(single_threaded)
       {
-         fprintf(fdriver, "%sjobs/shrink%03d.sh %s\n", scriptdir, count, platedir);
+         fprintf(fdriver, "%sjobs/shrink_%d.sh %s\n", scriptdir, count, platedir);
          fflush(fdriver);
       }
-      else
-      {
-         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitShrink.bash %sjobs/shrink%03d.sh %s\n", 
-            scriptdir, scriptdir, count, platedir);
-         fflush(fdriver);
-      }
-
-      ++count;
    }
+
+   if(!single_threaded)
+   {
+      fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %sshrinkTask.bash\n", 
+         count, scriptdir, scriptdir);
+      fflush(fdriver);
+   }
+
+   fclose(fdriver);
 
    chmod(driverfile, 0777);
 

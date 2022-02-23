@@ -24,7 +24,7 @@ Version  Developer        Date     Change
 
 void mHiPSTiles_printFitsError(int status);
 
-int  mHiPSTiles_HiPSID(int pixlev, double x, double y);
+int  mHiPSTiles_HiPSID(int order, int fullscale, double x, double y);
 
 void mHiPSTiles_splitIndex(long index, int level, int *x, int *y);
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
    fitsfile *plate, **hips;
 
    int       i, j, k, l, m, it, offscl, istat, nhips, ntot, maxhips;
-   int       hpxPix, hpxLevel, tileLevel, fullscale, nullcnt;
+   int       hpxPix, hpxLevel, order, fullscale, nullcnt;
 
    int       ibegin, iend;
    int       jbegin, jend;
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
       printf("DEBUG> (main)> crval1     =  %-g\n", crval1);
       printf("DEBUG> (main)> crval2     =  %-g\n", crval2);
       printf("DEBUG> (main)> crpix1     =  %.1f\n", crpix1);
-      printf("DEBUG> (main)> crpix2     =  %.1f\n", crpix2);
+         printf("DEBUG> (main)> crpix2     =  %.1f\n", crpix2);
       printf("DEBUG> (main)> cdelt1     =  %-g\n", cdelt1);
       printf("DEBUG> (main)> cdelt2     =  %-g\n", cdelt2);
       fflush(stdout);
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
  
    hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
 
-   tileLevel = hpxLevel - 9;
+   order = hpxLevel - 9;
  
    hpxPix = pow(2., (double)hpxLevel) + 0.5;
      
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
    if(debug)
    {
       printf("\nDEBUG> (main)> hpxLevel  =  %d\n", hpxLevel);
-      printf("\nDEBUG> (main)> tileLevel =  %d\n", tileLevel);
+      printf("\nDEBUG> (main)> order =  %d\n", order);
       printf("DEBUG> (main)> fullscale =  %d\n", fullscale);
       fflush(stdout);
    }
@@ -291,8 +291,8 @@ int main(int argc, char **argv)
    /*                                                */
    /**************************************************/
 
-   ibegin = fullscale/2. - (crpix1 - 0.5) + 0.5;
-   jbegin = fullscale/2. - (crpix2 - 0.5) + 0.5;
+   ibegin = fullscale/2. + (crpix1 - 0.5) + 0.5;
+   jbegin = fullscale/2. + (crpix2 - 0.5) + 0.5;
 
    // Note: The first 0.5 is the offset of FITS coords (index 1) to
    // pixel coords (index 0); the beginning of the image is FITS coord
@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 
    ntot = 0;
 
-   if(debug > 1)
+   if(debug > 2)
    {
       printf("\n");
       fflush(stdout);
@@ -391,7 +391,7 @@ int main(int argc, char **argv)
 
          for(icenter=ibegin+padLeft+256; icenter<iend-padRight+256; icenter+=512)
          {
-            tileID = mHiPSTiles_HiPSID(hpxLevel, (double)icenter, (double)jcenter);
+            tileID = mHiPSTiles_HiPSID(order, fullscale, (double)icenter, (double)jcenter);
 
             if(tileID < 0)
                continue;
@@ -399,9 +399,9 @@ int main(int argc, char **argv)
             subsetDir = tileID / 10000 * 10000;
 
 
-            // Make the HiPS "order" directory
+            // Make the HiPS directory
 
-            sprintf(path, "%sNorder%d", hipsDir, tileLevel);
+            sprintf(path, "%s", hipsDir);
 
             istat = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
@@ -413,15 +413,29 @@ int main(int argc, char **argv)
             }
 
 
-            // And the HiPS "subset" directory for this ID
+            // Make the HiPS "order" directory
 
-            sprintf(path, "%sNorder%d/Dir%d", hipsDir, tileLevel, subsetDir);
+            sprintf(path, "%sNorder%d", hipsDir, order);
 
             istat = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
             if(istat < 0 && errno != EEXIST)
             {
-               printf("[struct stat=\"ERROR\", msg=\"Problem creating output HiPS subset directory %s\"]\n", path);
+               printf("[struct stat=\"ERROR\", msg=\"Problem creating output HiPS 'order' directory %s\"]\n", path);
+               fflush(stdout);
+               exit(0);
+            }
+
+
+            // And the HiPS "subset" directory for this ID
+
+            sprintf(path, "%sNorder%d/Dir%d", hipsDir, order, subsetDir);
+
+            istat = mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+            if(istat < 0 && errno != EEXIST)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Problem creating output HiPS 'order' subset directory %s\"]\n", path);
                fflush(stdout);
                exit(0);
             }
@@ -429,7 +443,7 @@ int main(int argc, char **argv)
 
             // Finally, the HiPS FITS file
 
-            sprintf(path, "%sNorder%d/Dir%d/Npix%d.fits", hipsDir, tileLevel, subsetDir, tileID);
+            sprintf(path, "%sNorder%d/Dir%d/Npix%d.fits", hipsDir, order, subsetDir, tileID);
 
             unlink(path);
 
@@ -471,7 +485,7 @@ int main(int argc, char **argv)
 
       // Copy data
 
-      if(debug > 1)
+      if(debug > 2)
       {
          printf("READ>  fpixel  = %6ld %6ld, nelements  = %6ld\n", fpixel[0], fpixel[1], nelements);
          fflush(stdout);
@@ -488,7 +502,7 @@ int main(int argc, char **argv)
          for(m=0; m<512; ++m)
             outdata[m] = indata[padLeft + 512*l + m];
 
-         if(debug > 1)
+         if(debug > 2)
          {
             printf("WRITE> fpixelo = %6ld %6ld, nelementso = %6ld\n", fpixelo[0], fpixelo[1], nelementso);
             fflush(stdout);
@@ -547,10 +561,10 @@ int main(int argc, char **argv)
 /*                                                                  */
 /********************************************************************/
 
-int mHiPSTiles_HiPSID(int pixlev, double x, double y)
+int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 {
    long long baseTile;
-   long long nside, nsideout, index, id;
+   long long nside, index, id;
    long long xi, yi, ibase, jbase, base;
 
    double xintile, yintile;
@@ -560,16 +574,26 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
    // Command-line arguments
 
 
-   // Size of a base tile at the pixel level
+   // Size of a base tile (face) in tile units
 
-   nside    = (long long) pow(2., (double)pixlev);
-   nsideout = (long long) pow(2., (double)(pixlev-9));
+   nside = (long long) pow(2., (double)order);
 
    if(debug > 1)
    {
       printf("\nDEBUG> (HiPSID)> nside     = %lld\n", nside);
-      printf("DEBUG> (HiPSID)> nsideout  = %lld\n\n", nsideout);
-      printf("DEBUG> (HiPSID)> Pixel coord:   X = %9.1f, Y = %9.1f (level %ld)\n", x, y, pixlev); 
+      printf("DEBUG> (HiPSID)> Pixel coord:   X = %9.1f, Y = %9.1f (order %ld)\n", x, y, order); 
+      fflush(stdout);
+   }
+
+
+   // Convert x,y to tile units
+   
+   x = x / 512.;
+   y = y / 512.;
+
+   if(debug > 1)
+   {
+      printf("DEBUG> (HiPSID)> Tile coord:    X = %9.1f, Y = %9.1f\n", x, y); 
       fflush(stdout);
    }
 
@@ -591,7 +615,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    baseTile = -1;
 
-   for(i=0; i<13; ++i)
+   for(i=0; i<12; ++i)
    {
       if(ibase == xoffset[i])
       {
@@ -602,9 +626,6 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
          }
       }
    }
-
-   if(baseTile == 12)
-      baseTile = 6;
 
    if(debug > 1)
    {
@@ -623,19 +644,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev); 
-      fflush(stdout);
-   }
-
-
-   // But make that in output tile units
-
-   xintile = xintile * nsideout / nside;
-   yintile = yintile * nsideout / nside;
-
-   if(debug > 1)
-   {
-      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (level %ld)\n", xintile, yintile, pixlev-9); 
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (order %ld)\n", xintile, yintile, order); 
       fflush(stdout);
    }
 
@@ -643,11 +652,11 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
    // The starting point for the index is the 
    // lowest index for the base tile
 
-   index = baseTile * nsideout * nsideout;
+   index = baseTile * nside * nside;
 
    if(debug > 1)
    {
-      printf("\nDEBUG> (HiPSID)> Tile starting index = %lld (level %ld)\n\n", index, pixlev-9);
+      printf("\nDEBUG> (HiPSID)> Tile starting index = %lld (order %ld)\n\n", index, order);
       fflush(stdout);
    }
 
@@ -660,11 +669,11 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
    // X is measured from the right, so we need to
    // complement it.
 
-   xintile = nsideout - xintile;
+   xintile = nside - xintile;
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (of %d)\n", xintile, yintile, nsideout);
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (of %d)\n", xintile, yintile, nside);
       fflush(stdout);
    }
 
@@ -675,7 +684,7 @@ int mHiPSTiles_HiPSID(int pixlev, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Integer tile:  X = %9d, Y = %9d (of %d)\n", xi, yi, nsideout);
+      printf("DEBUG> (HiPSID)> Integer tile:  X = %9d, Y = %9d (of %d)\n", xi, yi, nside);
       fflush(stdout);
    }
 

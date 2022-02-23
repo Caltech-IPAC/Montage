@@ -532,7 +532,15 @@ int main(int argc, char **argv)
          imgs[nimages].crpix1     = atof(tval(icrpix1));
          imgs[nimages].crpix2     = atof(tval(icrpix2));
 
-         strcpy(imgs[nimages].fname, tval(ifname));
+         strcpy(filename, tval(ifname));
+
+         ptr = filename;
+
+         for(i=0; i<strlen(filename); ++i)
+            if(filename[i] == '/')
+               ptr = filename + i + 1;
+
+         strcpy(imgs[nimages].fname, ptr);
          strcpy(imgs[nimages].plate, plates[k]);
 
          ++nimages;

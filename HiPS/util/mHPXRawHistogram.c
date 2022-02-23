@@ -40,7 +40,7 @@ int debug = 0;
 
 int main(int argc, char **argv)
 {
-   int  i, ch, nind, ncols, nplates, order, size, iplate, count;
+   int  i, ch, nind, ncols, nplates, order, iplate, count;
    int  status, nfound;
 
    char platelist[MAXSTR];
@@ -66,9 +66,9 @@ int main(int argc, char **argv)
 
    // Command-line arguments
 
-   if(argc < 6)
+   if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXRawHistograms [-d] platelist.tbl platedir order size histdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXRawHistograms [-d] platelist.tbl platedir order histdir\"]\n");
       fflush(stdout);
       exit(1);
    }
@@ -84,15 +84,15 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXRawHistograms [-d] platelist.tbl platedir order size histdir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXRawHistograms [-d] platelist.tbl platedir order histdir\"]\n");
             fflush(stdout);
             exit(1);
       }
    }
 
-   if(optind + 4 >= argc)
+   if(optind + 3 >= argc)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXRawHistograms [-d] platelist.tbl platedir order size histdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXRawHistograms [-d] platelist.tbl platedir order histdir\"]\n");
       fflush(stdout);
       exit(1);
    }
@@ -101,9 +101,8 @@ int main(int argc, char **argv)
    strcpy(platedir,  argv[optind + 1]);
 
    order = atoi(argv[optind + 2]);
-   size  = atoi(argv[optind + 3]);
 
-   strcpy(histdir, argv[optind + 4]);
+   strcpy(histdir, argv[optind + 3]);
 
 
    if(platelist[0] != '/')
@@ -137,9 +136,8 @@ int main(int argc, char **argv)
    {
       printf("DEBUG> platelist  = %s\n", platelist);
       printf("DEBUG> platedir   = %s\n", platedir);
-      printf("DEBUG> histdir    = %s\n", histdir);
       printf("DEBUG> order      = %d\n", order);
-      printf("DEBUG> size       = %d\n", size);
+      printf("DEBUG> histdir    = %s\n", histdir);
       fflush(stdout);
    }
 

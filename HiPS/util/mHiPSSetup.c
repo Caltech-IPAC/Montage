@@ -118,6 +118,21 @@ int main(int argc, char **argv)
    chmod(sname, 0755);
 
 
+   sprintf(sname, "%s/submitQuicklook.bash", script_directory);
+   fout = fopen(sname, "w+");
+
+   fprintf(fout, "#!/bin/bash\n");
+   fprintf(fout, "#SBATCH -p debug # partition (queue)\n");
+   fprintf(fout, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+   fprintf(fout, "#SBATCH -n 1 # number of cores a single job will use\n");
+   fprintf(fout, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+   fprintf(fout, "#SBATCH -o %s/quicklook.%%N.%%j.out # STDOUT\n", logs_directory);
+   fprintf(fout, "#SBATCH -e %s/quicklook.%%N.%%j.err # STDERR\n", logs_directory);
+   fprintf(fout, "$1 $2 $3\n");
+   fclose(fout);
+   chmod(sname, 0755);
+
+
    sprintf(sname, "%s/%s/scripts/submitDiffFit.bash", basedir, mapname);
    fout = fopen(sname, "w+");
 

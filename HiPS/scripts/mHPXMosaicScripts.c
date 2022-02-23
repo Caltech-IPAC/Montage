@@ -25,8 +25,6 @@ int sky[5][5] = {{1,1,0,0,0},
                  {0,0,1,1,1},
                  {0,0,0,1,1}};
 
-int naxis;
-
 
 /****************************************************************************/
 /*                                                                          */
@@ -65,10 +63,12 @@ int naxis;
 /*  For BACKGROUD_CORRECTION processing, we use mExec and pass it the       */
 /*  survey/band information.  For PROJECT_ONLY, we use mProjExec.           */
 /*                                                                          */
-/*  For CLUSTER processing, the main runMosaics.sh script submits the       */
-/*  plate processing jobs to the cluster all at once and lets the cluster   */
-/*  manage their execution.  For SINGLE_THREADED, that same script runs     */
-/*  in foreground, running the processing jobs one after another.  The      */
+/*  For CLUSTER processing, the main mosaicSubmit.sh script submits the     */
+/*  plate processing jobs to the cluster as a SLURM "array" (which lets us  */
+/*  control how many are processed at a time).                              */
+/*                                                                          */
+/*  For SINGLE_THREADED, that same script is structured to execute in       */
+/*  foreground, running the processing jobs one after another.  The         */
 /*  processing job scripts are the same in either case.                     */
 /*                                                                          */
 /*  Of the eight possible combinations, there are a few we haven't yet had  */
@@ -83,6 +83,7 @@ int main(int argc, char **argv)
    int  level, level_only, c, pad, ncols, nplate;
    int  id, iplate, i, j, status, nimages, exists;
    int  iid, ii, ij, location, background, processing;
+   int  nside, naxis, noff;
 
    char cwd       [1024];
    char survey    [1024];
@@ -91,17 +92,20 @@ int main(int argc, char **argv)
    char outfile   [1024];
    char scriptfile[1024];
    char driverfile[1024];
+   char taskfile  [1024];
    char mosaicdir [1024];
    char scriptdir [1024];
    char dir       [1024];
    char platelist [1024];
    char platename [1024];
    char tmpdir    [1024];
+   char flags     [1024];
 
    struct stat buf;
 
    FILE *fscript;
    FILE *fdriver;
+   FILE *ftask;
 
    int debug = 0;
 
@@ -112,19 +116,21 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-s(ingle-threaded)[-p(roject-only)] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-s(ingle-threaded)[-p(roject-only)][-P(ad) pad] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
       fflush(stdout);
       exit(1);
    }
 
    debug = 0;
-   level_only = 0;
 
-   location   = ARCHIVE;
-   background = BACKGROUND_CORRECTION;
-   processing = CLUSTER;
+   level_only   = 0;
 
-   while ((c = getopt(argc, argv, "dlsp")) != EOF)
+   location     = ARCHIVE;
+   background   = BACKGROUND_CORRECTION;
+   processing   = CLUSTER;
+   pad          = -1;
+
+   while ((c = getopt(argc, argv, "dblspP:")) != EOF)
    {
       switch (c)
       {
@@ -144,8 +150,12 @@ int main(int argc, char **argv)
             background = PROJECT_ONLY;
             break;
 
+         case 'P':
+            pad = atoi(argv[optind]);
+            break;
+
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-s(ingle-threaded)[-p(roject-only)] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-s(ingle-threaded)[-p(roject-only)] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
             fflush(stdout);
             exit(1);
       }
@@ -213,6 +223,14 @@ int main(int argc, char **argv)
    if(mosaicdir[strlen(mosaicdir)-1] != '/')
       strcat(mosaicdir, "/");
 
+   strcpy(flags, "");
+
+   if(level_only)
+      strcat(flags, "-l ");
+
+   if(background == PROJECT_ONLY)
+      strcat(flags, "-b ");
+
 
    // Make sure the necessary subdirectories exist
 
@@ -251,7 +269,7 @@ int main(int argc, char **argv)
 
    // Open the driver script file
 
-   sprintf(driverfile, "%s/runMosaics.sh", scriptdir);
+   sprintf(driverfile, "%smosaicSubmit.sh", scriptdir);
 
    if(debug)
    {
@@ -272,7 +290,42 @@ int main(int argc, char **argv)
    fflush(fdriver);
 
 
-   // Create the scripts. We double check that the plate intersects with
+   // Open the task submission script file
+
+   if(processing != SINGLE_THREADED)
+   {
+      sprintf(taskfile, "%smosaicTask.bash", scriptdir);
+
+      if(debug)
+      {
+         printf("DEBUG> taskfile:   [%s]\n", taskfile);
+         fflush(stdout);
+      }
+
+      ftask = fopen(taskfile, "w+");
+
+      if(ftask == (FILE *)NULL)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+         fflush(stdout);
+         exit(0);
+      }
+
+      fprintf(ftask, "#!/bin/bash\n");
+      fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+      fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+      fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+      fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+      fprintf(ftask, "#SBATCH -o %slogs/mosaic.%N.%%j.out # STDOUT\n", scriptdir);
+      fprintf(ftask, "#SBATCH -e %slogs/mosaic.%N.%%j.err # STDERR\n", scriptdir);
+      fprintf(ftask, "%sjobs/mosaic_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+      fflush(ftask);
+      fclose(ftask);
+   }
+
+
+   // Create the mosaic scripts. We double check that the plate intersects with
    // at least a part of the sky
    
    ncols = topen(platelist);
@@ -314,11 +367,18 @@ int main(int argc, char **argv)
       exit(0);
    }
 
+   nside = (int)pow(2., level+9.);
 
-   pad = (int)pow(2., (double)(level-1));
+   naxis = 5 * nside / nplate;
 
-   if(pad <  32) pad =  32;
-   if(pad > 256) pad = 256;
+   noff = 16 * naxis;
+
+   if(pad == -1)
+   {
+      pad = (int)pow(2., (double)(level+4));
+
+      if(pad < 128) pad = 128;
+   }
 
 
    if(debug)
@@ -329,6 +389,8 @@ int main(int argc, char **argv)
       printf("DEBUG> ij     = %d\n", ij);
       printf("DEBUG> level  = %d\n", level);
       printf("DEBUG> nplate = %d\n", nplate);
+      printf("DEBUG> naxis  = %d\n", naxis);
+      printf("DEBUG> noff   = %d\n", noff);
       printf("DEBUG> pad    = %d\n", pad);
       fflush(stdout);
    }
@@ -377,7 +439,7 @@ int main(int argc, char **argv)
          continue;
       }
 
-      sprintf(scriptfile, "%sjobs/plate_%02d_%02d.sh", scriptdir, i, j);
+      sprintf(scriptfile, "%sjobs/mosaic_%d.sh", scriptdir, nimages);
 
       if(debug)
       {
@@ -389,7 +451,7 @@ int main(int argc, char **argv)
 
       if(fscript == (FILE *)NULL)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file for plate %d %d.\"]\n", i, j);
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file for plate %d %d (number %d).\"]\n", i, j, nimages);
          fflush(stdout);
          exit(0);
       }
@@ -398,68 +460,66 @@ int main(int argc, char **argv)
       {
          fprintf(fscript, "#!/bin/sh\n\n");
 
+         fprintf(fscript, "echo \"%s %s - Job %d\"\n", survey, band, nimages);
          fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n", i, j);
 
-         fprintf(fscript, "mkdir -p $1\n");
+         fprintf(fscript, "mkdir -p %s\n", mosaicdir);
 
-         fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
+         fprintf(fscript, "rm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
 
-         fprintf(fscript, "mkdir $1/work_%02d_%02d\n", i, j);
+         fprintf(fscript, "mkdir %swork_%02d_%02d\n", mosaicdir, i, j);
 
-         fprintf(fscript, "mHPXHdr %d $1/hpx%d_%02d_%02d.hdr\n", level, level, i, j);
+         fprintf(fscript, "mHPXHdr %d %shpx%d_%02d_%02d.hdr\n", level, mosaicdir, level, i, j);
 
-         fprintf(fscript, "mTileHdr $1/hpx%d_%02d_%02d.hdr $1/plate_%02d_%02d.hdr %d %d %d %d %d %d\n", 
-            level, i, j, i, j, nplate, nplate, i, j, pad, pad);
+         fprintf(fscript, "mTileHdr %shpx%d_%02d_%02d.hdr %splate_%02d_%02d.hdr %d %d %d %d %d %d\n", 
+            mosaicdir, level, i, j, mosaicdir, i, j, nplate, nplate, i, j, pad, pad);
 
-         if(level_only)
-            fprintf(fscript, "mExec -q -a -l -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
-                i, j, i, j, survey, band, i, j);
-         else
-            fprintf(fscript, "mExec -q -a -c -f $1/plate_%02d_%02d.hdr -o $1/plate_%02d_%02d.fits %s %s $1/work_%02d_%02d\n", 
-                i, j, i, j, survey, band, i, j);
+         fprintf(fscript, "rm -f %shpx%d_%02d_%02d.hdr\n", mosaicdir, level, i, j);
 
-         fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
-         fprintf(fscript, "rm -f $1/hpx%d_%02d_%02d.hdr\n", level, i, j);
-         fprintf(fscript, "rm -f $1/plate_%02d_%02d.hdr\n", i, j);
-         fprintf(fscript, "rm -f $1/plate_%02d_%02d_area.fits\n", i, j);
+         fprintf(fscript, "mExec -d 3 -q %s -c -W \"%d %d\" -f %splate_%02d_%02d.hdr -o %splate_%02d_%02d.fits %s %s %swork_%02d_%02d\n", 
+             flags, noff, noff, mosaicdir, i, j, mosaicdir, i, j, survey, band, mosaicdir, i, j);
+
+         fprintf(fscript, "rm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
+         fprintf(fscript, "rm -f %splate_%02d_%02d.hdr\n", mosaicdir, i, j);
+         fprintf(fscript, "rm -f %splate_%02d_%02d_area.fits\n", mosaicdir, i, j);
 
          fflush(fscript);
          fclose(fscript);
       }
 
-      if(location == LOCAL)
+      if(location == LOCAL)   // Change this later to use mExec
       {
          fprintf(fscript, "#!/bin/sh\n\n");
 
-         fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n\n", i, j);
+         fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n\n", mosaicdir, i, j);
 
-         fprintf(fscript, "mkdir -p $1\n");
+         fprintf(fscript, "mkdir -p %s\n", mosaicdir);
 
-         fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
+         fprintf(fscript, "rm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
 
-         fprintf(fscript, "mkdir $1/work_%02d_%02d\n", i, j);
+         fprintf(fscript, "mkdir %swork_%02d_%02d\n", mosaicdir, i, j);
 
-         fprintf(fscript, "mkdir $1/work_%02d_%02d/projected\n", i, j);
+         fprintf(fscript, "mkdir %swork_%02d_%02d/projected\n", mosaicdir, i, j);
 
-         fprintf(fscript, "mHPXHdr %d $1/hpx%d_%02d_%02d.hdr\n", level, level, i, j);
+         fprintf(fscript, "mHPXHdr %d %shpx%d_%02d_%02d.hdr\n", level, mosaicdir, level, i, j);
 
-         fprintf(fscript, "mTileHdr $1/hpx%d_%02d_%02d.hdr $1/plate_%02d_%02d.hdr %d %d %d %d %d %d\n", 
-            level, i, j, i, j, nplate, nplate, i, j, pad, pad);
+         fprintf(fscript, "mTileHdr %shpx%d_%02d_%02d.hdr %splate_%02d_%02d.hdr %d %d %d %d %d %d\n", 
+            mosaicdir, level, i, j, mosaicdir, i, j, nplate, nplate, i, j, pad, pad);
 
-         fprintf(fscript, "mImgtbl %s $1/work_%02d_%02d/rimages.tbl\n", datadir, i, j);
+         fprintf(fscript, "mImgtbl %s %swork_%02d_%02d/rimages.tbl\n", datadir, mosaicdir, i, j);
 
-         fprintf(fscript, "mProjExec -q -p %s $1/work_%02d_%02d/rimages.tbl $1/plate_%02d_%02d.hdr $1/work_%02d_%02d/projected $1/work_%02d_%02d/stats.tbl\n",
-            datadir, i, j, i, j, i, j, i, j);
+         fprintf(fscript, "mProjExec -q -p %s %swork_%02d_%02d/rimages.tbl %splate_%02d_%02d.hdr %swork_%02d_%02d/projected %swork_%02d_%02d/stats.tbl\n",
+            datadir, mosaicdir, i, j, mosaicdir, i, j, mosaicdir, i, j, mosaicdir, i, j);
 
-         fprintf(fscript, "mImgtbl $1/work_%02d_%02d/projected $1/work_%02d_%02d/pimages.tbl\n", i, j, i, j);
+         fprintf(fscript, "mImgtbl %swork_%02d_%02d/projected %swork_%02d_%02d/pimages.tbl\n", mosaicdir, i, j, mosaicdir, i, j);
          
-         fprintf(fscript, "mAdd -p $1/work_%02d_%02d/projected $1/work_%02d_%02d/pimages.tbl $1/plate_%02d_%02d.hdr $1/plate_%02d_%02d.fits\n",
-            i, j, i, j, i, j, i, j);
+         fprintf(fscript, "mAdd -p %swork_%02d_%02d/projected %swork_%02d_%02d/pimages.tbl %splate_%02d_%02d.hdr %splate_%02d_%02d.fits\n",
+            mosaicdir, i, j, mosaicdir, i, j, mosaicdir, i, j, mosaicdir, i, j);
 
-         fprintf(fscript, "rm -rf $1/work_%02d_%02d\n", i, j);
-         fprintf(fscript, "rm -f $1/hpx%d_%02d_%02d.hdr\n", level, i, j);
-         fprintf(fscript, "rm -f $1/plate_%02d_%02d.hdr\n", i, j);
-         fprintf(fscript, "rm -f $1/plate_%02d_%02d_area.fits\n", i, j);
+         fprintf(fscript, "rm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
+         fprintf(fscript, "rm -f %shpx%d_%02d_%02d.hdr\n", mosaicdir, level, i, j);
+         fprintf(fscript, "rm -f %splate_%02d_%02d.hdr\n", mosaicdir, i, j);
+         fprintf(fscript, "rm -f %splate_%02d_%02d_area.fits\n", mosaicdir, i, j);
 
          fflush(fscript);
          fclose(fscript);
@@ -467,13 +527,16 @@ int main(int argc, char **argv)
 
       chmod(scriptfile, 0777);
 
-      if(processing == CLUSTER)
-         fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 %ssubmitMosaic.bash %sjobs/plate_%02d_%02d.sh %s\n",
-            scriptdir, scriptdir, i, j, mosaicdir);
-
       if(processing == SINGLE_THREADED)
-         fprintf(fdriver, "%sjobs/plate_%02d_%02d.sh %s\n",
-            scriptdir, i, j, mosaicdir);
+         fprintf(fdriver, "%sjobs/mosaic_%d.sh\n", scriptdir, nimages);
+
+      fflush(fdriver);
+   }
+
+   if(processing == CLUSTER)
+   {
+      fprintf(fdriver, "sbatch --array=1-%d%20 --mem=16384 --mincpus=1 %smosaicTask.bash\n",
+         nimages, scriptdir);
 
       fflush(fdriver);
    }
@@ -485,4 +548,4 @@ int main(int argc, char **argv)
       level, level+9, nimages, exists);
    fflush(stdout);
    exit(0);
-} 
+}

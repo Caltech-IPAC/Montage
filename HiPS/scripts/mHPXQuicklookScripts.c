@@ -29,29 +29,37 @@ int debug;
 
 int main(int argc, char **argv)
 {
-   int  i, ch, status, count;
+   int  i, ch, status, job, mode, shrink;
    
    double shrink_factor;
 
    char  scriptdir    [MAXSTR];
    char  platedir     [MAXSTR];
+   char  brightness   [MAXSTR];
+   char  contrast     [MAXSTR];
    char  quicklookdir [MAXSTR];
    char  scriptfile   [MAXSTR];
    char  driverfile   [MAXSTR];
+   char  taskfile     [MAXSTR];
    char  tmpdir       [MAXSTR];
    char  tmpstr       [MAXSTR];
    char  filename     [MAXSTR];
+   char  histfile     [MAXSTR];
    char  base         [MAXSTR];
    char  ext          [MAXSTR];
    char  cwd          [MAXSTR];
+   char  flags        [MAXSTR];
 
    char *ptr;
 
    DIR    *dirp;
    struct  dirent *direntp;
 
+   struct stat buf;
+
    FILE *fscript;
    FILE *fdriver;
+   FILE *ftask;
 
    fitsfile *fptr;
 
@@ -66,7 +74,13 @@ int main(int argc, char **argv)
 
    opterr = 0;
 
-   while ((ch = getopt(argc, argv, "d")) != EOF) 
+   shrink = 1;
+
+   strcpy(histfile,   "");
+   strcpy(brightness, "");
+   strcpy(contrast  , "");
+
+   while ((ch = getopt(argc, argv, "dnb:c:h:")) != EOF) 
    {
       switch (ch) 
       {
@@ -74,8 +88,24 @@ int main(int argc, char **argv)
             debug = 1;
             break;
 
+         case 'n':
+            shrink = 0;
+            break;
+
+         case 'h':
+            strcpy(histfile, optarg);
+            break;
+
+         case 'c':
+            strcpy(contrast, optarg);
+            break;
+
+         case 'b':
+            strcpy(brightness, optarg);
+            break;
+
          default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-n(o-shrink)][-h histfile][-b brightness][-c contrast] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -83,7 +113,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-n(o-shrink)][-h histfile][-b brightness][-c contrast] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
       exit(1);
    }
 
@@ -117,6 +147,15 @@ int main(int argc, char **argv)
       strcpy(platedir, tmpdir);
    }
 
+   if(histfile[0] != '/')
+   {
+      strcpy(tmpdir, cwd);
+      strcat(tmpdir, "/");
+      strcat(tmpdir, histfile);
+
+      strcpy(histfile, tmpdir);
+   }
+
    if(quicklookdir[0] != '/')
    {
       strcpy(tmpdir, cwd);
@@ -140,6 +179,7 @@ int main(int argc, char **argv)
    {
       printf("scriptdir:    [%s]\n", scriptdir);
       printf("platedir:     [%s]\n", platedir);
+      printf("histfile:     [%s]\n", histfile);
       printf("quicklookdir: [%s]\n", quicklookdir);
       printf("shrink_factor:  %-g\n\n", shrink_factor);
       
@@ -151,7 +191,7 @@ int main(int argc, char **argv)
    /* Open the driver script file */
    /*******************************/
 
-   sprintf(driverfile, "%srunQuicklook.sh", scriptdir);
+   sprintf(driverfile, "%squicklookSubmit.sh", scriptdir);
 
    fdriver = fopen(driverfile, "w+");
 
@@ -166,14 +206,63 @@ int main(int argc, char **argv)
    fflush(fdriver);
 
 
+   /*************************************/
+   /* Create the task submission script */
+   /*************************************/
+
+   sprintf(taskfile, "%squicklookTask.bash", scriptdir);
+
+   if(debug)
+   {
+      printf("DEBUG> taskfile:   [%s]\n", taskfile);
+      fflush(stdout);
+   }
+
+   ftask = fopen(taskfile, "w+");
+
+   if(ftask == (FILE *)NULL)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+      fflush(stdout);
+      exit(0);
+   }
+
+   fprintf(ftask, "#!/bin/bash\n");
+   fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+   fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+   fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+   fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+   fprintf(ftask, "#SBATCH -o %slogs/quicklook.%N.%%j.out # STDOUT\n", scriptdir);
+   fprintf(ftask, "#SBATCH -e %slogs/quicklook.%N.%%j.err # STDERR\n", scriptdir);
+   fprintf(ftask, "%sjobs/quicklook_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+   fflush(ftask);
+   fclose(ftask);
+
+
    /********************************************************/
    /* Look through the FITS images in the plate directory, */
    /* creating a quick-look script for each one.           */
    /********************************************************/
 
-   count = 0;
+   job = 1;
 
    chdir(platedir);
+
+   strcpy(flags, "");
+
+   if(strlen(brightness) > 0)
+   {
+      sprintf(tmpstr, "-brightness %s ", brightness);
+      strcat(flags, tmpstr);
+   }
+
+   if(strlen(contrast) > 0)
+   {
+      sprintf(tmpstr, "-contrast %s ", contrast);
+      strcat(flags, tmpstr);
+   }
+      
 
    dirp = opendir(platedir);
 
@@ -235,14 +324,14 @@ int main(int argc, char **argv)
       }
 
 
-      sprintf(scriptfile, "%s/jobs/quicklook%03d.sh", scriptdir, count);
+      sprintf(scriptfile, "%s/jobs/quicklook_%d.sh", scriptdir, job);
 
       fscript = fopen(scriptfile, "w+");
 
       if(fscript == (FILE *)NULL)
       {
          printf("[struct stat=\"ERROR\", msg=\"Cannot open output script file [%s] for quicklook processing [number %d].\"]\n",
-            scriptfile, count);
+            scriptfile, job);
          fflush(stdout);
          exit(0);
       }
@@ -250,25 +339,53 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "#!/bin/sh\n\n");
 
-      fprintf(fscript, "echo jobs/quicklook%03d.sh\n\n", count);
+      fprintf(fscript, "echo quicklook_%d.sh\n\n", job);
 
-      fprintf(fscript, "mShrink $1/%s.%s $2/shrunken_%s.%s %-g\n", 
-         base, ext, base, ext, shrink_factor);
+      fprintf(fscript, "echo Plate %s, Task %d\n\n", base, job);
 
-      fprintf(fscript, "mViewer -ct 1 -gray $2/shrunken_%s.$s min max gaussian-log -out $2/%shrunken_s.png\n", 
-         base, ext, base);
+      fprintf(fscript, "mkdir -p %s\n", quicklookdir);
+
+      fprintf(fscript, "mkdir -p %ssmall\n", quicklookdir);
+
+
+      if(shrink)
+         fprintf(fscript, "mShrink %s%s.%s %s%s.%s %-g\n", 
+            platedir, base, ext, quicklookdir, base, ext, shrink_factor);
+
+      if(strlen(histfile) == 0)
+         fprintf(fscript, "mViewer -ct 0 %s -gray %s%s.%s min max gaussian-log -out %s%s.png\n", 
+            flags, quicklookdir, base, ext, quicklookdir, base);
+      else
+         fprintf(fscript, "mViewer -ct 0 %s -gray %s%s.%s -histfile %s -out %s%s.png\n", 
+            flags, quicklookdir, base, ext, histfile, quicklookdir, base);
+
+
+      if(shrink)
+         fprintf(fscript, "mShrink %s%s.%s %ssmall/%s.%s 16\n", 
+            quicklookdir, base, ext, quicklookdir, base, ext);
+
+      if(strlen(histfile) == 0)
+         fprintf(fscript, "mViewer -ct 0 %s -gray %ssmall/%s.%s min max gaussian-log -out %ssmall/%s.png\n", 
+            flags, quicklookdir, base, ext, quicklookdir, base);
+      else
+         fprintf(fscript, "mViewer -ct 0 %s -gray %ssmall/%s.%s -histfile %s -out %ssmall/%s.png\n", 
+            flags, quicklookdir, base, ext, histfile, quicklookdir, base);
 
       fflush(fscript);
       fclose(fscript);
 
       chmod(scriptfile, 0777);
 
-      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitQuicklook.bash %sjobs/quicklook%03d.sh %s %s\n", 
-         scriptdir, scriptdir, count, platedir, quicklookdir);
-      fflush(fdriver);
-
-      ++count;
+      ++job;
    }
+
+   --job;
+
+   fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %squicklookTask.bash\n", 
+      job, scriptdir);
+   fflush(fdriver);
+
+   fclose(fdriver);
 
    chmod(driverfile, 0777);
 
@@ -277,7 +394,7 @@ int main(int argc, char **argv)
    /* Finish up */
    /*************/
 
-   printf("[struct stat=\"OK\", count=%d]\n", count);
+   printf("[struct stat=\"OK\", job=%d]\n", job);
    fflush(stdout);
    exit(0);
 }
