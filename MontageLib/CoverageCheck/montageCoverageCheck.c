@@ -105,19 +105,25 @@ Version  Developer        Date     Change
 /*                         (i.e. for a subset of projections) and we     */
 /*                         don't have the four corners in the metadata.  */
 /*                                                                       */
+/*   double xoff           For use with all-sky wrap-around situations;  */
+/*   double yoff           shift location by xoff,yoff pixels and check  */
+/*                         again if point is inside template. This       */
+/*                         constitutes a shift of 360 degrees in         */
+/*                         longitude.                                    */
+/*                                                                       */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
 struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int modein, char *hdrfile, 
-                                            int narray, double *array, char *inpath, int debug)
+                                            int narray, double *array, char *inpath,
+                                            double xoff, double yoff, int debug)
 {
-
    int    i, j, inext, jnext,  offscl, ii, blankRec;
    int    tblmode, stat, ncol, nrow, is_covered, found; 
    int    status, clockwise, interior, intersectionCode;
    int    ibegin, jbegin, iend, jend, nelements, imode;
-
+   int    longjump;
 
    FILE  *fout;
 
@@ -134,7 +140,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    double new_center_ra, new_center_dec;
    double center_dist, scale_factor;
-   double xpix, ypix;
+   double xpix, ypix, distance;
    double dtr;
 
    double *point_ra  = (double *)NULL;
@@ -618,6 +624,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       pix2wcs(wcsbox, wcsbox->nxpix/2.+0.5, wcsbox->nypix/2.+0.5, &lon, &lat);
 
       wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+      if(debug)
+      {
+         printf("pixel size %-gx%-g\n\n", wcsbox->xinc, wcsbox->yinc);
+         printf("center pix %-g %-g  -> sky %-g %-g -> %-g %-g\n\n",
+            wcsbox->nxpix/2.+0.5, wcsbox->nypix/2.+0.5, lon, lat, xpix, ypix);
+         fflush(stdout);
+      }
 
       xoffset = xpix - (wcsbox->nxpix/2.+0.5);
       yoffset = ypix - (wcsbox->nypix/2.+0.5);
@@ -2253,6 +2267,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          found  = 0;
          offscl = 0;
 
+         longjump = 0;
+
          convertCoordinates (EQUJ, 2000., image_center_ra, image_center_dec, 
                              csys_region, epoch_region, &lon, &lat, 0.);
 
@@ -2271,19 +2287,27 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
             }
          }
 
-         if(debug)
-         {
-            printf("Checking center (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)\n",
-                  lon, lat, xpix, ypix, offscl);
-            fflush(stdout);
-         }
-
          if(!offscl 
          && xpix >= -0.5
          && ypix >= -0.5
          && xpix <= wcsbox->nxpix+0.5
          && ypix <= wcsbox->nypix+0.5)
             found = 1;
+
+
+         distance = sqrt((xpix * wcsbox->xinc) * (xpix * wcsbox->xinc)
+                       + (ypix * wcsbox->yinc) * (ypix * wcsbox->yinc));
+
+         if(distance > 180.)
+            longjump = 1;
+
+         if(debug)
+         {
+            printf("Checking center (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)   Distance = %-g\n",
+               lon, lat, xpix, ypix, offscl, distance);
+            fflush(stdout);
+         }
+
 
          if(!found)
          {
@@ -2301,15 +2325,20 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
                if(xoffset != 0. || yoffset != 0.) offscl = 0;
 
+               distance = sqrt((xpix * wcsbox->xinc) * (xpix * wcsbox->xinc)
+                             + (ypix * wcsbox->yinc) * (ypix * wcsbox->yinc));
+
+               if(distance > 180.)
+                  longjump = 1;
+
                if(debug)
                {
-                  printf("Checking corner %d (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)\n",
-                        j, lon, lat, xpix, ypix, offscl);
+                  printf("Checking corner %d (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)   Distance = %-g\n",
+                     j, lon, lat, xpix, ypix, offscl, distance);
                   fflush(stdout);
                }
 
-
-               if(!offscl
+               if(!found
                && xpix >= -0.5
                && ypix >= -0.5
                && xpix <= wcsbox->nxpix+0.5
@@ -2320,6 +2349,107 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                }
             }
          }
+
+
+         // There are some projections (HPX, CAR, etc.) where the sky wraps around
+         // (in the case of of HPX even partially duplicating regions).  If the template
+         // image center is on one side of the wraparound (usually 0/360 point) and all
+         // of a comparison image is on the other, it will look like there is a huge
+         // offset (though not exactly 360 degrees).  We can recheck after shifting the
+         // center of one of them by 360 degrees.
+         //
+         // This duplicates the code above but won't be used unless this "long jump"
+         // situation is encountered.
+
+         if(!found && longjump)
+         {
+            convertCoordinates (EQUJ, 2000., image_center_ra, image_center_dec, 
+                                csys_region, epoch_region, &lon, &lat, 0.);
+
+            wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+            if(debug)
+            {
+               printf("[Long Jump] Checking center   (%-g,%-g) against wcsbox region -> (%-g,%-g) -> (%-g,%-g)",
+                     lon, lat, xoff-xpix, yoff-ypix, xpix, ypix);
+               fflush(stdout);
+            }
+
+            if(xpix > 0)
+            {
+               xpix = xpix - xoff;
+               ypix = xpix - yoff;
+            }
+            else
+            {
+               xpix = xpix + xoff;
+               ypix = ypix + yoff;
+            }
+
+            if(debug)
+            {
+               printf(" -> (%-g,%-g)\n", xpix, ypix);
+               fflush(stdout);
+            }
+
+            if(xpix >= -0.5
+            && ypix >= -0.5
+            && xpix <= wcsbox->nxpix+0.5
+            && ypix <= wcsbox->nypix+0.5)
+               found = 1;
+
+            if(!found)
+            {
+               for(j=0; j<4; ++j)
+               {
+                  offscl = 0;
+
+                  convertCoordinates (EQUJ, 2000., image_corner_ra[j], image_corner_dec[j], 
+                                      csys_region, epoch_region, &lon, &lat, 0.);
+
+                  wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+                  if(debug)
+                  {
+                     printf("[Long Jump] Checking corner %d (%-g,%-g) against wcsbox region -> (%-g,%-g) -> (%-g,%-g)",
+                           j, lon, lat, xoff-xpix, yoff-ypix, xpix, ypix);
+
+                     fflush(stdout);
+                  }
+
+                  if(lon > 0)
+                  {
+                     xpix = xpix - xoff;
+                     ypix = ypix - yoff;
+                  }
+                  else
+                  {
+                     xpix = xpix + xoff;
+                     ypix = ypix + yoff;
+                  }
+
+                  if(debug)
+                  {
+                     printf(" -> (%-g,%-g)\n", xpix, ypix);
+                     fflush(stdout);
+                  }
+
+                  if(xpix >= -0.5
+                  && ypix >= -0.5
+                  && xpix <= wcsbox->nxpix+0.5
+                  && ypix <= wcsbox->nypix+0.5)
+                  {
+                     found = 1;
+                     break;
+                  }
+               }
+            }
+         }
+         
+
+
+
+
 
          if(debug)
          {

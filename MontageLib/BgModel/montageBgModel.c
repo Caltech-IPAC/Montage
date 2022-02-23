@@ -220,7 +220,7 @@ static char montage_json  [1024];
 
 struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int mode, int useall, int niter, int debug)
 {
-   int     i, j, k, index, stat;
+   int     i, j, k, found, index, stat;
    int     ntoggle, toggle, nancnt, iplate, iplate_cntr;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
@@ -680,6 +680,16 @@ of applying the right tranforms to the planes associated with each iteration.
       }
    }
 
+   if(debug >= 2)
+   {
+      printf("\nImages:\n\n");
+
+      for(i=0; i<nimages; ++i)
+         printf("%4d: [%s](%d)\n", i, imgs[i].fname, imgs[i].cntr);
+
+      printf("\n");
+   }
+
    avearea = avearea / nimages;
 
 
@@ -931,6 +941,40 @@ of applying the right tranforms to the planes associated with each iteration.
 
          if(fits[j].minus == imgs[i].cntr)
             fits[j].minusind = i;
+      }
+   }
+
+   if(debug >= 2)
+   {
+      printf("\nfits:\n");
+
+      for(i=0; i<nfits; ++i)
+         printf("%4d: %d - %d (%d - %d)\n", 
+            i, fits[i].plus, fits[i].minus, fits[i].plusind, fits[i].minusind);
+
+      printf("\n");
+   }
+
+
+   /***************************************************/
+   /* Sanity check: Are all imgs represented in fits? */
+   /***************************************************/
+
+   if(debug)
+   {
+      for(i=0; i<nimages; ++i)
+      {
+         found = 0;
+
+         for(j=0; j<nfits; ++j)
+         {
+            if(fits[j].plus  == i) found = 1;
+            if(fits[j].minus == i) found = 1;
+         }
+
+         if(!found)
+            printf("WARNING: img[%3d] %s (cntr = %3d) not covered by fits.\n",
+               i, imgs[i].fname, imgs[i].cntr);
       }
    }
 
@@ -1643,6 +1687,8 @@ of applying the right tranforms to the planes associated with each iteration.
 
             if(corrs[i].id == refimage)
                printf("\n\n");
+            else
+               printf("\n");
 
             fflush(stdout);
          }

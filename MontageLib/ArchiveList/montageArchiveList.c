@@ -128,8 +128,8 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    bandstr   = mArchiveList_url_encode(band);
    locstr    = mArchiveList_url_encode(location);
 
-   sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
-      surveystr, bandstr, locstr, size);
+   sprintf(constraint, "survey=%s+%s&location=%s&width=%.6f&height=%.6f&units=deg&mode=TBL",
+      surveystr, bandstr, locstr, width, height);
 
    free(locstr);
    free(surveystr);

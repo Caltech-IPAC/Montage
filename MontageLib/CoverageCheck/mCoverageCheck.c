@@ -31,13 +31,15 @@ int main(int argc, char **argv)
 {
    int    debug;
 
-   int    i, imode;
+   int    i, imode, havexoff, haveyoff;
 
    char   infile  [1024];
    char   outfile [1024];
    char   hdrfile [1024];
    char   mode    [1024];
    char   path    [1024];
+
+   double xoff, yoff;
 
    int    narray;
    double array[1024];
@@ -53,6 +55,12 @@ int main(int argc, char **argv)
 
    debug = 0;
 
+   xoff = 0.;
+   yoff = 0.;
+
+   havexoff = 0;
+   haveyoff = 0;
+
    strcpy(path, "");
 
 
@@ -60,7 +68,7 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-d(ebug)][-p path][-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-d(ebug)][-p path][-x xoff][-y yoff][-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
 
       exit(0);
    }
@@ -77,12 +85,46 @@ int main(int argc, char **argv)
             printf ("[struct stat=\"ERROR\", msg=\"Cannot open status file.\"]\n");
             exit(1);
          }
+
+         ++i;
       }
 
       if(strncmp(argv[i], "-p", 2) == 0)
       {
          if(argc > i+1)
-         strcpy(path, argv[i+1]);
+            strcpy(path, argv[i+1]);
+         else
+            break;
+
+         ++i;
+      }
+
+      if(strncmp(argv[i], "-x", 2) == 0)
+      {
+         if(argc > i+1)
+         {
+            xoff = atof(argv[i+1]);
+
+            havexoff = 1;
+         }
+         else
+            break;
+
+         ++i;
+      }
+
+      if(strncmp(argv[i], "-y", 2) == 0)
+      {
+         if(argc > i+1)
+         {
+            yoff = atof(argv[i+1]);
+
+            haveyoff = 1;
+         }
+         else
+            break;
+
+         ++i;
       }
 
       if(strncmp(argv[i], "-d", 2) == 0)
@@ -103,6 +145,18 @@ int main(int argc, char **argv)
    else
       strcpy(path, ".");
 
+   if(havexoff)
+   {
+      argv += 2;
+      argc -= 2;
+   }
+
+   if(haveyoff)
+   {
+      argv += 2;
+      argc -= 2;
+   }
+
    if(debug)
    {
       argv += 1;
@@ -111,7 +165,7 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-d(ebug)][-p path][-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mCoverageCheck [-d(ebug)][-p path][-x xoff][-y yoff][-s statusfile] in.tbl out.tbl -<mode> <parameters> [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'\"]\n");
 
       exit(0);
    }
@@ -164,7 +218,7 @@ int main(int argc, char **argv)
    }
 
 
-   returnStruct = mCoverageCheck(infile, outfile, imode, hdrfile, narray, array, path, debug);
+   returnStruct = mCoverageCheck(infile, outfile, imode, hdrfile, narray, array, path, xoff, yoff, debug);
 
    if(returnStruct->status == 1)
    {

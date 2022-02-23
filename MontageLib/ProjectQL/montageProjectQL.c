@@ -576,6 +576,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
       }
 
+      if(oxpix < 0.5)                   oxpix = 0.5;
+      if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+      if(oypix < 0.5)                   oypix = 0.5;
+      if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
+
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
       if(!offscl)
@@ -606,6 +612,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix < -(double)hpxPix/2.) oypix += (double)hpxPix;
          if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
       }
+
+      if(oxpix < 0.5)                   oxpix = 0.5;
+      if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+      if(oypix < 0.5)                   oypix = 0.5;
+      if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
 
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
@@ -644,6 +656,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
       }
 
+      if(oxpix < 0.5)                   oxpix = 0.5;
+      if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+      if(oypix < 0.5)                   oypix = 0.5;
+      if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
+
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
       if(!offscl)
@@ -674,6 +692,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(oypix < -(double)hpxPix/2.) oypix += (double)hpxPix;
          if(oypix >  (double)hpxPix/2.) oypix -= (double)hpxPix;
       }
+
+      if(oxpix < 0.5)                   oxpix = 0.5;
+      if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+      if(oypix < 0.5)                   oypix = 0.5;
+      if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
 
       mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
@@ -797,6 +821,16 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    imax = oxpixMax;
    jmin = oypixMin;
    jmax = oypixMax;
+
+   if(mProjectQL_debug >= 2)
+   {
+      printf("\nMin, max:\n");
+      printf(" imin     = %d\n", imin);
+      printf(" imax     = %d\n", imax);
+      printf(" jmin     = %d\n", jmin);
+      printf(" jmax     = %d\n", jmax);
+      fflush(stdout);
+   }
 
     
 
@@ -1273,8 +1307,6 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
       for(i=imin; i<imax; ++i)
       {
-         buffer[i] = nan;
-
          oxpix = i+1.0;  // Since the first pixel in a FITS image (index 0)
          oypix = j+1.0;  // is at coordinate 1 according to the WCS library
 
@@ -1315,7 +1347,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          convertCoordinates(output.sys, output.epoch, xpos, ypos,
                             input.sys, input.epoch, &lon, &lat, 0.0);
          
-
+         
          // Convert to input pixel space
 
          offscl = 0;
@@ -2045,10 +2077,16 @@ void mProjectQL_cleanup()
    output_area.fptr = (fitsfile *)NULL;
 
    if(input.wcs)
+   {
       wcsfree(input.wcs);
+      input.wcs = (struct WorldCoor *)NULL;
+   }
 
    if(output.wcs)
+   {
       wcsfree(output.wcs);
+      output.wcs = (struct WorldCoor *)NULL;
+   }
 
    if(lanczos)
    {
@@ -2061,7 +2099,6 @@ void mProjectQL_cleanup()
 
    if(area)   free(area);
    if(buffer) free(buffer);
-
 
    if(data)
    {

@@ -3,7 +3,7 @@
 
 CC     = gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS = -g -O2 -I. -I../../lib/include -I../../MontageLib
-LIBS   = -L../../lib -lcfitsio -lwcs -lboundaries -lpixbounds -lmtbl -lsvc -lm
+LIBS   = -L../../lib -lcfitsio -lcoord -lwcs -lboundaries -lpixbounds -lmtbl -lsvc -lm
 
 .c.o:
 	$(CC) $(CFLAGS)  -c  $*.c
@@ -11,7 +11,8 @@ LIBS   = -L../../lib -lcfitsio -lwcs -lboundaries -lpixbounds -lmtbl -lsvc -lm
 
 all:   mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
        mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
-       mHPXxy2tile mHPXtile2xy mHPXCombineHist
+       mHPXxy2tile mHPXtile2xy mHPXCombineHist mHPXMap mHPXBlendEdges \
+       mHPXCoord2Tile
 
 
 mHPXPlateList: mHPXPlateList.o
@@ -50,13 +51,24 @@ mHPXtile2xy: mHPXtile2xy.o
 mHPXCombineHist: mHPXCombineHist.o
 	gcc -o mHPXCombineHist mHPXCombineHist.o $(LIBS)
 
+mHPXMap: mHPXMap.o
+	gcc -o mHPXMap mHPXMap.o $(LIBS)
+
+mHPXBlendEdges: mHPXBlendEdges.o
+	gcc -o mHPXBlendEdges mHPXBlendEdges.o $(LIBS)
+
+mHPXCoord2Tile: mHPXCoord2Tile.o
+	gcc -o mHPXCoord2Tile mHPXCoord2Tile.o $(LIBS)
+
 
 install:
 	cp mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
 	mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
-	mHPXxy2tile mHPXtile2xy mHPXCombineHist ../../bin
+	mHPXxy2tile mHPXtile2xy mHPXCombineHist mHPXMap mHPXBlendEdges \
+	mHPXCoord2Tile ../../bin
 
 clean:
 	rm -f mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
 	mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
-	mHPXxy2tile mHPXtile2xy mHPXCombineHist *.o
+	mHPXxy2tile mHPXtile2xy mHPXCombineHist mHPXMap mHPXBlendEdges \
+	mHPXCoord2Tile *.o

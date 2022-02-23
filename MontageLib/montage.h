@@ -168,7 +168,8 @@ struct mCoverageCheckReturn
 };
 
 struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mode, char *hdrfile, 
-                                            int narray, double *array, char *path, int debug);
+                                            int narray, double *array, char *path, 
+                                            double xoff, double yoff, int debug);
 
 //-------------------
 
@@ -390,6 +391,19 @@ struct mFixNaNReturn
 struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int haveVal, double NaNvalue, int nMinMax,
                                double *minblank, int *ismin, double *maxblank, int *ismax, int boundaries, int debug);
 
+//-------------------
+
+struct mFlattenReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double a;             // Plane fit coefficient for X axis.
+   double b;             // Plane fit coefficient for Y axis.
+   double c;             // Plane fit constant offset.
+};
+
+struct mFlattenReturn *mFlatten(char *infile, char *outfile, int levelOnly, int debug);
 //-------------------
 
 struct mGetHdrReturn

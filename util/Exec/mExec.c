@@ -138,6 +138,8 @@ static char cstr[MAXLEN];
 /*                                 images in expanded region)            */
 /*  -i               0 (false)    Emit ROME-friendly info messages       */
 /*  -l               0 (false)    Background matching adjust levels only */
+/*  -b               0 (false)    Skip background matching and just      */
+/*                                 coadd the reprojected images.         */
 /*  -k               0 (false)    Keep all working files                 */
 /*  -c               0 (false)    Delete everything. Pointless unless    */
 /*                                 used with 'savefile'.  Ignored if     */
@@ -155,6 +157,12 @@ static char cstr[MAXLEN];
 /*  -O loctext       none         Location string text                   */
 /*  -M contact       none         "Contact" string text                  */
 /*  -x               0 (false)    Add a location marker to the PNG       */
+/*  -W "xoff yoff"  "0 0"         Special 'wrap-around' offsets for      */
+/*                                mCoverageCheck when the region         */
+/*                                projection has a +180/-180 (or         */
+/*                                whatever) wrap-around from one side    */
+/*                                of the image to the other.  Added for  */
+/*                                HiPS HPX projection.                   */
 /*                                                                       */
 /*                                                                       */
 /*  So minimal calls would look like:                                    */
@@ -196,11 +204,13 @@ int main(int argc, char **argv, char **envp)
    int    naxis1, naxis2, naxismax, nxtile, nytile;
    int    ix, jy, nx, ny;
    int    intan, outtan, iscale, ncell;
-   int    keepAll, deleteAll, noSubset, infoMsg, levelOnly;
+   int    keepAll, deleteAll, noSubset, infoMsg, levelOnly, noBackground;
    int    ftmp, userRaw, showMarker, quickMode;
    int    iurl;
 
    double val, factor, shrink;
+
+   double xoff, yoff;
 
    struct WorldCoor *wcs, *wcsin;
    double epoch;
@@ -312,6 +322,7 @@ int main(int argc, char **argv, char **envp)
 
    char   template    [MAXLEN];
    char   tmpfile     [MAXLEN];
+   char   wrapStr     [MAXLEN];
    char   workspace[3][MAXLEN];
 
    FILE  *fhdr;
@@ -372,19 +383,24 @@ int main(int argc, char **argv, char **envp)
    strcpy(debugFile, "");
    strcpy(labelText, "");
    strcpy(locText,   "");
+   strcpy(wrapStr,   "");
         
-   noSubset   = 0;
-   showMarker = 0;
-   infoMsg    = 0;
-   keepAll    = 0;
-   deleteAll  = 0;
-   levelOnly  = 0;
-   userRaw    = 0;
-   ntile      = 0;
-   mtile      = 0;
-   quickMode  = 0;
+   noSubset     = 0;
+   showMarker   = 0;
+   infoMsg      = 0;
+   keepAll      = 0;
+   deleteAll    = 0;
+   levelOnly    = 0;
+   noBackground = 0;
+   userRaw      = 0;
+   ntile        = 0;
+   mtile        = 0;
+   quickMode    = 0;
 
-   shrink     = 1.0;
+   shrink       = 1.0;
+
+   xoff = 0.;
+   yoff = 0.;
 
    strcpy(rawdir, "raw");
 
@@ -396,7 +412,7 @@ int main(int argc, char **argv, char **envp)
    strcpy(pngFile, "");
 
 
-   while ((ch = getopt(argc, argv, "iI:lkcaxqh:f:o:d:D:e:r:s:n:m:L:O:M:P:")) != EOF)
+   while ((ch = getopt(argc, argv, "iI:lbkcaxqh:f:o:d:D:e:r:s:n:m:L:O:M:P:W:")) != EOF)
    {
       switch (ch)
       {
@@ -426,6 +442,10 @@ int main(int argc, char **argv, char **envp)
 
          case 'l':
             levelOnly = 1;
+            break;
+
+         case 'b':
+            noBackground = 1;
             break;
 
          case 'k':
@@ -490,6 +510,11 @@ int main(int argc, char **argv, char **envp)
 
          case 'M':
             strcpy(contactText, optarg);
+            break;
+
+         case 'W':
+            strcpy(wrapStr, optarg);
+            sscanf(wrapStr, "%lf %lf", &xoff, &yoff);
             break;
 
          case 'r':
@@ -1320,7 +1345,10 @@ int main(int argc, char **argv, char **envp)
 
          if(!noSubset)
          {
-            sprintf(cmd, "mCoverageCheck remote_big.tbl remote.tbl -header region.hdr"); 
+            if(xoff != 0. || yoff != 0.)
+               sprintf(cmd, "mCoverageCheck  -x %-g -y %-g remote_big.tbl remote.tbl -header region.hdr", xoff, yoff); 
+            else
+               sprintf(cmd, "mCoverageCheck remote_big.tbl remote.tbl -header region.hdr"); 
 
             if(debug >= 4)
             {
@@ -1360,7 +1388,7 @@ int main(int argc, char **argv, char **envp)
             if(finfo)
             {
                fprintf(finfo, "<p><h3>Exact coverage check</h3></p>\n");
-               fprintf(finfo, "<p><span style='color: blue;'><tt>mCoverageCheck remote_big.tbl remote.tbl -header region.hdr</tt></span></p>\n");
+               fprintf(finfo, "<p><span style='color: blue;'><tt>%s</tt></span></p>\n", cmd);
                fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d images)</p>\n",
                   (int)(currtime - lasttime), nimages);
                fprintf(finfo, "<hr style='color: #fefefe;' />\n");
@@ -2080,129 +2108,13 @@ int main(int argc, char **argv, char **envp)
          }
 
          lasttime = currtime;
-
-         sprintf(cmd, "mOverlaps pimages.tbl diffs.tbl");
-
-         if(debug >= 4)
-         {
-            fprintf(fdebug, "[%s]\n", cmd);
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p><h3>Determining image overlaps for background matching</h3></p>\n");
-            fprintf(finfo, "<p><span style='color: blue;'><tt>mOverlaps pimages.tbl diffs.tbl</tt></span></p>\n");
-            fflush(finfo);
-         }
-
-         svc_run(cmd);
-
-         strcpy( status, svc_value( "stat" ));
-
-         if(strcmp( status, "ERROR") == 0)
-         {
-            strcpy( msg, svc_value( "msg" ));
-
-            printerr(msg);
-         }
-
-         noverlap = atof(svc_value("count"));
-
-         if(infoMsg)
-         {
-             printf("[struct stat=\"INFO\", msg=\"Performing background correction analysis (%d overlaps)\"]\n", 
-                  noverlap);
-            fflush(stdout);
-         }
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mOverlaps        %6d (%d overlaps)\n", (int)(currtime - lasttime), noverlap);
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d overlaps)</p>\n",
-               (int)(currtime - lasttime), noverlap);
-            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
-            fflush(finfo);
-         }
-
-         lasttime = currtime;
       }
 
-
-
-      /***************************************/ 
-      /* Open the difference list table file */
-      /***************************************/ 
-
-      if(baseCount > 1)
+      if(!noBackground)
       {
-         ncols = topen("diffs.tbl");
-
-         if(ncols <= 0)
+         if(baseCount > 1)
          {
-            printf("[struct stat=\"ERROR\", msg=\"Invalid image metadata file: diffs.tbl\"]\n");
-            exit(1);
-         }
-
-         icntr1    = tcol( "cntr1");
-         icntr2    = tcol( "cntr2");
-         ifname1   = tcol( "plus");
-         ifname2   = tcol( "minus");
-         idiffname = tcol( "diff");
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p><h3>Fitting image differences (mDiff / mFitplane)</h3></p>\n");
-            fflush(finfo);
-         }
-
-
-         /***************************************************/ 
-         /* Read the records and call mDiff, then mFitplane */
-         /***************************************************/ 
-
-         count   = 0;
-         failed  = 0;
-
-         fout = fopen("fits.tbl", "w+");
-
-         fprintf(fout, "|   plus  |  minus  |         a      |        b       |        c       |    crpix1    |    crpix2    |   xmin   |   xmax   |   ymin   |   ymax   |   xcenter   |   ycenter   |    npixel   |      rms       |      boxx      |      boxy      |    boxwidth    |   boxheight    |     boxang     |\n");
-         fflush(fout);
-
-         while(1)
-         {
-            istat = tread();
-
-            if(istat < 0)
-               break;
-
-            cntr1 = atoi(tval(icntr1));
-            cntr2 = atoi(tval(icntr2));
-
-            ++count;
-
-            if(debug >= 3)
-            {
-               fprintf(fdebug, "Processing image difference %3d - %3d (%3d of %3d)\n", 
-                  cntr1+1, cntr2+1, count, noverlap);
-               fflush(fdebug);
-            }
-
-            strcpy(fname1,   tval(ifname1));
-            strcpy(fname2,   tval(ifname2));
-            strcpy(diffname, tval(idiffname));
-
-            if(quickMode)
-               sprintf(cmd, "mDiff -n projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
-            else
-               sprintf(cmd, "mDiff projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
+            sprintf(cmd, "mOverlaps pimages.tbl diffs.tbl");
 
             if(debug >= 4)
             {
@@ -2212,7 +2124,8 @@ int main(int argc, char **argv, char **envp)
 
             if(finfo)
             {
-               fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
+               fprintf(finfo, "<p><h3>Determining image overlaps for background matching</h3></p>\n");
+               fprintf(finfo, "<p><span style='color: blue;'><tt>mOverlaps pimages.tbl diffs.tbl</tt></span></p>\n");
                fflush(finfo);
             }
 
@@ -2220,325 +2133,462 @@ int main(int argc, char **argv, char **envp)
 
             strcpy( status, svc_value( "stat" ));
 
-            if(strcmp( status, "ABORT") == 0)
-            {
-               strcpy( msg, svc_value( "msg" ));
-
-               printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-               fflush(fdebug);
-
-               exit(1);
-            }
-
-            if(strcmp( status, "ERROR"  ) == 0
-            || strcmp( status, "WARNING") == 0)
-               ++failed;
-
-
-            if(levelOnly)
-               sprintf(cmd, "mFitplane -l diffs/%s", diffname);
-            else
-               sprintf(cmd, "mFitplane diffs/%s", diffname);
-
-            if(debug >= 4)
-            {
-               fprintf(fdebug, "[%s]\n", cmd);
-               fflush(fdebug);
-            }
-
-            if(finfo)
-            {
-               fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><p/>\n\n", cmd);
-               fflush(finfo);
-            }
-
-            svc_run(cmd);
-
-            strcpy( status, svc_value( "stat" ));
-
-            if(strcmp( status, "ABORT") == 0)
-            {
-               strcpy( msg, svc_value( "msg" ));
-
-               printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-               fflush(stdout);
-
-               exit(1);
-            }
-
-            if(strcmp( status, "ERROR")   == 0
-            || strcmp( status, "WARNING") == 0)
-               ++failed;
-            else
-            {
-               aval      = atof(svc_value("a"));
-               bval      = atof(svc_value("b"));
-               cval      = atof(svc_value("c"));
-               crpix1    = atof(svc_value("crpix1"));
-               crpix2    = atof(svc_value("crpix2"));
-               xmin      = atoi(svc_value("xmin"));
-               xmax      = atoi(svc_value("xmax"));
-               ymin      = atoi(svc_value("ymin"));
-               ymax      = atoi(svc_value("ymax"));
-               xcenter   = atof(svc_value("xcenter"));
-               ycenter   = atof(svc_value("ycenter"));
-               npixel    = atof(svc_value("npixel"));
-               rms       = atof(svc_value("rms"));
-               boxx      = atof(svc_value("boxx"));
-               boxy      = atof(svc_value("boxy"));
-               boxwidth  = atof(svc_value("boxwidth"));
-               boxheight = atof(svc_value("boxheight"));
-               boxangle  = atof(svc_value("boxang"));
-
-               fprintf(fout, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13.0f %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f \n",
-                  cntr1, cntr2, aval, bval, cval, crpix1, crpix2, xmin, xmax, ymin, ymax, 
-                  xcenter, ycenter, npixel, rms, boxx, boxy, boxwidth, boxheight, boxangle);
-               fflush(fout);
-            }
-
-            if(!keepAll)
-            {
-               sprintf(cmd, "diffs/%s", diffname);
-               unlink(cmd);
-
-               strcpy(areafile, cmd);
-               areafile[strlen(areafile) - 5] = '\0';
-               strcat(areafile, "_area.fits");
-
-               unlink(areafile);
-            }
-         }
-
-         tclose();
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mDiff/mFitplane  %6d (%d diffs,  %d successful, %d failed)\n", 
-               (int)(currtime - lasttime), count, count - failed,  failed);
-
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d diffs, %d successful, %d failed)</p>\n",
-               (int)(currtime - lasttime), count, count-failed, failed);
-            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
-            fflush(finfo);
-         }
-
-         lasttime = currtime;
-      }
-
-
-      /*********************************/
-      /* Generate the correction table */
-      /*********************************/
-
-      if(baseCount > 1)
-      {
-         if(levelOnly)
-            sprintf(cmd, "mBgModel -i 100000 -l -a pimages.tbl fits.tbl corrections.tbl");
-         else
-            sprintf(cmd, "mBgModel -i 100000 -t -a pimages.tbl fits.tbl corrections.tbl");
-
-         if(debug >= 4)
-         {
-            fprintf(fdebug, "[%s]\n", cmd);
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p><h3>Modeling differences to determine background corrections</h3></p>\n");
-            fprintf(finfo, "<p><span style='color: blue;'><tt>%s</tt></span></p>\n", cmd);
-            fflush(finfo);
-         }
-
-         svc_run(cmd);
-
-         strcpy( status, svc_value( "stat" ));
-
-         if(strcmp( status, "ERROR") == 0)
-         {
-            strcpy( msg, svc_value( "msg" ));
-
-            printerr(msg);
-         }
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mBgModel         %6d\n", (int)(currtime - lasttime));
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span></p>\n",
-               (int)(currtime - lasttime));
-            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
-            fflush(finfo);
-         }
-
-         lasttime = currtime;
-      }
-
-
-      /**************************************/ 
-      /* Background correct all the images  */
-      /**************************************/ 
-
-      if(baseCount > 1)
-      {
-         if(infoMsg)
-         {
-            printf("[struct stat=\"INFO\", msg=\"Background correcting %d images\"]\n", 
-               nimages);
-            fflush(stdout);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p><h3>Applying background corrections</h3></p>\n");
-            fflush(finfo);
-         }
-
-
-         /**************************************/
-         /* Allocate space for the corrections */
-         /**************************************/
-      
-         maxcntr = nimages;
-
-         a = (double *)malloc(maxcntr * sizeof(double));
-         b = (double *)malloc(maxcntr * sizeof(double));
-         c = (double *)malloc(maxcntr * sizeof(double));
-      
-         have = (int *)malloc(maxcntr * sizeof(int));
-      
-         for(i=0; i<maxcntr; ++i)
-         {  
-            a[i]    = 0.;
-            b[i]    = 0.;
-            c[i]    = 0.;
-            have[i] = 0;
-         }
-      
-      
-         /******************************************/
-         /* Open the corrections table file        */
-         /******************************************/
-      
-         ncols = topen("corrections.tbl");
-      
-         iid = tcol( "id");
-         ia  = tcol( "a");
-         ib  = tcol( "b");
-         ic  = tcol( "c");
-      
-         if(iid < 0
-         || ia  < 0
-         || ib  < 0
-         || ic  < 0)
-         {
-            printerr("Need columns: id,a,b,c in corrections file");
-            exit(1);
-         }
-      
-      
-         /********************************/
-         /* And read in the corrections. */
-         /********************************/
-      
-         while(1)
-         {
-            if(tread() < 0)
-               break;
-      
-            id = atoi(tval(iid));
-      
-            a[id] = atof(tval(ia));
-            b[id] = atof(tval(ib));
-            c[id] = atof(tval(ic));
-      
-            have[id] = 1;
-         }
-      
-         tclose();
-
-
-         /***************************************************/ 
-         /* Read through the image list.                    */
-         /*                                                 */
-         /* If there is no correction for an image file,    */
-         /* increment 'nocorrection' and copy it unchanged. */
-         /* Then run mBackground to create the corrected    */
-         /* image.  If there is an image in the list for    */
-         /* which we don't actually have a projected file   */
-         /* (can happen if the list was created from the    */
-         /* 'raw' set), increment the 'failed' count.       */
-         /***************************************************/ 
-
-         ncols = topen("pimages.tbl");
-
-         count        = 0;
-         nocorrection = 0;
-         failed       = 0;
-
-         while(1)
-         {
-            if(tread() < 0)
-               break;
-
-            cntr = atoi(tval(icntr));
-
-            strcpy(file, tval(ifname));
-
-            if(quickMode)
-            {
-               sprintf(cmd, "mBackground -n projected/%s corrected/%s %-g %-g %-g", 
-                     file, file, a[cntr], b[cntr], c[cntr]);
-            }
-            else
-               sprintf(cmd, "mBackground projected/%s corrected/%s %-g %-g %-g", 
-                     file, file, a[cntr], b[cntr], c[cntr]);
-
-            if(have[cntr] == 0)
-               ++nocorrection;
-
-            if(debug >= 3)
-            {
-               fprintf(fdebug, "%d: %s\n", cntr, cmd); 
-               fflush(fdebug);
-            }
-
-            if(finfo)
-            {
-               fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
-               fflush(finfo);
-            }
-
-            svc_run(cmd);
-
-            if(strcmp( status, "ABORT") == 0)
-            {
-               strcpy( msg, svc_value( "msg" ));
-
-               printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-               fflush(stdout);
-
-               exit(1);
-            }
-
-            strcpy( status, svc_value( "stat" ));
-
-            ++count;
             if(strcmp( status, "ERROR") == 0)
-               ++failed;
+            {
+               strcpy( msg, svc_value( "msg" ));
+
+               printerr(msg);
+            }
+
+            noverlap = atof(svc_value("count"));
+
+            if(infoMsg)
+            {
+                printf("[struct stat=\"INFO\", msg=\"Performing background correction analysis (%d overlaps)\"]\n", 
+                     noverlap);
+               fflush(stdout);
+            }
+
+            time(&currtime);
+
+            if(debug >= 1)
+            {
+               fprintf(fdebug, "TIME: mOverlaps        %6d (%d overlaps)\n", (int)(currtime - lasttime), noverlap);
+               fflush(fdebug);
+            }
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d overlaps)</p>\n",
+                  (int)(currtime - lasttime), noverlap);
+               fprintf(finfo, "<hr style='color: #fefefe;' />\n");
+               fflush(finfo);
+            }
+
+            lasttime = currtime;
+         }
+
+
+
+         /***************************************/ 
+         /* Open the difference list table file */
+         /***************************************/ 
+
+         if(baseCount > 1)
+         {
+            ncols = topen("diffs.tbl");
+
+            if(ncols <= 0)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Invalid image metadata file: diffs.tbl\"]\n");
+               exit(1);
+            }
+
+            icntr1    = tcol( "cntr1");
+            icntr2    = tcol( "cntr2");
+            ifname1   = tcol( "plus");
+            ifname2   = tcol( "minus");
+            idiffname = tcol( "diff");
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p><h3>Fitting image differences (mDiff / mFitplane)</h3></p>\n");
+               fflush(finfo);
+            }
+
+
+            /***************************************************/ 
+            /* Read the records and call mDiff, then mFitplane */
+            /***************************************************/ 
+
+            count   = 0;
+            failed  = 0;
+
+            fout = fopen("fits.tbl", "w+");
+
+            fprintf(fout, "|   plus  |  minus  |         a      |        b       |        c       |    crpix1    |    crpix2    |   xmin   |   xmax   |   ymin   |   ymax   |   xcenter   |   ycenter   |    npixel   |      rms       |      boxx      |      boxy      |    boxwidth    |   boxheight    |     boxang     |\n");
+            fflush(fout);
+
+            while(1)
+            {
+               istat = tread();
+
+               if(istat < 0)
+                  break;
+
+               cntr1 = atoi(tval(icntr1));
+               cntr2 = atoi(tval(icntr2));
+
+               ++count;
+
+               if(debug >= 3)
+               {
+                  fprintf(fdebug, "Processing image difference %3d - %3d (%3d of %3d)\n", 
+                     cntr1+1, cntr2+1, count, noverlap);
+                  fflush(fdebug);
+               }
+
+               strcpy(fname1,   tval(ifname1));
+               strcpy(fname2,   tval(ifname2));
+               strcpy(diffname, tval(idiffname));
+
+               if(quickMode)
+                  sprintf(cmd, "mDiff -n projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
+               else
+                  sprintf(cmd, "mDiff projected/%s projected/%s diffs/%s big_region.hdr", fname1, fname2, diffname);
+
+               if(debug >= 4)
+               {
+                  fprintf(fdebug, "[%s]\n", cmd);
+                  fflush(fdebug);
+               }
+
+               if(finfo)
+               {
+                  fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
+                  fflush(finfo);
+               }
+
+               svc_run(cmd);
+
+               strcpy( status, svc_value( "stat" ));
+
+               if(strcmp( status, "ABORT") == 0)
+               {
+                  strcpy( msg, svc_value( "msg" ));
+
+                  printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+                  fflush(fdebug);
+
+                  exit(1);
+               }
+
+               if(strcmp( status, "ERROR"  ) == 0
+               || strcmp( status, "WARNING") == 0)
+                  ++failed;
+
+
+               if(levelOnly)
+                  sprintf(cmd, "mFitplane -l diffs/%s", diffname);
+               else
+                  sprintf(cmd, "mFitplane diffs/%s", diffname);
+
+               if(debug >= 4)
+               {
+                  fprintf(fdebug, "[%s]\n", cmd);
+                  fflush(fdebug);
+               }
+
+               if(finfo)
+               {
+                  fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><p/>\n\n", cmd);
+                  fflush(finfo);
+               }
+
+               svc_run(cmd);
+
+               strcpy( status, svc_value( "stat" ));
+
+               if(strcmp( status, "ABORT") == 0)
+               {
+                  strcpy( msg, svc_value( "msg" ));
+
+                  printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+                  fflush(stdout);
+
+                  exit(1);
+               }
+
+               if(strcmp( status, "ERROR")   == 0
+               || strcmp( status, "WARNING") == 0)
+                  ++failed;
+               else
+               {
+                  aval      = atof(svc_value("a"));
+                  bval      = atof(svc_value("b"));
+                  cval      = atof(svc_value("c"));
+                  crpix1    = atof(svc_value("crpix1"));
+                  crpix2    = atof(svc_value("crpix2"));
+                  xmin      = atoi(svc_value("xmin"));
+                  xmax      = atoi(svc_value("xmax"));
+                  ymin      = atoi(svc_value("ymin"));
+                  ymax      = atoi(svc_value("ymax"));
+                  xcenter   = atof(svc_value("xcenter"));
+                  ycenter   = atof(svc_value("ycenter"));
+                  npixel    = atof(svc_value("npixel"));
+                  rms       = atof(svc_value("rms"));
+                  boxx      = atof(svc_value("boxx"));
+                  boxy      = atof(svc_value("boxy"));
+                  boxwidth  = atof(svc_value("boxwidth"));
+                  boxheight = atof(svc_value("boxheight"));
+                  boxangle  = atof(svc_value("boxang"));
+
+                  fprintf(fout, " %9d %9d %16.5e %16.5e %16.5e %14.2f %14.2f %10d %10d %10d %10d %13.2f %13.2f %13.0f %16.5e %16.1f %16.1f %16.1f %16.1f %16.1f \n",
+                     cntr1, cntr2, aval, bval, cval, crpix1, crpix2, xmin, xmax, ymin, ymax, 
+                     xcenter, ycenter, npixel, rms, boxx, boxy, boxwidth, boxheight, boxangle);
+                  fflush(fout);
+               }
+
+               if(!keepAll)
+               {
+                  sprintf(cmd, "diffs/%s", diffname);
+                  unlink(cmd);
+
+                  strcpy(areafile, cmd);
+                  areafile[strlen(areafile) - 5] = '\0';
+                  strcat(areafile, "_area.fits");
+
+                  unlink(areafile);
+               }
+            }
+
+            tclose();
+
+            time(&currtime);
+
+            if(debug >= 1)
+            {
+               fprintf(fdebug, "TIME: mDiff/mFitplane  %6d (%d diffs,  %d successful, %d failed)\n", 
+                  (int)(currtime - lasttime), count, count - failed,  failed);
+
+               fflush(fdebug);
+            }
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d diffs, %d successful, %d failed)</p>\n",
+                  (int)(currtime - lasttime), count, count-failed, failed);
+               fprintf(finfo, "<hr style='color: #fefefe;' />\n");
+               fflush(finfo);
+            }
+
+            lasttime = currtime;
+         }
+
+
+         /*********************************/
+         /* Generate the correction table */
+         /*********************************/
+
+         if(baseCount > 1)
+         {
+            if(levelOnly)
+               sprintf(cmd, "mBgModel -i 100000 -l -a pimages.tbl fits.tbl corrections.tbl");
+            else
+               sprintf(cmd, "mBgModel -i 100000 -t -a pimages.tbl fits.tbl corrections.tbl");
+
+            if(debug >= 4)
+            {
+               fprintf(fdebug, "[%s]\n", cmd);
+               fflush(fdebug);
+            }
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p><h3>Modeling differences to determine background corrections</h3></p>\n");
+               fprintf(finfo, "<p><span style='color: blue;'><tt>%s</tt></span></p>\n", cmd);
+               fflush(finfo);
+            }
+
+            svc_run(cmd);
+
+            strcpy( status, svc_value( "stat" ));
+
+            if(strcmp( status, "ERROR") == 0)
+            {
+               strcpy( msg, svc_value( "msg" ));
+
+               printerr(msg);
+            }
+
+            time(&currtime);
+
+            if(debug >= 1)
+            {
+               fprintf(fdebug, "TIME: mBgModel         %6d\n", (int)(currtime - lasttime));
+               fflush(fdebug);
+            }
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span></p>\n",
+                  (int)(currtime - lasttime));
+               fprintf(finfo, "<hr style='color: #fefefe;' />\n");
+               fflush(finfo);
+            }
+
+            lasttime = currtime;
+         }
+
+
+         /**************************************/ 
+         /* Background correct all the images  */
+         /**************************************/ 
+
+         if(baseCount > 1)
+         {
+            if(infoMsg)
+            {
+               printf("[struct stat=\"INFO\", msg=\"Background correcting %d images\"]\n", 
+                  nimages);
+               fflush(stdout);
+            }
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p><h3>Applying background corrections</h3></p>\n");
+               fflush(finfo);
+            }
+
+
+            /**************************************/
+            /* Allocate space for the corrections */
+            /**************************************/
+         
+            maxcntr = nimages;
+
+            a = (double *)malloc(maxcntr * sizeof(double));
+            b = (double *)malloc(maxcntr * sizeof(double));
+            c = (double *)malloc(maxcntr * sizeof(double));
+         
+            have = (int *)malloc(maxcntr * sizeof(int));
+         
+            for(i=0; i<maxcntr; ++i)
+            {  
+               a[i]    = 0.;
+               b[i]    = 0.;
+               c[i]    = 0.;
+               have[i] = 0;
+            }
+         
+         
+            /******************************************/
+            /* Open the corrections table file        */
+            /******************************************/
+         
+            ncols = topen("corrections.tbl");
+         
+            iid = tcol( "id");
+            ia  = tcol( "a");
+            ib  = tcol( "b");
+            ic  = tcol( "c");
+         
+            if(iid < 0
+            || ia  < 0
+            || ib  < 0
+            || ic  < 0)
+            {
+               printerr("Need columns: id,a,b,c in corrections file");
+               exit(1);
+            }
+         
+         
+            /********************************/
+            /* And read in the corrections. */
+            /********************************/
+         
+            while(1)
+            {
+               if(tread() < 0)
+                  break;
+         
+               id = atoi(tval(iid));
+         
+               a[id] = atof(tval(ia));
+               b[id] = atof(tval(ib));
+               c[id] = atof(tval(ic));
+         
+               have[id] = 1;
+            }
+         
+            tclose();
+
+
+            /***************************************************/ 
+            /* Read through the image list.                    */
+            /*                                                 */
+            /* If there is no correction for an image file,    */
+            /* increment 'nocorrection' and copy it unchanged. */
+            /* Then run mBackground to create the corrected    */
+            /* image.  If there is an image in the list for    */
+            /* which we don't actually have a projected file   */
+            /* (can happen if the list was created from the    */
+            /* 'raw' set), increment the 'failed' count.       */
+            /***************************************************/ 
+
+            ncols = topen("pimages.tbl");
+
+            icntr  = tcol("cntr");
+            ifname = tcol("fname");
+
+            count        = 0;
+            nocorrection = 0;
+            failed       = 0;
+
+            while(1)
+            {
+               if(tread() < 0)
+                  break;
+
+               cntr = atoi(tval(icntr));
+
+               strcpy(file, tval(ifname));
+
+               if(quickMode)
+               {
+                  sprintf(cmd, "mBackground -n projected/%s corrected/%s %-g %-g %-g", 
+                        file, file, a[cntr], b[cntr], c[cntr]);
+               }
+               else
+                  sprintf(cmd, "mBackground projected/%s corrected/%s %-g %-g %-g", 
+                        file, file, a[cntr], b[cntr], c[cntr]);
+
+               if(have[cntr] == 0)
+                  ++nocorrection;
+
+               if(debug >= 3)
+               {
+                  fprintf(fdebug, "%d: %s\n", cntr, cmd); 
+                  fflush(fdebug);
+               }
+
+               if(finfo)
+               {
+                  fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
+                  fflush(finfo);
+               }
+
+               svc_run(cmd);
+
+               if(strcmp( status, "ABORT") == 0)
+               {
+                  strcpy( msg, svc_value( "msg" ));
+
+                  printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
+                  fflush(stdout);
+
+                  exit(1);
+               }
+
+               strcpy( status, svc_value( "stat" ));
+
+               ++count;
+               if(strcmp( status, "ERROR") == 0)
+                  ++failed;
+
+               if(!keepAll)
+               {
+                  sprintf(cmd, "projected/%s", file);
+                  unlink(cmd);
+
+                  strcpy(areafile, cmd);
+                  areafile[strlen(areafile) - 5] = '\0';
+                  strcat(areafile, "_area.fits");
+
+                  unlink(areafile);
+               }
+
+            }
 
             if(!keepAll)
             {
@@ -2552,37 +2602,24 @@ int main(int argc, char **argv, char **envp)
                unlink(areafile);
             }
 
+            time(&currtime);
+
+            if(debug >= 1)
+            {
+               fprintf(fdebug, "TIME: mBackground      %6d (%d corrected)\n", (int)(currtime - lasttime), count);
+               fflush(fdebug);
+            }
+
+            if(finfo)
+            {
+               fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d images corrected)</p>\n",
+                  (int)(currtime - lasttime), count);
+               fprintf(finfo, "<hr style='color: #fefefe;' />\n");
+               fflush(finfo);
+            }
+
+            lasttime = currtime;
          }
-
-         if(!keepAll)
-         {
-            sprintf(cmd, "projected/%s", file);
-            unlink(cmd);
-
-            strcpy(areafile, cmd);
-            areafile[strlen(areafile) - 5] = '\0';
-            strcat(areafile, "_area.fits");
-
-            unlink(areafile);
-         }
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mBackground      %6d (%d corrected)\n", (int)(currtime - lasttime), count);
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d images corrected)</p>\n",
-               (int)(currtime - lasttime), count);
-            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
-            fflush(finfo);
-         }
-
-         lasttime = currtime;
       }
 
 
@@ -2598,40 +2635,57 @@ int main(int argc, char **argv, char **envp)
             fflush(stdout);
          }
 
-         sprintf(cmd, "mImgtbl -c corrected cimages.tbl");
-
-         if(debug >= 4)
+         if(!noBackground)
          {
-            fprintf(fdebug, "[%s]\n", cmd);
-            fflush(fdebug);
+            sprintf(cmd, "mImgtbl -c corrected cimages.tbl");
+
+            if(debug >= 4)
+            {
+               fprintf(fdebug, "[%s]\n", cmd);
+               fflush(fdebug);
+            }
+
+            svc_run(cmd);
+
+            time(&currtime);
+
+            if(debug >= 1)
+            {
+               fprintf(fdebug, "TIME: mImgtbl(corr)    %6d\n", (int)(currtime - lasttime));
+               fflush(fdebug);
+            }
+
+            lasttime = currtime;
          }
 
          if(finfo)
          {
             fprintf(finfo, "<p><h3>Coadding image for final mosaic</h3></p>\n");
-            fprintf(finfo, "<span style='color: blue;'>mImgtbl -c corrected cimages.tbl</span><br/>\n");
+
+            if(!noBackground)
+               fprintf(finfo, "<span style='color: blue;'>mImgtbl -c corrected cimages.tbl</span><br/>\n");
+
             fprintf(finfo, "<span style='color: blue;'>mAdd -n -p corrected cimages.tbl region.hdr mosaic.fits<br/></span>\n");
             fflush(finfo);
          }
 
-         svc_run(cmd);
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mImgtbl(corr)    %6d\n", (int)(currtime - lasttime));
-            fflush(fdebug);
-         }
-
-         lasttime = currtime;
 
          if(ntile*mtile == 1)
          {
-            if(quickMode)
-               sprintf(cmd, "mAdd -n -p corrected cimages.tbl region.hdr mosaic.fits");
+            if(noBackground)
+            {
+               if(quickMode)
+                  sprintf(cmd, "mAdd -n -p projected pimages.tbl region.hdr mosaic.fits");
+               else
+                  sprintf(cmd, "mAdd -p projected pimages.tbl region.hdr mosaic.fits");
+            }
             else
-               sprintf(cmd, "mAdd -p corrected cimages.tbl region.hdr mosaic.fits");
+            {
+               if(quickMode)
+                  sprintf(cmd, "mAdd -n -p corrected cimages.tbl region.hdr mosaic.fits");
+               else
+                  sprintf(cmd, "mAdd -p corrected cimages.tbl region.hdr mosaic.fits");
+            }
 
             if(debug >= 4)
             {
@@ -2676,8 +2730,24 @@ int main(int argc, char **argv, char **envp)
                      printerr(msg);
                   }
 
-                  sprintf(cmd, "mCoverageCheck cimages.tbl tmp/cimages_%d_%d.tbl -f tmp/region_%d_%d.hdr",
-                     i, j, i, j);
+                  if(noBackground)
+                  {
+                     if(xoff != 0. || yoff != 0.)
+                        sprintf(cmd, "mCoverageCheck -x %-g -y %-g pimages.tbl tmp/pimages_%d_%d.tbl -f tmp/region_%d_%d.hdr",
+                           xoff, yoff, i, j, i, j);
+                     else
+                        sprintf(cmd, "mCoverageCheck pimages.tbl tmp/pimages_%d_%d.tbl -f tmp/region_%d_%d.hdr",
+                           i, j, i, j);
+                  }
+                  else
+                  {
+                     if(xoff != 0. || yoff != 0.)
+                        sprintf(cmd, "mCoverageCheck -x %-g -y %-g cimages.tbl tmp/cimages_%d_%d.tbl -f tmp/region_%d_%d.hdr",
+                           xoff, yoff, i, j, i, j);
+                     else
+                        sprintf(cmd, "mCoverageCheck cimages.tbl tmp/cimages_%d_%d.tbl -f tmp/region_%d_%d.hdr",
+                           i, j, i, j);
+                  }
 
                   if(debug >= 4)
                   {
@@ -2698,16 +2768,26 @@ int main(int argc, char **argv, char **envp)
 
                   nmatches = atoi(svc_value("count"));
 
-                  nmatches = 1;  // XXXXXXXXXXX
-
                   if(nmatches > 0)
                   {
-                     if(quickMode)
-                        sprintf(cmd, "mAdd -n -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
-                           i, j, i, j, i, j);
+                     if(noBackground)
+                     {
+                        if(quickMode)
+                           sprintf(cmd, "mAdd -n -p projected tmp/pimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
+                              i, j, i, j, i, j);
+                        else
+                           sprintf(cmd, "mAdd -p projected tmp/pimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
+                              i, j, i, j, i, j);
+                     }
                      else
-                        sprintf(cmd, "mAdd -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
-                           i, j, i, j, i, j);
+                     {
+                        if(quickMode)
+                           sprintf(cmd, "mAdd -n -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
+                              i, j, i, j, i, j);
+                        else
+                           sprintf(cmd, "mAdd -p corrected tmp/cimages_%d_%d.tbl tmp/region_%d_%d.hdr tiles/tile_%d_%d.fits",
+                              i, j, i, j, i, j);
+                     }
 
                      if(debug >= 4)
                      {
@@ -2732,8 +2812,11 @@ int main(int argc, char **argv, char **envp)
                      sprintf(cmd, "tmp/region_%d_%d.hdr", i, j);
                      unlink(cmd);
 
-                     sprintf(cmd, "tmp/cimages_%d_%d.tbl", i, j);
-                     unlink(cmd);
+                     if(!noBackground)
+                     {
+                        sprintf(cmd, "tmp/cimages_%d_%d.tbl", i, j);
+                        unlink(cmd);
+                     }
                   }
                }
             }
@@ -2881,50 +2964,56 @@ int main(int argc, char **argv, char **envp)
 
       if(baseCount > 1)
       {
-         ncols = topen("cimages.tbl");
-
-         ifname = tcol( "fname");
-
-         if(ifname < 0)
+         if(!noBackground)
          {
-            strcpy(msg, "Need column 'fname' in input");
+            ncols = topen("cimages.tbl");
 
-            printerr(msg);
-         }
+            ifname = tcol( "fname");
 
-         count = 0;
-
-         while(1)
-         {
-            istat = tread();
-
-            if(istat < 0)
-               break;
-
-            strcpy(infile, filePath("corrected", tval(ifname)));
-
-            if(!keepAll)
+            if(ifname < 0)
             {
-               unlink(infile);
+               strcpy(msg, "Need column 'fname' in input");
 
-               strcpy(areafile, infile);
-               areafile[strlen(areafile) - 5] = '\0';
-               strcat(areafile, "_area.fits");
-
-               unlink(areafile);
-
-               count += 2;
+               printerr(msg);
             }
-         }
 
-         tclose();
+            count = 0;
+
+            while(1)
+            {
+               istat = tread();
+
+               if(istat < 0)
+                  break;
+
+               strcpy(infile, filePath("corrected", tval(ifname)));
+
+               if(!keepAll)
+               {
+                  unlink(infile);
+
+                  strcpy(areafile, infile);
+                  areafile[strlen(areafile) - 5] = '\0';
+                  strcat(areafile, "_area.fits");
+
+                  unlink(areafile);
+
+                  count += 2;
+               }
+            }
+
+            tclose();
+         }
 
          if(!keepAll)
          {
             unlink("big_region.hdr");
             unlink("remote_big.tbl");
             unlink("pimages.tbl");
-            unlink("cimages.tbl");
+
+            if(!noBackground)
+               unlink("cimages.tbl");
+
             unlink("diffs.tbl");
             unlink("fits.tbl");
             unlink("corrections.tbl");
@@ -3012,18 +3101,22 @@ int main(int argc, char **argv, char **envp)
 
       if(!keepAll)
       {
-         sprintf(cmd, "rm -rf corrected");
-
-         if(debug >= 2)
+         if(!noBackground)
          {
-            fprintf(fdebug, "%s\n", cmd);
-            fflush(fdebug);
-         }
+            sprintf(cmd, "rm -rf corrected");
 
-         system(cmd);
+            if(debug >= 2)
+            {
+               fprintf(fdebug, "%s\n", cmd);
+               fflush(fdebug);
+            }
+
+            system(cmd);
+         }
       }
 
-      rmdir ("corrected");
+      if(!noBackground)
+         rmdir ("corrected");
 
       time(&currtime);
 
