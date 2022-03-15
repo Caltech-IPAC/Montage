@@ -85,7 +85,8 @@ char regionTypeStr[4][32] = {"POINT", "CONE", "BOX"};
 
 
 long listNodeCount;
-long nodeCount;
+
+extern long nodeCount;
 
 typedef struct vec
 {
