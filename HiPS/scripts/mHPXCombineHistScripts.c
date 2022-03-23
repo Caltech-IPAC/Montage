@@ -228,8 +228,8 @@ int main(int argc, char **argv)
       fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
       fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
       fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-      fprintf(ftask, "#SBATCH -o %slogs/chist.%N.%%j.out # STDOUT\n", scriptdir);
-      fprintf(ftask, "#SBATCH -e %slogs/chist.%N.%%j.err # STDERR\n", scriptdir);
+      fprintf(ftask, "#SBATCH -o %slogs/chist.%%N.%%j.out # STDOUT\n", scriptdir);
+      fprintf(ftask, "#SBATCH -e %slogs/chist.%%N.%%j.err # STDERR\n", scriptdir);
       fprintf(ftask, "%sjobs/chist_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
 
       fflush(ftask);

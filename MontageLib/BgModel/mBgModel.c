@@ -24,6 +24,7 @@ int main(int argc, char **argv)
    char    imgfile[MAXSTR];
    char    fitfile[MAXSTR];
    char    corrtbl[MAXSTR];
+   char    gapdir [MAXSTR];
 
    char   *end;
 
@@ -43,14 +44,20 @@ int main(int argc, char **argv)
 
    opterr = 0;
 
+   strcpy(gapdir, "");
+
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "ag:i:r:s:ltd:z")) != EOF) 
+   while ((c = getopt(argc, argv, "ag:i:s:ltd:")) != EOF) 
    {
       switch (c) 
       {
          case 'a':
             useall = 1;
+            break;
+
+         case 'g':
+            strcpy(gapdir, optarg);
             break;
 
          case 'i':
@@ -99,7 +106,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-g gapdir] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -107,7 +114,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 3) 
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-g gapdir] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
       exit(1);
    }
 
@@ -115,7 +122,7 @@ int main(int argc, char **argv)
    strcpy(fitfile, argv[optind + 1]);
    strcpy(corrtbl, argv[optind + 2]);
 
-   returnStruct = mBgModel(imgfile, fitfile, corrtbl, mode, useall, niteration, debug);
+   returnStruct = mBgModel(imgfile, fitfile, corrtbl, gapdir, mode, useall, niteration, debug);
 
    if(returnStruct->status == 1)
    {

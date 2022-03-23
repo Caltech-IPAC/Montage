@@ -58,13 +58,14 @@ static char montage_json  [1024];
 /*   char  *gap_dir       Output directory for diff info.                */
 /*   int    levelOnly     Only fit for level difference not a full       */
 /*                        plane with slopes.                             */
+/*   int    pad           Amount of padding around image.                */
 /*   int    width         The width from the edge to include.            */
 /*   int    debug         Debugging output level.                        */
 /*                                                                       */
 /*************************************************************************/
 
 struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minus_path, int minus_edge,
-                                      char *gap_dir, int levelOnly, int width, int debug)
+                                      char *gap_dir, int levelOnly, int pad, int width, int debug)
 {
    char      tmpstr    [1024];
    char      basename  [1024];
@@ -74,9 +75,6 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    double    a, b, c;
    double    ap, bp, cp;
    double    adiff, bdiff, cdiff;
-
-   double    x0, y0;
-   double    x0p, y0p;
 
    FILE     *diff_file;
    FILE     *view_script;
@@ -194,7 +192,7 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
 
    // Compute fit for the 'plus' image
    
-   mHPXGapDiff_fitImage(plus_path, levelOnly, plus_edge, width, returnStruct, 0, debug);
+   mHPXGapDiff_fitImage(plus_path, levelOnly, plus_edge, pad, width, returnStruct, 0, debug);
 
    if(returnStruct->status == 1)
    {
@@ -209,7 +207,7 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    
    // Compute fit for the 'minus' image
    
-   mHPXGapDiff_fitImage(minus_path, levelOnly, minus_edge, width, returnStruct, 1, debug);
+   mHPXGapDiff_fitImage(minus_path, levelOnly, minus_edge, pad, width, returnStruct, 1, debug);
 
    if(returnStruct->status == 1)
    {
@@ -222,27 +220,9 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    }
 
 
-   // Find the reference pixels coordinates
+   // Check edge
    
-   if(plus_edge == TOP)
-   {
-      x0 = -returnStruct->crpix1[0];
-      y0 = -returnStruct->crpix2[0] + returnStruct->naxis2[0]; 
-
-      x0p = -returnStruct->crpix1[1];
-      y0p = -returnStruct->crpix2[1] + returnStruct->naxis2[1]; 
-   }
-
-   else if(plus_edge == BOTTOM)
-   {
-      x0 = -returnStruct->crpix1[0];
-      y0 = -returnStruct->crpix2[0]; 
-
-      x0p = -returnStruct->crpix1[1] + returnStruct->naxis1[1];
-      y0p = -returnStruct->crpix2[1] + returnStruct->naxis2[1]; 
-   }
-
-   else
+   if(plus_edge != TOP && plus_edge != BOTTOM)
    {
       strcpy(returnStruct->msg, "Only TOP (to LEFT) and BOTTOM (to RIGHT) gap comparisons are implemented for HPX projection.");
       return returnStruct;
@@ -259,34 +239,12 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    ap =  b;
    bp = -a;
 
-   cp = (a*x0 + b*y0 + c) - (ap*x0p + bp*y0p);
-
    adiff = returnStruct->a[1] - ap;
    bdiff = returnStruct->b[1] - bp;
-   cdiff = returnStruct->c[1] - cp;
+   cdiff = returnStruct->c[1] - c;
 
-   if(debug)
-   {
-      printf("\nPLUS:            a = %14.9f,  b = %14.9f,  c = %14.9f\n", a, b, c);
-      printf("PLUS -> MINUS:  ap = %14.9f, bp = %14.9f, cp = %14.9f\n", ap, bp, cp);
-      fflush(stdout);
-   }
-
-   b =  ap;
-   a = -bp;
-
-   c = (ap*x0p + bp*y0p + cp) - (a*x0 + b*y0);
-
-   if(debug)
-   {
-      printf("PLUS <- MINUS:   a = %14.9f,  b = %14.9f,  c = %14.9f\n\n", a, b, c);
-      printf("MINUS diff:      a = %14.9f,  b = %14.9f,  c = %14.9f\n\n", adiff, bdiff, cdiff);
-      fflush(stdout);
-   }
-
-   returnStruct->transform[0][0][0] =   0.;   returnStruct->transform[0][0][1] =   1.;   returnStruct->transform[0][0][2] = 0.;
-   returnStruct->transform[0][1][0] =  -1.;   returnStruct->transform[0][1][1] =   0.;   returnStruct->transform[0][1][2] = 0.;
-   returnStruct->transform[0][2][0] = x0+y0p; returnStruct->transform[0][2][1] = y0-x0p; returnStruct->transform[0][2][2] = 1.;
+   returnStruct->transform[0][0][0] =   0.;   returnStruct->transform[0][0][1] =   1.;
+   returnStruct->transform[0][1][0] =  -1.;   returnStruct->transform[0][1][1] =   0.;
 
 
    fprintf(view_script, "#!/bin/sh\n\nmBackground -n %s minus_corrected.fits %-g %-g %-g\n",
@@ -295,6 +253,7 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    fprintf(diff_file, "plus_file                 : %s\n",             plus_path);
    fprintf(diff_file, "minus_file                : %s\n",             minus_path);
    fprintf(diff_file, "A,B,C                     : %.5e %.5e %.5e\n", adiff, bdiff, cdiff);
+   fprintf(diff_file, "C0                        : %.5e %.5e\n",      returnStruct->c0[0],       returnStruct->c0[1]);
    fprintf(diff_file, "crpix                     : %.2f %.2f\n",      returnStruct->crpix1[0],   returnStruct->crpix2[0]);
    fprintf(diff_file, "xmin,xmax                 : %d %d\n",          returnStruct->xmin[0],     returnStruct->xmax[0]);
    fprintf(diff_file, "ymin,ymax                 : %d %d\n",          returnStruct->ymin[0],     returnStruct->ymax[0]); 
@@ -303,9 +262,8 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    fprintf(diff_file, "boxx,boxy                 : %.2f %.2f \n",     returnStruct->boxx[0],     returnStruct->boxy[0]);
    fprintf(diff_file, "boxwidth,boxheight,boxang : %.2f %.2f %.2f\n", returnStruct->boxwidth[0], returnStruct->boxheight[0], returnStruct->boxang[0]);
    fprintf(diff_file, "have_transform            : true\n");
-   fprintf(diff_file, "transform                 : %12.5e %12.5e %12.5e\n", returnStruct->transform[0][0][0], returnStruct->transform[0][0][1], returnStruct->transform[0][0][2]);
-   fprintf(diff_file, "                            %12.5e %12.5e %12.5e\n", returnStruct->transform[0][1][0], returnStruct->transform[0][1][1], returnStruct->transform[0][1][2]);
-   fprintf(diff_file, "                            %12.5e %12.5e %12.5e\n", returnStruct->transform[0][2][0], returnStruct->transform[0][2][1], returnStruct->transform[0][2][2]);
+   fprintf(diff_file, "transform                 : %12.5e %12.5e\n",  returnStruct->transform[0][0][0], returnStruct->transform[0][0][1]);
+   fprintf(diff_file, "                            %12.5e %12.5e\n",  returnStruct->transform[0][1][0], returnStruct->transform[0][1][1]);
    fprintf(diff_file, "\n");
 
    fflush(diff_file);
@@ -321,34 +279,12 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    b =  ap;
    a = -bp;
 
-   c = (ap*x0p + bp*y0p + cp) - (a*x0 + b*y0);
-
    adiff = returnStruct->a[0] - a;
    bdiff = returnStruct->b[0] - b;
-   cdiff = returnStruct->c[0] - c;
+   cdiff = returnStruct->c[0] - cp;
 
-   if(debug)
-   {
-      printf("MINUS:          ap = %14.9f, bp = %14.9f, cp = %14.9f\n", ap, bp, cp);
-      printf("MINUS -> PLUS:   a = %14.9f, b  = %14.9f,  c = %14.9f\n", a, b, c);
-      fflush(stdout);
-   }
-   
-   ap =  b;
-   bp = -a;
-
-   cp = (a*x0 + b*y0 + c) - (ap*x0p + bp*y0p);
-
-   if(debug)
-   {
-         printf("MINUS <- PLUS:  ap = %14.9f, bp = %14.9f, cp = %14.9f\n\n", ap, bp, cp);
-         printf("PLUS diff:       a = %14.9f,  b = %14.9f,  c = %14.9f\n\n", adiff, bdiff, cdiff);
-      fflush(stdout);
-   }
-
-   returnStruct->transform[1][0][0] =   0.;   returnStruct->transform[1][0][1] =  -1.;   returnStruct->transform[1][0][2] = 0.;
-   returnStruct->transform[1][1][0] =   1.;   returnStruct->transform[1][1][1] =   0.;   returnStruct->transform[1][1][2] = 0.;
-   returnStruct->transform[1][2][0] = x0p-y0; returnStruct->transform[1][2][1] = y0p+x0; returnStruct->transform[1][2][2] = 1.;
+   returnStruct->transform[1][0][0] =   0.;   returnStruct->transform[1][0][1] =  -1.;
+   returnStruct->transform[1][1][0] =   1.;   returnStruct->transform[1][1][1] =   0.;
 
 
    fprintf(view_script, "mBackground -n %s plus_corrected.fits %-g %-g %-g\n\n",
@@ -357,6 +293,7 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    fprintf(diff_file, "plus_file                 : %s\n",             minus_path);
    fprintf(diff_file, "minus_file                : %s\n",             plus_path);
    fprintf(diff_file, "A,B,C                     : %.5e %.5e %.5e\n", adiff, bdiff, cdiff);
+   fprintf(diff_file, "C0                        : %.5e %.5e\n",      returnStruct->c0[1],       returnStruct->c0[0]);
    fprintf(diff_file, "crpix                     : %.2f %.2f\n",      returnStruct->crpix1[1],   returnStruct->crpix2[1]);
    fprintf(diff_file, "xmin,xmax                 : %d %d\n",          returnStruct->xmin[1],     returnStruct->xmax[1]);
    fprintf(diff_file, "ymin,ymax                 : %d %d\n",          returnStruct->ymin[1],     returnStruct->ymax[1]); 
@@ -365,9 +302,8 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    fprintf(diff_file, "boxx,boxy                 : %.2f %.2f \n",     returnStruct->boxx[1],     returnStruct->boxy[1]);
    fprintf(diff_file, "boxwidth,boxheight,boxang : %.2f %.2f %.2f\n", returnStruct->boxwidth[1], returnStruct->boxheight[1], returnStruct->boxang[1]);
    fprintf(diff_file, "have_transform            : true\n");
-   fprintf(diff_file, "transform                 : %12.5e %12.5e %12.5e\n", returnStruct->transform[1][0][0], returnStruct->transform[1][0][1], returnStruct->transform[1][0][2]);
-   fprintf(diff_file, "                            %12.5e %12.5e %12.5e\n", returnStruct->transform[1][1][0], returnStruct->transform[1][1][1], returnStruct->transform[1][1][2]);
-   fprintf(diff_file, "                            %12.5e %12.5e %12.5e\n", returnStruct->transform[1][2][0], returnStruct->transform[1][2][1], returnStruct->transform[1][2][2]);
+   fprintf(diff_file, "transform                 : %12.5e %12.5e\n",  returnStruct->transform[1][0][0], returnStruct->transform[1][0][1]);
+   fprintf(diff_file, "                            %12.5e %12.5e\n",  returnStruct->transform[1][1][0], returnStruct->transform[1][1][1]);
    fprintf(diff_file, "\n");
 
 
@@ -397,8 +333,8 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
 
 
 
-void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width, 
-                          struct mHPXGapDiffReturn *returnStruct, int index, int debug)
+void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int pad, int width, struct mHPXGapDiffReturn *returnStruct, 
+                          int index, int debug)
 {
    fitsfile *fptr;
 
@@ -452,6 +388,19 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
    nan = value.d;
 
 
+   if(debug)
+   {
+      printf("\nIn mHPXGapDiff_fitImage:\n\n");
+      printf("input_file: [%s]\n", input_file);
+      printf("edge:       [%d]\n", edge);
+      printf("levelOnly:  [%d]\n", levelOnly);
+      printf("pad:        [%d]\n", pad);
+      printf("width:      [%d]\n", width);
+      printf("debug:      [%d]\n", debug);
+      fflush(stdout);
+   }
+
+
    /******************/
    /* Open the image */
    /******************/
@@ -487,49 +436,95 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
       fflush(stdout);
    }
 
-   if(!levelOnly && (naxes[0] < 2 || naxes[1] < 2))
-   {
-      mHPXGapDiff_nrerror("Too few pixels to fit");
-      strcpy(returnStruct->msg, montage_msgstr);
 
-      return;
-   }
+   /**********************************************************************************************/
+   /*                                                                                            */
+   /* "Gap" plate pairs are adjacent to each other on the sky but separated in the projected     */
+   /* space and rotated relative to each other by 90 degrees.  These plates do not overlap but   */
+   /* we will approximate a background difference for them by measuring the background in two    */
+   /* strips (one on each image) that match up on the sky.  For regular difference images the    */
+   /* two plate actually overlap but this should come close enough, especially since these       */
+   /* regions are at relatively high latitude.                                                   */
+   /*                                                                                            */
+   /* This is complicated enough that we aren't going to try and adapt to any variations.        */
+   /* The images we are working with have to be properly constructed HPX plates with some        */
+   /* of padding (and the same padding all the way around whether or not they are "gap" images.  */
+   /*                                                                                            */
+   /* They each abut on of the "gaps" in the projection and we are going to take a strip of      */
+   /* pixels along that side of the image.  The strip will be "width" wide.  Note that this      */
+   /* will be inset from the edge by the padding since on that side these pixels will be         */
+   /* blank.                                                                                     */
+   /*                                                                                            */
+   /* Given the HPX order and the number of plates being used, we can pre-calculate all of       */
+   /* the sizes we need from first principles.  This includes the center of the patch, which     */
+   /* we need as our calculation of the pseudo overlap uses that coordinate as our reference     */
+   /* location.                                                                                  */
+   /*                                                                                            */
+   /* All the x,y pixel coordinates in the entire HPX plane are relative to the global           */
+   /* projection center at the middle of the projection.  So when working within any given       */
+   /* image, X will be equal to the pixel coordinate within that image minus the image's         */
+   /* CRPIX1 value.  However, the gap adds an extra twist.  In a normal overlap, the coordinates */
+   /* of the overlap region are identical with each other.  So if during a BgModel iteration     */
+   /* we adjust an image up a bit, all of the differences associated with that image change      */
+   /* by the same amount.  For a gap difference, we have to tranform that offset to the          */
+   /* equivalent (same plane but with rotated slopes and translated zero point).                 */
+   /*                                                                                            */
+   /* At this point, we have enough information to compute all the geometric parameters          */
+   /* associated with the "overlap patch" from first principles.  These will go into the         */
+   /* "returnStruct" for use by BgModel  and include:                                            */
+   /*                                                                                            */
+   /*    crpix1, crpix2             -  Offset of LL corner of patch to projection center (0,0)   */
+   /*    xmin,xmax                  -  X min, max pixel coordinates for the patch.               */
+   /*    ymin,ymax                  -  Y min, max pixel coordinates for the patch                */
+   /*    xcenter,ycenter            -  The coordinates of the center of the pixel.               */
+   /*    npixel                     -  Number of pixels in the patch (minus the number we don't  */
+   /*                                  use because blank or outside 2 sigma of fit plane)        */
+   /*    boxx,boxy                  -  For normal raw images, the overlap can be funny shapes    */
+   /*    boxwidth,boxheight,boxang     and these parameters are for a minimum (rotated)          */
+   /*                                  bounding box.  Here this is redundant with the other      */
+   /*                                  box information (but neeeded by BgModel).                 */
+   /*                                                                                            */
+   /**********************************************************************************************/
 
    
    /***********************************/
    /* Determine the pixel area to use */
    /***********************************/
 
+   // The x, y start and end are the in-image pixel coordinates
+   // that we want to compute over.  It is different for each of
+   // the four edges we might use.
+
    if(edge == TOP)
    {
-      xstart = 0;
-      xend   = naxes[0] - 1;
-      ystart = naxes[1] - width;
-      yend   = naxes[1] - 1;
+      xstart = pad;
+      xend   = naxes[0] - pad;
+      ystart = naxes[1] - pad - width;
+      yend   = naxes[1] - pad;
    }
 
    else if(edge == LEFT)
    {
-      xstart = 0;
-      xend   = width - 1;
-      ystart = 0;
-      yend   = naxes[1] - 1;
+      xstart = pad;
+      xend   = pad + width;
+      ystart = pad;
+      yend   = naxes[1] - pad;
    }
 
    else if(edge == RIGHT)
    {
-      xstart = naxes[0] - width;
-      xend   = naxes[0] - 1;
-      ystart = 0;
-      yend   = naxes[1] - 1;
+      xstart = naxes[0] - pad - width;
+      xend   = naxes[0] - pad;
+      ystart = pad;
+      yend   = naxes[1] - pad;
    }
 
    else if(edge == BOTTOM)
    {
-      xstart = 0;
-      xend   = naxes[0] - 1;
-      ystart = 0;
-      yend   = width - 1;
+      xstart = pad;
+      xend   = naxes[0] - pad;
+      ystart = pad;
+      yend   = pad + width;
    }
 
    if(debug)
@@ -655,19 +650,30 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
       sumz  = 0.;
       sumn  = 0.;
 
-      xmin =  1000000;
-      xmax = -1000000;
-      ymin =  1000000;
-      ymax = -1000000;
+      xmin =  100000000;
+      xmax = -100000000;
+      ymin =  100000000;
+      ymax = -100000000;
 
       if(debug)
       {
-         printf("\nUsing x: %d to %d\n", xstart, xend-1);
-         printf("Using y: %d to %d\n\n", ystart, yend-1);
+         printf("\nUsing x: %d to %d\n", xstart, xend);
+         printf("Using y: %d to %d\n\n", ystart, yend);
          printf("CRPIX: (%-g,%-g)\n\n", crpix[0], crpix[1]);
          fflush(stdout);
       }
 
+      crpix1 = crpix[0] - xstart;
+      crpix2 = crpix[1] - ystart;
+
+      if(debug)
+      {
+         printf("\nPatch crpix1 = %-g\n", crpix1);
+         printf("\nPatch crpix2 = %-g\n", crpix2);
+         fflush(stdout);
+      }
+
+      
       for (j=ystart; j<yend; ++j)
       {
          ypos = j - crpix[1];
@@ -675,7 +681,8 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
          for (i=xstart; i<xend; ++i)
          {
             xpos = i - crpix[0];
-            
+
+
             pixel_value = data[j][i];
 
             if(mNaN(pixel_value))
@@ -712,15 +719,24 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
             sumyz += ypos*pixel_value;
             sumz  += pixel_value;
             sumn  += 1.;
+            
 
-
-            /* Region info */
+            /* Region range */
 
             if(xpos < xmin) xmin = xpos;
             if(xpos > xmax) xmax = xpos;
             if(ypos < ymin) ymin = ypos;
             if(ypos > ymax) ymax = ypos;
          }
+      }
+
+      if(debug)
+      {
+         printf("xmin: %d\n", xmin);
+         printf("xmax: %d\n", xmax);
+         printf("ymin: %d\n", ymin);
+         printf("ymax: %d\n", ymax);
+         fflush(stdout);
       }
 
 
@@ -730,9 +746,6 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
 
       xcenter = (xmax+xmin)/2.;
       ycenter = (ymax+ymin)/2.;
-
-      crpix1 = -xcenter + 0.5;
-      crpix2 = -ycenter + 0.5;
 
       boxx = (xmax+xmin)/2.;
       boxy = (ymax+ymin)/2.;
@@ -913,10 +926,10 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
    returnStruct->a[index]         = b[0][0];
    returnStruct->b[index]         = b[1][0];
    returnStruct->c[index]         = b[2][0];
-   returnStruct->naxis1[index]    = naxes[0];
-   returnStruct->naxis2[index]    = naxes[1];
    returnStruct->crpix1[index]    = crpix1;
    returnStruct->crpix2[index]    = crpix2;
+   returnStruct->naxis1[index]    = naxes[0];
+   returnStruct->naxis2[index]    = naxes[1];
    returnStruct->xmin[index]      = xmin;
    returnStruct->xmax[index]      = xmax;
    returnStruct->ymin[index]      = ymin;
@@ -931,6 +944,7 @@ void mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int width,
    returnStruct->boxheight[index] = boxheight;
    returnStruct->boxang[index]    = boxang;
 
+   returnStruct->c0[index] = returnStruct->a[index]*xcenter + returnStruct->b[index]*ycenter + returnStruct->c[index];
 
    for(i=0; i<naxes[1]; ++i)
       free(data[i]);

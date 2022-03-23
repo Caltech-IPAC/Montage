@@ -1,9 +1,4 @@
-/* Module: mBgModel.c.  In truth,
- * getting actual (xref, yref) locations 
- * doesn't really matter as it is the difference
- * in x and the difference in y that are used.
- * So here we use the dithe original
- * image crpix values.
+/* Module: mBgModel.c
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
@@ -151,6 +146,7 @@ static struct FitInfo
    double xrefm;
    double yrefm;
 
+   int    have_transform;
    double trans[2][2];
 }
 *fits;
@@ -179,8 +175,6 @@ struct CorrInfo
 
    int nneighbors;
    int maxneighbors;
-
-   int type;
 }
 *corrs;
 
@@ -207,6 +201,9 @@ static char montage_json  [1024];
 /*   char  *fitfile        Set of image overlap difference fits          */
 /*   char  *corrtbl        Output table of corrections for images        */
 /*                         in input list                                 */
+/*   char  *gapdir         Special case for HiPS maps: fits to the       */
+/*                         offsets for plates on opposite sides of       */
+/*                         gaps in the projections near the poles        */
 /*   int    mode           Three possible background matching modes:     */
 /*                         level fitting only; level fitting followed    */
 /*                         by fitting slope and level; and alternating   */
@@ -218,19 +215,27 @@ static char montage_json  [1024];
 /*                                                                       */
 /*************************************************************************/
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int mode, int useall, int niter, int debug)
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int mode, int useall, int niter, int debug)
 {
-   int     i, j, k, found, index, stat;
+   int     i, j, k, found, index, stat, iimg=0;
    int     ntoggle, toggle, nancnt, iplate, iplate_cntr;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
    double  averms, sigrms, avearea;
    double  imin, imax, jmin, jmax;
-   double  A, B, C;
+   double  A, B, C, C0;
    double  Am, Bm, Cm;
    double  xref, yref;
    double  xrefm, yrefm;
    FILE   *fout;
+   FILE   *fgap;
+
+   char    tmpstr [1024];
+   char    fname  [1024];
+   char    line   [1024];
+   char    gaptbl [1024];
+   char    wraptbl[1024];
+   char   *ptr;
 
    int     iplus;
    int     iminus;
@@ -257,6 +262,20 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int
    int     ifname;
    int     inl;
    int     ins;
+
+   int     plus_cntr;
+   int     minus_cntr;
+   char    plus_file [1024];
+   char    minus_file[1024];
+   double  crpix1, crpix2;
+   int     xmin, xmax;
+   int     ymin, ymax;
+   double  xcenter, ycenter;
+   int     npixel;
+   double  rms;
+   double  boxwidth, boxheight, boxang;
+   int     have_transform;
+   double  transform[3][3];
 
    int     fittype;
 
@@ -847,6 +866,8 @@ of applying the right tranforms to the planes associated with each iteration.
 
       fits[nfits].use =  1;
 
+      fits[nfits].type = ADJACENT;
+
       ++nfits;
 
       if(nfits >= maxfits-2)
@@ -901,6 +922,8 @@ of applying the right tranforms to the planes associated with each iteration.
 
          fits[nfits].use = 1;
 
+         fits[nfits].type = ADJACENT;
+
          ++nfits;
       }
 
@@ -926,6 +949,485 @@ of applying the right tranforms to the planes associated with each iteration.
    }
 
    averms = averms / nrms;
+
+
+   /****************************************************************************************/
+   /* For special projections, we sometimes have other pair-ups of plates besides          */
+   /* the overlaps.  For instance, the HPX projection is mostly Cylindrical Equal Area,    */
+   /* except at high latitudes where it "splits open" from the pole down some ~40 degrees. */
+   /* Plates on either side of this gap are not only separated by a considerable number    */
+   /* of (blank) pixels the matching edges are at right angles to each other.              */
+   /*                                                                                      */
+   /* Similarly, the far left and right of the projection is a "wrap-around" (-180/+180),  */
+   /* contiguous on the real sky.                                                          */
+   /*                                                                                      */
+   /* The way we analyze these matches, there is one "fit" file for each of them in a      */
+   /* "gap" directory and a summary table ("gap.tbl") listing them.                        */
+   /****************************************************************************************/
+
+   if(gapdir != (char *)NULL && strlen(gapdir) > 0)
+   {
+      strcpy(gaptbl, gapdir);
+      strcat(gaptbl, "/gap.tbl");
+
+      ncols = topen(gaptbl);
+
+      if(ncols < 1)
+      {
+         strcpy(returnStruct->msg, "Cannot open gap.tbl file in gap directory.");
+         return returnStruct;
+      }
+
+      ifname = tcol("file");
+
+      if(ifname < 0)
+      {
+         strcpy(returnStruct->msg, "gap.tbl file in gap directory does not have 'file' column.");
+         return returnStruct;
+      }
+
+      while(1)
+      {
+         stat = tread();
+
+         if(stat < 0)
+            break;
+
+         strcpy(fname, tval(ifname));
+
+         if(fname[0] != '/');
+
+         strcpy(tmpstr, gapdir);
+         strcat(tmpstr, "/");
+         strcat(tmpstr, fname);
+
+         fgap = fopen(tmpstr, "r");
+
+         if(fgap == (FILE *)NULL)
+         {
+            tclose();
+
+            sprintf(returnStruct->msg, "Cannot open gap file.");
+            return returnStruct;
+         }
+
+         // Read through the diff file for this special pair.
+         // These file, for now, are rigorously structured.
+
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%s",          plus_file);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%s",          minus_file);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf %lf", &A, &B, &C);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf",         &C0);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &crpix1, &crpix2);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%d %d",       &xmin, &xmax);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%d %d",       &ymin, &ymax);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &xcenter, &ycenter);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%d %lf",      &npixel, &rms);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &boxx, &boxy);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf %lf", &boxwidth, &boxheight, &boxang);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%s",          tmpstr);
+         
+         have_transform = 0;
+         if(strcmp(tmpstr, "true") == 0)
+            have_transform = 1;
+
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &transform[0][0], &transform[0][1]);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &transform[1][0], &transform[1][1]);
+         fgets(line, 1024, fgap);
+
+         plus_cntr = -1;
+
+         ptr = plus_file;
+         for(i=0; i<strlen(plus_file); ++i)
+            if(plus_file[i] == '/')
+               ptr = plus_file + i + 1;
+
+         for(i=0; i<nimages; ++i)
+         {
+            if(strcmp(ptr, imgs[i].fname) == 0)
+            {
+               plus_cntr = imgs[i].cntr;
+               break;
+            }
+         }
+         
+
+         minus_cntr = -1;
+
+         ptr = minus_file;
+         for(i=0; i<strlen(minus_file); ++i)
+            if(minus_file[i] == '/')
+               ptr = minus_file + i + 1;
+
+         for(i=0; i<nimages; ++i)
+         {
+            if(strcmp(ptr, imgs[i].fname) == 0)
+            {
+               minus_cntr = imgs[i].cntr;
+               break;
+            }
+         }
+
+         width  = boxwidth;
+         height = boxheight;
+         angle  = boxang * dtr;
+
+         X0 =  boxx * cos(angle) + boxy * sin(angle);
+         Y0 = -boxx * sin(angle) + boxy * cos(angle);
+         
+         fits[nfits].plus       = plus_cntr;
+         fits[nfits].minus      = minus_cntr;
+         fits[nfits].a          = A;
+         fits[nfits].b          = B;
+         fits[nfits].c          = C;
+         fits[nfits].xmin       = xmin;
+         fits[nfits].xmax       = xmax;
+         fits[nfits].ymin       = ymin;
+         fits[nfits].ymax       = ymax;
+         fits[nfits].xcenter    = xcenter;
+         fits[nfits].ycenter    = ycenter;
+         fits[nfits].npix       = npixel;
+         fits[nfits].rms        = rms;
+         fits[nfits].Xmin       = X0 - width /2.;
+         fits[nfits].Xmax       = X0 + width /2.;
+         fits[nfits].Ymin       = Y0 - height/2.;
+         fits[nfits].Ymax       = Y0 + height/2.;
+         fits[nfits].boxangle   = angle/dtr;
+
+         fits[nfits].level_only = 0;
+
+         fits[nfits].have_transform = have_transform;
+
+         for(i=0; i<2; ++i)
+            for(j=0; j<2; ++j)
+               fits[nfits].trans[j][i] = transform[j][i];
+
+         fits[nfits].use  = 1;
+         
+         fits[nfits].type = GAP;
+         
+         ++nfits;
+
+         if(nfits >= maxfits-2)
+         {
+            maxfits += MAXCNT;
+
+            if(debug >= 2)
+            {
+               printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
+               fflush(stdout);
+            }
+
+            fits = (struct FitInfo *)realloc(fits, 
+                                        maxfits * sizeof(struct FitInfo));
+
+            if(fits == (struct FitInfo *)NULL)
+            {
+               sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [2]", maxfits * sizeof(struct FitInfo));
+               return returnStruct;
+
+            }
+         }
+
+         
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%s",          plus_file);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%s",          minus_file);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf %lf", &A, &B, &C);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf",         &C0);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &crpix1, &crpix2);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%d %d",       &xmin, &xmax);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%d %d",       &ymin, &ymax);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &xcenter, &ycenter);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%d %lf",      &npixel, &rms);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &boxx, &boxy);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf %lf", &boxwidth, &boxheight, &boxang);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%s",          tmpstr);
+         
+         have_transform = 0;
+         if(strcmp(tmpstr, "true") == 0)
+            have_transform = 1;
+
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &transform[0][0], &transform[0][1]);
+         fgets(line, 1024, fgap); ptr = line + 28; sscanf(ptr, "%lf %lf",     &transform[1][0], &transform[1][1]);
+         fgets(line, 1024, fgap);
+
+         plus_cntr = -1;
+
+         ptr = plus_file;
+         for(i=0; i<strlen(plus_file); ++i)
+            if(plus_file[i] == '/')
+               ptr = plus_file + i + 1;
+
+         for(i=0; i<nimages; ++i)
+         {
+            if(strcmp(ptr, imgs[i].fname) == 0)
+            {
+               plus_cntr = imgs[i].cntr;
+               break;
+            }
+         }
+         
+
+         minus_cntr = -1;
+
+         ptr = minus_file;
+         for(i=0; i<strlen(minus_file); ++i)
+            if(minus_file[i] == '/')
+               ptr = minus_file + i + 1;
+
+         for(i=0; i<nimages; ++i)
+         {
+            if(strcmp(ptr, imgs[i].fname) == 0)
+            {
+               minus_cntr = imgs[i].cntr;
+               break;
+            }
+         }
+
+         width  = boxwidth;
+         height = boxheight;
+         angle  = boxang * dtr;
+
+         X0 =  boxx * cos(angle) + boxy * sin(angle);
+         Y0 = -boxx * sin(angle) + boxy * cos(angle);
+         
+         fits[nfits].plus       = plus_cntr;
+         fits[nfits].minus      = minus_cntr;
+         fits[nfits].a          = A;
+         fits[nfits].b          = B;
+         fits[nfits].c          = C;
+         fits[nfits].xmin       = xmin;
+         fits[nfits].xmax       = xmax;
+         fits[nfits].ymin       = ymin;
+         fits[nfits].ymax       = ymax;
+         fits[nfits].xcenter    = xcenter;
+         fits[nfits].ycenter    = ycenter;
+         fits[nfits].npix       = npixel;
+         fits[nfits].rms        = rms;
+         fits[nfits].Xmin       = X0 - width /2.;
+         fits[nfits].Xmax       = X0 + width /2.;
+         fits[nfits].Ymin       = Y0 - height/2.;
+         fits[nfits].Ymax       = Y0 + height/2.;
+         fits[nfits].boxangle   = angle/dtr;
+
+         fits[nfits].level_only = 0;
+
+         fits[nfits].have_transform = have_transform;
+
+         for(i=0; i<2; ++i)
+            for(j=0; j<2; ++j)
+               fits[nfits].trans[j][i] = transform[j][i];
+         
+         fits[nfits].use  = 1;
+         
+         fits[nfits].type = GAP;
+
+         ++nfits;
+
+         if(nfits >= maxfits-2)
+         {
+            maxfits += MAXCNT;
+
+            if(debug >= 2)
+            {
+               printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
+               fflush(stdout);
+            }
+
+            fits = (struct FitInfo *)realloc(fits, 
+                                        maxfits * sizeof(struct FitInfo));
+
+            if(fits == (struct FitInfo *)NULL)
+            {
+               sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [2]", maxfits * sizeof(struct FitInfo));
+               return returnStruct;
+
+            }
+         }
+
+      }
+
+      tclose();
+   }
+
+
+   /********************************************/
+   /* And, if we have them, wraparound matches */
+   /********************************************/
+
+   if(gapdir != (char *)NULL && strlen(gapdir) > 0)
+   {
+      strcpy(wraptbl, gapdir);
+      strcat(wraptbl, "/wrap.tbl");
+
+      ncols = topen(wraptbl);
+
+      if(ncols < 1)
+      {
+         strcpy(returnStruct->msg, "Cannot open wraps.tbl file in gap directory.");
+         return returnStruct;
+      }
+
+      iplus = tcol("plus");
+
+      if(iplus < 0 || iminus < 0)
+      {
+         strcpy(returnStruct->msg, "wrap.tbl file in gap directory does not have 'plus' and 'minus' columns.");
+         return returnStruct;
+      }
+
+      while(1)
+      {
+         stat = tread();
+
+         if(stat < 0)
+            break;
+
+         strcpy(plus_file,  tval(iplus));
+         strcpy(minus_file, tval(iminus));
+
+
+         have_transform = 0;
+
+
+         plus_cntr = -1;
+
+         ptr = plus_file;
+         for(i=0; i<strlen(plus_file); ++i)
+            if(plus_file[i] == '/')
+               ptr = plus_file + i + 1;
+
+         for(i=0; i<nimages; ++i)
+         {
+            if(strcmp(plus_file, imgs[i].fname) == 0)
+            {
+               iimg = i;
+               plus_cntr = imgs[i].cntr;
+               break;
+            }
+         }
+         
+
+         minus_cntr = -1;
+
+         ptr = minus_file;
+         for(i=0; i<strlen(minus_file); ++i)
+            if(minus_file[i] == '/')
+               ptr = minus_file + i + 1;
+
+         for(i=0; i<nimages; ++i)
+         {
+            if(strcmp(minus_file, imgs[i].fname) == 0)
+            {
+               minus_cntr = imgs[i].cntr;
+               break;
+            }
+         }
+
+         fits[nfits].plus       = plus_cntr;
+         fits[nfits].minus      = minus_cntr;
+         fits[nfits].a          = 0.;
+         fits[nfits].b          = 0.;
+         fits[nfits].c          = 0.;
+         fits[nfits].xmin       = imgs[iimg].crpix1 - imgs[iimg].naxis1/2;
+         fits[nfits].xmax       = imgs[iimg].crpix1 + imgs[iimg].naxis1/2;
+         fits[nfits].ymin       = imgs[iimg].crpix2 - imgs[iimg].naxis2/2;
+         fits[nfits].ymax       = imgs[iimg].crpix2 + imgs[iimg].naxis2/2;
+         fits[nfits].xcenter    = imgs[iimg].crpix1; 
+         fits[nfits].ycenter    = imgs[iimg].crpix2;
+         fits[nfits].npix       = imgs[iimg].naxis1 * imgs[iimg].naxis2;
+         fits[nfits].rms        = 1.e-10;
+         fits[nfits].Xmin       = fits[nfits].xmin;
+         fits[nfits].Xmax       = fits[nfits].xmax;
+         fits[nfits].Ymin       = fits[nfits].ymin;
+         fits[nfits].Ymax       = fits[nfits].ymax;
+         fits[nfits].boxangle   = 0.;
+
+         fits[nfits].level_only = 0;
+
+         fits[nfits].have_transform = have_transform;
+
+         fits[nfits].use  = 1;
+         
+         fits[nfits].type = WRAP;
+         
+         ++nfits;
+
+         if(nfits >= maxfits-2)
+         {
+            maxfits += MAXCNT;
+
+            if(debug >= 2)
+            {
+               printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
+               fflush(stdout);
+            }
+
+            fits = (struct FitInfo *)realloc(fits, 
+                                        maxfits * sizeof(struct FitInfo));
+
+            if(fits == (struct FitInfo *)NULL)
+            {
+               sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [2]", maxfits * sizeof(struct FitInfo));
+               return returnStruct;
+
+            }
+         }
+
+         fits[nfits].plus       = minus_cntr;
+         fits[nfits].minus      = plus_cntr;
+         fits[nfits].a          = 0.;
+         fits[nfits].b          = 0.;
+         fits[nfits].c          = 0.;
+         fits[nfits].xmin       = imgs[iimg].crpix1 - imgs[iimg].naxis1/2;
+         fits[nfits].xmax       = imgs[iimg].crpix1 + imgs[iimg].naxis1/2;
+         fits[nfits].ymin       = imgs[iimg].crpix2 - imgs[iimg].naxis2/2;
+         fits[nfits].ymax       = imgs[iimg].crpix2 + imgs[iimg].naxis2/2;
+         fits[nfits].xcenter    = imgs[iimg].crpix1; 
+         fits[nfits].ycenter    = imgs[iimg].crpix2;
+         fits[nfits].npix       = imgs[iimg].naxis1 * imgs[iimg].naxis2;
+         fits[nfits].rms        = 1.e-10;
+         fits[nfits].Xmin       = fits[nfits].xmin;
+         fits[nfits].Xmax       = fits[nfits].xmax;
+         fits[nfits].Ymin       = fits[nfits].ymin;
+         fits[nfits].Ymax       = fits[nfits].ymax;
+         fits[nfits].boxangle   = 0.;
+
+         fits[nfits].level_only = 0;
+
+         fits[nfits].have_transform = have_transform;
+
+         fits[nfits].use  = 1;
+         
+         fits[nfits].type = WRAP;
+         
+         ++nfits;
+
+         if(nfits >= maxfits-2)
+         {
+            maxfits += MAXCNT;
+
+            if(debug >= 2)
+            {
+               printf("Reallocating fits to %d (size %lu) [15]\n", maxfits, maxfits * sizeof(struct FitInfo));
+               fflush(stdout);
+            }
+
+            fits = (struct FitInfo *)realloc(fits, 
+                                        maxfits * sizeof(struct FitInfo));
+
+            if(fits == (struct FitInfo *)NULL)
+            {
+               sprintf(returnStruct->msg, "realloc() failed (FitInfo) [%lu] [2]", maxfits * sizeof(struct FitInfo));
+               return returnStruct;
+
+            }
+         }
+
+      }
+
+      tclose();
+   }
 
 
    /*************************************************************************/
@@ -1809,7 +2311,7 @@ of applying the right tranforms to the planes associated with each iteration.
          // since the plane there was calculated for a different region of the space but 
          // needs to be treated as local to the "plus" location.
 
-         if(fits[i].minuscorr->type == ADJACENT)
+         if(fits[i].type == ADJACENT)
          {
             // These don't need special treatment but 
             // we'll give it a section just to call out
@@ -1820,7 +2322,7 @@ of applying the right tranforms to the planes associated with each iteration.
             fits[i].c += fits[i].minuscorr->ccorrection;
          }
 
-         else if(fits[i].minuscorr->type == WRAP)
+         else if(fits[i].type == WRAP)
          {
             // Here the slopes don't change, there is
             // just a reference pixel shift.  In truth,
@@ -1847,7 +2349,7 @@ of applying the right tranforms to the planes associated with each iteration.
             fits[i].c += C;
          }
 
-         else if(fits[i].minuscorr->type == GAP)
+         else if(fits[i].type == GAP)
          {
             // Going across a gap, the slopes get transposed through
             // rotation.  This was taken care of in the program that 
@@ -1860,16 +2362,10 @@ of applying the right tranforms to the planes associated with each iteration.
             B = fits[i].minuscorr->bcorrection;
             C = fits[i].minuscorr->ccorrection;
 
-            xref = fits[i].xref;
-            yref = fits[i].yref;
-           
-            xrefm = fits[i].xrefm;
-            yrefm = fits[i].yrefm;
-            
             Am = fits[i].trans[0][0] * A + fits[i].trans[0][1] * B;
             Bm = fits[i].trans[1][0] * A + fits[i].trans[1][1] * B;
 
-            Cm = Am * (xref-xrefm) + Bm * (yref - yrefm) + C;
+            Cm = C;
 
             fits[i].a += Am;
             fits[i].b += Bm;

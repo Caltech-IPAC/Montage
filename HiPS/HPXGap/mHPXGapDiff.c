@@ -43,7 +43,7 @@ extern int getopt(int argc, char *const *argv, const char *options);
 
 int main(int argc, char **argv)
 {
-   int   c, levelOnly, width, debug;
+   int   c, levelOnly, pad, width, debug;
 
    char  gappath   [MAXSTR];
    char  plus_file [MAXSTR];
@@ -64,7 +64,8 @@ int main(int argc, char **argv)
    /***************************************/
 
    debug     = 0;
-   width     = 256;
+   width     = 4096;
+   pad       = 0;
    levelOnly = 0;
 
    opterr    = 0;
@@ -73,15 +74,38 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "p:i:g:dw:ls:")) != EOF) 
+   while ((c = getopt(argc, argv, "dp:w:g:ls:")) != EOF) 
    {
       switch (c) 
       {
+         case 'd':
+            debug = 1;
+            break;
+
          case 'g':
             strcpy(gappath, optarg);
 
             if(strcmp(gappath, ".") == 0)
                strcpy(gappath, "");
+
+            break;
+
+         case 'p':
+            pad = strtol(optarg, &end, 0);
+
+            if(end < optarg + strlen(optarg))
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Argument to -p (%s) cannot be interpreted as an integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
+
+            if(pad < 0)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Argument to -p (%s) must be a positive integer\"]\n", 
+                  optarg);
+               exit(1);
+            }
 
             break;
 
@@ -104,10 +128,6 @@ int main(int argc, char **argv)
 
             break;
 
-         case 'd':
-            debug = 1;
-            break;
-
          case 'l':
             levelOnly = 1;
             break;
@@ -122,7 +142,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-g gappath] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-g gappath] [-p pad] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
             exit(1);
             break;
       }
@@ -130,7 +150,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-g gappath] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-g gappath] [-p pad] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
       exit(1);
    }
 
@@ -164,17 +184,18 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-      returnStruct = mHPXGapDiff(plus_file, plus_edge, minus_file, minus_edge, gappath, levelOnly, width, debug);
+   returnStruct = mHPXGapDiff(plus_file, plus_edge, minus_file, minus_edge, gappath, levelOnly, 
+                              pad, width, debug);
 
-      if(returnStruct->status == 1)
-      {
-          fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
-          exit(1);
-      }
-      else
-      {
-          fprintf(montage_status, "[struct stat=\"OK\", module=\"mHPXGapDiff\", %s]\n",
-                returnStruct->msg);
-          exit(0);
-      }
+   if(returnStruct->status == 1)
+   {
+       fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
+       exit(1);
+   }
+   else
+   {
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mHPXGapDiff\", %s]\n",
+             returnStruct->msg);
+       exit(0);
+   }
 }

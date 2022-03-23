@@ -139,12 +139,12 @@ int main(int argc, char **argv)
 
    blend = 1;
 
-   while ((c = getopt(argc, argv, "dcb:p:")) != EOF)
+   while ((c = getopt(argc, argv, "d:cb:p:")) != EOF)
    {
       switch (c)
       {
          case 'd':
-            debug = 1;
+            debug = atoi(optarg);
             break;
 
          case 'b':
@@ -266,7 +266,6 @@ int main(int argc, char **argv)
       info[i].outxstart = (int)(values[2]-xmin0);
       info[i].xlen      = (int)(values[2]-values[1]);
 
-
       values[0] = ymin;
       values[1] = ymax;
       values[2] = ymin0;
@@ -284,7 +283,6 @@ int main(int argc, char **argv)
       info[i].inystart  = (int)(values[2]-ymin);
       info[i].outystart = (int)(values[2]-ymin0);
       info[i].ylen      = (int)(values[2]-values[1]);
-
 
       info[i].left   =  (iplate-nplate/2+xoffset[i]  )*width  +  (info[i].crpix[0]+0.5);
       info[i].right  = -(iplate-nplate/2+xoffset[i]+1)*width  - ((info[i].crpix[0]+0.5)-info[i].naxes[0]);
@@ -351,6 +349,12 @@ int main(int argc, char **argv)
    {
       for(j=0; j<height; ++j)
       {
+         if(debug)
+         {
+            printf("DEBUG> Row %d\n", j);
+            fflush(stdout);
+         }
+
          for(i=0; i<width; ++i)
          {
             hfrac = 0.;
@@ -386,9 +390,11 @@ int main(int argc, char **argv)
             hfrac = 0.5 * hfrac + 0.5;
             vfrac = 0.5 * vfrac + 0.5;
 
-            if(debug)
+            if(debug >= 2)
             {
-               printf("DEBUG> %d %d: v=%-g, h=%-g ", j, i, vfrac, hfrac);
+               printf("DEBUG> %d %d: v=%-g, h=%-g [%d %d %d %d %d %d %d %d] ",
+                     j, i, vfrac, hfrac,
+                     in[LEFT], in[RIGHT], in[TOP], in[BOTTOM], in[LL], in[UL], in[LR], in[UR]); 
                fflush(stdout);
             }
 
@@ -402,7 +408,7 @@ int main(int argc, char **argv)
 
                newval = hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LEFT][j][i];
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("LEFT:  CENTER[%d][%d] (%-g) and LEFT[%d][%d] (%-g) -> %-g ", 
                         j, i, data[CENTER][j][i], 
@@ -424,7 +430,7 @@ int main(int argc, char **argv)
 
                newval = hfrac * data[CENTER][j][i] + (1.-hfrac) * data[RIGHT][j][i-info[RIGHT].outxstart+info[RIGHT].xlen];
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("RIGHT:  CENTER[%d][%d] (%-g) and RIGHT[%d][%d] (%-g) -> %-g\n", 
                         j, i                                       , data[CENTER][j][i                                       ],
@@ -446,7 +452,7 @@ int main(int argc, char **argv)
 
                newval = vfrac * data[CENTER][j][i] + (1.-vfrac) * data[TOP][j-info[TOP].outystart+info[TOP].ylen][i];
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("TOP:  CENTER[%d][%d] (%-g) and TOP[%d][%d] (%-g) -> %-g\n",
                         j,                                    i, data[CENTER][j                                   ][i],
@@ -468,7 +474,7 @@ int main(int argc, char **argv)
 
                newval = vfrac * data[CENTER][j][i] + (1.-vfrac) * data[BOTTOM][j][i];
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("BOTTOM:  CENTER[%d][%d] (%-g) and BOTTOM[%d][%d] (%-g) -> %-g\n",
                         j, i, data[CENTER][j][i],
@@ -504,7 +510,7 @@ int main(int argc, char **argv)
 
                newval = newval/3.;
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("LL:  CENTER[%d][%d] (%-g), LL[%d][%d] (%-g), LEFT[%d][%d] (%-g) and BOTTOM[%d][%d] (%-g) -> %-g\n",
                         j, i, data[CENTER][j][i],
@@ -542,7 +548,7 @@ int main(int argc, char **argv)
 
                newval = newval/3.;
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("LR:  CENTER[%d][%d] (%-g), LR[%d][%d] (%-g), RIGHT[%d][%d] (%-g) and BOTTOM[%d][%d] (%-g) -> %-g\n",
                          j, i                                    , data[CENTER][j][i                                       ],
@@ -580,7 +586,7 @@ int main(int argc, char **argv)
 
                newval = newval/3.;
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("UL:  CENTER[%d][%d], UL[%d][%d], LEFT[%d][%d] (%-g) and TOP[%d][%d] (%-g) -> %-g\n", 
                          j                                   , i, data[CENTER][j                                   ][i], 
@@ -618,7 +624,7 @@ int main(int argc, char **argv)
 
                newval = newval/3.;
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("UR:  CENTER[%d][%d] (%-g), UR[%d][%d] (%-g), RIGHT[%d][%d] (%-g) and TOP[%d][%d] (%-g)\n",
                         j                                   , i                                       , data[CENTER][j                                   ][i                                       ],
@@ -639,7 +645,7 @@ int main(int argc, char **argv)
             {
                // Do nothing (leave center array value unchanged.
 
-               if(debug)
+               if(debug >= 2)
                {
                   printf("CENTER[%d][%d] (%-g) unchanged.\n", j, i, data[CENTER][j][i]);
                   fflush(stdout);
