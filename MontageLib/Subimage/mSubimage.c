@@ -71,7 +71,8 @@ int main(int argc, char **argv)
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
       
-      if(strcmp(argv[i], "-n") == 0)
+      if(strcmp(argv[i], "-n")     == 0
+      || strcmp(argv[i], "-nowcs") == 0)
          nowcs = 1;
       
       if(strcmp(argv[i], "-a") == 0)
