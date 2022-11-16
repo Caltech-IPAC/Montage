@@ -24,14 +24,15 @@ Version  Developer        Date     Change
 #define NBIN 200000
 
 
-static int     mCombineHist_debug;
+static int mCombineHist_debug;
 
-static int     nbin;
+static unsigned long  nbin;
 
-static unsigned long npix;
+static unsigned long long npix;
 
-static int     hist    [NBIN];
-static double  chist   [NBIN];
+static unsigned long long hist [NBIN];
+static unsigned long long chist[NBIN];
+
 static double  datalev [NBIN];
 static double  gausslev[NBIN];
 
@@ -73,17 +74,19 @@ struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr
                                         char *betastr, int logpower, char *outhist, int debugin)
 {
    int    i, j, k, nbin, type;
-   double count, val, dval;
+   double val, dval;
    double datamin, datamax;
    double indatamin, indatamax;
    double minval, maxval, betaval, median, sigma;
    double minpercent, maxpercent, minsigma, maxsigma;
    double dataval[256];
 
+   unsigned long long count;
+
    char   line [MAXSTR];
    char   label[MAXSTR];
 
-   int    inhist[NBIN];
+   unsigned long long inhist[NBIN];
 
    static FILE *fhist, *fout;
 
@@ -201,7 +204,7 @@ struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr
    {
       datalev[i] = datamin + delta*i;
       hist   [i] = 0;
-      chist  [i] = 0.;
+      chist  [i] = 0;
    }
 
    if(mCombineHist_debug)
@@ -247,7 +250,7 @@ struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr
 
          if(mCombineHist_debug >= 2)
          {
-            printf("DEBUG> %d (val=%-g): count=%-g (hist[%d] - > %d)\n", i, val, count, k, hist[k]);
+            printf("DEBUG> %d (val=%-g): count=%llu (hist[%d] = %llu)\n", i, val, count, k, hist[k]);
             fflush(stdout);
          }
 
@@ -271,9 +274,6 @@ struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr
    /* table (for gaussian/gaussian-log stretches.                    */
    /******************************************************************/
 
-   if(mCombineHist_debug)
-      printf("\n RANGE:\n");
-   
    status = mCombineHist_getRange(type, minstr,  maxstr, betastr, &minval, &maxval, &betaval,
                                   &median,  &sigma, dataval);
 
@@ -350,17 +350,17 @@ struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr
    fprintf(fout, "rmin %-g\n",  rmin);
    fprintf(fout, "rmax %-g\n",  rmax);
    fprintf(fout, "delta %-g\n", delta);
-   fprintf(fout, "npix %lu\n",  npix);
+   fprintf(fout, "npix %llu\n", npix);
 
    fprintf(fout, "\nStretch Lookup\n");
 
    for(i=0; i<256; ++i)
       fprintf(fout, "%d %13.6e\n", i, dataval[i]);
 
-   fprintf(fout, "\n%d CombineHist Bins\n", NBIN);
+   fprintf(fout, "\n%d Combined Hist Bins\n", NBIN);
 
    for(i=0; i<NBIN; ++i)
-      fprintf(fout, "%d %13.6e %d %13.6e %13.6e\n", i, datalev[i], hist[i], chist[i], gausslev[i]);
+      fprintf(fout, "%d %13.6e %llu %llu %13.6e\n", i, datalev[i], hist[i], chist[i], gausslev[i]);
 
    fflush(fout);
    fclose(fout);
@@ -392,7 +392,7 @@ struct mCombineHistReturn *mCombineHist(char **histfile, int nhist, char *minstr
 
 
 
-int mCombineHist_readHist(char *histfile,  int *inhist, double *rmin, double *rmax)
+int mCombineHist_readHist(char *histfile,  unsigned long long *inhist, double *rmin, double *rmax)
 {
    int   i;
 
@@ -437,7 +437,7 @@ int mCombineHist_readHist(char *histfile,  int *inhist, double *rmin, double *rm
    for(i=0; i<NBIN; ++i)
    {
       fgets(line, 1024, fhist);
-      sscanf(line, "%s %lf %d %lf %lf", label, &level, inhist+i, &comhist, &gaussval);
+      sscanf(line, "%s %lf %llu %lf %lf", label, &level, inhist+i, &comhist, &gaussval);
    }
 
    fclose(fhist);
@@ -802,16 +802,18 @@ int mCombineHist_getRange(int type, char *minstr,  char *maxstr, char *betastr,
 
 double mCombineHist_percentileLevel(double percentile)
 {
-   int    i, count;
+   int    i;
    double percent, maxpercent, minpercent;
    double fraction, value;
+
+   unsigned long long count;
 
    if(percentile <=   0) return rmin;
    if(percentile >= 100) return rmax;
 
-   percent = 0.01 * percentile;
+   percent = percentile / 100.;
 
-   count = (int)(npix*percent);
+   count = npix * (unsigned long long) percentile / 100;
 
    i = 1;
    while(i < nbin+1 && chist[i] < count)
@@ -827,8 +829,8 @@ double mCombineHist_percentileLevel(double percentile)
    if(mCombineHist_debug)
    {
       printf("DEBUG> mCombineHist_percentileLevel(%-g):\n", percentile);
-      printf("DEBUG> percent    = %-g -> count = %d -> bin %d\n",
-         percent, count, i);
+      printf("DEBUG> percent    = %-g -> count = %llu -> bin %d\n",
+         percentile/100., count, i);
       printf("DEBUG> minpercent = %-g\n", minpercent);
       printf("DEBUG> maxpercent = %-g\n", maxpercent);
       printf("DEBUG> fraction   = %-g\n", fraction);

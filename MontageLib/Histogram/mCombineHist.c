@@ -53,6 +53,10 @@ int main(int argc, char **argv)
 
    ihist = 1;
 
+   strcpy(betastr, "");
+
+   logpower = 0;
+
    for(i=0; i<argc; ++i)
    {
       /* DEBUG */

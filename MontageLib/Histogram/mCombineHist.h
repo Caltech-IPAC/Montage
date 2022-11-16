@@ -10,7 +10,7 @@
 #define  GAUSSIANLOG 2
 #define  ASINH       3
 
-int    mCombineHist_readHist         (char *histfile, int *hist, double *datamin, double *datamax);
+int    mCombineHist_readHist         (char *histfile, unsigned long long *hist, double *datamin, double *datamax);
 int    mCombineHist_parseRange       (char const *str, char const *kind, double *val, double *extra, int *type);
 int    mCombineHist_getRange         (int type, char *minstr, char *maxstr, char *betastr,
                                       double *rangemin, double *rangemax, double *rangebeta, 

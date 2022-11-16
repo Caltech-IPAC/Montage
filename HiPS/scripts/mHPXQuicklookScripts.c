@@ -29,7 +29,7 @@ int debug;
 
 int main(int argc, char **argv)
 {
-   int  i, ch, status, job, mode, shrink;
+   int  i, ch, status, job, mode, ct, shrink;
    
    double shrink_factor;
 
@@ -73,14 +73,14 @@ int main(int argc, char **argv)
    debug = 0;
 
    opterr = 0;
-
    shrink = 1;
+   ct     = 0;
 
    strcpy(histfile,   "");
    strcpy(brightness, "");
    strcpy(contrast  , "");
 
-   while ((ch = getopt(argc, argv, "dnb:c:h:")) != EOF) 
+   while ((ch = getopt(argc, argv, "dnb:c:C:h:")) != EOF) 
    {
       switch (ch) 
       {
@@ -96,6 +96,10 @@ int main(int argc, char **argv)
             strcpy(histfile, optarg);
             break;
 
+         case 'C':
+            ct = atoi(optarg);
+            break;
+
          case 'c':
             strcpy(contrast, optarg);
             break;
@@ -105,7 +109,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-n(o-shrink)][-h histfile][-b brightness][-c contrast] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-n(o-shrink)][-h histfile][-b brightness][-c contrast][-C color-table] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -113,7 +117,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-n(o-shrink)][-h histfile][-b brightness][-c contrast] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-n(o-shrink)][-h histfile][-b brightness][-c contrast][-C color-table] scriptdir platedir quicklookdir shrink_factor\"]\n", argv[0]);
       exit(1);
    }
 
@@ -123,9 +127,9 @@ int main(int argc, char **argv)
 
    shrink_factor = atof(argv[optind + 3]);
 
-   if(shrink_factor <= 0.)
+   if(shrink_factor < 0.)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Shrink factor must be a positive number.\"]\n");
+      printf ("[struct stat=\"ERROR\", msg=\"Shrink factor must be a positive number (or zero to use existing shrunken images).\"]\n");
       exit(1);
    }
 
@@ -147,13 +151,16 @@ int main(int argc, char **argv)
       strcpy(platedir, tmpdir);
    }
 
-   if(histfile[0] != '/')
+   if(strlen(histfile) > 0)
    {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, histfile);
+      if(histfile[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, histfile);
 
-      strcpy(histfile, tmpdir);
+         strcpy(histfile, tmpdir);
+      }
    }
 
    if(quicklookdir[0] != '/')
@@ -353,11 +360,11 @@ int main(int argc, char **argv)
             platedir, base, ext, quicklookdir, base, ext, shrink_factor);
 
       if(strlen(histfile) == 0)
-         fprintf(fscript, "mViewer -ct 0 %s -gray %s%s.%s min max gaussian-log -out %s%s.png\n", 
-            flags, quicklookdir, base, ext, quicklookdir, base);
+         fprintf(fscript, "mViewer -ct %d %s -gray %s%s.%s min max gaussian-log -out %s%s.png\n", 
+            ct, flags, quicklookdir, base, ext, quicklookdir, base);
       else
-         fprintf(fscript, "mViewer -ct 0 %s -gray %s%s.%s -histfile %s -out %s%s.png\n", 
-            flags, quicklookdir, base, ext, histfile, quicklookdir, base);
+         fprintf(fscript, "mViewer -ct %d %s -gray %s%s.%s -histfile %s -out %s%s.png\n", 
+            ct, flags, quicklookdir, base, ext, histfile, quicklookdir, base);
 
 
       if(shrink)
@@ -365,11 +372,11 @@ int main(int argc, char **argv)
             quicklookdir, base, ext, quicklookdir, base, ext);
 
       if(strlen(histfile) == 0)
-         fprintf(fscript, "mViewer -ct 0 %s -gray %ssmall/%s.%s min max gaussian-log -out %ssmall/%s.png\n", 
-            flags, quicklookdir, base, ext, quicklookdir, base);
+         fprintf(fscript, "mViewer -ct %d %s -gray %ssmall/%s.%s min max gaussian-log -out %ssmall/%s.png\n", 
+            ct, flags, quicklookdir, base, ext, quicklookdir, base);
       else
-         fprintf(fscript, "mViewer -ct 0 %s -gray %ssmall/%s.%s -histfile %s -out %ssmall/%s.png\n", 
-            flags, quicklookdir, base, ext, histfile, quicklookdir, base);
+         fprintf(fscript, "mViewer -ct %d %s -gray %ssmall/%s.%s -histfile %s -out %ssmall/%s.png\n", 
+            ct, flags, quicklookdir, base, ext, histfile, quicklookdir, base);
 
       fflush(fscript);
       fclose(fscript);

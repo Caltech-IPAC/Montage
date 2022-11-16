@@ -205,6 +205,14 @@ int main(int argc, char **argv)
    
    // Make a list of the wrap-around plates
 
+   sprintf(tmpstr, "%sgap", mosaicdir);
+
+   if(mkdir(tmpstr, 0775) < 0 && errno != EEXIST)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Cannot create gap directory [%s].\n", tmpstr);
+      exit(1);
+   }
+
    sprintf(wraptbl, "%sgap/wrap.tbl", mosaicdir);
 
    fwrap = fopen(wraptbl, "w+");
@@ -254,7 +262,7 @@ int main(int argc, char **argv)
 
    sprintf(tmpstr, "%sgap", mosaicdir);
 
-   if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
+   if(mkdir(tmpstr, 0775) < 0 && errno != EEXIST)
    {
       printf("[struct stat=\"ERROR\", msg=\"Cannot create gap directory [%s].\n", tmpstr);
       exit(1);

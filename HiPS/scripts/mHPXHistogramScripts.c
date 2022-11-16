@@ -255,7 +255,7 @@ int main(int argc, char **argv)
    }
 
 
-   count = 0;
+   count = 1;
 
    while(1)
    {
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
    if(!single_threaded)
    {
       fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %shistoTask.bash\n", 
-         count, scriptdir);
+         count-1, scriptdir);
       fflush(fdriver);
    }
 
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
    /* Finish up */
    /*************/
 
-   printf("[struct stat=\"OK\", count=%d]\n", count);
+   printf("[struct stat=\"OK\", count=%d]\n", count-1);
    fflush(stdout);
    exit(0);
 }

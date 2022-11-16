@@ -61,18 +61,29 @@ Version  Developer        Date     Change
 #define MAXSTR  256
 #define MAXCNT  128
 
-#define ALL        0
-#define LEVEL_ONLY 1
-#define ALTERNATE  2
+
+// Which parameters to fit (level/slope)
 
 #define LEVEL 0
 #define SLOPE 1
 #define BOTH  2
 
+
+// Pattern of fitting (which fit parameters for which iterations)
+
+#define ALL        0
+#define LEVEL_ONLY 1
+#define FLIP       2
+#define TOGGLE     3
+
+
+// Physical relationship between overlapping images
+
 #define OVERLAP  0
 #define ADJACENT 1
 #define GAP      2
 #define WRAP     3
+
 
 #define SWAP(a,b) {temp=(a);(a)=(b);(b)=temp;}
 
@@ -88,6 +99,7 @@ int mBgModel_corrCompare(const void *a, const void *b);
 static struct ImgInfo
 {
    int               cntr;
+   int               useImg;
    int               plate_cntr;
    char              plate[1024];
    char              fname[1024];
@@ -133,7 +145,7 @@ static struct FitInfo
    double boxwidth;
    double boxheight;
    double boxangle;
-   int    use;
+   int    useFit;
    int    type;
    int    level_only;
 
@@ -201,13 +213,28 @@ static char montage_json  [1024];
 /*   char  *fitfile        Set of image overlap difference fits          */
 /*   char  *corrtbl        Output table of corrections for images        */
 /*                         in input list                                 */
+/*                                                                       */
 /*   char  *gapdir         Special case for HiPS maps: fits to the       */
 /*                         offsets for plates on opposite sides of       */
 /*                         gaps in the projections near the poles        */
-/*   int    mode           Three possible background matching modes:     */
-/*                         level fitting only; level fitting followed    */
-/*                         by fitting slope and level; and alternating   */
-/*                         between level and slope fitting.              */
+/*                                                                       */
+/*   int    mode           Four possible background matching modes:      */
+/*                                                                       */
+/*                         (0) level fitting followed by fitting slope   */
+/*                             and level;                                */
+/*                                                                       */
+/*                         (1) level fitting only;                       */
+/*                                                                       */
+/*                         (2) toggling between level and slope (N of    */
+/*                             each, repeated);                          */
+/*                                                                       */
+/*                         (3) a full set of level fits followed by a    */
+/*                             full set of slope fits                    */
+/*                                                                       */
+/* The last mode is the most stable and the first the most unstable but  */
+/* also (if it works) the one with the smallest residual differences.    */
+/* Pure level fitting is often perfectly adequate.                       */
+/*                                                                       */
 /*   int    useall         Use all the input differences (by default     */
 /*                         we exclude very small overlap areas)          */
 /*   int    niteration     Number of iterations to run                   */
@@ -308,14 +335,15 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    double  Xmin, Xmax, Ymin, Ymax;
    double  theta, sinTheta, cosTheta;
 
-   double  sigmaLimit  = 2.00;
-   double  areaLimit   = 0.01;
+   double  areaLimit = 0.001;
+   int     fitDelete = 0;
+   int     imgDelete = 0;
 
 
    struct mBgModelReturn *returnStruct;
 
 
-/*
+/*******************************************************************************
 
 Overview of Background Matching in Montage
 ------------------------------------------
@@ -491,7 +519,7 @@ define all this when we create the pair of fits (same for the other two cases
 above) and this does not change with the iterating, so it is just a matter
 of applying the right tranforms to the planes associated with each iteration.
  
-*/
+*******************************************************************************/
 
 
 
@@ -507,7 +535,7 @@ of applying the right tranforms to the planes associated with each iteration.
 
    // Debug reference image (change here manually)
 
-   refimage = 272;
+   refimage =  44;
    refimage =  -1;
 
 
@@ -619,10 +647,10 @@ of applying the right tranforms to the planes associated with each iteration.
    || icrpix1 < 0
    || icrpix2 < 0)
    {
+      tclose();
       sprintf(returnStruct->msg, "Need columns: cntr fname nl ns crpix1 crpix2 in image info file");
       return returnStruct;
    }
-
 
 
    /******************************/ 
@@ -715,6 +743,7 @@ of applying the right tranforms to the planes associated with each iteration.
 
    /**************************************/ 
    /* Open the difference fit table file */
+   /* (the normal ADJACENT images).      */
    /**************************************/ 
 
    ncols = topen(fitfile);
@@ -768,6 +797,7 @@ of applying the right tranforms to the planes associated with each iteration.
    || iboxheight < 0
    || iboxangle  < 0)
    {
+      tclose();
       sprintf(returnStruct->msg, "Need columns: plus minus a b c crpix1 crpix2 xmin xmax ymin ymax xcenter ycenter npixel rms boxx boxy boxwidth boxheight boxang");
       return returnStruct;
    }
@@ -864,7 +894,7 @@ of applying the right tranforms to the planes associated with each iteration.
          ++nrms;
       }
 
-      fits[nfits].use =  1;
+      fits[nfits].useFit =  1;
 
       fits[nfits].type = ADJACENT;
 
@@ -920,7 +950,7 @@ of applying the right tranforms to the planes associated with each iteration.
          fits[nfits].boxangle   =  fits[nfits-1].boxangle;
          fits[nfits].level_only =  fits[nfits-1].level_only;
 
-         fits[nfits].use = 1;
+         fits[nfits].useFit = 1;
 
          fits[nfits].type = ADJACENT;
 
@@ -1102,7 +1132,7 @@ of applying the right tranforms to the planes associated with each iteration.
             for(j=0; j<2; ++j)
                fits[nfits].trans[j][i] = transform[j][i];
 
-         fits[nfits].use  = 1;
+         fits[nfits].useFit  = 1;
          
          fits[nfits].type = GAP;
          
@@ -1218,7 +1248,7 @@ of applying the right tranforms to the planes associated with each iteration.
             for(j=0; j<2; ++j)
                fits[nfits].trans[j][i] = transform[j][i];
          
-         fits[nfits].use  = 1;
+         fits[nfits].useFit  = 1;
          
          fits[nfits].type = GAP;
 
@@ -1347,7 +1377,7 @@ of applying the right tranforms to the planes associated with each iteration.
 
          fits[nfits].have_transform = have_transform;
 
-         fits[nfits].use  = 1;
+         fits[nfits].useFit  = 1;
          
          fits[nfits].type = WRAP;
          
@@ -1397,7 +1427,7 @@ of applying the right tranforms to the planes associated with each iteration.
 
          fits[nfits].have_transform = have_transform;
 
-         fits[nfits].use  = 1;
+         fits[nfits].useFit  = 1;
          
          fits[nfits].type = WRAP;
          
@@ -1693,23 +1723,19 @@ of applying the right tranforms to the planes associated with each iteration.
    }
 
 
-   /***********************************************/
-   /* Turn off the fits which represent those     */
-   /* overlaps which are smaller than 2% of the   */
-   /* average image area and those whose linear   */
-   /* extent in at least one direction isn't      */
-   /* at least half the size of the corresponding */
-   /* images                                      */
-   /***********************************************/
-
    for(k=0; k<nfits; ++k)
-      fits[k].use = 1;
+      fits[k].useFit = 1;
 
    if(!useall)
    {
+      /***********************************************/
+      /* Turn off the fits which represent those     */
+      /* overlaps which are smaller than 2% of the   */
+      /* average image.                              */
+      /***********************************************/
+
       for(k=0; k<nfits; ++k)
       {
-
          if(fits[k].rms >= 1.e99)
          {
             fits[k].use = 0;
@@ -1723,7 +1749,9 @@ of applying the right tranforms to the planes associated with each iteration.
                printf("not using fit %d [%d|%d] (area too small: %d/%-g\n",
                   k, fits[k].plus, fits[k].minus, fits[k].npix, avearea);
 
-            fits[k].use = 0;
+            fits[k].useFit = 0;
+
+            ++fitDelete;
 
             continue;
          }
@@ -1731,61 +1759,40 @@ of applying the right tranforms to the planes associated with each iteration.
 
       if(debug >= 1)
       {
-         printf("Removed any 'small' fits.");
+         printf("Removed %d 'small' fits.", fitDelete);
          fflush(stdout);
       }
    }
 
+   /*********************************************************/
+   /* in unusual circumstances (e.g. with a projection that */
+   /* splits an image over "gaps"), we can have some image  */
+   /* fragments that are so small they cause problems and   */
+   /* are better off deleted.                               */
+   /*********************************************************/
 
-   /***********************************************/
-   /* We don't want to use noisy fits, so turn    */
-   /* off those with an rms more than two sigma   */
-   /* above the average                           */
-   /***********************************************/
-
-   if(!useall)
+   for(k=0; k<nimages; ++k)
    {
-      sumn   = 0.;
-      sumx   = 0.;
-      sumxx  = 0.;
-
-      for(k=0; k<nfits; ++k)
+      if(imgs[k].naxis1*imgs[k].naxis2 < areaLimit * avearea)
       {
-         if(fits[k].use)
-         {
-            sumn  += 1.;
-            sumx  += fits[k].rms;
-            sumxx += fits[k].rms * fits[k].rms;
-         }
-      }
+         if(debug >= 2)
+            printf("Not using image %d (area too small: %d/%-g\n",
+               k, imgs[k].naxis1*imgs[k].naxis2, avearea);
 
-      averms = sumx / sumn;
-      sigrms = sqrt(sumxx/sumn - averms*averms);
+         imgs[k].useImg = 0;
 
-      for(k=0; k<nfits; ++k)
-      {
-         if(fits[k].use)
-         {
-            if(fits[k].rms > averms + sigmaLimit * sigrms)
-            {
-               if(debug >= 2)
-                  printf("not using fit %d [%d|%d] rms too large: %-g/%-g+%-g)\n",
-                     k, fits[k].plus, fits[k].minus, fits[k].rms, averms, sigrms);
+         ++imgDelete;
 
-               fits[k].use = 0;
-
-               continue;
-            }
-         }
-      }
-
-      if(debug >= 1)
-      {
-         printf("Removed fits with RMS greater than %-g + %-g x %-g (average RMS + sigmaLimit*sigrms)\n",
-               averms, sigmaLimit, sigrms);
-         fflush(stdout);
+         continue;
       }
    }
+
+   if(debug >= 1)
+   {
+      printf("Removed %d 'small' images.", imgDelete);
+      fflush(stdout);
+   }
+
 
 
    /***************************************/
@@ -1822,6 +1829,34 @@ of applying the right tranforms to the planes associated with each iteration.
    }
 
 
+   /************************************************************************************************************/
+   /*                                                                                                          */
+   /* The iterative process of adjusting the individual image backgrounds is the core of this code but         */
+   /* is also where the code is most sensitive to details.  It is possible to fit both the overall background  */
+   /* level for each input image and the gradient (and X and Y slopes) or just level or just slope.  For most  */
+   /* image sets where both level and gradient can vary, trying to fit both once can be a bit unstable and has */
+   /* trouble converging.                                                                                      */
+   /*                                                                                                          */
+   /* Various fitting patterns have proven to be better for different datasets and have been given IDs here.   */
+   /* If we find many more we will probably switch to a pattern-based input rather than a set of IDs.  At the  */
+   /* moment we support the following:                                                                         */
+   /*                                                                                                          */
+   /*    ID 0:  Fit both level and gradient with each iteration.  Since this has proven unstable often         */
+   /*    enough, we preceed it with some level-only fits.  (ALL)                                               */
+   /*                                                                                                          */
+   /*    ID 1:  Fit the level only.  This has proven to be adequate for a lot of data and should be tried      */
+   /*    first as it is extremely stable.  (LEVEL_ONLY)                                                        */
+   /*                                                                                                          */
+   /*    ID 2:  Flip between sets of fitting the level and sets of fitting the gradient by itself.  Each       */
+   /*    'set' is 1000 iterations (if defaults are used).  So long as the gradient variations aren't too       */
+   /*    extreme, this has proven pretty stable and is currently the default.  (FLIP)                          */
+   /*                                                                                                          */
+   /*    ID 3:  First fit the level only for a large number of iterations, then toggle to the gradient only    */
+   /*    for an equally large number of iterations.  This might ultimately prove to be the best approach       */
+   /*    since it doesn't suffer from the kind of feedback that gives rise to instability.  (TOGGLE)           */
+   /*                                                                                                          */
+   /************************************************************************************************************/
+
    fittype = LEVEL;
 
    iteration = 0;
@@ -1833,8 +1868,17 @@ of applying the right tranforms to the planes associated with each iteration.
       /* fitting followed by fitting slope and level.  */
       /*************************************************/
 
+      // Level-only is extremely stable but can result
+      // in a bit of a saw-tooth look 
+      
       if(mode == LEVEL_ONLY)
          fittype = LEVEL;
+
+
+      // Fitting BOTH level and slope together is very often
+      // unstable (a feedback where a level shift drives a slope
+      // change and vice versa).  So much so that we always
+      // do at least a few level-only iteractions up front first.
 
       if(mode == ALL)
       {
@@ -1845,16 +1889,24 @@ of applying the right tranforms to the planes associated with each iteration.
       }
 
 
-      /************************************************/
-      /* An alternate approach:  toggle between level */
-      /* fitting and slope fitting.                   */
-      /************************************************/
+      // An alternate approach:  toggle between level
+      // fitting and slope fitting.  There appears to be
+      // some inherent instability in fitting both level and
+      // slope, most apparent if fitting them BOTH, as above
+      // and less so if FLIPping back and forth.  TOGGLE from
+      // just level to just slope once doesn't provide any 
+      // opportunity for the feedback that feeds this 
+      // instability, so is the most stable (but potentially
+      // a poorer fit).
 
-      if(mode == ALTERNATE)
+      if(mode == FLIP || mode == TOGGLE)
       {
          ntoggle = 1000;
          if(niteration < 10000)
             ntoggle = niteration / 10.;
+
+         if(mode == TOGGLE)
+            ntoggle = (int)((niteration + 1.)/2.);
 
          if(ntoggle < 1)
             ntoggle = 1;
@@ -1867,14 +1919,15 @@ of applying the right tranforms to the planes associated with each iteration.
             fittype = LEVEL;
       }
 
+
       if(debug >= 2 || refimage >= 0)
       {
          printf("\n\n============================================================================================================\n\n");
          printf("Iteration %d", iteration+1);
-              if(fittype == LEVEL) printf(" (LEVEL):\n");
-         else if(fittype == SLOPE) printf(" (SLOPE):\n");
-         else if(fittype == BOTH)  printf(" (BOTH ):\n");
-         else                      printf(" (ERROR):\n");
+              if(fittype == LEVEL)    printf(" (LEVEL   ): ");
+         else if(fittype == SLOPE)    printf(" (SLOPE   ): ");
+         else if(fittype == BOTH)     printf(" (BOTH    ): ");
+         else                         printf(" (ERROR   ): ");
          fflush(stdout);
       }
 
@@ -1906,7 +1959,7 @@ of applying the right tranforms to the planes associated with each iteration.
             /* the fit was bad (too few points or too noisy).     */
             /* If so, don't include them in the sums.             */
 
-            if(corrs[i].neighbors[j]->use == 0)
+            if(corrs[i].neighbors[j]->useFit == 0)
                continue;
 
 
@@ -2148,10 +2201,10 @@ of applying the right tranforms to the planes associated with each iteration.
             printf("Background corrections (Correction %d (%4d) / Iteration %d) ", 
                i, corrs[i].id, iteration+1);
 
-                 if(fittype == LEVEL) printf(" (LEVEL):\n");
-            else if(fittype == SLOPE) printf(" (SLOPE):\n");
-            else if(fittype == BOTH)  printf(" (BOTH ):\n");
-            else                      printf(" (ERROR):\n");
+                 if(fittype == LEVEL)    printf(" (LEVEL   ): ");
+            else if(fittype == SLOPE)    printf(" (SLOPE   ): ");
+            else if(fittype == BOTH)     printf(" (BOTH    ): ");
+            else                         printf(" (ERROR   ): ");
 
             if(istatus)
                printf("\n***** Singular Matrix ***** \n\n");
@@ -2223,7 +2276,7 @@ of applying the right tranforms to the planes associated with each iteration.
             bcorrection = fits[i].pluscorr->bcorrection;
             ccorrection = fits[i].pluscorr->ccorrection;
 
-            if(fits[i].use)
+            if(fits[i].useFit)
             {
                sumn  += 1.;
 
@@ -2377,6 +2430,25 @@ of applying the right tranforms to the planes associated with each iteration.
             fits[i].a += fits[i].minuscorr->acorrection;
             fits[i].b += fits[i].minuscorr->bcorrection;
             fits[i].c += fits[i].minuscorr->ccorrection;
+
+            //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+            // Temporary check to see if any of a,b,c have become NaN
+            
+            if(mNaN(fits[i].a)
+            || mNaN(fits[i].b)
+            || mNaN(fits[i].c))
+            {
+               printf("XXX> Iteration %d, fits[%d]: (a,b,c) = %13.5e %13.5e %13.5e  ",
+                  iteration, i, fits[i].a, fits[i].b, fits[i].c);
+
+                    if(fittype == LEVEL)    printf(" (LEVEL   )\n");
+               else if(fittype == SLOPE)    printf(" (SLOPE   )\n");
+               else if(fittype == BOTH)     printf(" (BOTH    )\n");
+               else                         printf(" (ERROR   )\n");
+
+               fflush(stdout);
+            }
+            //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
          }
 
 
@@ -2388,10 +2460,10 @@ of applying the right tranforms to the planes associated with each iteration.
             printf("Corrected fit (fit %5d / Iteration %5d / %4d vs %4d) ", 
                i, iteration+1, fits[i].pluscorr->id, fits[i].minuscorr->id);
 
-                 if(fittype == LEVEL) printf(" (LEVEL): ");
-            else if(fittype == SLOPE) printf(" (SLOPE): ");
-            else if(fittype == BOTH)  printf(" (BOTH ): ");
-            else                      printf(" (ERROR): ");
+                 if(fittype == LEVEL)    printf(" (LEVEL   ): ");
+            else if(fittype == SLOPE)    printf(" (SLOPE   ): ");
+            else if(fittype == BOTH)     printf(" (BOTH    ): ");
+            else                         printf(" (ERROR   ): ");
 
             printf(" %12.5e ",  fits[i].a);
             printf(" %12.5e ",  fits[i].b);

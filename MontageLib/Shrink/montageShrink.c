@@ -993,9 +993,9 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
 
       l = 0;
 
-      obegin =  (double)l     * xfactor;
+      obegin =  (double)l * xfactor;
 
-      oend   = obegin + xfactor - 1;
+      oend   = obegin + xfactor;
 
       jmin = floor(obegin);
       jmax = ceil (oend);
@@ -1178,9 +1178,9 @@ struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrink
 
             ++l;
 
-            obegin =  (double)l     * xfactor;
+            obegin =  (double)l * xfactor;
 
-            oend   = obegin + xfactor - 1;
+            oend   = obegin + xfactor;
 
             jmin = floor(obegin);
             jmax = ceil (oend);

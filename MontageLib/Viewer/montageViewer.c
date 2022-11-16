@@ -5313,10 +5313,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
          hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
 
-         hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
-
-         hpxPix = pow(2., (double)hpxLevel) + 0.5;
-
          hpxPix = 4 * hpxPix;
       }
 

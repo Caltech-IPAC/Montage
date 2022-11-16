@@ -138,6 +138,8 @@ static char cstr[MAXLEN];
 /*                                 images in expanded region)            */
 /*  -i               0 (false)    Emit ROME-friendly info messages       */
 /*  -l               0 (false)    Background matching adjust levels only */
+/*  -g               0 (false)    Global flattening (flatten each input  */
+/*                                 image individually.                   */
 /*  -b               0 (false)    Skip background matching and just      */
 /*                                 coadd the reprojected images.         */
 /*  -k               0 (false)    Keep all working files                 */
@@ -204,8 +206,8 @@ int main(int argc, char **argv, char **envp)
    int    naxis1, naxis2, naxismax, nxtile, nytile;
    int    ix, jy, nx, ny;
    int    intan, outtan, iscale, ncell;
-   int    keepAll, deleteAll, noSubset, infoMsg, levelOnly, noBackground;
-   int    ftmp, userRaw, showMarker, quickMode;
+   int    keepAll, deleteAll, noSubset, infoMsg, levelOnly, levSlope, noBackground;
+   int    ftmp, userRaw, showMarker, quickMode, globalFlatten;
    int    iurl;
 
    double val, factor, shrink;
@@ -385,18 +387,20 @@ int main(int argc, char **argv, char **envp)
    strcpy(locText,   "");
    strcpy(wrapStr,   "");
         
-   noSubset     = 0;
-   showMarker   = 0;
-   infoMsg      = 0;
-   keepAll      = 0;
-   deleteAll    = 0;
-   levelOnly    = 0;
-   noBackground = 0;
-   userRaw      = 0;
-   ntile        = 0;
-   mtile        = 0;
-   quickMode    = 0;
-
+   noSubset      = 0;
+   showMarker    = 0;
+   infoMsg       = 0;
+   keepAll       = 0;
+   deleteAll     = 0;
+   levelOnly     = 0;
+   levSlope      = 0;
+   globalFlatten = 0;
+   noBackground  = 0;
+   userRaw       = 0;
+   ntile         = 0;
+   mtile         = 0;
+   quickMode     = 0;
+ 
    shrink       = 1.0;
 
    xoff = 0.;
@@ -412,7 +416,7 @@ int main(int argc, char **argv, char **envp)
    strcpy(pngFile, "");
 
 
-   while ((ch = getopt(argc, argv, "iI:lbkcaxqh:f:o:d:D:e:r:s:n:m:L:O:M:P:W:")) != EOF)
+   while ((ch = getopt(argc, argv, "iI:ltbgkcaxqh:f:o:d:D:e:r:s:n:m:L:O:M:P:W:")) != EOF)
    {
       switch (ch)
       {
@@ -444,8 +448,16 @@ int main(int argc, char **argv, char **envp)
             levelOnly = 1;
             break;
 
+         case 't':
+            levSlope = 1;
+            break;
+
          case 'b':
             noBackground = 1;
+            break;
+
+         case 'g':
+            globalFlatten = 1;
             break;
 
          case 'k':
@@ -856,6 +868,7 @@ int main(int argc, char **argv, char **envp)
         fprintf(fdebug, "hdrtext     =  %lu characters\n",  strlen(hdrtext));
         fprintf(fdebug, "workspace   = [%s]\n",  workspace[iband]);
         fprintf(fdebug, "levelOnly   =  %d\n",   levelOnly);
+        fprintf(fdebug, "levSlope    =  %d\n",   levSlope);
         fprintf(fdebug, "keepAll     =  %d\n",   keepAll);
         fprintf(fdebug, "deleteAll   =  %d\n\n", deleteAll);
         fprintf(fdebug, "cwd         = [%s]\n",  cwd);
@@ -880,6 +893,12 @@ int main(int argc, char **argv, char **envp)
       if(!userRaw)
       {
          if(mkdir(rawdir, 0775) < 0)
+            flag = 1;
+      }
+
+      if(globalFlatten)
+      {
+         if(mkdir("flattened", 0775) < 0)
             flag = 1;
       }
 
@@ -1481,6 +1500,8 @@ int main(int argc, char **argv, char **envp)
                   }
                }
 
+               ++count;
+
                sprintf(cmd, "mArchiveGet %s %s", url, file);
 
                if(finfo)
@@ -1495,11 +1516,16 @@ int main(int argc, char **argv, char **envp)
                   fflush(fdebug);
                }
 
+               if(debug >= 3)
+               {
+                  fprintf(fdebug, "Retrieving image %s (%3d of %3d)\n", 
+                     file, count, nimages);
+                  fflush(fdebug);
+               }
+
                svc_run(cmd);
 
                strcpy( status, svc_value( "stat" ));
-
-               ++count;
 
                if(strcmp( status, "ERROR") == 0)
                {
@@ -1526,8 +1552,6 @@ int main(int argc, char **argv, char **envp)
          }
       }
 
-
-      
 
       /********************************************/ 
       /* Create and open the raw image table file */
@@ -1681,15 +1705,16 @@ int main(int argc, char **argv, char **envp)
       }
 
       
-      /*************************************************/ 
-      /* If we are shrinking the images beforehand, do */
-      /* it now.                                       */
-      /*************************************************/ 
+      /*********************************************************/ 
+      /* If we are flattening the images beforehand, do it now */
+      /*********************************************************/ 
 
       strcpy(datadir, rawdir);
 
-      if(shrink != 1.)
+      if(globalFlatten)
       {
+         count = 0;
+
          while(1)
          {
             istat = tread();
@@ -1699,8 +1724,80 @@ int main(int argc, char **argv, char **envp)
 
             strcpy ( infile, tval(ifname));
 
+            ++count;
+
+            if(debug >= 3)
+            {
+               fprintf(fdebug, "Flattening image %s (%3d of %3d)\n", 
+                  infile, count, nimages);
+               fflush(fdebug);
+            }
+
+            sprintf(cmd, "mFlatten %s/%s flattened/%s", 
+               datadir, infile, infile);
+
+            if(debug >= 4)
+            {
+               fprintf(fdebug, "[%s]\n", cmd);
+               fflush(fdebug);
+            }
+
+            svc_run(cmd);
+
+            strcpy( status, svc_value( "stat" ));
+
+            if(strcmp( status, "ERROR") == 0)
+            {
+               strcpy( msg, svc_value( "msg" ));
+
+               printerr(msg);
+            }
+         }
+
+         tseek(0);
+
+         strcpy(datadir, "flattened");
+
+         time(&currtime);
+
+         if(debug >= 1)
+         {
+            fprintf(fdebug, "TIME: mFlatten         %6d (%d images)\n", (int)(currtime - lasttime), nimages);
+            fflush(fdebug);
+         }
+
+         lasttime = currtime;
+      }
+
+
+      /**********************************************************************/ 
+      /* If we are shrinking or flattening the images beforehand, do it now */
+      /**********************************************************************/ 
+
+      if(shrink != 1.)
+      {
+         count = 0;
+
+         while(1)
+         {
+            istat = tread();
+
+            if(istat < 0)
+               break;
+
+            ++count;
+
+            strcpy ( infile, tval(ifname));
+
+            if(debug >= 3)
+            {
+               fprintf(fdebug, "Shrinking image %s (%3d of %3d)\n", 
+                  infile, count, nimages);
+               fflush(fdebug);
+            }
+
             sprintf(cmd, "mShrink %s/%s shrunken/%s %-g", 
-               rawdir, infile, infile, shrink);
+               datadir, infile, infile, shrink);
 
             if(debug >= 4)
             {
@@ -1990,7 +2087,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 3)
             {
-               fprintf(fdebug, "%s took %s seconds (%3d of %3d)\n", 
+               fprintf(fdebug, "Reprojecting %s took %s seconds (%3d of %3d)\n", 
                   tval(ifname), svc_value("time"), index, nimages);
                fflush(fdebug);
             }
@@ -2268,7 +2365,7 @@ int main(int argc, char **argv, char **envp)
                   ++failed;
 
 
-               if(levelOnly)
+               if(levelOnly || levSlope)
                   sprintf(cmd, "mFitplane -l diffs/%s", diffname);
                else
                   sprintf(cmd, "mFitplane diffs/%s", diffname);
@@ -2373,9 +2470,11 @@ int main(int argc, char **argv, char **envp)
          if(baseCount > 1)
          {
             if(levelOnly)
-               sprintf(cmd, "mBgModel -i 100000 -l -a pimages.tbl fits.tbl corrections.tbl");
+               sprintf(cmd, "mBgModel -l -a pimages.tbl fits.tbl corrections.tbl");
+            else if(levSlope)
+               sprintf(cmd, "mBgModel -f pimages.tbl fits.tbl corrections.tbl");
             else
-               sprintf(cmd, "mBgModel -i 100000 -t -a pimages.tbl fits.tbl corrections.tbl");
+               sprintf(cmd, "mBgModel -t pimages.tbl fits.tbl corrections.tbl");
 
             if(debug >= 4)
             {
@@ -2548,7 +2647,7 @@ int main(int argc, char **argv, char **envp)
 
                if(debug >= 3)
                {
-                  fprintf(fdebug, "%d: %s\n", cntr, cmd); 
+                  fprintf(fdebug, "Background %d of %d: %s\n", cntr, nimages, cmd); 
                   fflush(fdebug);
                }
 

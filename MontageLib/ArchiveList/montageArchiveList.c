@@ -116,7 +116,7 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
 
    /* Process the parameters */
 
-   strcpy(server, "montage-web.ipac.caltech.edu");
+   strcpy(server, "montage.ipac.caltech.edu");
 
    port = 80;
 

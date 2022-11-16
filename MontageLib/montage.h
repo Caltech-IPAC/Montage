@@ -133,6 +133,12 @@ struct mBgModelReturn
    char   msg [1024];    // Return message (for error return)
    char   json[4096];    // Return parameters as JSON string
    int    nnan;          // Number of fit parameters that are NaNs
+   int    sigmaDelete;   // Number of fits removed up front because of noise
+   int    fitDelete;     // Number of fits removed up front because of small fit area
+   int    imgDelete;     // Number of images removed up front because of small image size
+   int    nrestart;      // Number of times processing restarted because of NaNs
+   int    nbadFit;       // Number of NaN fit slopes causing restarts
+   int    nbadImg;       // Number of image NaN slopes causing restarts
 };
 
 struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int noslope, int useall, 
@@ -552,6 +558,17 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
 
 //-------------------
 
+struct mMaskReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg    [1024]; // Return message (for error return)
+   char   json   [4096]; // Return parameters as JSON string
+};
+
+struct mMaskReturn *mMask(char *infile, char *outfile, char *boxfile, int hdu, int debug);
+
+//-------------------
+
 struct mOverlapsReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -772,6 +789,22 @@ struct mTANHdrReturn
 
 struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int order, int maxiter, double tolerance, 
                               int useOffscl, int debugin);
+
+//-------------------
+
+struct mTileImageReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    sizex;         // The nominal size, in X pixels, of a tile
+   int    sizey;         // The nominal size, in Y pixels, of a tile
+   int    ntile;         // The number of tiles that were generated
+   int    nfailed;       // The number of tiles that failed
+};
+
+struct mTileImageReturn *mTileImage(char *input_file, char *output_base, int hdu, int nx, int ny, 
+                                    int xpad, int ypad, int debug);
 
 //-------------------
 

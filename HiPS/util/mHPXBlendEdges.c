@@ -499,16 +499,10 @@ int main(int argc, char **argv)
                if(isnan(data[LEFT  ][j][i])) data[LEFT  ][j][i] = data[CENTER][j][i];
                if(isnan(data[BOTTOM][j][i])) data[BOTTOM][j][i] = data[CENTER][j][i];
 
-               if(vfrac > hfrac)
-                  newval = hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LL    ][j][i]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LEFT  ][j][i]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[BOTTOM][j][i];
-               else
-                  newval = vfrac * data[CENTER][j][i] + (1.-vfrac) * data[LL    ][j][i]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LEFT  ][j][i]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[BOTTOM][j][i];
-
-               newval = newval/3.;
+               newval = data[CENTER][j][i] * (vfrac + hfrac) / 2.
+                      + data[LEFT  ][j][i] * (1. - hfrac) / 3.
+                      + data[BOTTOM][j][i] * (1. - vfrac) / 3.
+                      + data[LL    ][j][i] * (1. - (hfrac + vfrac) / 2.) / 3.;
 
                if(debug >= 2)
                {
@@ -537,16 +531,10 @@ int main(int argc, char **argv)
                if(isnan(data[RIGHT ][j][i-info[RIGHT].outxstart+info[RIGHT].xlen])) data[RIGHT ][j][i-info[RIGHT].outxstart+info[RIGHT].xlen] = data[CENTER][j][i];
                if(isnan(data[BOTTOM][j][i                                       ])) data[BOTTOM][j][i                                       ] = data[CENTER][j][i];
 
-               if(vfrac > hfrac)
-                  newval = hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LR    ][j][i-info[LR   ].outxstart+info[LR   ].xlen]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[RIGHT ][j][i-info[RIGHT].outxstart+info[RIGHT].xlen]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[BOTTOM][j][i                                       ];
-               else
-                  newval = vfrac * data[CENTER][j][i] + (1.-vfrac) * data[LR    ][j][i-info[LR   ].outxstart+info[LR   ].xlen]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[RIGHT ][j][i-info[RIGHT].outxstart+info[RIGHT].xlen]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[BOTTOM][j][i                                       ];
-
-               newval = newval/3.;
+               newval = data[CENTER][j][i                                       ] * (vfrac + hfrac) / 2.
+                      + data[RIGHT ][j][i-info[RIGHT].outxstart+info[RIGHT].xlen] * (1. - hfrac) / 3.
+                      + data[BOTTOM][j][i                                       ] * (1. - vfrac) / 3.
+                      + data[LR    ][j][i-info[LR   ].outxstart+info[LR   ].xlen] * (1. - (hfrac + vfrac) / 2.) / 3.;
 
                if(debug >= 2)
                {
@@ -575,20 +563,14 @@ int main(int argc, char **argv)
                if(isnan(data[LEFT  ][j                                   ][i])) data[LEFT  ][j                                   ][i] = data[CENTER][j][i];
                if(isnan(data[TOP   ][j-info[TOP].outystart+info[TOP].ylen][i])) data[UL    ][j-info[TOP].outystart+info[TOP].ylen][i] = data[CENTER][j][i];
 
-               if(vfrac > hfrac)
-                  newval = hfrac * data[CENTER][j][i] + (1.-hfrac) * data[UL  ][j-info[UL ].outystart+info[UL ].ylen][i]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LEFT][j                                   ][i]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[TOP ][j-info[TOP].outystart+info[TOP].ylen][i];
-               else
-                  newval = vfrac * data[CENTER][j][i] + (1.-vfrac) * data[UL  ][j-info[UL ].outystart+info[UL ].ylen][i]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[LEFT][j                                   ][i]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[TOP ][j-info[TOP].outystart+info[TOP].ylen][i];
-
-               newval = newval/3.;
+               newval = data[CENTER][j                                   ][i] * (vfrac + hfrac) / 2.
+                      + data[LEFT  ][j                                   ][i] * (1. - hfrac) / 3.
+                      + data[TOP   ][j-info[TOP].outystart+info[TOP].ylen][i] * (1. - vfrac) / 3.
+                      + data[UL    ][j-info[UL ].outystart+info[UL ].ylen][i] * (1. - (hfrac + vfrac) / 2.) / 3.;
 
                if(debug >= 2)
                {
-                  printf("UL:  CENTER[%d][%d], UL[%d][%d], LEFT[%d][%d] (%-g) and TOP[%d][%d] (%-g) -> %-g\n", 
+                  printf("UL:  CENTER[%d][%d] (%-g), UL[%d][%d] (%-g), LEFT[%d][%d] (%-g) and TOP[%d][%d] (%-g) -> %-g\n", 
                          j                                   , i, data[CENTER][j                                   ][i], 
                          j-info[UL ].outystart+info[UL ].ylen, i, data[UL    ][j-info[UL ].outystart+info[UL ].ylen][i], 
                          j                                   , i, data[LEFT  ][j                                   ][i],
@@ -613,16 +595,10 @@ int main(int argc, char **argv)
                if(isnan(data[RIGHT ][j                                   ][i-info[RIGHT].outxstart+info[RIGHT].xlen])) data[RIGHT ][j                                   ][i-info[RIGHT].outxstart+info[RIGHT].xlen] = data[CENTER][j][i];
                if(isnan(data[TOP   ][j-info[TOP].outystart+info[TOP].ylen][i                                       ])) data[TOP   ][j-info[TOP].outystart+info[TOP].ylen][i                                       ] = data[CENTER][j][i];
 
-               if(vfrac > hfrac)
-                  newval = hfrac * data[CENTER][j][i] + (1.-hfrac) * data[UR   ][j-info[UR ].outystart+info[UR ].ylen][i-info[UR   ].outxstart+info[UR   ].xlen]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[RIGHT][j                                   ][i-info[RIGHT].outxstart+info[RIGHT].xlen]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[TOP  ][j-info[TOP].outystart+info[TOP].ylen][i                                       ];
-               else
-                  newval = vfrac * data[CENTER][j][i] + (1.-vfrac) * data[UR   ][j-info[UR ].outystart+info[UR ].ylen][i-info[UR   ].outxstart+info[UR   ].xlen]
-                         + hfrac * data[CENTER][j][i] + (1.-hfrac) * data[RIGHT][j                                   ][i-info[RIGHT].outxstart+info[RIGHT].xlen]
-                         + vfrac * data[CENTER][j][i] + (1.-vfrac) * data[TOP  ][j-info[TOP].outystart+info[TOP].ylen][i                                       ];
-
-               newval = newval/3.;
+               newval = data[CENTER][j                                   ][i                                       ] * (vfrac + hfrac) / 2.
+                      + data[RIGHT ][j                                   ][i-info[RIGHT].outxstart+info[RIGHT].xlen] * (1. - hfrac) / 3.
+                      + data[TOP   ][j-info[TOP].outystart+info[TOP].ylen][i                                       ] * (1. - vfrac) / 3.
+                      + data[UR    ][j-info[UR ].outystart+info[UR ].ylen][i-info[UR   ].outxstart+info[UR   ].xlen] * (1. - (hfrac + vfrac) / 2.) / 3.;
 
                if(debug >= 2)
                {

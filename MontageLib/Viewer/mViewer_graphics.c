@@ -828,15 +828,18 @@ void mViewer_smooth_line(double x1, double y1,
 
       /* Loop over intermediate pixels */
 
-      for(x=ix1+1; x<ix2; ++x)
+      if(abs(ix2-ix1) < 5 && abs(iy2-iy1) < 5)
       {
-         brightness1 = mViewer_invfrac(yf);
-         brightness2 =    mViewer_frac(yf);
+         for(x=ix1+1; x<ix2; ++x)
+         {
+            brightness1 = mViewer_invfrac(yf);
+            brightness2 =    mViewer_frac(yf);
 
-         mViewer_setPixel(x, floor(yf),   brightness1, red, green, blue, 0);
-         mViewer_setPixel(x, floor(yf)+1, brightness2, red, green, blue, 0);
+            mViewer_setPixel(x, floor(yf),   brightness1, red, green, blue, 0);
+            mViewer_setPixel(x, floor(yf)+1, brightness2, red, green, blue, 0);
 
-         yf += grad; 
+            yf += grad; 
+         }
       }
    }
 
@@ -884,24 +887,27 @@ void mViewer_smooth_line(double x1, double y1,
       ix2 = (int)(floor(xend));
       iy2 = (int)(floor(yend));
 
-      brightness1 = mViewer_invfrac(xend);
-      brightness2 =    mViewer_frac(xend);
-
-      mViewer_setPixel(ix2,   iy2, brightness1, red, green, blue, 0);
-      mViewer_setPixel(ix2+1, iy2, brightness2, red, green, blue, 0);
-
-
-      /* Loop over intermediate pixels */
-
-      for(y=iy1+1; y<iy2; ++y)
+      if(abs(ix2-ix1) < 5 && abs(iy2-iy1) < 5)
       {
-         brightness1 = mViewer_invfrac(xf);
-         brightness2 =    mViewer_frac(xf);
+         brightness1 = mViewer_invfrac(xend);
+         brightness2 =    mViewer_frac(xend);
 
-         mViewer_setPixel(floor(xf),   y, brightness1, red, green, blue, 0);
-         mViewer_setPixel(floor(xf)+1, y, brightness2, red, green, blue, 0);
+         mViewer_setPixel(ix2,   iy2, brightness1, red, green, blue, 0);
+         mViewer_setPixel(ix2+1, iy2, brightness2, red, green, blue, 0);
 
-         xf += grad; 
+
+         /* Loop over intermediate pixels */
+
+         for(y=iy1+1; y<iy2; ++y)
+         {
+            brightness1 = mViewer_invfrac(xf);
+            brightness2 =    mViewer_frac(xf);
+
+            mViewer_setPixel(floor(xf),   y, brightness1, red, green, blue, 0);
+            mViewer_setPixel(floor(xf)+1, y, brightness2, red, green, blue, 0);
+
+            xf += grad; 
+         }
       }
    }
 }

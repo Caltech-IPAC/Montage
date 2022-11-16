@@ -80,7 +80,7 @@ int sky[5][5] = {{1,1,0,0,0},
 
 int main(int argc, char **argv)
 {
-   int  level, level_only, c, pad, ncols, nplate;
+   int  level, level_only, lev_slope, c, pad, ncols, nplate;
    int  id, iplate, i, j, status, nimages, exists;
    int  iid, ii, ij, location, background, processing;
    int  nside, naxis, noff;
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-s(ingle-threaded)[-p(roject-only)][-P(ad) pad] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-t(oggle-level-and-slope)][-s(ingle-threaded)[-p(roject-only)][-e(xpand) pad] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
       fflush(stdout);
       exit(1);
    }
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
    processing   = CLUSTER;
    pad          = -1;
 
-   while ((c = getopt(argc, argv, "dblspP:")) != EOF)
+   while ((c = getopt(argc, argv, "dbltspe:")) != EOF)
    {
       switch (c)
       {
@@ -142,6 +142,10 @@ int main(int argc, char **argv)
             level_only = 1;
             break;
 
+         case 't':
+            lev_slope = 1;
+            break;
+
          case 's':
             processing = SINGLE_THREADED;
             break;
@@ -150,12 +154,12 @@ int main(int argc, char **argv)
             background = PROJECT_ONLY;
             break;
 
-         case 'P':
+         case 'e':
             pad = atoi(optarg);
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-s(ingle-threaded)[-p(roject-only)] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-l(evel-only)][-t(oggle-level-and-slope)][-s(ingle-threaded)[-p(roject-only)][-e(xpand) pad] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
             fflush(stdout);
             exit(1);
       }
@@ -227,6 +231,8 @@ int main(int argc, char **argv)
 
    if(level_only)
       strcat(flags, "-l ");
+   else if(lev_slope)
+      strcat(flags, "-t ");
 
    if(background == PROJECT_ONLY)
       strcat(flags, "-b ");
@@ -264,6 +270,21 @@ int main(int argc, char **argv)
       printf("[struct stat=\"ERROR\", msg=\"Cannot create [%s].\"]\n", tmpdir);
       fflush(stdout);
       exit(0);
+   }
+
+   if(debug)
+   {
+      printf("DEBUG> level_only: [%s]\n", level_only);
+      printf("DEBUG> lev_slope:  [%s]\n", lev_slope);
+      printf("DEBUG> pad:         %d\n",  pad);
+      printf("DEBUG> processing:  %d\n",  processing);
+      printf("DEBUG> background:  %d\n",  background);
+      printf("DEBUG> mosaicdir:  [%s]\n", mosaicdir);
+      printf("DEBUG> scriptdir:  [%s]\n", scriptdir);
+      printf("DEBUG> platelist:  [%s]\n", platelist);
+      printf("DEBUG> survey:     [%s]\n", survey);
+      printf("DEBUG> band:       [%s]\n", band);
+      fflush(stdout);
    }
 
 
@@ -461,7 +482,10 @@ int main(int argc, char **argv)
          fprintf(fscript, "#!/bin/sh\n\n");
 
          fprintf(fscript, "echo \"%s %s - Job %d\"\n", survey, band, nimages);
+
          fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n", i, j);
+
+         fprintf(fscript, "echo \"Using archive data and mExec.\"\n\n");
 
          fprintf(fscript, "mkdir -p %s\n", mosaicdir);
 
@@ -491,7 +515,9 @@ int main(int argc, char **argv)
       {
          fprintf(fscript, "#!/bin/sh\n\n");
 
-         fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n\n", mosaicdir, i, j);
+         fprintf(fscript, "echo \"Building plate_%02d_%02d.fits\"\n\n", i, j);
+
+         fprintf(fscript, "echo \"Using local data and projecting only.\"\n\n");
 
          fprintf(fscript, "mkdir -p %s\n", mosaicdir);
 

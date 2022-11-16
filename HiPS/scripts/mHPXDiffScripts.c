@@ -415,9 +415,11 @@ int main(int argc, char **argv)
          chmod(scriptFile, 0777);
 
          if(set == 1)
-            fprintf(fcombo, "cat  %sfits_%d.tbl >  %sfitcombo.tbl\n", platedir, set, platedir);
+            fprintf(fcombo, "cat  %sfits_%d.tbl >  %sfits.tbl\n", platedir, set, platedir);
          else
-            fprintf(fcombo, "grep -v \"|\" %sfits_%d.tbl >> %sfitcombo.tbl\n", platedir, set, platedir);
+            fprintf(fcombo, "if test -f \"%sfits_%d.tbl\"; then grep -v \"|\" %sfits_%d.tbl >> %sfits.tbl; fi\n",
+                  platedir, set, platedir, set, platedir);
+
 
          fflush(fcombo);
 
@@ -586,10 +588,6 @@ int makePlatePairs()
    {
       for(i2=0; i2<plateList.n; ++i2)
       {
-         // printf("XXX> compare %d (%d,%d) to %d (%d,%d)\n", i1, plateList.x[i1], plateList.y[i1],
-         //                                                   i2, plateList.x[i2], plateList.y[i2]);
-         // fflush(stdout);
-
          if((plateList.x[i2] == plateList.x[i1]   && plateList.y[i2] == plateList.y[i1]-1)
          || (plateList.x[i2] == plateList.x[i1]   && plateList.y[i2] == plateList.y[i1]+1)
          || (plateList.x[i2] == plateList.x[i1]-1 && plateList.y[i2] == plateList.y[i1])
@@ -624,9 +622,6 @@ int makePlatePairs()
 
             if(!found)
             {
-               // printf("XXX> nominally good\n");
-               // fflush(stdout);
-
                platePair.x1[platePair.n] = plateList.x[i1];
                platePair.y1[platePair.n] = plateList.y[i1];
                platePair.x2[platePair.n] = plateList.x[i2];
@@ -665,9 +660,6 @@ int makePlatePairs()
 
                if(!found2)
                   break;
-
-               // printf("XXX> saved\n");
-               // fflush(stdout);
 
                ++platePair.n;
             }

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
    /***************************************/
 
    debug      = 0;
-   mode       = 0;
+   mode       = 3;
    useall     = 0;
    niteration = 10000;
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "ag:i:s:ltd:")) != EOF) 
+   while ((c = getopt(argc, argv, "afg:i:s:ltd:")) != EOF) 
    {
       switch (c) 
       {
@@ -87,13 +87,18 @@ int main(int argc, char **argv)
             }
             break;
 
-         case 't':
+         case 'l':     // Level-only
+            mode = 1;
+            break;
+
+         case 'f':     // Flip back and forth between level and slope fitting
             mode = 2;
             break;
 
-         case 'l':
-            mode = 1;
+         case 't':     // Toggle midway from level to slope fitting
+            mode = 3;
             break;
+
 
          case 'd':
             debug = montage_debugCheck(optarg);
@@ -106,7 +111,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-g gapdir] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle halfway from level to slope)][-f(lip back and forth between level and slope)] [-l(evel-only)] [-d level] [-g gapdir] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -114,7 +119,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 3) 
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle between background and slope)] [-l(evel-only)] [-d level] [-g gapdir] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-i niter] [-t(oggle halfway from level to slope)][-f(lip back and forth between level and slope)] [-l(evel-only)] [-d level] [-g gapdir] [-a(ll-overlaps)] [-s statusfile] images.tbl fits.tbl corrections.tbl\"]\n", argv[0]);
       exit(1);
    }
 
@@ -131,7 +136,7 @@ int main(int argc, char **argv)
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", module=\"mBgModel\"]\n");
+       fprintf(montage_status, "[struct stat=\"OK\", module=\"mBgModel\", %s]\n", returnStruct->msg);
        exit(0);
    }
 }
