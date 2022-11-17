@@ -1,6 +1,3 @@
-def buildBadge = addEmbeddableBadgeConfiguration(id: "mBuild", subject: "Montage Build")
-def testBadge = addEmbeddableBadgeConfiguration(id: "mTest", subject: "Montage Tests")
-
 pipeline {
   
   agent any
@@ -8,8 +5,10 @@ pipeline {
   stages {   
     stage("build") {
       steps {
-        echo 'Building Montage develop branch'
-        make
+        sh 'echo "Building Montage develop branch"'
+        sh 'pwd'
+        sh 'ls'
+        sh 'make'
       }
     }
     
