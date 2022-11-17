@@ -5,10 +5,10 @@ pipeline {
   stages {   
     stage("build") {
       steps {
-        echo 'Building Montage develop branch'
-        pwd
-        ls
-        make
+        sh 'echo "Building Montage develop branch"'
+        sh 'pwd'
+        sh 'ls'
+        sh 'make'
       }
     }
     
