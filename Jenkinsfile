@@ -22,7 +22,7 @@ pipeline {
   post {
     always {
       sh 'echo "Posting fake results"'
-      sh 'junit test/*.xml'
+      junit 'tests/*.xml'
     }
   }
 }  
