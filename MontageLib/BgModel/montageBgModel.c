@@ -248,7 +248,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    int     ntoggle, toggle, nancnt, iplate, iplate_cntr;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
-   double  averms, sigrms, avearea;
+   double  averms, avearea;
    double  imin, imax, jmin, jmax;
    double  A, B, C, C0;
    double  Am, Bm, Cm;
@@ -1738,7 +1738,7 @@ of applying the right tranforms to the planes associated with each iteration.
       {
          if(fits[k].rms >= 1.e99)
          {
-            fits[k].use = 0;
+            fits[k].useFit = 0;
 
             continue;
          }
