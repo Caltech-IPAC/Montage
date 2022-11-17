@@ -21,7 +21,8 @@ pipeline {
     
   post {
     always {
-      echo 'Posting results (none yet)'
+      sh 'echo "Posting fake results"'
+      sh 'junit test/*.xml'
     }
   }
 }  

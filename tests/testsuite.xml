@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="" tests="17" failures= "1" errors="0" skipped="0" time="41.6">
+<testsuite name="" tests="17" failures= "0" time="41.6">
 
   <testcase classname="mProject" name="mProject_bad_input_WCS1" time="0.05">
     <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
