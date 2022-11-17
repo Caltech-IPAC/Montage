@@ -9,7 +9,6 @@ pipeline {
     stage("build") {
       steps {
         echo 'Building Montage develop branch'
-        make
       }
     }
     
