@@ -8,20 +8,21 @@ pipeline {
   stages {   
     stage("build") {
       steps {
-        sh 'tests/build.sh'
+        echo 'Building Montage develop branch'
+        make
       }
     }
     
     stage("test") {
       steps {
-        sh 'tests/tests.sh'
+        echo 'Running test (none yet)'
       }
     }
   }
     
   post {
     always {
-      junit 'tests/*.xml'
+      echo 'Posting results (none yet)'
     }
   }
 }  
