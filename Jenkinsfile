@@ -6,6 +6,9 @@ pipeline {
     stage("build") {
       steps {
         echo 'Building Montage develop branch'
+        pwd
+        ls
+        make
       }
     }
     
