@@ -210,7 +210,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    double    lon, lat;
    double    oxpixMin, oypixMin;
    double    oxpixMax, oypixMax;
-   int       haveMinMax, haveTop;
+   int       haveMinMax;
    int       xpixIndMin, xpixIndMax;
    int       ypixIndMin, ypixIndMax;
    int       imin, imax, jmin, jmax;
@@ -234,6 +234,7 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    double    overlapArea = 0.;
 
    int       status;
+   int       haveTop = 0;
 
    char      msg         [MAXSTR];
    char      output_file [MAXSTR];

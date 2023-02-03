@@ -277,7 +277,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double    oxpix, oypix;
    double    oxpixMin, oypixMin;
    double    oxpixMax, oypixMax;
-   int       haveIn, haveOut, haveMinMax, haveTop;
+   int       haveIn, haveOut, haveMinMax;
    int       xrefin, yrefin;
    int       xrefout, yrefout;
    int       xpixIndMin, xpixIndMax;
@@ -317,7 +317,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    double    overlapArea = 0.;
 
-   int       status = 0;
+   int       status  = 0;
+   int       haveTop = 0;
 
    char     output_file[MAXSTR];
 

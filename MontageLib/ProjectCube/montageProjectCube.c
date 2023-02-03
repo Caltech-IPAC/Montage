@@ -209,7 +209,7 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
    double     oxpix, oypix;
    double     oxpixMin, oypixMin;
    double     oxpixMax, oypixMax;
-   int        haveIn, haveOut, haveMinMax, haveTop;
+   int        haveIn, haveOut, haveMinMax;
    int        xrefin, yrefin;
    int        xrefout, yrefout;
    int        xpixIndMin, xpixIndMax;
@@ -249,7 +249,8 @@ struct mProjectCubeReturn *mProjectCube(char *input_file, char *output_file, cha
 
    double     overlapArea = 0.;
 
-   int        status = 0;
+   int        status  = 0;
+   int        haveTop = 0;
 
    char      *checkHdr;
 
