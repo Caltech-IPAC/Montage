@@ -42,7 +42,10 @@ Version  Developer        Date     Change
 static int     hdu;
 static int     haveWeights;
 
-static double offset;
+static double offset, radius, dist;
+
+static double xc, yc, zc;
+static double xp, yp, zp;
 
 static char   area_file[MAXSTR];
 
@@ -179,9 +182,10 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    int       hpxPix, hpxLevel;
    long      fpixel[4], nelements;
    double    lon, lat;
+   double    clon, clat;
    double    ixpix, iypix;
    double    oxpix, oypix;
-   double    oxpixTest, oypixTest;
+   // double    oxpixTest, oypixTest;
    double    oxpixMin, oypixMin;
    double    oxpixMax, oypixMax;
    double    xoff, yoff;
@@ -204,6 +208,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    int       ia;
 
    int       nsamp;
+
+   Vec       corners[4];
+   Vec       normals[4];
+   Vec       point;
+   int       icorner, interior;
+
 
    struct mProjectQLReturn *returnStruct;
 
@@ -441,13 +451,13 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
-   offset = 0.;
-
 
    /*************************************************/ 
    /* Process the output header template to get the */ 
    /* image size, coordinate system and projection  */ 
    /*************************************************/ 
+
+   offset = 0.;
 
    mProjectQL_readTemplate(template_file);
 
@@ -464,13 +474,30 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
+   radius = sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
+               + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc);
+
+   pix2wcs(input.wcs, input.naxes[0]/2., input.naxes[1]/2., &clon, &clat);
+
+   xc = cos(clon*dtr) * cos(clat*dtr);
+   yc = sin(clon*dtr) * cos(clat*dtr);
+   zc = sin(clat*dtr);
+
+
+   if(mProjectQL_debug >= 1)
+   {
+      printf("\nInput image radius: %-g degrees (needed for offscale check for some projections)\n\n", radius);
+      printf("Center lon: %-g, lat: %-g\n\n", clon, clat);
+      fflush(stdout);
+   }
+
    if(expand)
    {
       /* We need to expand the output area so we get all of the input image. */
       /* This implies rereading the template as well.                        */
 
-      offset = (sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
-             + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc));
+      offset = sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
+                  + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc);
 
       if(mProjectQL_debug >= 1)
       {
@@ -507,6 +534,72 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
          fflush(stdout);
       }
+   }
+
+
+   /*************************************************************************/ 
+   /* Get the 3-vector coordinates for the four corners of the input image. */
+   /* These will be used to determine if an output pixel location is inside */
+   /* the input image.                                                      */
+   /*************************************************************************/ 
+
+   pix2wcs(input.wcs, 0.5,                0.5,                &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[0].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[0].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[0].z = sin(lat*dtr);
+
+   // -----
+   
+   pix2wcs(input.wcs, input.naxes[0]+0.5, 0.5,                &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[1].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[1].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[1].z = sin(lat*dtr);
+
+   // -----
+   
+   pix2wcs(input.wcs, input.naxes[0]+0.5, input.naxes[1]+0.5, &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[2].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[2].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[2].z = sin(lat*dtr);
+
+   // -----
+
+   pix2wcs(input.wcs, 0.5,                input.naxes[1]+0.5, &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[3].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[3].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[3].z = sin(lat*dtr);
+
+   // -----
+
+   if(!input.clockwise)
+   {
+      mProjectQL_swap(&corners[1].x, &corners[3].x);
+      mProjectQL_swap(&corners[1].y, &corners[3].y);
+      mProjectQL_swap(&corners[1].z, &corners[3].z);
+   }
+
+   for(i=0; i<4; ++i)
+   {
+      j = (i+1)%4;
+
+      mProjectQL_Cross(&corners[i], &corners[j], &normals[i]);
+      mProjectQL_Normalize(&normals[i]);
    }
 
 
@@ -631,6 +724,14 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
             if(oypix < oypixMin) oypixMin = oypix;
             if(oypix > oypixMax) oypixMax = oypix;
          }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("LEFT:   (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  0.5, j+0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
 
 
@@ -691,6 +792,14 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
             if(oxpix > oxpixMax) oxpixMax = oxpix;
             if(oypix < oypixMin) oypixMin = oypix;
             if(oypix > oypixMax) oypixMax = oypix;
+         }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("RIGHT:  (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  input.naxes[0]+0.5, j+0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
          }
       }
    }
@@ -769,6 +878,14 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
             if(oypix < oypixMin) oypixMin = oypix;
             if(oypix > oypixMax) oypixMax = oypix;
          }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("BOTTOM: (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  i+0.5, 0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
 
 
@@ -832,6 +949,14 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
             if(oypix < oypixMin) oypixMin = oypix;
             if(oypix > oypixMax) oypixMax = oypix;
          }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("TOP:    (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  i+0.5, input.naxes[1]+0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
    }
 
@@ -882,6 +1007,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
       fflush(stdout);
    }
+
 
    /*
     * ASSERT: Output bounding box now specified by
@@ -1448,12 +1574,6 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
-   if(mProjectQL_debug >= 4)
-   {
-      printf("%6s  %6s    %9s  %9s     %9s  %9s    %6s  %6s\n", 
-         "oxpix", "oypix", "xpos", "ypos", "lon", "lat", "ixpix", "iypix"); 
-      fflush(stdout);
-   }
 
    for(j=jmin; j<jmax; ++j)
    {
@@ -1473,33 +1593,26 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          pix2wcs(output.wcs, oxpix, oypix, &xpos, &ypos);
 
 
-         // Convert it back to make sure we weren't off scale
+         // Use the image bounding box normals to check whether this point
+         // is inside the input image
 
-         if(!isHPX)
+         point.x = cos(xpos*dtr) * cos(ypos*dtr);
+         point.y = sin(xpos*dtr) * cos(ypos*dtr);
+         point.z = sin(ypos*dtr);
+
+         interior = 1;
+
+         for(icorner=0; icorner<4; ++icorner)
          {
-            offscl = output.wcs->offscl;
-
-            oxpixTest = 999.;
-            oypixTest = 999.;
-
-            if(!offscl)
-               wcs2pix(output.wcs, xpos, ypos, &oxpixTest, &oypixTest, &offscl);
-
-
-            // The offscl parameter seems to be too sensitive in some
-            // cases, so we will replace it with the following.
-
-            offscl = 0;
-
-            if(fabs(oxpixTest - oxpix) > 1.)
-               offscl = 1;
-
-            if(fabs(oypixTest - oypix) > 1.)
-               offscl = 1;
-
-            if(offscl)
-               continue;
+            if(mProjectQL_Dot(&normals[icorner], &point) < 0)
+            {
+               interior = 0;
+               break;
+            }
          }
+
+         if(!interior)
+            continue;
 
 
          // Convert to the input coordinate system
@@ -1508,18 +1621,24 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                             input.sys, input.epoch, &lon, &lat, 0.0);
          
          
+         // Check whether we are near enough to the input image.  This came up when dealing with an image with
+         // distortion polynomial parameters.  There were pixels in the output that were far enough from the
+         // image center that they started to project as if they were on the image.
+
+         xp = cos(lon*dtr) * cos(lat*dtr);
+         yp = sin(lon*dtr) * cos(lat*dtr);
+         zp = sin(lat*dtr);
+
+         dist = acos((xp*xc) + (yp*yc) + (zc*zp)) / dtr;
+
+         if(dist > radius)
+            continue;
+
+
          // Convert to input pixel space
 
          offscl = 0;
-
          wcs2pix(input.wcs, lon, lat, &ixpix, &iypix, &offscl);
-
-         if(mProjectQL_debug >= 4)
-         {
-            printf("%9.1f, %9.1f -> %9.4f, %9.4f ==> %9.4f, %9.4f -> %9.1f, %9.1f  (%d)\n", 
-               oxpix, oypix, xpos, ypos, lon, lat, ixpix, iypix, offscl); 
-            fflush(stdout);
-         }
 
          if(offscl)
             continue;
@@ -1530,12 +1649,19 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          ix = (int)(ixpix+0.5);  // The extra 0.5 here is to make it round
          jy = (int)(iypix+0.5);  // correctly to the nearest integer value
 
-
+         
          // If using nearest neighbor
 
          if(ix >= 0 && ix < input.naxes[0]
          && jy >= 0 && jy < input.naxes[1])
          {
+            if(mProjectQL_debug >= 4)
+            {
+               printf("opix: %.1f, %.1f  ->  gal: %.4f, %.4f    ==>    equ: %.4f, %.4f  ->  ipix: %.1f, %.1f (data: %-g)  get data\n", 
+                  oxpix, oypix, xpos, ypos, lon, lat, ixpix, iypix, data[jy][ix]); 
+               fflush(stdout);
+            }
+
             if(interp == NEAREST)
             {
                buffer[i-imin] = data[jy][ix];
@@ -2554,4 +2680,95 @@ int mProjectQL_BorderRange(int jrow, int maxpix,
    }
 
    return found;
+}
+
+
+
+/***************************************************/
+/*                                                 */
+/* Cross()                                         */
+/*                                                 */
+/* Vector cross product.                           */
+/*                                                 */
+/***************************************************/
+
+int mProjectQL_Cross(Vec *v1, Vec *v2, Vec *v3)
+{
+   v3->x =  v1->y*v2->z - v2->y*v1->z;
+   v3->y = -v1->x*v2->z + v2->x*v1->z;
+   v3->z =  v1->x*v2->y - v2->x*v1->y;
+
+   if(v3->x == 0.
+   && v3->y == 0.
+   && v3->z == 0.)
+      return 0;
+
+   return 1;
+}
+
+
+/***************************************************/
+/*                                                 */
+/* Dot()                                           */
+/*                                                 */
+/* Vector dot product.                             */
+/*                                                 */
+/***************************************************/
+
+double mProjectQL_Dot(Vec *a, Vec *b)
+{
+   double sum = 0.0;
+
+   sum = a->x * b->x
+       + a->y * b->y
+       + a->z * b->z;
+
+   return sum;
+}
+
+
+/***************************************************/
+/*                                                 */
+/* Normalize()                                     */
+/*                                                 */
+/* Normalize the vector                            */
+/*                                                 */
+/***************************************************/
+
+double mProjectQL_Normalize(Vec *v)
+{
+   double len;
+
+   len = 0.;
+
+   len = sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+
+   if(len == 0.)
+      len = 1.;
+
+   v->x = v->x / len;
+   v->y = v->y / len;
+   v->z = v->z / len;
+
+   return len;
+}
+
+
+/***************************************************/
+/*                                                 */
+/* swap()                                          */
+/*                                                 */
+/* Switches the values of two memory locations     */
+/*                                                 */
+/***************************************************/
+
+int mProjectQL_swap(double *x, double *y)
+{
+   double tmp;
+
+   tmp = *x;
+   *x  = *y;
+   *y  = tmp;
+
+   return(0);
 }

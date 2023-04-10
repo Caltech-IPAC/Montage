@@ -41,7 +41,7 @@ struct mHPXGapDiffReturn
 };
 
 struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_file, int plus_edge, char *minus_file, int minus_edge,
-                                      char *gap_dir, int levelOnly, int pad, int width, int debug);
+                                      int cloud, char *gap_dir, int levelOnly, int pad, int width, int debug);
 
 
 void   mHPXGapDiff_fitImage(char *input_file, int levelOnly, int edge, int pad, int width, 

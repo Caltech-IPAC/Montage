@@ -68,7 +68,7 @@ int main(int argc, char **argv)
    char     origtmpl[MAXSTR];
    char     newtmpl [MAXSTR];
 
-   int      nx, ny, ix, iy;
+   int      nx, ny, ix, iy, shrink;
 
    int      xtilesize, ytilesize;
    int      xpad, ypad;
@@ -79,14 +79,19 @@ int main(int argc, char **argv)
 
    opterr    =  0;
    debug     =  0;
+   shrink    =  0;
    fstatus   = stdout;
 
-   while ((c = getopt(argc, argv, "ds:")) != EOF) 
+   while ((c = getopt(argc, argv, "dms:")) != EOF) 
    {
       switch(c)
       {
          case 'd':
             debug = 1;
+            break;
+
+         case 'm':
+            shrink = 1;
             break;
 
          case 's':
@@ -136,6 +141,12 @@ int main(int argc, char **argv)
    ypad = xpad;
    if (argc - optind > 7)
       ypad = atoi(argv[optind+7]);
+
+   if(shrink)
+   {
+      xpad = -xpad;
+      ypad = -ypad;
+   }
 
    checkHdr(origtmpl, 1, 0);
 
@@ -239,7 +250,7 @@ int main(int argc, char **argv)
    /* Final output */
    /****************/
 
-   fprintf(fstatus, "[struct stat=\"OK\", naxis1=%d, naxis2=%d, crpix1=%-g, crpix2=%-g]\n",
+   fprintf(fstatus, "[struct stat=\"OK\", module=\"mTileHdr\", naxis1=%d, naxis2=%d, crpix1=%-g, crpix2=%-g]\n",
       naxis1, naxis2, crpix1, crpix2);
    fflush(stdout);
 

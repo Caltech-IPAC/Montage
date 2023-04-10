@@ -50,6 +50,8 @@ int  len1;
 
 int  color = 0;
 
+int  single_threaded = 0;
+
 extern char *optarg;
 extern int optind, opterr;
 
@@ -79,20 +81,21 @@ int main(int argc, char **argv)
 
    getcwd(cwd, MAXSTR);
 
-   debug       =  0;
-   ct          =  0;
-   order       = -1;
-   nplate      = -1;
-   brightness  =  0.;
-   contrast    =  0.;
-   len1        =  0;
-   update_only =  0;
+   debug           =  0;
+   ct              =  0;
+   order           = -1;
+   nplate          = -1;
+   brightness      =  0.;
+   contrast        =  0.;
+   len1            =  0;
+   update_only     =  0;
+   single_threaded =  0;
 
    strcpy(contfile, "");
 
    count = 1;
 
-   while((c = getopt(argc, argv, "dnub:c:C:t:p:")) != EOF)
+   while((c = getopt(argc, argv, "dnub:c:C:st:p:")) != EOF)
    {
       switch(c)
       {
@@ -116,6 +119,10 @@ int main(int argc, char **argv)
             strcpy(contfile, optarg);
             break;
 
+         case 's':
+            single_threaded = 1;
+            break;
+
          case 't':
             ct = atoi(optarg);
             break;
@@ -125,7 +132,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-b brightness][-c contrast][-t color-table][-p nplate] scriptdir directory histfile(/histdir) [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-b brightness][-c contrast][-t color-table][-p nplate] scriptdir tiledir histfile(/histdir) [tiledir2 histfile2 tiledir3 histfile3] pngdir\"]\n");
             exit(1);
             break;
       }
@@ -133,7 +140,7 @@ int main(int argc, char **argv)
 
    if(argc-optind < 4)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-b brightness][-c contrast][-t color-table][-p nplate] scriptdir directory histfile(/histdir) [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-s(ingle-threaded)][-b brightness][-c contrast][-t color-table][-p nplate] scriptdir tiledir histfile(/histdir) [tiledir2 histfile2 tiledir3 histfile3] pngdir\"]\n");
       exit(1);
    }
 
@@ -191,7 +198,7 @@ int main(int argc, char **argv)
    {
       if(argc-optind < 8)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-b brightness][-c contrast][-t color-table][-p nplate] scriptdir directory histfile(/histdir) [directory2 histfile2 directory3 histfile3] outdir\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-s(ingle-threaded)][-b brightness][-c contrast][-t color-table][-p nplate] scriptdir tiledir histfile(/histdir) [tiledir2 histfile2 tiledir3 histfile3] pngdir\"]\n");
          exit(1);
       }
 
@@ -251,18 +258,19 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> color      = %d\n",   color);
-      printf("DEBUG> brightness = %-g\n",  brightness);
-      printf("DEBUG> contrast   = %-g\n",  contrast);
-      printf("DEBUG> contfile   = [%s]\n", contfile);
-      printf("DEBUG> directory1 = [%s]\n", directory1);
-      printf("DEBUG> len1       = %d\n",   len1);
-      printf("DEBUG> histfile1  = [%s]\n", histfile1);
-      printf("DEBUG> directory2 = [%s]\n", directory2);
-      printf("DEBUG> histfile2  = [%s]\n", histfile2);
-      printf("DEBUG> directory3 = [%s]\n", directory3);
-      printf("DEBUG> histfile3  = [%s]\n", histfile3);
-      printf("DEBUG> outdir     = [%s]\n", outdir);
+      printf("DEBUG> single_thread = %d\n",   single_threaded);
+      printf("DEBUG> color         = %d\n",   color);
+      printf("DEBUG> brightness    = %-g\n",  brightness);
+      printf("DEBUG> contrast      = %-g\n",  contrast);
+      printf("DEBUG> contfile      = [%s]\n", contfile);
+      printf("DEBUG> directory1    = [%s]\n", directory1);
+      printf("DEBUG> len1          = %d\n",   len1);
+      printf("DEBUG> histfile1     = [%s]\n", histfile1);
+      printf("DEBUG> directory2    = [%s]\n", directory2);
+      printf("DEBUG> histfile2     = [%s]\n", histfile2);
+      printf("DEBUG> directory3    = [%s]\n", directory3);
+      printf("DEBUG> histfile3     = [%s]\n", histfile3);
+      printf("DEBUG> outdir        = [%s]\n", outdir);
       fflush(stdout);
    }
 
@@ -296,34 +304,37 @@ int main(int argc, char **argv)
    /* Create the task submission script */
    /*************************************/
 
-   sprintf(taskfile, "%spngTask.bash", scriptdir);
-
-   if(debug)
+   if(!single_threaded)
    {
-      printf("DEBUG> taskfile:   [%s]\n", taskfile);
-      fflush(stdout);
+      sprintf(taskfile, "%spngTask.bash", scriptdir);
+
+      if(debug)
+      {
+         printf("DEBUG> taskfile:   [%s]\n", taskfile);
+         fflush(stdout);
+      }
+
+      ftask = fopen(taskfile, "w+");
+
+      if(ftask == (FILE *)NULL)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+         fflush(stdout);
+         exit(0);
+      }
+
+      fprintf(ftask, "#!/bin/bash\n");
+      fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+      fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+      fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+      fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+      fprintf(ftask, "#SBATCH -o %slogs/png.%%N.%%j.out # STDOUT\n", scriptdir);
+      fprintf(ftask, "#SBATCH -e %slogs/png.%%N.%%j.err # STDERR\n", scriptdir);
+      fprintf(ftask, "%sjobs/pngs_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+      fflush(ftask);
+      fclose(ftask);
    }
-
-   ftask = fopen(taskfile, "w+");
-
-   if(ftask == (FILE *)NULL)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
-      fflush(stdout);
-      exit(0);
-   }
-
-   fprintf(ftask, "#!/bin/bash\n");
-   fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
-   fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
-   fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
-   fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(ftask, "#SBATCH -o %slogs/png.%%N.%%j.out # STDOUT\n", scriptdir);
-   fprintf(ftask, "#SBATCH -e %slogs/png.%%N.%%j.err # STDERR\n", scriptdir);
-   fprintf(ftask, "%sjobs/pngs_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
-
-   fflush(ftask);
-   fclose(ftask);
 
 
    /***********************************************/
@@ -334,8 +345,11 @@ int main(int argc, char **argv)
 
    mHiPSPNGScripts_processDirs(directory1);
 
-   fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %spngTask.bash\n", njob, scriptdir);
-   fflush(fdriver);
+   if(!single_threaded)
+   {
+      fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %spngTask.bash\n", njob, scriptdir);
+      fflush(fdriver);
+   }
 
    fclose(fdriver);
    chmod(driverfile, 0777);
@@ -347,11 +361,11 @@ int main(int argc, char **argv)
 
 
 
-/*******************************/
-/*                             */
-/*  Count the number of files  */
-/*                             */
-/*******************************/
+/****************************************/
+/*                                      */
+/*  Make the scripts for each directory */
+/*                                      */
+/****************************************/
 
 int mHiPSPNGScripts_processDirs (char *pathname)
 {
@@ -414,8 +428,6 @@ int mHiPSPNGScripts_processDirs (char *pathname)
 
          sprintf(scriptfile, "%sjobs/pngs_%d.sh", scriptdir, count);
 
-         ++count;
-
          if(debug)
          {
             printf("DEBUG> creating scriptfile = [%s]\n", scriptfile);
@@ -435,6 +447,8 @@ int mHiPSPNGScripts_processDirs (char *pathname)
 
 
          fprintf(fscript, "#!/bin/sh\n\n");
+
+         fprintf(fscript, "date\n");
 
          fprintf(fscript, "echo Directory: %s\n\n", dirname1);
 
@@ -475,6 +489,14 @@ int mHiPSPNGScripts_processDirs (char *pathname)
 
          fclose(fscript);
          chmod(scriptfile, 0777);
+
+         if(single_threaded)
+         {
+            fprintf(fdriver, "%sjobs/pngs_%d.sh\n", scriptdir, count);
+            fflush(fdriver);
+         }
+
+         ++count;
       }
 
       if (stat(dirname1, &type) == 0) 

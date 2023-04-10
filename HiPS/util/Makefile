@@ -12,8 +12,11 @@ LIBS   = -L../../lib -lcfitsio -lcoord -lwcs -lboundaries -lpixbounds -lmtbl -ls
 all:   mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
        mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
        mHPXxy2tile mHPXtile2xy mHPXCombineHist mHPXMap mHPXBlendEdges \
-       mHPXCoord2Tile
+       mHPXCoord2Tile mHPXOrder mHiPSExec
 
+
+mHiPSExec: mHiPSExec.o
+	gcc -o mHiPSExec mHiPSExec.o $(LIBS)
 
 mHPXPlateList: mHPXPlateList.o
 	gcc -o mHPXPlateList mHPXPlateList.o $(LIBS)
@@ -60,15 +63,18 @@ mHPXBlendEdges: mHPXBlendEdges.o
 mHPXCoord2Tile: mHPXCoord2Tile.o
 	gcc -o mHPXCoord2Tile mHPXCoord2Tile.o $(LIBS)
 
+mHPXOrder: mHPXOrder.o
+	gcc -o mHPXOrder mHPXOrder.o $(LIBS)
+
 
 install:
 	cp mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
 	mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
 	mHPXxy2tile mHPXtile2xy mHPXCombineHist mHPXMap mHPXBlendEdges \
-	mHPXCoord2Tile ../../bin
+	mHPXCoord2Tile mHPXOrder mHiPSExec ../../bin
 
 clean:
 	rm -f mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
 	mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
 	mHPXxy2tile mHPXtile2xy mHPXCombineHist mHPXMap mHPXBlendEdges \
-	mHPXCoord2Tile *.o
+	mHPXCoord2Tile mHPXOrder mHiPSExec *.o

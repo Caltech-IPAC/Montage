@@ -41,7 +41,7 @@ int main(int argc, char **argv)
    char cwd       [MAXSTR];
    char platelist [MAXSTR];
    char platedir  [MAXSTR];
-   char hipsdir   [MAXSTR];
+   char tiledir   [MAXSTR];
    char scriptdir [MAXSTR];
    char scriptfile[MAXSTR];
    char driverfile[MAXSTR];
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
                 break;
 
            default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir tiledir platelist.tbl\"]\n", argv[0]);
                 exit(1);
                 break;
         }
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 6)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir hipsdir platelist.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir tiledir platelist.tbl\"]\n", argv[0]);
       exit(1);
    }
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
    strcpy(scriptdir, argv[optind + 2]);
    strcpy(platedir,  argv[optind + 3]);
-   strcpy(hipsdir,   argv[optind + 4]);
+   strcpy(tiledir,   argv[optind + 4]);
    strcpy(platelist, argv[optind + 5]);
 
    if(scriptdir[0] != '/')
@@ -125,13 +125,13 @@ int main(int argc, char **argv)
       strcpy(platedir, tmpdir);
    }
 
-   if(hipsdir[0] != '/')
+   if(tiledir[0] != '/')
    {
       strcpy(tmpdir, cwd);
       strcat(tmpdir, "/");
-      strcat(tmpdir, hipsdir);
+      strcat(tmpdir, tiledir);
 
-      strcpy(hipsdir, tmpdir);
+      strcpy(tiledir, tmpdir);
    }
 
    if(scriptdir[strlen(scriptdir)-1] != '/')
@@ -140,14 +140,14 @@ int main(int argc, char **argv)
    if(platedir[strlen(platedir)-1] != '/')
       strcat(platedir, "/");
 
-   if(hipsdir[strlen(hipsdir)-1] != '/')
-      strcat(hipsdir, "/");
+   if(tiledir[strlen(tiledir)-1] != '/')
+      strcat(tiledir, "/");
 
    if(debug)
    {
       printf("DEBUG> scriptdir:  [%s]\n", scriptdir);
       printf("DEBUG> platedir:   [%s]\n", platedir);
-      printf("DEBUG> hipsdir:    [%s]\n", hipsdir);
+      printf("DEBUG> tiledir:    [%s]\n", tiledir);
       printf("DEBUG> platelist:  [%s]\n", platelist);
       fflush(stdout);
    }
@@ -240,8 +240,6 @@ int main(int argc, char **argv)
       if(tread() < 0)
          break;
 
-      ++count;
-
       strcpy(plate, tval(iplate));
 
       if(strcmp(plate+strlen(plate)-5, ".fits") != 0)
@@ -266,14 +264,16 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "#!/bin/sh\n\n");
 
+      fprintf(fscript, "date\n");
+
       fprintf(fscript, "echo Plate %s, Task %d\n\n", plate, count);
 
-      fprintf(fscript, "mkdir -p %s\n\n", hipsdir);
+      fprintf(fscript, "mkdir -p %s\n\n", tiledir);
 
       for(iorder=maxorder; iorder>=minorder; --iorder)
       {
-         fprintf(fscript, "echo mHiPSTiles %sorder%d/%s %s\n", platedir, iorder, plate, hipsdir);
-         fprintf(fscript, "mHiPSTiles %sorder%d/%s %s\n", platedir, iorder, plate, hipsdir);
+         fprintf(fscript, "echo mHiPSTiles %sorder%d/%s %s\n", platedir, iorder, plate, tiledir);
+         fprintf(fscript, "mHiPSTiles %sorder%d/%s %s\n", platedir, iorder, plate, tiledir);
       }
 
       fflush(fscript);
@@ -286,6 +286,8 @@ int main(int argc, char **argv)
          fprintf(fdriver, "%sjobs/tiles_%d.sh\n", scriptdir, count);
          fflush(fdriver);
       }
+
+      ++count;
    }
 
    if(!single_threaded)

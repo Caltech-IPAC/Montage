@@ -505,7 +505,7 @@ int main(int argc, char **argv)
       chmod(scriptfile, 0777);
 
       if(processing == CLUSTER)
-         fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 %ssubmitProject.bash %sjobs/project_%02d_%02d.sh %s\n",
+         fprintf(fdriver, "sbatch --mem=16384 --mincpus=1 %sslurmProject.bash %sjobs/project_%02d_%02d.sh %s\n",
             scriptdir, scriptdir, i, j, projectdir);
 
       if(processing == SINGLE_THREADED)

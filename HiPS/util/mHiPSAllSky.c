@@ -19,6 +19,7 @@ int main(int argc, char **argv)
 {
    int       i, j, nullcnt, nfound, tile, order, bad;
    int       nx, ny, itile, jtile, ioffset, joffset, iout, jout;
+   int       nmissing;
 
    int       bitpix = DOUBLE_IMG;
 
@@ -31,7 +32,7 @@ int main(int argc, char **argv)
 
    char      infile [MAXSTR];
    char      outfile[MAXSTR];
-   char      hipsdir[MAXSTR];
+   char      tiledir[MAXSTR];
    char      cmd    [MAXSTR];
 
    fitsfile *infptr, *outfptr;
@@ -65,7 +66,7 @@ int main(int argc, char **argv)
 
    if(argc < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSAllSky [-d] hipsdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSAllSky [-d] tiledir\"]\n");
       exit(0);
    }
 
@@ -87,14 +88,14 @@ int main(int argc, char **argv)
 
    if(argc < 2)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSAllSky [-d] hipsdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSAllSky [-d] tiledir\"]\n");
       exit(0);
    }
 
-   strcpy(hipsdir, argv[1]);
+   strcpy(tiledir, argv[1]);
 
-   if(hipsdir[strlen(hipsdir)-1] != '/')
-      strcat(hipsdir, "/");
+   if(tiledir[strlen(tiledir)-1] != '/')
+      strcat(tiledir, "/");
 
 
 
@@ -154,7 +155,7 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   sprintf(outfile, "%sNorder%d/Allsky.fits", hipsdir, order);
+   sprintf(outfile, "%sNorder%d/Allsky.fits", tiledir, order);
    unlink(outfile);
 
    if(debug)
@@ -164,7 +165,6 @@ int main(int argc, char **argv)
    }
 
    status = 0;
-
    if(fits_create_file(&outfptr, outfile, &status))
    {
       printf("[struct stat=\"ERROR\", msg=\"Can't open output FITS file [%s].\"]\n", outfile);
@@ -172,6 +172,7 @@ int main(int argc, char **argv)
       exit(0);
    }
 
+   status = 0;
    if (fits_create_img(outfptr, bitpix, naxiso, naxeso, &status))
    {
       printf("[struct stat=\"ERROR\", msg=\"Can't create image in FITS file [%s].\"]\n", outfile);
@@ -207,13 +208,15 @@ int main(int argc, char **argv)
    /* Loop over the input images */
    /******************************/
 
+   nmissing = 0;
+
    for(tile=0; tile<ntiles[order]; ++tile)
    {
       // Read in each FITS file
       
       itile = tile / 1000;
 
-      sprintf(infile, "%sNorder%d/Dir%d/Npix%d.fits", hipsdir, order, itile, tile);
+      sprintf(infile, "%sNorder%d/Dir%d/Npix%d.fits", tiledir, order, itile, tile);
 
       if(debug)
       {
@@ -222,14 +225,14 @@ int main(int argc, char **argv)
       }
 
       status = 0;
-
       if(fits_open_file(&infptr, infile, READONLY, &status))
       {
-         printf("[struct stat=\"WARNING\", msg=\"Can't open input FITS file [%s].\"]\n", infile);
-         fflush(stdout);
+         ++nmissing;
+
          continue;
       }
 
+      status = 0;
       if(fits_read_keys_lng(infptr, "NAXIS", 1, 2, naxes, &nfound, &status))
       {
          printf("[struct stat=\"ERROR\", msg=\"Can't find NAXIS keywords [%s].\"]\n", infile);
@@ -259,6 +262,7 @@ int main(int argc, char **argv)
 
       for(j=0; j<naxes[1]; ++j)
       {
+         status = 0;
          if(fits_read_pix(infptr, TDOUBLE, fpixel, naxes[0], &dnan, ibuffer[j], &nullcnt, &status))
          {
             printf("[struct stat=\"WARNING\", msg=\"Problem reading pixels.\"]\n");
@@ -281,6 +285,7 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
+      status = 0;
       if(fits_close_file(infptr, &status))
       {
          printf("[struct stat=\"ERROR\", msg=\"Problem closing input FITS file.\"]\n");
@@ -334,9 +339,11 @@ int main(int argc, char **argv)
 
    for(j=0; j<naxeso[1]; ++j)
    {
+      status = 0;
       if (fits_write_pix(outfptr, TDOUBLE, fpixelo, naxeso[0], (void *)(obuffer[j]), &status))
       {
-         printf("[struct stat=\"ERROR\", msg=\"Problem reading pixels.\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Problem writing pixels [file: %s, row: %d].\"]\n", 
+                outfile, j);
          fflush(stdout);
          exit(0);
       }
@@ -349,6 +356,7 @@ int main(int argc, char **argv)
    /* Close the FITS file */
    /***********************/
 
+   status = 0;
    if(fits_close_file(outfptr, &status))
    {
       printf("[struct stat=\"ERROR\", msg=\"Problem closing output FITS file.\"]\n");
@@ -357,7 +365,8 @@ int main(int argc, char **argv)
    }
 
 
-   printf("[struct stat=\"OK\", module=\"mHiPSAllSky\"]\n");
+   printf("[struct stat=\"OK\", module=\"mHiPSAllSky\", ntile=%d, nmissing=%d]\n",
+         ntiles[order], nmissing);
    fflush(stdout);
    exit(0);
 }

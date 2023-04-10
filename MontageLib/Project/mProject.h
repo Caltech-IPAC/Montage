@@ -24,9 +24,10 @@ int     mProject_BorderRange         (int jrow, int maxpix, int *imin, int *imax
 int     mProject_parseLine           (char *linein);
 int     mProject_stradd              (char *header, char *card);
 int     mProject_readTemplate        (char *filename);
-void    mProject_closeFiles          ();
+void    mProject_cleanup             ();
 int     mProject_readFits            (char *filename, char *weightfile);
-void    mProject_fixxy               (double *x, double *y, int *offscl);
+void    mProject_fixHPX              (double *x, double *y, int *offscl);
+void    mProject_fix360              (double *x, double *y, int *offscl);
 
 double  mProject_computeOverlap      (double *ilon, double *ilat,
                                       double *olon, double *olat,

@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
       chmod(scriptfile, 0777);
 
-      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitBackground.bash %sjobs/background_%04d.sh %s%s/\n", 
+      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %sslurmBackground.bash %sjobs/background_%04d.sh %s%s/\n", 
          scriptdir, scriptdir, ijob, projectdir, plate);
       fflush(fdriver);
 

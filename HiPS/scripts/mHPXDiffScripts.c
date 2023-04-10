@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -46,6 +47,9 @@ struct
 plates;
 
 
+extern int optind, opterr;
+
+
 /***************************************************************************/
 /*                                                                         */
 /*  Split a diffs table up unto subsets.  We will run mDiffFitExec on      */
@@ -55,9 +59,9 @@ plates;
 
 int main(int argc, char **argv)
 {
-   int  i, order, nplate, nTask, nPerTask, ncols, set, nread;
+   int  i, c, order, nplate, nTask, nPerTask, ncols, set, nread;
    int  j, xbase, ybase, xref, yref, namelen, nPair;
-   int  level_only;
+   int  level_only, cloud, isPlatelist;
 
    char cwd       [STRLEN];
    char tmpdir    [STRLEN];
@@ -68,10 +72,12 @@ int main(int argc, char **argv)
    char combofile [STRLEN];
    char platedir  [STRLEN];
    char imgtbl    [STRLEN];
-
    char difffile  [STRLEN];
    char outDiffs  [STRLEN];
    char fmt       [STRLEN];
+   char archive   [STRLEN];
+   char tags      [STRLEN];
+   char cmd       [STRLEN];
 
    char *ptr;
 
@@ -99,81 +105,106 @@ int main(int argc, char **argv)
    /**************************/
 
    level_only = 0;
+   cloud      = 0;
+
+   strcpy(archive, "");
 
    if(argc < 6)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d(ebug)][-l(evel-only)] scriptdir platedir images.tbl order nplate\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d(ebug)][-l(evel-only)][-t(ask) count][-c(loud)][-a(rchive) bucket] scriptdir platedir images.tbl|platelist.tbl order nplate\"]\n");
       fflush(stdout);
       exit(0);
    }
 
-   for(i=1; i<3; ++i)
-   {
-      if(strcmp(argv[i], "-d") == 0)
-         debug = 1;
+   while ((c = getopt(argc, argv, "dlca:t:")) != EOF)                     
+   {                                                                            
+      switch (c)                                                                
+      {                                                                         
+         case 'd':                                                              
+            debug = 1;                                                          
+            break;                                                              
+                                                                                
+         case 'l':                                                              
+            level_only = 1;                                                     
+            break;                                                              
+                                                                                
+         case 'c':                                                              
+            cloud = 1;                                                          
+            break;                                                              
+                                                                                
+         case 'a':                                                              
+            strcpy(archive, optarg);                                            
+            break;                                                              
+                                                                                
+         case 't':                                                              
+            nTask = atoi(optarg);                                            
+            break;                                                              
+                                                                                
+         default:                                                               
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d(ebug)][-l(evel-only)][-t(ask) count][-c(loud)][-a(rchive) bucket] scriptdir platedir images.tbl|platelist.tbl order nplate\"]\n");
+            fflush(stdout);                                                     
+            exit(1);                                                            
+      }                                                                         
+   }                                   
 
-      if(strcmp(argv[i], "-l") == 0)
-         level_only = 1;
-   }
-
-   if(debug)
+   if(argc - optind < 5)
    {
-      ++argv;
-      --argc;
-   }
-
-   if(level_only)
-   {
-      ++argv;
-      --argc;
-   }
-
-   if(argc < 6)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d(ebug)][-l(evel-only)] scriptdir platedir images.tbl order nplate\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXDiffScripts [-d(ebug)][-l(evel-only)][-t(ask) count][-c(loud)][-a(rchive) bucket] scriptdir platedir images.tbl|platelist.tbl order nplate\"]\n");
       fflush(stdout);
       exit(0);
    }
 
-   strcpy(scriptdir, argv[1]);
-   strcpy(platedir,  argv[2]);
-   strcpy(imgtbl,    argv[3]);
-
-   order  = atoi(argv[4]);
-   nplate = atoi(argv[5]);
-
-   if(scriptdir[0] != '/')
+   if(cloud)
    {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, scriptdir);
-
-      strcpy(scriptdir, tmpdir);
+      strcpy(scriptdir, "");
+      strcpy(platedir,  "");
+   }
+   else
+   {
+      strcpy(scriptdir, argv[optind]);
+      strcpy(platedir,  argv[optind + 1]);
    }
 
-   if(platedir[0] != '/')
+   strcpy(imgtbl,    argv[optind + 2]);
+
+   order  = atoi(argv[optind + 3]);
+   nplate = atoi(argv[optind + 4]);
+
+   if(!cloud)
    {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, platedir);
+      if(scriptdir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, scriptdir);
 
-      strcpy(platedir, tmpdir);
+         strcpy(scriptdir, tmpdir);
+      }
+
+      if(platedir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, platedir);
+
+         strcpy(platedir, tmpdir);
+      }
+
+      if(imgtbl[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, imgtbl);
+
+         strcpy(imgtbl, tmpdir);
+      }
+
+      if(scriptdir[strlen(scriptdir)-1] != '/')
+         strcat(scriptdir, "/");
+
+      if(platedir[strlen(platedir)-1] != '/')
+         strcat(platedir, "/");
    }
-
-   if(imgtbl[0] != '/')
-   {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, imgtbl);
-
-      strcpy(imgtbl, tmpdir);
-   }
-
-   if(scriptdir[strlen(scriptdir)-1] != '/')
-      strcat(scriptdir, "/");
-
-   if(platedir[strlen(platedir)-1] != '/')
-      strcat(platedir, "/");
 
    if(debug)
    {
@@ -193,6 +224,8 @@ int main(int argc, char **argv)
    /* the differences that exist algorithmically.          */
    /********************************************************/
    
+   isPlatelist = 0;
+
    ncols = topen(imgtbl);
 
    icntr = tcol("cntr");
@@ -200,7 +233,15 @@ int main(int argc, char **argv)
 
    if(icntr < 0 || ifile < 0)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Need 'cntr' and 'fname' columns in image metadata file.\n");
+      icntr = tcol("id");
+      ifile = tcol("plate");
+
+      isPlatelist = 1;
+   }
+
+   if(icntr < 0 || ifile < 0)
+   {
+      printf("[struct stat=\"ERROR\", msg=\"Need 'cntr' and 'fname' (or 'id'/'plate') columns in image metadata file.\n");
       fflush(stdout);
       exit(0);
    }
@@ -216,6 +257,9 @@ int main(int argc, char **argv)
       plates.cntr[plates.n] = atoi(tval(icntr));
 
       strcpy(plates.fname[plates.n], tval(ifile));
+      
+      if(isPlatelist)
+         strcat(plates.fname[plates.n], ".fits");
 
       ++plates.n;
    }
@@ -250,7 +294,10 @@ int main(int argc, char **argv)
    
    nPair = platePair.n;
 
-   sprintf(difffile, "%s/diffs.tbl", platedir);
+   if(cloud)
+      sprintf(difffile, "diffs.tbl");
+   else
+      sprintf(difffile, "%s/diffs.tbl", platedir);
 
    fdiff = fopen(difffile, "w+");
 
@@ -295,7 +342,10 @@ int main(int argc, char **argv)
    /* Open the fit combo script file */
    /**********************************/
 
-   sprintf(combofile, "%s/comboFit.sh", scriptdir);
+   if(cloud)
+      sprintf(combofile, "comboFit.sh");
+   else
+      sprintf(combofile, "%s/comboFit.sh", scriptdir);
 
    if(debug)
    {
@@ -320,34 +370,37 @@ int main(int argc, char **argv)
    /* Create the task submission script */
    /*************************************/
 
-   sprintf(taskfile, "%sdiffFitTask.bash", scriptdir);
-
-   if(debug)
+   if(!cloud)
    {
-      printf("DEBUG> taskfile:   [%s]\n", taskfile);
-      fflush(stdout);
+      sprintf(taskfile, "%sdiffFitTask.bash", scriptdir);
+
+      if(debug)
+      {
+         printf("DEBUG> taskfile:   [%s]\n", taskfile);
+         fflush(stdout);
+      }
+
+      ftask = fopen(taskfile, "w+");
+
+      if(ftask == (FILE *)NULL)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+         fflush(stdout);
+         exit(0);
+      }
+
+      fprintf(ftask, "#!/bin/bash\n");
+      fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+      fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+      fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+      fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+      fprintf(ftask, "#SBATCH -o %slogs/diffFit.%%N.%%j.out # STDOUT\n", scriptdir);
+      fprintf(ftask, "#SBATCH -e %slogs/diffFit.%%N.%%j.err # STDERR\n", scriptdir);
+      fprintf(ftask, "%sjobs/diffFit_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+      fflush(ftask);
+      fclose(ftask);
    }
-
-   ftask = fopen(taskfile, "w+");
-
-   if(ftask == (FILE *)NULL)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
-      fflush(stdout);
-      exit(0);
-   }
-
-   fprintf(ftask, "#!/bin/bash\n");
-   fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
-   fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
-   fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
-   fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-   fprintf(ftask, "#SBATCH -o %slogs/diffFit.%%N.%%j.out # STDOUT\n", scriptdir);
-   fprintf(ftask, "#SBATCH -e %slogs/diffFit.%%N.%%j.err # STDERR\n", scriptdir);
-   fprintf(ftask, "%sjobs/diffFit_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
-
-   fflush(ftask);
-   fclose(ftask);
 
 
    /***********************/
@@ -374,7 +427,10 @@ int main(int argc, char **argv)
       {
          // Create a script to run mDiffFitExec on this set
 
-         sprintf(scriptFile, "%sjobs/diffFit_%d.sh", scriptdir, set);
+         if(cloud)
+            sprintf(scriptFile, "diffFit_%d.sh", set);
+         else
+            sprintf(scriptFile, "%sjobs/diffFit_%d.sh", scriptdir, set);
 
          if(debug)
          {
@@ -396,18 +452,59 @@ int main(int argc, char **argv)
 
          fprintf(fscript, "echo jobs/diffFit_%d.sh\n\n", set);
 
-         fprintf(fscript, "mkdir -p %sdiffs\n", platedir);
+         if(!cloud)
+            fprintf(fscript, "mkdir -p %sdiffs\n", platedir);
 
-         fprintf(fscript, "mHPXHdr %d %shpx%d_%d.hdr\n", order, platedir, order, set);
+         if(strlen(archive) > 0)
+         {
+            sprintf(cmd, "aws s3 cp s3://%s/diffs_%d.tbl diffs_%d.tbl",
+               archive, set, set);
 
-         if(level_only)
-            fprintf(fscript, "mDiffFitExec -d -n -l -p %s %sdiffs_%d.tbl %shpx%d_%d.hdr %sdiffs %sfits_%d.tbl\n", 
-               platedir, platedir, set, platedir, order, set, platedir, platedir, set);
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+            fprintf(fscript, "%s\n", cmd);
+         }
+
+         sprintf(cmd, "mHPXHdr %d %shpx%d_%d.hdr", order, platedir, order, set);
+
+         fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+         fprintf(fscript, "%s\n", cmd);
+
+         if(cloud)
+         {
+            if(strlen(archive) > 0)
+               sprintf(tags, "-a %s", archive);
+
+            if(level_only)
+               sprintf(cmd, "mDiffFitExec -d -n -l %s diffs_%d.tbl hpx%d_%d.hdr diffs fits_%d.tbl", 
+                  tags, set, order, set, set);
+            else
+               sprintf(cmd, "mDiffFitExec -d -n %s diffs_%d.tbl hpx%d_%d.hdr diffs fits_%d.tbl", 
+                  tags, set, order, set, set);
+         }
          else
-            fprintf(fscript, "mDiffFitExec -d -n -p %s %sdiffs_%d.tbl %shpx%d_%d.hdr %sdiffs %sfits_%d.tbl\n", 
-               platedir, platedir, set, platedir, order, set, platedir, platedir, set);
+         {
+            if(level_only)
+               sprintf(cmd, "mDiffFitExec -d -n -l -p %s %sdiffs_%d.tbl %shpx%d_%d.hdr %sdiffs %sfits_%d.tbl", 
+                  platedir, platedir, set, platedir, order, set, platedir, platedir, set);
+            else
+               sprintf(cmd, "mDiffFitExec -d -n -p %s %sdiffs_%d.tbl %shpx%d_%d.hdr %sdiffs %sfits_%d.tbl", 
+                  platedir, platedir, set, platedir, order, set, platedir, platedir, set);
+         }
+
+         fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+         fprintf(fscript, "%s\n", cmd);
 
          fprintf(fscript, "rm -f %shpx%d_%d.hdr\n", platedir, order, set);
+
+         if(strlen(archive) > 0)
+         {
+            sprintf(cmd, "aws s3 cp fits_%d.tbl s3://%s/fits_%d.tbl",
+               set, archive, set);
+
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+            fprintf(fscript, "%s\n", cmd);
+         }
+
 
          fflush(fscript);
          fclose(fscript);
@@ -505,7 +602,10 @@ int main(int argc, char **argv)
    /* Create the driver script file */
    /*********************************/
 
-   sprintf(driverfile, "%s/diffFitSubmit.sh", scriptdir);
+   if(cloud)
+      sprintf(driverfile, "diffFitSubmit.sh");
+   else
+      sprintf(driverfile, "%s/diffFitSubmit.sh", scriptdir);
 
    if(debug)
    {

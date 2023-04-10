@@ -29,7 +29,7 @@ int  debug;
 /*                                                                       */
 /*  mHiPSTileCheck                                                       */
 /*                                                                       */
-/*  This problem checks to see if the appropriate HiPS tile FITS and     */
+/*  This program checks to see if the appropriate HiPS tile FITS and     */
 /*  PNG files exist and creates a script to make them if they don't.     */
 /*                                                                       */
 /*************************************************************************/

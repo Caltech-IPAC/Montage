@@ -65,7 +65,7 @@ static char montage_json  [1024];
 /*************************************************************************/
 
 struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minus_path, int minus_edge,
-                                      char *gap_dir, int levelOnly, int pad, int width, int debug)
+                                      int cloud, char *gap_dir, int levelOnly, int pad, int width, int debug)
 {
    char      tmpstr    [1024];
    char      basename  [1024];
@@ -136,22 +136,29 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
 
    /* Open the diff table for this difference */
 
-   if(strlen(gap_dir) == 0)
-      sprintf(tmpstr, "./gap");
-   else
-      sprintf(tmpstr, "%s/gap", gap_dir);
-
-   if(mkdir(tmpstr, 0755) < 0 && errno != EEXIST)
+   if(cloud)
    {
-      sprintf(returnStruct->msg, "Cannot create gap directory [%s]", tmpstr);
-      return returnStruct;
+      sprintf(tmpstr, "%s.diff", basename);
    }
-
-
-   if(strlen(gap_dir) == 0)
-      sprintf(tmpstr, "./gap/%s.diff", basename);
    else
-      sprintf(tmpstr, "%s/gap/%s.diff", gap_dir, basename);
+   {
+      if(strlen(gap_dir) == 0)
+         sprintf(tmpstr, "./gap");
+      else
+         sprintf(tmpstr, "%s/gap", gap_dir);
+
+      if(mkdir(tmpstr, 0755) < 0 && errno != EEXIST)
+      {
+         sprintf(returnStruct->msg, "Cannot create gap directory [%s]", tmpstr);
+         return returnStruct;
+      }
+
+
+      if(strlen(gap_dir) == 0)
+         sprintf(tmpstr, "./gap/%s.diff", basename);
+      else
+         sprintf(tmpstr, "%s/gap/%s.diff", gap_dir, basename);
+   }
 
    if(debug)
    {
@@ -167,27 +174,29 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
       return returnStruct;
    }
 
-
-   if(strlen(gap_dir) == 0)
-      sprintf(tmpstr, "./gap/%s.sh", basename);
-   else
-      sprintf(tmpstr, "%s/gap/%s.sh", gap_dir, basename);
-
-   if(debug)
+   if(!cloud)
    {
-      printf("view_script = [%s]\n", tmpstr);
-      fflush(stdout);
+      if(strlen(gap_dir) == 0)
+         sprintf(tmpstr, "./gap/%s.sh", basename);
+      else
+         sprintf(tmpstr, "%s/gap/%s.sh", gap_dir, basename);
+
+      if(debug)
+      {
+         printf("view_script = [%s]\n", tmpstr);
+         fflush(stdout);
+      }
+
+      view_script = fopen(tmpstr, "w+");
+
+      if(view_script == (FILE *)NULL)
+      {
+         sprintf(returnStruct->msg, "Cannot create view file [%s]", tmpstr);
+         return returnStruct;
+      }
+
+      chmod(tmpstr, 0755);
    }
-
-   view_script = fopen(tmpstr, "w+");
-
-   if(view_script == (FILE *)NULL)
-   {
-      sprintf(returnStruct->msg, "Cannot create diff file [%s]", tmpstr);
-      return returnStruct;
-   }
-
-   chmod(tmpstr, 0755);
 
 
    // Compute fit for the 'plus' image
@@ -246,9 +255,11 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    returnStruct->transform[0][0][0] =   0.;   returnStruct->transform[0][0][1] =   1.;
    returnStruct->transform[0][1][0] =  -1.;   returnStruct->transform[0][1][1] =   0.;
 
-
-   fprintf(view_script, "#!/bin/sh\n\nmBackground -n %s minus_corrected.fits %-g %-g %-g\n",
-         minus_path, adiff/2., bdiff/2., cdiff/2.);
+   if(!cloud)
+   {
+      fprintf(view_script, "#!/bin/sh\n\nmBackground -n %s minus_corrected.fits %-g %-g %-g\n",
+            minus_path, adiff/2., bdiff/2., cdiff/2.);
+   }
 
    fprintf(diff_file, "plus_file                 : %s\n",             plus_path);
    fprintf(diff_file, "minus_file                : %s\n",             minus_path);
@@ -286,9 +297,11 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
    returnStruct->transform[1][0][0] =   0.;   returnStruct->transform[1][0][1] =  -1.;
    returnStruct->transform[1][1][0] =   1.;   returnStruct->transform[1][1][1] =   0.;
 
-
-   fprintf(view_script, "mBackground -n %s plus_corrected.fits %-g %-g %-g\n\n",
-         plus_path, adiff/2., bdiff/2., cdiff/2.);
+   if(!cloud)
+   {
+      fprintf(view_script, "mBackground -n %s plus_corrected.fits %-g %-g %-g\n\n",
+            plus_path, adiff/2., bdiff/2., cdiff/2.);
+   }
 
    fprintf(diff_file, "plus_file                 : %s\n",             minus_path);
    fprintf(diff_file, "minus_file                : %s\n",             plus_path);
@@ -311,12 +324,16 @@ struct mHPXGapDiffReturn *mHPXGapDiff(char *plus_path, int plus_edge, char *minu
 
    // -----------------------------------------------------
 
-   fprintf(view_script, "mHistogram -file plus_corrected.fits -2s max gaussian-log -out plus.hist\n\n");
+   if(!cloud)
+   {
+      fprintf(view_script, "mHistogram -file plus_corrected.fits -2s max gaussian-log -out plus.hist\n\n");
 
-   fprintf(view_script, "mViewer -ct 1 -gray  plus_corrected.fits -histfile plus.hist -out  plus_corrected.png\n");
-   fprintf(view_script, "mViewer -ct 1 -gray minus_corrected.fits -histfile plus.hist -out minus_corrected.png\n\n");
+      fprintf(view_script, "mViewer -ct 1 -gray  plus_corrected.fits -histfile plus.hist -out  plus_corrected.png\n");
+      fprintf(view_script, "mViewer -ct 1 -gray minus_corrected.fits -histfile plus.hist -out minus_corrected.png\n\n");
 
-   fclose(view_script);
+      fclose(view_script);
+   }
+
    fclose(diff_file);
    
    // -----------------------------------------------------

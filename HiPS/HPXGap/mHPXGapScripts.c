@@ -38,7 +38,7 @@ int montage_debugCheck(char *debugStr);
 
 int main(int argc, char **argv)
 {
-   int   c, levelOnly, single_threaded, pad, width, debug;
+   int   c, cloud, levelOnly, single_threaded, pad, width, debug;
    int   i, N;
    int   xface, yface;
    int   xmax, ymax;
@@ -55,6 +55,8 @@ int main(int argc, char **argv)
    char  cmd       [STRLEN];
    char  tmpstr    [STRLEN];
    char  cwd       [STRLEN];
+   char  archive   [STRLEN];
+   char  fname     [STRLEN];
 
    FILE *fdriver;
    FILE *fscript;
@@ -75,12 +77,14 @@ int main(int argc, char **argv)
    width           = 4096;
    levelOnly       = 0;
    single_threaded = 0;
+   cloud           = 0;
 
    opterr = 0;
 
    strcpy(mosaicdir, "");
+   strcpy(archive,   "");
 
-   while ((c = getopt(argc, argv, "n:sdp:w:l")) != EOF) 
+   while ((c = getopt(argc, argv, "n:sdcw:la:")) != EOF) 
    {
       switch (c) 
       {
@@ -103,25 +107,6 @@ int main(int argc, char **argv)
 
             break;
 
-         case 'p':
-            pad = strtol(optarg, &end, 0);
-
-            if(end < optarg + strlen(optarg))
-            {
-               printf("[struct stat=\"ERROR\", msg=\"Argument to -w (%s) cannot be interpreted as an integer\"]\n", 
-                  optarg);
-               exit(1);
-            }
-
-            if(pad < 0)
-            {
-               printf("[struct stat=\"ERROR\", msg=\"Argument to -w (%s) must be a positive integer\"]\n", 
-                  optarg);
-               exit(1);
-            }
-
-            break;
-
          case 's':
             single_threaded = 1;
             break;
@@ -130,12 +115,20 @@ int main(int argc, char **argv)
             debug = 1;
             break;
 
+         case 'c':
+            cloud = 1;
+            break;
+
          case 'l':
             levelOnly = 1;
             break;
 
+         case 'a':
+            strcpy(archive, optarg);
+            break;
+
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapScripts [-d] [-p pad] [-w width] [-l(evel-only)] scriptdir mosaicdir nplate\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapScripts [-d] [-w width] [-l(evel-only)] [-c(loud)] [-a(rchive) bucket] scriptdir mosaicdir nplate pad\"]\n");
             exit(1);
             break;
       }
@@ -143,48 +136,54 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapScripts [-d] [-p pad] [-w width] [-l(evel-only)] scriptdir mosaicdir nplate\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapScripts [-d] [-w width] [-l(evel-only)] [-c(loud)] [-a(rchive) bucket] scriptdir mosaicdir nplate pad\"]\n");
       exit(1);
    }
 
-
-   strcpy(scriptdir, argv[optind]);
-
-   if(scriptdir[0] != '/')
+   if(cloud)
    {
-      strcpy(tmpstr, cwd);
+      strcpy(scriptdir, "");
+      strcpy(mosaicdir, "");
+   }
+   else
+   {
+      strcpy(scriptdir, argv[optind]);
 
-      if(strlen(scriptdir) > 0)
+      if(scriptdir[0] != '/')
       {
-         strcat(tmpstr, "/");
-         strcat(tmpstr, scriptdir);
+         strcpy(tmpstr, cwd);
+
+         if(strlen(scriptdir) > 0)
+         {
+            strcat(tmpstr, "/");
+            strcat(tmpstr, scriptdir);
+         }
+
+         strcpy(scriptdir, tmpstr);
       }
 
-      strcpy(scriptdir, tmpstr);
-   }
-
-   if(scriptdir[strlen(scriptdir)-1] != '/')
-      strcat(scriptdir, "/");
+      if(scriptdir[strlen(scriptdir)-1] != '/')
+         strcat(scriptdir, "/");
 
 
-   strcpy(mosaicdir, argv[optind+1]);
+      strcpy(mosaicdir, argv[optind+1]);
 
-   if(mosaicdir[0] != '/')
-   {
-      strcpy(tmpstr, cwd);
-
-      if(strlen(mosaicdir) > 0)
+      if(mosaicdir[0] != '/')
       {
-         strcat(tmpstr, "/");
-         strcat(tmpstr, mosaicdir);
+         strcpy(tmpstr, cwd);
+
+         if(strlen(mosaicdir) > 0)
+         {
+            strcat(tmpstr, "/");
+            strcat(tmpstr, mosaicdir);
+         }
+
+         strcpy(mosaicdir, tmpstr);
       }
 
-      strcpy(mosaicdir, tmpstr);
+      if(mosaicdir[strlen(mosaicdir)-1] != '/')
+         strcat(mosaicdir, "/");
    }
-
-   if(mosaicdir[strlen(mosaicdir)-1] != '/')
-      strcat(mosaicdir, "/");
-
 
    nplate = atoi(argv[optind+2]);
    pad    = atoi(argv[optind+3]);
@@ -194,6 +193,7 @@ int main(int argc, char **argv)
    if(debug)
    {
       printf("DEBUG> scriptdir = [%s]\n", scriptdir);
+      printf("DEBUG> mosaicdir  = [%s]\n", mosaicdir);
       printf("DEBUG> nplate    =  %d\n", nplate);
       printf("DEBUG> N         =  %d\n", N);
       printf("DEBUG> levelOnly =  %d\n", levelOnly);
@@ -205,15 +205,20 @@ int main(int argc, char **argv)
    
    // Make a list of the wrap-around plates
 
-   sprintf(tmpstr, "%sgap", mosaicdir);
-
-   if(mkdir(tmpstr, 0775) < 0 && errno != EEXIST)
+   if(!cloud)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot create gap directory [%s].\n", tmpstr);
-      exit(1);
-   }
+      sprintf(tmpstr, "%sgap", mosaicdir);
 
-   sprintf(wraptbl, "%sgap/wrap.tbl", mosaicdir);
+      if(mkdir(tmpstr, 0775) < 0 && errno != EEXIST)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot create gap directory [%s].\n", tmpstr);
+         exit(1);
+      }
+
+      sprintf(wraptbl, "%sgap/wrap.tbl", mosaicdir);
+   }
+   else
+      strcpy(wraptbl, "wrap.tbl");
 
    fwrap = fopen(wraptbl, "w+");
 
@@ -233,102 +238,107 @@ int main(int argc, char **argv)
 
    // Open the driver script file
 
-   if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot create script directory [%s].\n", scriptdir);
-      exit(1);
-   }
-
-   sprintf(driverfile, "%sgapSubmit.sh", scriptdir);
-
-   fdriver = fopen(driverfile, "w+");
-
-   if(debug)
-   {
-      printf("DEBUG> driver file: [%s]\n", driverfile);
-      fflush(stdout);
-   }
-
-   if(fdriver == (FILE *)NULL)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot open output driver script file.\"]\n");
-      fflush(stdout);
-      exit(0);
-   }
-
-   fprintf(fdriver, "#!/bin/sh\n\n");
-   fflush(fdriver);
-
-
-   sprintf(tmpstr, "%sgap", mosaicdir);
-
-   if(mkdir(tmpstr, 0775) < 0 && errno != EEXIST)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot create gap directory [%s].\n", tmpstr);
-      exit(1);
-   }
-
-   sprintf(gaptbl, "%sgap/gap.tbl", mosaicdir);
+   if(cloud)
+      strcpy(gaptbl, "gap.tbl");
+   else
+      sprintf(gaptbl, "%sgap/gap.tbl", mosaicdir);
    
    fgap = fopen(gaptbl, "w+");
 
    fprintf(fgap, "|           file          |\n");
 
-
-
-   /*************************************/
-   /* Create the task submission script */
-   /*************************************/
-
-   if(!single_threaded)
+   if(!cloud)
    {
-      sprintf(taskfile, "%sgapTask.bash", scriptdir);
+      if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
+      {
+         printf("[struct stat=\"ERROR\", msg=\"Cannot create script directory [%s].\n", scriptdir);
+         exit(1);
+      }
+
+      sprintf(driverfile, "%sgapSubmit.sh", scriptdir);
+
+      fdriver = fopen(driverfile, "w+");
 
       if(debug)
       {
-         printf("DEBUG> taskfile:   [%s]\n", taskfile);
+         printf("DEBUG> driver file: [%s]\n", driverfile);
          fflush(stdout);
       }
 
-      ftask = fopen(taskfile, "w+");
-
-      if(ftask == (FILE *)NULL)
+      if(fdriver == (FILE *)NULL)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open output driver script file.\"]\n");
          fflush(stdout);
          exit(0);
+
+         fprintf(fdriver, "#!/bin/sh\n\n");
+         fflush(fdriver);
+
+
+         sprintf(tmpstr, "%sgap", mosaicdir);
+
+         if(mkdir(tmpstr, 0775) < 0 && errno != EEXIST)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot create gap directory [%s].\n", tmpstr);
+            exit(1);
+         }
+
+
+         /*************************************/
+         /* Create the task submission script */
+         /*************************************/
+
+         if(!single_threaded)
+         {
+            sprintf(taskfile, "%sgapTask.bash", scriptdir);
+
+            if(debug)
+            {
+               printf("DEBUG> taskfile:   [%s]\n", taskfile);
+               fflush(stdout);
+            }
+
+            ftask = fopen(taskfile, "w+");
+
+            if(ftask == (FILE *)NULL)
+            {
+               printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+               fflush(stdout);
+               exit(0);
+            }
+
+            fprintf(ftask, "#!/bin/bash\n");
+            fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+            fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+            fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+            fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+            fprintf(ftask, "#SBATCH -o %slogs/gap.%%N.%%j.out # STDOUT\n", scriptdir);
+            fprintf(ftask, "#SBATCH -e %slogs/gap.%%N.%%j.err # STDERR\n", scriptdir);
+            fprintf(ftask, "%sjobs/gap_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+            fflush(ftask);
+            fclose(ftask);
+         }
+
+
+         // Create the output script files
+
+         sprintf(tmpstr, "%s/jobs", scriptdir);
+
+         if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot create jobs directory [%s].\n", scriptdir);
+            exit(1);
+         }
+
+         sprintf(tmpstr, "%s/logs", scriptdir);
+
+         if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot create logs directory [%s].\n", scriptdir);
+            exit(1);
+         }
       }
-
-      fprintf(ftask, "#!/bin/bash\n");
-      fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
-      fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
-      fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
-      fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-      fprintf(ftask, "#SBATCH -o %slogs/gap.%%N.%%j.out # STDOUT\n", scriptdir);
-      fprintf(ftask, "#SBATCH -e %slogs/gap.%%N.%%j.err # STDERR\n", scriptdir);
-      fprintf(ftask, "%sjobs/gap_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
-
-      fflush(ftask);
-      fclose(ftask);
-   }
-
-
-   // Create the output script files
-
-   sprintf(tmpstr, "%s/jobs", scriptdir);
-
-   if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot create jobs directory [%s].\n", scriptdir);
-      exit(1);
-   }
-
-   sprintf(tmpstr, "%s/logs", scriptdir);
-
-   if(mkdir(scriptdir, 0775) < 0 && errno != EEXIST)
-   {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot create logs directory [%s].\n", scriptdir);
-      exit(1);
    }
 
 
@@ -353,7 +363,10 @@ int main(int argc, char **argv)
 
          JY = ymax - i;
 
-         sprintf(scriptfile, "%sjobs/gap_%d.sh", scriptdir, ifile);
+         if(cloud)
+            sprintf(scriptfile, "gap_%d.sh", ifile);
+         else
+            sprintf(scriptfile, "%sjobs/gap_%d.sh", scriptdir, ifile);
 
          if(debug)
          {
@@ -369,16 +382,42 @@ int main(int argc, char **argv)
             exit(1);
          }
 
-         fprintf(fgap, " plate_%02d_%02d.diff \n", ix, jy);
-         fflush(fgap);
-
          fprintf(fscript, "#!/bin/sh\n\n");
          fflush(fscript);
 
-         if(debug)
-            sprintf(cmd, "mHPXGapDiff -d -p %d -w %d -g %s ", pad, width, mosaicdir);
+         if(strlen(archive) > 0)                                                   
+         {                                                                         
+            sprintf(fname, "plate_%02d_%02d.fits", ix, jy); 
+
+            sprintf(cmd, "aws s3 cp s3://%s/%s %s > /dev/null 2>&1", archive, fname, fname);
+            fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+            fprintf(fscript, "%s\n\n", cmd);
+                                                                                   
+
+            sprintf(fname, "plate_%02d_%02d.fits", IX, JY); 
+
+            sprintf(cmd, "aws s3 cp s3://%s/%s %s > /dev/null 2>&1", archive, fname, fname);
+            fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+            fprintf(fscript, "%s\n\n", cmd);
+         }                                     
+
+         fprintf(fgap, " plate_%02d_%02d.diff \n", ix, jy);
+         fflush(fgap);
+
+         if(cloud)
+         {
+            if(debug)
+               sprintf(cmd, "mHPXGapDiff -c -d -p %d -w %d ", pad, width);
+            else
+               sprintf(cmd, "mHPXGapDiff -c -p %d -w %d ", pad, width);
+         }
          else
-            sprintf(cmd, "mHPXGapDiff -p %d -w %d -g %s ", pad, width, mosaicdir);
+         {
+            if(debug)
+               sprintf(cmd, "mHPXGapDiff -d -p %d -w %d -g %s ", pad, width, mosaicdir);
+            else
+               sprintf(cmd, "mHPXGapDiff -p %d -w %d -g %s ", pad, width, mosaicdir);
+         }
 
          if(levelOnly)
             strcat(cmd, "-l ");
@@ -388,20 +427,34 @@ int main(int argc, char **argv)
 
          if(debug)
          {
-            printf("%s\n", cmd);
+            printf("\n%s\n", cmd);
             fflush(stdout);
          }
 
-         fprintf(fscript, "%s\n", cmd);
+         fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+         fprintf(fscript, "%s\n\n", cmd);
+
+         if(strlen(archive) > 0)                                                   
+         {                                                                         
+            sprintf(fname, "plate_%02d_%02d.diff", ix, jy); 
+
+            sprintf(cmd, "aws s3 cp %s s3://%s/%s > /dev/null 2>&1", fname, archive, fname);
+            fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+            fprintf(fscript, "%s\n\n", cmd);
+         }
+
          fflush(fscript);
          fclose(fscript);
 
          chmod(scriptfile, 0775);
 
-         if(single_threaded)
+         if(!cloud)
          {
-            fprintf(fdriver, "%sjobs/gap_%d.sh\n", scriptdir, ifile);
-            fflush(fdriver);
+            if(single_threaded)
+            {
+               fprintf(fdriver, "%sjobs/gap_%d.sh\n", scriptdir, ifile);
+               fflush(fdriver);
+            }
          }
          
          ++ifile;
@@ -429,7 +482,10 @@ int main(int argc, char **argv)
          IX = xmax - i;
 
          
-         sprintf(scriptfile, "%sjobs/gap_%d.sh", scriptdir, ifile);
+         if(cloud)
+            sprintf(scriptfile, "gap_%d.sh", ifile);
+         else
+            sprintf(scriptfile, "%sjobs/gap_%d.sh", scriptdir, ifile);
 
          if(debug)
          {
@@ -451,16 +507,26 @@ int main(int argc, char **argv)
          fprintf(fscript, "#!/bin/sh\n\n");
          fflush(fscript);
 
-         if(debug)
-            sprintf(cmd, "mHPXGapDiff -d -p %d -w %d -g %s ", pad, width, mosaicdir);
+         if(cloud)
+         {
+            if(debug)
+               sprintf(cmd, "mHPXGapDiff -d -c -a %s -p %d -w %d -g %s ", archive, pad, width, mosaicdir);
+            else
+               sprintf(cmd, "mHPXGapDiff -c -a %s -p %d -w %d -g %s ", archive, pad, width, mosaicdir);
+         }
          else
-            sprintf(cmd, "mHPXGapDiff -p %d -w %d -g %s ", pad, width, mosaicdir);
+         {
+            if(debug)
+               sprintf(cmd, "mHPXGapDiff -d -p %d -w %d -g %s ", pad, width, mosaicdir);
+            else
+               sprintf(cmd, "mHPXGapDiff -p %d -w %d -g %s ", pad, width, mosaicdir);
+         }
 
          if(levelOnly)
             strcat(cmd, "-l ");
 
          sprintf(cmd, "%s%splate_%02d_%02d.fits bottom %splate_%02d_%02d.fits right", 
-               cmd, mosaicdir, IX, JY, mosaicdir, ix, jy);
+               cmd, mosaicdir, ix, jy, mosaicdir, IX, JY);
 
          if(debug)
          {
@@ -468,16 +534,20 @@ int main(int argc, char **argv)
             fflush(stdout);
          }
 
+         fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
          fprintf(fscript, "%s\n", cmd);
          fflush(fscript);
          fclose(fscript);
 
          chmod(scriptfile, 0775);
 
-         if(single_threaded)
+         if(!cloud)
          {
-            fprintf(fdriver, "%sjobs/gap_%d.sh\n", scriptdir, ifile);
-            fflush(fdriver);
+            if(single_threaded)
+            {
+               fprintf(fdriver, "%sjobs/gap_%d.sh\n", scriptdir, ifile);
+               fflush(fdriver);
+            }
          }
 
          ++ifile;
@@ -488,16 +558,19 @@ int main(int argc, char **argv)
 
    --ifile;
 
-   if(!single_threaded)
+   if(!cloud)
    {
-      fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %sgapTask.bash\n",
-         ifile, scriptdir);
-      fflush(fdriver);
+      if(!single_threaded)
+      {
+         fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %sgapTask.bash\n",
+            ifile, scriptdir);
+         fflush(fdriver);
+      }
+
+      fclose(fdriver);
+
+      chmod(driverfile, 0775);
    }
-
-   fclose(fdriver);
-
-   chmod(driverfile, 0775);
 
    printf("[struct stat=\"OK\", module=\"mHPXGap\", ngap=%d]\n", ifile);
    fflush(stdout);

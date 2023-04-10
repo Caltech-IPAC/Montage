@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 
       chmod(scriptfile, 0777);
 
-      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitCoadd.bash %sjobs/coadd_%04d.sh %s%s %s %d %s\n", 
+      fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %sslurmCoadd.bash %sjobs/coadd_%04d.sh %s%s %s %d %s\n", 
          scriptdir, scriptdir, ijob, projectdir, plate, platedir, order, plate);
       fflush(fdriver);
 

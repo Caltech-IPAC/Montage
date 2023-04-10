@@ -272,7 +272,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %ssubmitPlatePNG.bash %sjobs/platePNG%03d.sh\n", 
+         fprintf(fdriver, "sbatch --mem=8192 --mincpus=1 %sslurmPlatePNG.bash %sjobs/platePNG%03d.sh\n", 
             scriptdir, scriptdir, count);
          fflush(fdriver);
       }

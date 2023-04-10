@@ -230,6 +230,8 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "#!/bin/sh\n\n");
 
+      fprintf(fscript, "date\n");
+
       fprintf(fscript, "echo Plate %s, Task %d\n\n", plate, count);
 
       for(iorder=order; iorder>=1; --iorder)

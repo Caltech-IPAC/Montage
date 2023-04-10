@@ -122,7 +122,7 @@ static char cstr[MAXLEN];
 /*  ------------    ------------  ------------------------               */
 /*                                                                       */
 /*  -r rawdir        none         Location of user-supplied images       */
-/*                                 images to mosaic                      */
+/*                                 to mosaic                             */
 /*  -f region.hdr    none         FITS header file                       */
 /*  -h headertext    none         FITS header as a text string           */
 /*                                 (either -f or -h must exist)          */
@@ -861,7 +861,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-        fprintf(fdebug, "\n\nINPUT PARAMETERS:\n\n");
+        fprintf(fdebug, "\n\nMEXEC INPUT PARAMETERS:\n\n");
         fprintf(fdebug, "survey      = [%s]\n",  survey[iband]);
         fprintf(fdebug, "band        = [%s]\n",  band[iband]);
         fprintf(fdebug, "hdrfile     = [%s]\n",  hdrfile);
@@ -1565,17 +1565,66 @@ int main(int argc, char **argv, char **envp)
 
       chdir(rawdir);
        
-      sprintf(cmd, "mImgtbl -c . rimages.tbl");
-
-      if(debug >= 4)
+      if(userRaw)
       {
-         fprintf(fdebug, "[%s]\n", cmd);
-         fflush(fdebug);
+         sprintf(cmd, "mImgtbl -c . %s/rimages_big.tbl", workspace[iband]);
+
+         if(debug >= 4)
+         {
+            fprintf(fdebug, "[%s]\n", cmd);
+            fflush(fdebug);
+         }
+
+         svc_run(cmd);
+
+         if(xoff != 0. || yoff != 0.)
+            sprintf(cmd, "mCoverageCheck  -x %-g -y %-g %s/rimages_big.tbl %s/rimages.tbl -header %s/region.hdr", xoff, yoff, workspace[iband], workspace[iband], workspace[iband]); 
+         else
+            sprintf(cmd, "mCoverageCheck %s/rimages_big.tbl %s/rimages.tbl -header %s/region.hdr", workspace[iband], workspace[iband], workspace[iband]); 
+
+         if(debug >= 4)
+         {
+            fprintf(fdebug, "[%s]\n", cmd);
+            fflush(fdebug);
+         }
+
+         svc_run(cmd);
+
+         nimages = atof(svc_value("count"));
+
+         if(debug >= 1)
+         {
+            fprintf(fdebug, "TIME: mCoverageCheck   %6d (%d images)\n",
+               (int)(currtime - lasttime), nimages);
+            fflush(fdebug);
+         }
+
+         if(finfo)
+         {
+            fprintf(finfo, "<p><h3>Exact coverage check</h3></p>\n");
+            fprintf(finfo, "<p><span style='color: blue;'><tt>%s</tt></span></p>\n", cmd);
+            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d images)</p>\n",
+               (int)(currtime - lasttime), nimages);
+            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
+            fflush(finfo);
+         }
+
+         lasttime = currtime;
       }
+      else
+      {
+         sprintf(cmd, "mImgtbl -c . %s/rimages.tbl", workspace[iband]);
 
-      svc_run(cmd);
+         if(debug >= 4)
+         {
+            fprintf(fdebug, "[%s]\n", cmd);
+            fflush(fdebug);
+         }
 
-      nimages = atof(svc_value("count"));
+         svc_run(cmd);
+
+         nimages = atof(svc_value("count"));
+      }
 
       if (nimages == 0)
       {
@@ -1604,16 +1653,6 @@ int main(int argc, char **argv, char **envp)
       }
 
       chdir(workspace[iband]);
-
-      sprintf(cmd, "mv %s/rimages.tbl .", rawdir);
-
-      if(debug >= 4)
-      {
-         fprintf(fdebug, "[%s]\n", cmd);
-         fflush(fdebug);
-      }
-
-      system(cmd);
 
       ncols = topen("rimages.tbl");
 
@@ -2968,7 +3007,7 @@ int main(int argc, char **argv, char **envp)
 
                sprintf(cmd, "rm -rf tiles/*_area.fits");
 
-               if(debug >= 2)
+               if(debug >= 3)
                {
                   fprintf(fdebug, "%s\n", cmd);
                   fflush(fdebug);
@@ -3187,7 +3226,7 @@ int main(int argc, char **argv, char **envp)
       {
          sprintf(cmd, "rm -rf shrunken/*");
 
-         if(debug >= 2)
+         if(debug >= 3)
          {
             fprintf(fdebug, "%s\n", cmd);
             fflush(fdebug);

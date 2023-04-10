@@ -43,7 +43,7 @@ extern int getopt(int argc, char *const *argv, const char *options);
 
 int main(int argc, char **argv)
 {
-   int   c, levelOnly, pad, width, debug;
+   int   c, cloud,levelOnly, pad, width, debug;
 
    char  gappath   [MAXSTR];
    char  plus_file [MAXSTR];
@@ -67,6 +67,7 @@ int main(int argc, char **argv)
    width     = 4096;
    pad       = 0;
    levelOnly = 0;
+   cloud     = 0;
 
    opterr    = 0;
 
@@ -74,12 +75,16 @@ int main(int argc, char **argv)
 
    montage_status = stdout;
 
-   while ((c = getopt(argc, argv, "dp:w:g:ls:")) != EOF) 
+   while ((c = getopt(argc, argv, "dcp:w:g:ls:")) != EOF) 
    {
       switch (c) 
       {
          case 'd':
             debug = 1;
+            break;
+
+         case 'c':
+            cloud = 1;
             break;
 
          case 'g':
@@ -142,7 +147,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-g gappath] [-p pad] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-c(loud)] [-g gappath] [-p pad] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
             exit(1);
             break;
       }
@@ -150,7 +155,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-g gappath] [-p pad] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXGapDiff [-d(ebug)] [-c(loud)] [-g gappath] [-p pad] [-w width] [-s statusfile] [-l(evel-only)] plus_file plus_edge minus_file minus_edge\"]\n");
       exit(1);
    }
 
@@ -184,7 +189,7 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   returnStruct = mHPXGapDiff(plus_file, plus_edge, minus_file, minus_edge, gappath, levelOnly, 
+   returnStruct = mHPXGapDiff(plus_file, plus_edge, minus_file, minus_edge, cloud, gappath, levelOnly, 
                               pad, width, debug);
 
    if(returnStruct->status == 1)

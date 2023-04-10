@@ -63,6 +63,7 @@ int main(int argc, char **argv)
    char      **hipsFile;
 
    fitsfile *plate, **hips;
+   char     **pathname;
 
    int       i, j, k, l, m, it, offscl, istat, nhips, ntot, maxhips;
    int       hpxPix, hpxLevel, order, fullscale, nullcnt;
@@ -127,6 +128,12 @@ int main(int argc, char **argv)
 
    hips = (fitsfile **)malloc(maxhips * sizeof(fitsfile *));
 
+   pathname = (char **)malloc(maxhips * sizeof(char *));
+
+   for(i=0; i<maxhips; ++i)
+      pathname[i] = (char *)malloc(1024 * sizeof(char));
+
+
 
    if(argc < 3)
    {
@@ -154,7 +161,7 @@ int main(int argc, char **argv)
 
    strcpy(plateFile, argv[1]);
    strcpy(hipsDir,   argv[2]);
-
+   
    if(hipsDir[strlen(hipsDir)-1] != '/')
       strcat(hipsDir, "/");
 
@@ -285,14 +292,14 @@ int main(int argc, char **argv)
    /* by 256 pixels, we would expect to start that   */
    /* many pixels in from the bottom and left side.  */
    /*                                                */
-   /* However, some for various reasons, some plates */
+   /* However, for various reasons some plate        */
    /* might not have padding, so we have to watch    */
    /* out for that.                                  */
    /*                                                */
    /**************************************************/
 
-   ibegin = fullscale/2. + (crpix1 - 0.5) + 0.5;
-   jbegin = fullscale/2. + (crpix2 - 0.5) + 0.5;
+   ibegin = fullscale/2. - (crpix1 - 0.5) + 0.5;
+   jbegin = fullscale/2. - (crpix2 - 0.5) + 0.5;
 
    // Note: The first 0.5 is the offset of FITS coords (index 1) to
    // pixel coords (index 0); the beginning of the image is FITS coord
@@ -394,7 +401,17 @@ int main(int argc, char **argv)
             tileID = mHiPSTiles_HiPSID(order, fullscale, (double)icenter, (double)jcenter);
 
             if(tileID < 0)
+            {
+               if(debug > 2)
+               {
+                  printf("\nINVALID tileID for center: ( %d, %d)\n\n", icenter, jcenter);
+                  printf("       -------------------------------------------------------------------------------------------------------\n\n");
+
+                  fflush(stdout);
+               }
+
                continue;
+            }
 
             subsetDir = tileID / 10000 * 10000;
 
@@ -445,6 +462,14 @@ int main(int argc, char **argv)
 
             sprintf(path, "%sNorder%d/Dir%d/Npix%d.fits", hipsDir, order, subsetDir, tileID);
 
+            if(debug > 2)
+            {
+               printf("\nPATH>  [%s]\n\n", path);
+               printf("       -------------------------------------------------------------------------------------------------------\n\n");
+
+               fflush(stdout);
+            }
+
             unlink(path);
 
             status = 0;
@@ -462,7 +487,8 @@ int main(int argc, char **argv)
             // Set the header keywords
 
             mHiPSTiles_HiPSHdr(hpxLevel, tileID, hips[nhips]);
-
+            
+            strcpy(pathname[nhips], path);
 
             ++nhips;
 
@@ -471,6 +497,11 @@ int main(int argc, char **argv)
                maxhips += MAXHIPS;
 
                hips = (fitsfile **)realloc(hips, maxhips * sizeof(fitsfile *));
+
+               pathname = (char **)realloc(pathname, maxhips * sizeof(char *));
+
+               for(i=maxhips-MAXHIPS; i<maxhips; ++i)
+                  pathname[i] = (char *)malloc(1024 * sizeof(char));
             }
 
             if(debug)
@@ -485,9 +516,9 @@ int main(int argc, char **argv)
 
       // Copy data
 
-      if(debug > 2)
+      if(debug > 3)
       {
-         printf("READ>  fpixel  = %6ld %6ld, nelements  = %6ld\n", fpixel[0], fpixel[1], nelements);
+         printf("\nREAD>  fpixel  = %6ld %6ld, nelements  = %6ld\n", fpixel[0], fpixel[1], nelements);
          fflush(stdout);
       }
 
@@ -504,13 +535,12 @@ int main(int argc, char **argv)
 
          if(debug > 2)
          {
-            printf("WRITE> fpixelo = %6ld %6ld, nelementso = %6ld\n", fpixelo[0], fpixelo[1], nelementso);
+            printf("WRITE> file %s: fpixelo = %6ld %6ld, nelementso = %6ld\n", pathname[l], fpixelo[0], fpixelo[1], nelementso);
             fflush(stdout);
          }
 
          status = 0;
-         if (fits_write_pix(hips[l], TDOUBLE, fpixelo, nelementso,
-                            (void *)(outdata), &status))
+         if (fits_write_pix(hips[l], TDOUBLE, fpixelo, nelementso, (void *)(outdata), &status))
             mHiPSTiles_printFitsError(status);
       }
 
@@ -544,6 +574,11 @@ int main(int argc, char **argv)
    status = 0;
    if(fits_close_file(plate, &status))
       mHiPSTiles_printFitsError(status);
+
+   for(i=0; i<nhips; ++i)
+      free(pathname[i]);
+
+   free(pathname);
 
    printf("[struct stat=\"OK\", module=\"mHiPSTiles\", ntile=%d]\n", ntot);
    fflush(stdout);

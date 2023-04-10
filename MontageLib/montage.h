@@ -235,7 +235,8 @@ struct mDiffFitExecReturn
 };
 
 struct mDiffFitExecReturn *mDiffFitExec(char *path, char *tblfile, char *template, char *diffdir,
-                                        char *fitfile, int keepAll, int levelOnly, int noAreas, int debug);
+                                        char *fitfile, int keepAll, int levelOnly, int noAreas, 
+                                        char *archive, int debug);
 
 //-------------------
 
