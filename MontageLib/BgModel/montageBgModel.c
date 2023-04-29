@@ -1,5 +1,4 @@
-/* Module: mBgModel.c
-
+/*
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
 3.1      John Good        29Aug15  Make output id column wider; some people have a lot 
@@ -98,15 +97,13 @@ int mBgModel_corrCompare(const void *a, const void *b);
 
 static struct ImgInfo
 {
-   int               cntr;
-   int               useImg;
-   int               plate_cntr;
-   char              plate[1024];
-   char              fname[1024];
-   int               naxis1;
-   int               naxis2;
-   double            crpix1;
-   double            crpix2;
+   int     cntr;
+   char    fname[1024];
+   int     naxis1;
+   int     naxis2;
+   double  crpix1;
+   double  crpix2;
+   int     locked;
 }
 *imgs;
 
@@ -245,7 +242,7 @@ static char montage_json  [1024];
 struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int mode, int useall, int niter, int debug)
 {
    int     i, j, k, found, index, stat, iimg=0;
-   int     ntoggle, toggle, nancnt, iplate, iplate_cntr;
+   int     ntoggle, toggle, nancnt;
    int     ncols, iteration, istatus;
    int     maxlevel, refimage, niteration;
    double  averms, avearea;
@@ -262,6 +259,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    char    line   [1024];
    char    gaptbl [1024];
    char    wraptbl[1024];
+   char    append [1024];
    char   *ptr;
 
    int     iplus;
@@ -289,6 +287,7 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
    int     ifname;
    int     inl;
    int     ins;
+   int     ilocked;
 
    int     plus_cntr;
    int     minus_cntr;
@@ -337,7 +336,6 @@ struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, cha
 
    double  areaLimit = 0.001;
    int     fitDelete = 0;
-   int     imgDelete = 0;
 
 
    struct mBgModelReturn *returnStruct;
@@ -535,7 +533,7 @@ of applying the right tranforms to the planes associated with each iteration.
 
    // Debug reference image (change here manually)
 
-   refimage =  44;
+   refimage = 114;
    refimage =  -1;
 
 
@@ -623,13 +621,15 @@ of applying the right tranforms to the planes associated with each iteration.
    }
 
    icntr       = tcol("cntr");
-   iplate_cntr = tcol("plate_cntr");
    ifname      = tcol("fname");
-   iplate      = tcol("plate");
    inl         = tcol("nl");
    ins         = tcol("ns");
    icrpix1     = tcol("crpix1");
    icrpix2     = tcol("crpix2");
+   ilocked     = tcol("locked");
+
+   if(icntr < 0)
+      icntr = tcol("id");
 
    if(ins < 0)
       ins = tcol("naxis1");
@@ -640,17 +640,41 @@ of applying the right tranforms to the planes associated with each iteration.
    if(ifname < 0)
       ifname = tcol("file");
 
-   if(icntr   < 0
-   || ifname  < 0
-   || inl     < 0
-   || ins     < 0
-   || icrpix1 < 0
-   || icrpix2 < 0)
+   strcpy(append, "");
+
+   if(ifname < 0)
    {
-      tclose();
-      sprintf(returnStruct->msg, "Need columns: cntr fname nl ns crpix1 crpix2 in image info file");
-      return returnStruct;
+      ifname = tcol("plate");
+      strcpy(append, ".fits");
    }
+
+   if(mode == LEVEL_ONLY)
+   {
+      if(icntr   < 0
+      || ifname  < 0)
+      {
+         tclose();
+
+         sprintf(returnStruct->msg, "Need columns: cntr and fname in image info file (LEVEL_ONLY mode).");
+         return returnStruct;
+      }
+   }
+   else
+   {
+      if(icntr   < 0
+      || ifname  < 0
+      || inl     < 0
+      || ins     < 0
+      || icrpix1 < 0
+      || icrpix2 < 0)
+      {
+         tclose();
+
+         sprintf(returnStruct->msg, "Need columns: cntr, fname, nl, ns, crpix1 and crpix2 in image info file.");
+         return returnStruct;
+      }
+   }
+
 
 
    /******************************/ 
@@ -684,23 +708,43 @@ of applying the right tranforms to the planes associated with each iteration.
       if(stat < 0)
          break;
 
-      imgs[nimages].cntr      = atoi(tval(icntr));
-      imgs[nimages].naxis1    = atoi(tval(ins));
-      imgs[nimages].naxis2    = atoi(tval(inl));
-      imgs[nimages].crpix1    = atof(tval(icrpix1));
-      imgs[nimages].crpix2    = atof(tval(icrpix2));
+      imgs[nimages].naxis1     = 0;
+      imgs[nimages].naxis2     = 0;
+      imgs[nimages].crpix1     = 0.;
+      imgs[nimages].crpix2     = 0.;
 
-      imgs[nimages].plate_cntr = -1;
-
-      if(iplate_cntr >= 0)
-         imgs[nimages].plate_cntr = atoi(tval(iplate_cntr));
+      imgs[nimages].cntr = atoi(tval(icntr));
 
       strcpy(imgs[nimages].fname, tval(ifname));
 
-      strcpy(imgs[nimages].plate, "");
+      if(strlen(append) > 0)
+         strcat(imgs[nimages].fname, append);
 
-      if(iplate >= 0)
-         strcpy(imgs[nimages].plate, tval(iplate));
+      if(ins     >= 0) imgs[nimages].naxis1 = atoi(tval(ins));
+      if(inl     >= 0) imgs[nimages].naxis2 = atoi(tval(inl));
+      if(icrpix1 >= 0) imgs[nimages].crpix1 = atof(tval(icrpix1));
+      if(icrpix2 >= 0) imgs[nimages].crpix2 = atof(tval(icrpix2));
+
+      imgs[nimages].locked = 0;
+
+      if(ilocked  >= 0) imgs[nimages].locked  = atoi(tval(ilocked));
+
+      //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+      int ipl, jpl;
+
+      sscanf(imgs[nimages].fname, "plate_%2d_%2d.fits", &ipl, &jpl);
+
+      imgs[nimages].locked = 0;
+      if(abs(abs(ipl) - abs(jpl)) > 4)
+         imgs[nimages].locked = 1;
+
+      // printf("XXX> [%s]: %d %d  -->  %d\n",
+      //       imgs[nimages].fname, ipl, jpl, imgs[nimages].locked);
+      // fflush(stdout);
+
+      //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 
       avearea += imgs[nimages].naxis1*imgs[nimages].naxis2;
 
@@ -1764,36 +1808,6 @@ of applying the right tranforms to the planes associated with each iteration.
       }
    }
 
-   /*********************************************************/
-   /* in unusual circumstances (e.g. with a projection that */
-   /* splits an image over "gaps"), we can have some image  */
-   /* fragments that are so small they cause problems and   */
-   /* are better off deleted.                               */
-   /*********************************************************/
-
-   for(k=0; k<nimages; ++k)
-   {
-      if(imgs[k].naxis1*imgs[k].naxis2 < areaLimit * avearea)
-      {
-         if(debug >= 2)
-            printf("Not using image %d (area too small: %d/%-g\n",
-               k, imgs[k].naxis1*imgs[k].naxis2, avearea);
-
-         imgs[k].useImg = 0;
-
-         ++imgDelete;
-
-         continue;
-      }
-   }
-
-   if(debug >= 1)
-   {
-      printf("Removed %d 'small' images.", imgDelete);
-      fflush(stdout);
-   }
-
-
 
    /***************************************/
    /* Dump out the correction information */
@@ -2192,9 +2206,18 @@ of applying the right tranforms to the planes associated with each iteration.
             fflush(stdout);
          }
 
-         corrs[i].acorrection = b[0][0] / 2.;
-         corrs[i].bcorrection = b[1][0] / 2.;
-         corrs[i].ccorrection = b[2][0] / 2.;
+         if(imgs[corrs[i].id].locked)
+         {
+            corrs[i].acorrection = 0.;
+            corrs[i].bcorrection = 0.;
+            corrs[i].ccorrection = 0.;
+         }
+         else
+         {
+            corrs[i].acorrection = b[0][0] / 2.;
+            corrs[i].bcorrection = b[1][0] / 2.;
+            corrs[i].ccorrection = b[2][0] / 2.;
+         }
 
          if(debug >= 2 || corrs[i].id == refimage)
          {
@@ -2215,15 +2238,10 @@ of applying the right tranforms to the planes associated with each iteration.
 
             fflush(stdout);
          }
-      }
 
 
-      /***************************************/
-      /* Apply the corrections to each image */
-      /***************************************/
+         /* Apply the corrections increments to the image */
 
-      for(i=0; i<ncorrs; ++i)
-      {
          corrs[i].a += corrs[i].acorrection;
          corrs[i].b += corrs[i].bcorrection;
          corrs[i].c += corrs[i].ccorrection;
@@ -2333,21 +2351,21 @@ of applying the right tranforms to the planes associated with each iteration.
       /* Apply the corrections to each fit */
       /*************************************/
 
-      for(i=0; i<nfits; ++i)
+      for(k=0; k<nfits; ++k)
       {
          // To avoid instabilities, don't allow corrections that are more
          // than 10 times the RMS correction.
          
          if(badslope && (fittype == SLOPE || fittype == BOTH))
          {
-            if(fabs(fits[i].pluscorr->acorrection) > 4.*sigmaa)
+            if(fabs(fits[k].pluscorr->acorrection) > 4.*sigmaa)
             {
                printf("Ignoring fit %d\n", i);
                fflush(stdout);
                continue;
             }
 
-            if(fabs(fits[i].pluscorr->bcorrection) > 4.*sigmab)
+            if(fabs(fits[k].pluscorr->bcorrection) > 4.*sigmab)
             {
                printf("Ignoring fit %d\n", i);
                fflush(stdout);
@@ -2355,27 +2373,27 @@ of applying the right tranforms to the planes associated with each iteration.
             }
          }
 
-         fits[i].a -= fits[i].pluscorr->acorrection;
-         fits[i].b -= fits[i].pluscorr->bcorrection;
-         fits[i].c -= fits[i].pluscorr->ccorrection;
+         fits[k].a -= fits[k].pluscorr->acorrection;
+         fits[k].b -= fits[k].pluscorr->bcorrection;
+         fits[k].c -= fits[k].pluscorr->ccorrection;
 
 
          // For our "special" overlaps, the "minus" correction may need to be transformed,
          // since the plane there was calculated for a different region of the space but 
          // needs to be treated as local to the "plus" location.
 
-         if(fits[i].type == ADJACENT)
+         if(fits[k].type == ADJACENT)
          {
             // These don't need special treatment but 
             // we'll give it a section just to call out
             // its existence
 
-            fits[i].a += fits[i].minuscorr->acorrection;
-            fits[i].b += fits[i].minuscorr->bcorrection;
-            fits[i].c += fits[i].minuscorr->ccorrection;
+            fits[k].a += fits[k].minuscorr->acorrection;
+            fits[k].b += fits[k].minuscorr->bcorrection;
+            fits[k].c += fits[k].minuscorr->ccorrection;
          }
 
-         else if(fits[i].type == WRAP)
+         else if(fits[k].type == WRAP)
          {
             // Here the slopes don't change, there is
             // just a reference pixel shift.  In truth,
@@ -2385,24 +2403,24 @@ of applying the right tranforms to the planes associated with each iteration.
             // So here we use the difference in the original
             // image crpix values.
             
-            A = fits[i].minuscorr->acorrection;
-            B = fits[i].minuscorr->bcorrection;
-            C = fits[i].minuscorr->ccorrection;
+            A = fits[k].minuscorr->acorrection;
+            B = fits[k].minuscorr->bcorrection;
+            C = fits[k].minuscorr->ccorrection;
 
-            xref = imgs[fits[i].plus].crpix1;
-            yref = imgs[fits[i].plus].crpix2;
+            xref = imgs[fits[k].plus].crpix1;
+            yref = imgs[fits[k].plus].crpix2;
 
-            xrefm = imgs[fits[i].minus].crpix1;
-            yrefm = imgs[fits[i].minus].crpix2;
+            xrefm = imgs[fits[k].minus].crpix1;
+            yrefm = imgs[fits[k].minus].crpix2;
 
             C = A * (xref-xrefm) + B * (yref - yrefm) + C;
 
-            fits[i].a += A;
-            fits[i].b += B;
-            fits[i].c += C;
+            fits[k].a += A;
+            fits[k].b += B;
+            fits[k].c += C;
          }
 
-         else if(fits[i].type == GAP)
+         else if(fits[k].type == GAP)
          {
             // Going across a gap, the slopes get transposed through
             // rotation.  This was taken care of in the program that 
@@ -2411,63 +2429,44 @@ of applying the right tranforms to the planes associated with each iteration.
             // whether the 'plus' image was above or below the 'minus' in 
             // terms of Y coordiate.
 
-            A = fits[i].minuscorr->acorrection;
-            B = fits[i].minuscorr->bcorrection;
-            C = fits[i].minuscorr->ccorrection;
+            A = fits[k].minuscorr->acorrection;
+            B = fits[k].minuscorr->bcorrection;
+            C = fits[k].minuscorr->ccorrection;
 
-            Am = fits[i].trans[0][0] * A + fits[i].trans[0][1] * B;
-            Bm = fits[i].trans[1][0] * A + fits[i].trans[1][1] * B;
+            Am = fits[k].trans[0][0] * A + fits[k].trans[0][1] * B;
+            Bm = fits[k].trans[1][0] * A + fits[k].trans[1][1] * B;
 
             Cm = C;
 
-            fits[i].a += Am;
-            fits[i].b += Bm;
-            fits[i].c += Cm;
+            fits[k].a += Am;
+            fits[k].b += Bm;
+            fits[k].c += Cm;
          }
 
          else  // Normal overlap
          {
-            fits[i].a += fits[i].minuscorr->acorrection;
-            fits[i].b += fits[i].minuscorr->bcorrection;
-            fits[i].c += fits[i].minuscorr->ccorrection;
-
-            //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-            // Temporary check to see if any of a,b,c have become NaN
-            
-            if(mNaN(fits[i].a)
-            || mNaN(fits[i].b)
-            || mNaN(fits[i].c))
-            {
-               printf("XXX> Iteration %d, fits[%d]: (a,b,c) = %13.5e %13.5e %13.5e  ",
-                  iteration, i, fits[i].a, fits[i].b, fits[i].c);
-
-                    if(fittype == LEVEL)    printf(" (LEVEL   )\n");
-               else if(fittype == SLOPE)    printf(" (SLOPE   )\n");
-               else if(fittype == BOTH)     printf(" (BOTH    )\n");
-               else                         printf(" (ERROR   )\n");
-
-               fflush(stdout);
-            }
-            //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+            fits[k].a += fits[k].minuscorr->acorrection;
+            fits[k].b += fits[k].minuscorr->bcorrection;
+            fits[k].c += fits[k].minuscorr->ccorrection;
          }
 
 
-         if(debug >= 2 || fits[i].pluscorr->id == refimage || fits[i].pluscorr->id == refimage)
+         if(debug >= 2 || fits[k].pluscorr->id == refimage || fits[k].pluscorr->id == refimage)
          {
             if(i == 0)
                printf("\n");
 
             printf("Corrected fit (fit %5d / Iteration %5d / %4d vs %4d) ", 
-               i, iteration+1, fits[i].pluscorr->id, fits[i].minuscorr->id);
+               k, iteration+1, fits[k].pluscorr->id, fits[k].minuscorr->id);
 
                  if(fittype == LEVEL)    printf(" (LEVEL   ): ");
             else if(fittype == SLOPE)    printf(" (SLOPE   ): ");
             else if(fittype == BOTH)     printf(" (BOTH    ): ");
             else                         printf(" (ERROR   ): ");
 
-            printf(" %12.5e ",  fits[i].a);
-            printf(" %12.5e ",  fits[i].b);
-            printf(" %12.5e\n", fits[i].c);
+            printf(" %12.5e ",  fits[k].a);
+            printf(" %12.5e ",  fits[k].b);
+            printf(" %12.5e\n", fits[k].c);
 
             fflush(stdout);
          }

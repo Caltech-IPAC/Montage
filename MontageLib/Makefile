@@ -20,6 +20,7 @@ pgm:
 		(cd Examine       && $(MAKE) && $(MAKE) install)
 		(cd Fitplane      && $(MAKE) && $(MAKE) install)
 		(cd FixNaN        && $(MAKE) && $(MAKE) install)
+		(cd Flatten       && $(MAKE) && $(MAKE) install)
 		(cd GetHdr        && $(MAKE) && $(MAKE) install)
 		(cd Hdr           && $(MAKE) && $(MAKE) install)
 		(cd Histogram     && $(MAKE) && $(MAKE) install)
@@ -67,6 +68,7 @@ lib:
 			Examine/montageExamine.o \
 			Fitplane/montageFitplane.o \
 			FixNaN/montageFixNaN.o \
+			Flatten/montageFlatten.o \
 			GetHdr/montageGetHdr.o \
 			Hdr/montageHdr.o \
 			Histogram/montageHistogram.o \
@@ -109,6 +111,7 @@ lib:
 			Examine/montageExamine.o \
 			Fitplane/montageFitplane.o \
 			FixNaN/montageFixNaN.o \
+			Flatten/montageFlatten.o \
 			GetHdr/montageGetHdr.o \
 			Hdr/montageHdr.o \
 			Histogram/montageHistogram.o \
@@ -154,6 +157,7 @@ pythonlibs:
 			Examine/montageExamine.o \
 			Fitplane/montageFitplane.o \
 			FixNaN/montageFixNaN.o \
+			Flatten/montageFlatten.o \
 			GetHdr/montageGetHdr.o \
 			Hdr/montageHdr.o \
 			Histogram/montageHistogram.o \
@@ -401,6 +405,7 @@ doc:
 			mLibDoc Examine
 			mLibDoc Fitplane
 			mLibDoc FixNaN
+			mLibDoc Flatten
 			mLibDoc GetHdr
 			mLibDoc Hdr
 			mLibDoc Histogram
@@ -441,6 +446,7 @@ jupyter:
 			mJupyter Examine
 			mJupyter Fitplane
 			mJupyter FixNaN
+			mJupyter Flatten
 			mJupyter GetHdr
 			mJupyter Hdr
 			mJupyter Histogram
@@ -481,6 +487,7 @@ clean:
 		(cd Examine       && test ! -e Makefile || $(MAKE) clean)
 		(cd Fitplane      && $(MAKE) clean)
 		(cd FixNaN        && test ! -e Makefile || $(MAKE) clean)
+		(cd Flatten       && $(MAKE) clean)
 		(cd GetHdr        && $(MAKE) clean)
 		(cd Hdr           && test ! -e Makefile || $(MAKE) clean)
 		(cd Histogram     && $(MAKE) clean)

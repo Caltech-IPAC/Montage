@@ -410,7 +410,7 @@ struct mFlattenReturn
    double c;             // Plane fit constant offset.
 };
 
-struct mFlattenReturn *mFlatten(char *infile, char *outfile, int levelOnly, int debug);
+struct mFlattenReturn *mFlatten(char *infile, char *outfile, int levelOnly, int border, int debug);
 //-------------------
 
 struct mGetHdrReturn

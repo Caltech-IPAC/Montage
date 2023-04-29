@@ -35,19 +35,22 @@ int debug;
 
 int main(int argc, char **argv)
 {
-   int  i, ch, istat, ncols, iorder;
+   int  i, ch, istat, ncols, iorder, cloud;
    int  count, maxorder, minorder, single_threaded;
 
-   char cwd       [MAXSTR];
-   char platelist [MAXSTR];
-   char platedir  [MAXSTR];
-   char tiledir   [MAXSTR];
-   char scriptdir [MAXSTR];
-   char scriptfile[MAXSTR];
-   char driverfile[MAXSTR];
-   char taskfile  [MAXSTR];
-   char tmpdir    [MAXSTR];
-   char plate     [MAXSTR];
+   char cwd         [MAXSTR];
+   char platelist   [MAXSTR];
+   char platedir    [MAXSTR];
+   char tiledir     [MAXSTR];
+   char scriptdir   [MAXSTR];
+   char scriptfile  [MAXSTR];
+   char driverfile  [MAXSTR];
+   char taskfile    [MAXSTR];
+   char tmpdir      [MAXSTR];
+   char plate       [MAXSTR];
+   char platearchive[MAXSTR];
+   char tilearchive [MAXSTR];
+   char cmd         [MAXSTR];
 
    char *ptr;
 
@@ -73,7 +76,7 @@ int main(int argc, char **argv)
 
    opterr = 0;
 
-   while ((ch = getopt(argc, argv, "ds")) != EOF) 
+   while ((ch = getopt(argc, argv, "dscp:t:")) != EOF) 
    {
         switch (ch) 
         {
@@ -81,12 +84,24 @@ int main(int argc, char **argv)
                 debug = 1;
                 break;
 
+           case 'p':
+                strcpy(platearchive, optarg);
+                break;
+
+           case 't':
+                strcpy(tilearchive, optarg);
+                break;
+
+           case 'c':
+                cloud = 1;
+                break;
+
            case 's':
                 single_threaded = 1;
                 break;
 
            default:
-            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir tiledir platelist.tbl\"]\n", argv[0]);
+            printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)][-c(loud)][-p(late-archive) bucket][-t(ile-archive) bucket] maxorder minorder scriptdir platedir tiledir platelist.tbl\"]\n", argv[0]);
                 exit(1);
                 break;
         }
@@ -94,9 +109,16 @@ int main(int argc, char **argv)
 
    if (argc - optind < 6)
    {
-      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)] maxorder minorder scriptdir platedir tiledir platelist.tbl\"]\n", argv[0]);
+      printf ("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-s(ingle_threaded)][-c(loud)][-p(late-archive) bucket][-t(ile-archive) bucket] maxorder minorder scriptdir platedir tiledir platelist.tbl\"]\n", argv[0]);
       exit(1);
    }
+
+                                                                                
+   if(strlen(tilearchive) > 0 && strlen(platearchive) > 0 && strcmp(tilearchive, platearchive) == 0)
+   {                                                                            
+      printf ("[struct stat=\"ERROR\", msg=\"S3 buckets for plates and tiles plates cannot be the same.\"]\n");
+      exit(1);                                                                  
+   }                                                                            
 
 
    maxorder = atoi(argv[optind]);
@@ -107,38 +129,46 @@ int main(int argc, char **argv)
    strcpy(tiledir,   argv[optind + 4]);
    strcpy(platelist, argv[optind + 5]);
 
-   if(scriptdir[0] != '/')
+   if(cloud)
    {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, scriptdir);
-
-      strcpy(scriptdir, tmpdir);
+      strcpy(tiledir, "tiles");
+      strcpy(scriptdir, "");
    }
-
-   if(platedir[0] != '/')
+   else
    {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, platedir);
+      if(scriptdir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, scriptdir);
 
-      strcpy(platedir, tmpdir);
+         strcpy(scriptdir, tmpdir);
+      }
+
+      if(platedir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, platedir);
+
+         strcpy(platedir, tmpdir);
+      }
+
+      if(tiledir[0] != '/')
+      {
+         strcpy(tmpdir, cwd);
+         strcat(tmpdir, "/");
+         strcat(tmpdir, tiledir);
+
+         strcpy(tiledir, tmpdir);
+      }
+
+      if(scriptdir[strlen(scriptdir)-1] != '/')
+         strcat(scriptdir, "/");
+
+      if(platedir[strlen(platedir)-1] != '/')
+         strcat(platedir, "/");
    }
-
-   if(tiledir[0] != '/')
-   {
-      strcpy(tmpdir, cwd);
-      strcat(tmpdir, "/");
-      strcat(tmpdir, tiledir);
-
-      strcpy(tiledir, tmpdir);
-   }
-
-   if(scriptdir[strlen(scriptdir)-1] != '/')
-      strcat(scriptdir, "/");
-
-   if(platedir[strlen(platedir)-1] != '/')
-      strcat(platedir, "/");
 
    if(tiledir[strlen(tiledir)-1] != '/')
       strcat(tiledir, "/");
@@ -152,65 +182,69 @@ int main(int argc, char **argv)
       fflush(stdout);
    }
 
-   /*******************************/
-   /* Open the driver script file */
-   /*******************************/
 
-   sprintf(driverfile, "%stileSubmit.sh", scriptdir);
-
-   fdriver = fopen(driverfile, "w+");
-
-   if(fdriver == (FILE *)NULL)
+   if(!cloud)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Cannot open output driver script file.\"]\n");
-      fflush(stdout);
-      exit(0);
-   }
+      /*******************************/
+      /* Open the driver script file */
+      /*******************************/
 
-   fprintf(fdriver, "#!/bin/sh\n\n");
-   fflush(fdriver);
+      sprintf(driverfile, "%stileSubmit.sh", scriptdir);
 
+      fdriver = fopen(driverfile, "w+");
 
-   /******************************************/
-   /* Create the task submission script file */
-   /******************************************/
-
-   if(!single_threaded)
-   {
-      sprintf(taskfile, "%stileTask.bash", scriptdir);
-
-      if(debug)
+      if(fdriver == (FILE *)NULL)
       {
-         printf("DEBUG> taskfile:   [%s]\n", taskfile);
-         fflush(stdout);
-      }
-
-      ftask = fopen(taskfile, "w+");
-
-      if(ftask == (FILE *)NULL)
-      {
-         printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Cannot open output driver script file.\"]\n");
          fflush(stdout);
          exit(0);
       }
 
-      fprintf(ftask, "#!/bin/bash\n");
-      fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
-      fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
-      fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
-      fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
-      fprintf(ftask, "#SBATCH -o %slogs/tile.%%N.%%j.out # STDOUT\n", scriptdir);
-      fprintf(ftask, "#SBATCH -e %slogs/tile.%%N.%%j.err # STDERR\n", scriptdir);
-      fprintf(ftask, "%sjobs/tiles_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+      fprintf(fdriver, "#!/bin/sh\n\n");
+      fflush(fdriver);
 
-      fflush(ftask);
-      fclose(ftask);
+
+      /******************************************/
+      /* Create the task submission script file */
+      /******************************************/
+
+      if(!single_threaded)
+      {
+         sprintf(taskfile, "%stileTask.bash", scriptdir);
+
+         if(debug)
+         {
+            printf("DEBUG> taskfile:   [%s]\n", taskfile);
+            fflush(stdout);
+         }
+
+         ftask = fopen(taskfile, "w+");
+
+         if(ftask == (FILE *)NULL)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot open task submission file.\"]\n");
+            fflush(stdout);
+            exit(0);
+         }
+
+         fprintf(ftask, "#!/bin/bash\n");
+         fprintf(ftask, "#SBATCH -p debug # partition (queue)\n");
+         fprintf(ftask, "#SBATCH -N 1 # number of nodes a single job will run on\n");
+         fprintf(ftask, "#SBATCH -n 1 # number of cores a single job will use\n");
+         fprintf(ftask, "#SBATCH -t 5-00:00 # timeout (D-HH:MM)  aka. Don’t let this job run longer than this in case it gets hung\n");
+         fprintf(ftask, "#SBATCH -o %slogs/tile.%%N.%%j.out # STDOUT\n", scriptdir);
+         fprintf(ftask, "#SBATCH -e %slogs/tile.%%N.%%j.err # STDERR\n", scriptdir);
+         fprintf(ftask, "%sjobs/tiles_$SLURM_ARRAY_TASK_ID.sh\n", scriptdir);
+
+         fflush(ftask);
+         fclose(ftask);
+      }
    }
 
 
-   /*******************************/
-   /* Read through the image list */
-   /*******************************/
+   /*********************************************************************************/
+   /* Read through the image list, generating a tile generation script for each one */
+   /*********************************************************************************/
 
    ncols = topen(platelist);
 
@@ -251,8 +285,13 @@ int main(int argc, char **argv)
          fflush(stdout);
       }
 
-      sprintf(scriptfile, "%sjobs/tiles_%d.sh", scriptdir, count);
       
+      if(strlen(platearchive) > 0)
+         sprintf(scriptfile, "tiles_%d.sh", count);
+      else
+         sprintf(scriptfile, "%s/jobs/tiles_%d.sh", scriptdir, count);
+
+
       fscript = fopen(scriptfile, "w+");
 
       if(fscript == (FILE *)NULL)
@@ -262,18 +301,50 @@ int main(int argc, char **argv)
          exit(0);
       }
 
+
       fprintf(fscript, "#!/bin/sh\n\n");
 
       fprintf(fscript, "date\n");
 
       fprintf(fscript, "echo Plate %s, Task %d\n\n", plate, count);
 
-      fprintf(fscript, "mkdir -p %s\n\n", tiledir);
+
+      sprintf(cmd, "mkdir -p tiles");
+
+      fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);                          
+      fprintf(fscript, "%s\n", cmd);                                            
+      fflush(fscript);  
+
 
       for(iorder=maxorder; iorder>=minorder; --iorder)
       {
-         fprintf(fscript, "echo mHiPSTiles %sorder%d/%s %s\n", platedir, iorder, plate, tiledir);
-         fprintf(fscript, "mHiPSTiles %sorder%d/%s %s\n", platedir, iorder, plate, tiledir);
+         if(strlen(platearchive) > 0)                                                   
+         {                                                                         
+            sprintf(cmd, "aws s3 cp s3://%s/order%d/%s %s --quiet",    
+               platearchive, iorder, plate, plate);                            
+                                                                                   
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);                       
+            fprintf(fscript, "%s\n", cmd);                                         
+            fflush(fscript);                                                       
+
+            sprintf(cmd, "mHiPSTiles %s %s", plate, tiledir);
+         }                         
+         else
+            sprintf(cmd, "mHiPSTiles %sorder%d/%s %s", platedir, iorder, plate, tiledir);
+
+         fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);                          
+         fprintf(fscript, "%s\n", cmd);                                            
+         fflush(fscript);  
+
+         if(strlen(tilearchive) > 0)                                                
+         {                                                                      
+            sprintf(cmd, "aws s3 cp %s s3://%s --recursive --quiet",
+               tiledir, tilearchive);           
+                                                                                
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);                    
+            fprintf(fscript, "%s\n", cmd);                                      
+            fflush(fscript);                                                    
+         }                   
       }
 
       fflush(fscript);
@@ -290,16 +361,19 @@ int main(int argc, char **argv)
       ++count;
    }
 
-   if(!single_threaded)
+   if(!cloud && !single_threaded)
    {
       fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %stileTask.bash\n", 
          count, scriptdir);
    }
 
-   fflush(fdriver);
-   fclose(fdriver);
+   if(!cloud)
+   {
+      fflush(fdriver);
+      fclose(fdriver);
 
-   chmod(driverfile, 0777);
+      chmod(driverfile, 0777);
+   }
 
 
    /*************/

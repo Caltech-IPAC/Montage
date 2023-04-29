@@ -91,7 +91,7 @@ int sky[5][5] = {{1,1,0,0,0},
 int main(int argc, char **argv)
 {
    int  level, level_only, lev_slope, c, pad, ncols, nplate;
-   int  id, iplate, i, j, status, nimages, exists;
+   int  id, iplate, i, j, status, nimages, exists, flatten;
    int  iid, ii, ij, location, background, processing;
    int  exec_debug, cloud, nside, naxis, noff;
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 
    if(argc < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-e(xec-debug) level][-l(evel-only)][-t(oggle-level-and-slope)][-s(ingle-threaded)[-p(roject-only)][-o(overlap) pad][-c(loud)][-a(rchive) bucket] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-e(xec-debug) level][-l(evel-only)][-f(latten)][-t(oggle-level-and-slope)][-s(ingle-threaded)[-p(roject-only)][-o(overlap) pad][-c(loud)][-a(rchive) bucket] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
       fflush(stdout);
       exit(1);
    }
@@ -147,8 +147,9 @@ int main(int argc, char **argv)
    background   = BACKGROUND_CORRECTION;
    processing   = CLUSTER;
    pad          = -1;
+   flatten      =  0;
 
-   while ((c = getopt(argc, argv, "de:lca:ltspo:")) != EOF)
+   while ((c = getopt(argc, argv, "de:lfca:ltspo:")) != EOF)
    {
       switch (c)
       {
@@ -162,6 +163,10 @@ int main(int argc, char **argv)
 
          case 'l':
             level_only = 1;
+            break;
+
+         case 'f':
+            flatten = 1;
             break;
 
          case 'c':
@@ -189,7 +194,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-e(xec-debug) level][-l(evel-only)][-t(oggle-level-and-slope)][-s(ingle-threaded)[-p(roject-only)][-o(overlap) pad][-c(loud)][-a(rchive) bucket] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHPXMosaicScripts [-d][-e(xec-debug) level][-l(evel-only)][-f(latten)][-t(oggle-level-and-slope)][-s(ingle-threaded)[-p(roject-only)][-o(overlap) pad][-c(loud)][-a(rchive) bucket] scriptdir mosaicdir platelist.tbl survey/band | datadir\"]\n");
             fflush(stdout);
             exit(1);
       }
@@ -560,10 +565,19 @@ int main(int argc, char **argv)
       if(location == LOCAL)
       {
          sprintf(cmd, "mExec -d %d -q %s -c -W \"%d %d\" -f %splate_%02d_%02d.hdr -o %splate_%02d_%02d.fits -r %s %swork_%02d_%02d", 
-          exec_debug, flags, noff, noff, mosaicdir, i, j, mosaicdir, i, j, datadir, mosaicdir, i, j);
+             exec_debug, flags, noff, noff, mosaicdir, i, j, mosaicdir, i, j, datadir, mosaicdir, i, j);
 
          fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
          fprintf(fscript, "%s\n", cmd);
+      }
+
+      if(flatten)
+      {
+            sprintf(cmd, "mFlatten %splate_%02d_%02d.fits %splate_%02d_%02d_flat.fits", 
+             mosaicdir, i, j, mosaicdir, i, j);
+
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+            fprintf(fscript, "%s\n", cmd);
       }
 
       fprintf(fscript, "\nrm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
@@ -573,8 +587,12 @@ int main(int argc, char **argv)
 
       if(strlen(archive) > 0)
       {
-         sprintf(cmd, "aws s3 cp plate_%02d_%02d.fits s3://%s/plate_%02d_%02d.fits",
-            i, j, archive, i, j);
+         if(flatten)
+            sprintf(cmd, "aws s3 cp plate_%02d_%02d_flat.fits s3://%s/plate_%02d_%02d.fits",
+               i, j, archive, i, j);
+         else
+            sprintf(cmd, "aws s3 cp plate_%02d_%02d.fits s3://%s/plate_%02d_%02d.fits",
+               i, j, archive, i, j);
 
          fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
          fprintf(fscript, "%s\n", cmd);
