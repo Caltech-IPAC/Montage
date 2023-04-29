@@ -389,14 +389,14 @@ int main(int argc, char **argv)
          {                                                                         
             sprintf(fname, "plate_%02d_%02d.fits", ix, jy); 
 
-            sprintf(cmd, "aws s3 cp s3://%s/%s %s > /dev/null 2>&1", archive, fname, fname);
+            sprintf(cmd, "aws s3 cp s3://%s/%s %s --quiet", archive, fname, fname);
             fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
             fprintf(fscript, "%s\n\n", cmd);
                                                                                    
 
             sprintf(fname, "plate_%02d_%02d.fits", IX, JY); 
 
-            sprintf(cmd, "aws s3 cp s3://%s/%s %s > /dev/null 2>&1", archive, fname, fname);
+            sprintf(cmd, "aws s3 cp s3://%s/%s %s --quiet", archive, fname, fname);
             fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
             fprintf(fscript, "%s\n\n", cmd);
          }                                     
@@ -425,6 +425,8 @@ int main(int argc, char **argv)
          sprintf(cmd, "%s%splate_%02d_%02d.fits top %splate_%02d_%02d.fits left", 
                cmd, mosaicdir, ix, jy, mosaicdir, IX, JY);
 
+         printf("XXX> %s\n", cmd);
+
          if(debug)
          {
             printf("\n%s\n", cmd);
@@ -438,7 +440,7 @@ int main(int argc, char **argv)
          {                                                                         
             sprintf(fname, "plate_%02d_%02d.diff", ix, jy); 
 
-            sprintf(cmd, "aws s3 cp %s s3://%s/%s > /dev/null 2>&1", fname, archive, fname);
+            sprintf(cmd, "aws s3 cp %s s3://%s/%s --quiet", fname, archive, fname);
             fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
             fprintf(fscript, "%s\n\n", cmd);
          }
@@ -507,12 +509,28 @@ int main(int argc, char **argv)
          fprintf(fscript, "#!/bin/sh\n\n");
          fflush(fscript);
 
+         if(strlen(archive) > 0)
+         {
+            sprintf(fname, "plate_%02d_%02d.fits", ix, jy);
+
+            sprintf(cmd, "aws s3 cp s3://%s/%s %s --quiet", archive, fname, fname);
+            fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+            fprintf(fscript, "%s\n\n", cmd);
+
+
+            sprintf(fname, "plate_%02d_%02d.fits", IX, JY);
+
+            sprintf(cmd, "aws s3 cp s3://%s/%s %s --quiet", archive, fname, fname);
+            fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+            fprintf(fscript, "%s\n\n", cmd);
+         }
+
          if(cloud)
          {
             if(debug)
-               sprintf(cmd, "mHPXGapDiff -d -c -a %s -p %d -w %d -g %s ", archive, pad, width, mosaicdir);
+               sprintf(cmd, "mHPXGapDiff -c -d -p %d -w %d ", pad, width);
             else
-               sprintf(cmd, "mHPXGapDiff -c -a %s -p %d -w %d -g %s ", archive, pad, width, mosaicdir);
+               sprintf(cmd, "mHPXGapDiff -c -p %d -w %d ", pad, width);
          }
          else
          {
@@ -526,7 +544,9 @@ int main(int argc, char **argv)
             strcat(cmd, "-l ");
 
          sprintf(cmd, "%s%splate_%02d_%02d.fits bottom %splate_%02d_%02d.fits right", 
-               cmd, mosaicdir, ix, jy, mosaicdir, IX, JY);
+               cmd, mosaicdir, IX, JY, mosaicdir, ix, jy);
+
+         printf("XXX> %s\n", cmd);
 
          if(debug)
          {
@@ -536,6 +556,16 @@ int main(int argc, char **argv)
 
          fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
          fprintf(fscript, "%s\n", cmd);
+
+         if(strlen(archive) > 0)                                                   
+         {                                                                         
+            sprintf(fname, "plate_%02d_%02d.diff", IX, JY); 
+
+            sprintf(cmd, "aws s3 cp %s s3://%s/%s --quiet", fname, archive, fname);
+            fprintf(fscript, "echo 'COMMAND: %s'\n\n", cmd);
+            fprintf(fscript, "%s\n\n", cmd);
+         }
+
          fflush(fscript);
          fclose(fscript);
 
