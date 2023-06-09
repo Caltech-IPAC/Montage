@@ -281,17 +281,17 @@ int main(int argc, char **argv)
       fprintf(fscript, "echo Plate %s, Task %d\n\n", plate, count);
       fflush(fscript);
 
-      strcpy(cmd, "mkdir plates");
+      fprintf(fscript, "if [ ! -d \"%s\" ]\n", platedir);
+      fprintf(fscript, "then\n");
+      fprintf(fscript, "    echo \"Directory %s DOES NOT exists.\"\n", platedir);
+      fprintf(fscript, "    exit 9999\n");
+      fprintf(fscript, "fi\n\n");
 
-      fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
-      fprintf(fscript, "%s\n", cmd);
-      fflush(fscript);
-
-      sprintf(cmd, "mkdir plates/order%d", order);
-
-      fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
-      fprintf(fscript, "%s\n", cmd);
-      fflush(fscript);
+      fprintf(fscript, "if [ ! -d \"%sorder%d\" ]\n", platedir, order);
+      fprintf(fscript, "then\n");
+      fprintf(fscript, "    echo \"Directory %sorder%d DOES NOT exists.\"\n", platedir, order);
+      fprintf(fscript, "    exit 9999\n");
+      fprintf(fscript, "fi\n\n");
 
       if(strlen(archive) > 0)
       {
@@ -358,14 +358,14 @@ int main(int argc, char **argv)
 
       if(!cloud && single_threaded)
       {
-         sprintf(cmd, "%sjobs/shrink_%d.sh %s", scriptdir, count, platedir);
+         fprintf(fdriver, "%sjobs/shrink_%d.sh %s\n", scriptdir, count, platedir);
          fflush(fdriver);
       }
    }
 
    if(!cloud && !single_threaded)
    {
-      sprintf(cmd, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %sshrinkTask.bash\n", 
+      fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %sshrinkTask.bash\n", 
          count, scriptdir, scriptdir);
       fflush(fdriver);
    }

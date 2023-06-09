@@ -599,6 +599,7 @@ of applying the right tranforms to the planes associated with each iteration.
       fflush(stdout);
    }
 
+
    fout = fopen(corrtbl, "w+");
 
    if(fout == (FILE *)NULL)
@@ -728,23 +729,6 @@ of applying the right tranforms to the planes associated with each iteration.
       imgs[nimages].locked = 0;
 
       if(ilocked  >= 0) imgs[nimages].locked  = atoi(tval(ilocked));
-
-      //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-      int ipl, jpl;
-
-      sscanf(imgs[nimages].fname, "plate_%2d_%2d.fits", &ipl, &jpl);
-
-      imgs[nimages].locked = 0;
-      if(abs(abs(ipl) - abs(jpl)) > 4)
-         imgs[nimages].locked = 1;
-
-      // printf("XXX> [%s]: %d %d  -->  %d\n",
-      //       imgs[nimages].fname, ipl, jpl, imgs[nimages].locked);
-      // fflush(stdout);
-
-      //XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
 
       avearea += imgs[nimages].naxis1*imgs[nimages].naxis2;
 
@@ -907,9 +891,9 @@ of applying the right tranforms to the planes associated with each iteration.
       }
 
       strcpy(rms_str, tval(irms));
-      if(strcmp(rms_str, "Inf" ) == 0
-      || strcmp(rms_str, "-Inf") == 0
-      || strcmp(rms_str, "NaN" ) == 0)
+
+      if(strcasestr(rms_str, "inf")
+      || strcasestr(rms_str, "nan"))
          fits[nfits].rms = 1.e99;
 
       boxx = atof(tval(iboxx));
@@ -2492,6 +2476,14 @@ of applying the right tranforms to the planes associated with each iteration.
    /* For each image, print out the final plane */
    /*********************************************/
 
+   int    first;
+   double cmin, cmax;
+
+   cmin = 0.;
+   cmax = 0.;
+
+   first = 1;
+
    fputs("|   id   |      a       |      b       |      c       |\n", fout);
 
    nancnt = 0;
@@ -2501,6 +2493,23 @@ of applying the right tranforms to the planes associated with each iteration.
       if(mNaN(corrs[i].a)) ++nancnt;
       if(mNaN(corrs[i].b)) ++nancnt;
       if(mNaN(corrs[i].c)) ++nancnt;
+
+      if(first && !mNaN(corrs[i].c))
+      {
+         cmin = corrs[i].c;
+         cmax = corrs[i].c;
+         
+         first = 0;
+      }
+
+      if(!mNaN(corrs[i].c))
+      {
+         if(corrs[i].c < cmin)
+            cmin = corrs[i].c;
+
+         if(corrs[i].c > cmax)
+            cmax = corrs[i].c;
+      }
 
       fprintf(fout, " %8d  %13.5e  %13.5e  %13.5e\n", 
          corrs[i].id, corrs[i].a, corrs[i].b, corrs[i].c);
@@ -2520,7 +2529,9 @@ of applying the right tranforms to the planes associated with each iteration.
    fflush(fout);
    fclose(fout);
 
-   sprintf(montage_msgstr, "nnan=%d", nancnt);
+   sprintf(montage_msgstr, "nnan=%d, cmin=%-g, cmax=%-g",
+      nancnt, cmin, cmax);
+
    sprintf(montage_json, "{\"nnan\":%d}", nancnt);
 
    returnStruct->status = 0;
