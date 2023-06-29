@@ -15,7 +15,7 @@
       {"type":"boolean", "default":false, "name":"exact",        "desc":"Flag to force use of mProject over mProjectPP function.  No-op if quickMode is used."},
       {"type":"boolean", "default":false, "name":"wholeImages",  "desc":"Flag to force reprojection of all of each image, even outside template region."},
       {"type":"boolean", "default":false, "name":"energyMode",   "desc":"Pixel values are total energy rather than energy density."},
-      {"type":"double",  "default":0.,    "name":"drizzle",      "desc":"Drizzle factor for projection, if desired."},
+      {"type":"double",  "default":0.0,   "name":"drizzle",      "desc":"Drizzle factor for projection, if desired."},
       {"type":"string",  "default":"",    "name":"border",       "desc":"Optional string that contains either a border width or comma-separated 'x1,y1,x2,y2, ...' pairs defining a pixel region polygon where we keep only the data inside."},
       {"type":"string",  "default":"",    "name":"scaleCol",     "desc":"Table file can have columns defining scale."},
       {"type":"string",  "default":"",    "name":"weightCol",    "desc":"and weighting values to be applied to data and 'area' output files."},
