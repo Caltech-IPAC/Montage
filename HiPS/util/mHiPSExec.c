@@ -347,7 +347,7 @@ int main(int argc, char **argv)
          if(line[strlen(line)-1] == '\n'
          || line[strlen(line)-1] == '\r')
          {
-            line[strlen(line)-1] == '\0';
+            line[strlen(line)-1] = '\0';
 
             if(strncmp(line + i, "datasetname", 11) == 0)
             {
