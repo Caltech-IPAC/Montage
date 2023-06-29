@@ -25,7 +25,7 @@ int  mHiPSPNGScripts_S3Files       (char *bucket);
 int  mHiPSPNGScripts_processFiles  ();
 void mHiPSPNGScripts_printFitsError(int status);
 
-int  job, njob, ntile, ntask, ifile, count, offset;
+int  job, njob, ntile, ntask, ifile, count, offset, haveimages;
 
 char scriptdir [1024];
 char scriptfile[1024];
@@ -40,6 +40,8 @@ char imglist   [1024];
 char outdir    [1024];
 char flags     [1024];
 char jobfile   [1024];
+char  newdir   [1024];
+char  olddir   [1024];
 
 FILE *fscript;
 FILE *fdriver;
@@ -68,7 +70,8 @@ int  debug;
 /*                                                                       */
 /*  This program recursively finds all the FITS files in a directory     */
 /*  tree and generates a matching PNG (grayscale) using the supplied     */
-/*  histogram.                                                           */
+/*  histogram.  Or if the data is stored in the cloud, get the file      */
+/*  list from there and create the PNGs there.                           */
 /*                                                                       */
 /*************************************************************************/
 
@@ -77,12 +80,18 @@ int main(int argc, char **argv)
    int i, c;
 
    char cwd       [MAXSTR];
+   char cmd       [MAXSTR];
+   char file      [MAXSTR];
    char tmpdir    [MAXSTR];
    char driverfile[MAXSTR];
+
+   FILE *fcount;
+
 
    getcwd(cwd, MAXSTR);
 
    debug           =  0;
+   haveimages      =  0;
    cloud           =  0;
    ct              =  0;
    brightness      =  0.;
@@ -98,15 +107,21 @@ int main(int argc, char **argv)
    strcpy(histfile3,  "");
    strcpy(imglist,    "");
    strcpy(outdir,     "");
+   strcpy(olddir,     "");
+   strcpy(newdir,     "");
 
    count = 1;
 
-   while((c = getopt(argc, argv, "dnb:c:st:p:")) != EOF)
+   while((c = getopt(argc, argv, "dhb:c:st:")) != EOF)
    {
       switch(c)
       {
          case 'd':
             debug = 1;
+            break;
+
+         case 'h':
+            haveimages = 1;
             break;
 
          case 'b':
@@ -126,7 +141,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
             exit(1);
             break;
       }
@@ -134,7 +149,7 @@ int main(int argc, char **argv)
 
    if(argc-optind < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-s(ingle-threaded)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
       exit(1);
    }
 
@@ -198,7 +213,7 @@ int main(int argc, char **argv)
    {
       if(argc-optind < 9)
       {
-         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-s(ingle-threaded)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
+         printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
 
          fflush(stdout);
          exit(1);
@@ -264,6 +279,7 @@ int main(int argc, char **argv)
 
    if(debug)
    {
+      printf("DEBUG> cloud         = %d\n",   cloud);
       printf("DEBUG> single_thread = %d\n",   single_threaded);
       printf("DEBUG> color         = %d\n",   color);
       printf("DEBUG> brightness    = %-g\n",  brightness);
@@ -289,7 +305,7 @@ int main(int argc, char **argv)
 
       if(debug)
       {
-         printf("DEBUG> creating driverfile = [%s]\n", driverfile);
+         printf("\nDEBUG> Creating driverfile = [%s]\n", driverfile);
          fflush(stdout);
       }
 
@@ -350,25 +366,57 @@ int main(int argc, char **argv)
 
    ntile = 0;
 
-   if(cloud)
-      mHiPSPNGScripts_S3Files(directory1);
-   else
+   if(!haveimages)
    {
-      fimages = fopen(imglist, "w+");
-
-      if(fimages == (FILE *)NULL)
+      if(cloud)
+         mHiPSPNGScripts_S3Files(directory1);
+      else
       {
-         printf("[struct stat=\"ERROR\", msg=\"Cannot open output image list.\"]\n");
-         fflush(stdout);
-         exit(0);
+         fimages = fopen(imglist, "w+");
+
+         if(fimages == (FILE *)NULL)
+         {
+            printf("[struct stat=\"ERROR\", msg=\"Cannot open output image list.\"]\n");
+            fflush(stdout);
+            exit(0);
+         }
+
+         offset = strlen(directory1);
+
+         mHiPSPNGScripts_localFiles(directory1);
+
+         fclose(fimages);
       }
-
-      offset = strlen(directory1);
-
-      mHiPSPNGScripts_localFiles(directory1);
-
-      fclose(fimages);
    }
+
+   // Count tiles
+
+   sprintf(cmd, "wc %s > %s.count", imglist, imglist);
+
+   if(debug)
+   {
+      printf("COMMAND> [%s]\n", cmd);
+      fflush(stdout);
+   }
+
+   system(cmd);
+
+
+   sprintf(file, "%s.count", imglist);
+
+   fcount = fopen(file, "r");
+
+   fscanf(fcount, "%d", &ntile);
+
+   if(debug)
+   {
+      printf("DEBUG>   ntile = %d\n", ntile);
+      fflush(stdout);
+   }
+
+   fclose(fcount);
+
+
 
    njob = ntile;
 
@@ -394,18 +442,22 @@ int main(int argc, char **argv)
    /* Process the directories, making the scripts */
    /***********************************************/
 
-   /*
-   if(!single_threaded)
+   mHiPSPNGScripts_processFiles(imglist);
+
+   if(single_threaded)
+   {
+      fclose(fdriver);
+      chmod(driverfile, 0774);
+   }
+
+   else if(!cloud)  // i.e., SLURM
    {
       fprintf(fdriver, "sbatch --array=1-%d%%20 --mem=8192 --mincpus=1 %spngTask.bash\n", njob, scriptdir);
       fflush(fdriver);
+
+      fclose(fdriver);
+      chmod(driverfile, 0774);
    }
-
-   fclose(fdriver);
-   chmod(driverfile, 0777);
-   */
-
-   mHiPSPNGScripts_processFiles(imglist);
 
    printf("[struct stat=\"OK\", module=\"mHiPSPNGScripts\", ntile=%d, njob=%d, njobtasks==%d]\n", ntile, njob, ntask);
    fflush(stdout);
@@ -464,7 +516,8 @@ int mHiPSPNGScripts_localFiles(char *pathname)
 
                mHiPSPNGScripts_localFiles(dirname);
          }
-         else if(strncmp(entry->d_name + strlen(entry->d_name) - 4, ".png", 4) == 0)
+         else if( strlen(entry->d_name) > 5
+              && strncmp(entry->d_name + strlen(entry->d_name) - 5, ".fits", 5) == 0)
          {
             if(debug)
             {
@@ -474,8 +527,6 @@ int mHiPSPNGScripts_localFiles(char *pathname)
 
             fprintf(fimages, "%s\n", dirname+offset); 
             fflush(fimages);
-
-            ++ntile;
          }
       }
    }
@@ -504,29 +555,13 @@ int mHiPSPNGScripts_S3Files(char *bucket)
    char  line[1024];
    char *ptr;
 
-   FILE *fcount;
    FILE *fraw;
    FILE *flist;
 
 
    // Get S3 list
    
-   /*  XXXXXXXXXXXXXXXXXXXXXXXXX
    sprintf(cmd, "aws s3 ls %s --recursive > %s.raw", bucket, imglist);
-
-   if(debug)
-   {
-      printf("COMMAND> [%s]\n", cmd);
-      fflush(stdout);
-   }
-
-   system(cmd);
-   */
-
-
-   // Get count
-
-   sprintf(cmd, "wc %s.raw > %s.count", imglist, imglist);
 
    if(debug)
    {
@@ -577,24 +612,6 @@ int mHiPSPNGScripts_S3Files(char *bucket)
    fclose(fraw);
    fclose(flist);
 
-
-   // Count tiles
-
-   sprintf(file, "%s.count", imglist);
-
-   fcount = fopen(file, "r");
-
-   fscanf(fcount, "%d", &ntile);
-
-   if(debug)
-   {
-      printf("DEBUG>   ntile = %d\n", ntile);
-      fflush(stdout);
-   }
-
-   fclose(fcount);
-
-
    return 0;
 }
 
@@ -625,7 +642,6 @@ int mHiPSPNGScripts_processFiles(char *pathname)
    char  transfile3[1024];
    char  pngfile   [1024];
    char  pngpath   [1024];
-   char  newdir    [1024];
    char  cmd       [1024];
 
    char *ptr;
@@ -633,56 +649,75 @@ int mHiPSPNGScripts_processFiles(char *pathname)
    FILE *flist;
 
 
+   strcpy(newdir, "");
+   strcpy(olddir, "");
+
+
    // Initialize the njob script file
    
    for(job=1; job<=njob; ++job)
    {
-      sprintf(jobfile, "%s/pngs_%d.sh", scriptdir, job);
+      if(cloud)
+         sprintf(jobfile, "%s/pngs_%d.sh", scriptdir, job);
+      else
+      {
+         sprintf(jobfile, "%s/jobs/pngs_%d.sh", scriptdir, job);
+
+         fprintf(fdriver, "%s\n", jobfile);
+         fflush(fdriver);
+      }
 
       fjob = fopen(jobfile, "w+");
 
       fprintf(fjob, "#!/bin/sh\n\n");
-
-      sprintf(cmd, "aws s3 cp %s histfile1", histfile1);
-
-      if(debug)
-      {
-         printf("DEBUG> COMMAND: [%s]\n", cmd);
-         fflush(stdout);
-      }
-
-      fprintf(fjob, "%s\n", cmd);
       fflush(fjob);
 
-      if(color)
+      if(cloud)
       {
-         sprintf(cmd, "aws s3 cp %s histfile2", histfile2);
+	 sprintf(cmd, "aws s3 cp %s histfile1", histfile1);
 
-         if(debug)
-         {
-            printf("DEBUG> COMMAND: [%s]\n", cmd);
-            fflush(stdout);
-         }
-
-         fprintf(fjob, "%s\n", cmd);
-         fflush(fjob);
-
-
-         sprintf(cmd, "aws s3 cp %s histfile3", histfile2);
-
-         if(debug)
-         {
-            printf("DEBUG> COMMAND: [%s]\n", cmd);
-            fflush(stdout);
-         }
+	 if(debug)
+	 {
+	    printf("DEBUG> COMMAND: [%s]\n", cmd);
+	    fflush(stdout);
+	 }
 
          fprintf(fjob, "%s\n", cmd);
          fflush(fjob);
+
+         if(color)
+         {
+            sprintf(cmd, "aws s3 cp %s histfile2", histfile2);
+
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n", cmd);
+            fflush(fjob);
+
+
+            sprintf(cmd, "aws s3 cp %s histfile3", histfile2);
+
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n", cmd);
+            fflush(fjob);
+         }
+         
+         fprintf(fjob, "\n\n");
       }
-      
-      fprintf(fjob, "\n\n");
+
       fflush(fjob);
       fclose(fjob);
+
+      chmod(jobfile, 0774);
    }
 
 
@@ -696,7 +731,10 @@ int mHiPSPNGScripts_processFiles(char *pathname)
    {
       job = task / ntask + 1;
 
-      sprintf(jobfile, "%s/pngs_%d.sh", scriptdir, job);
+      if(cloud)
+         sprintf(jobfile, "%s/pngs_%d.sh", scriptdir, job);
+      else
+         sprintf(jobfile, "%s/jobs/pngs_%d.sh", scriptdir, job);
 
       fjob = fopen(jobfile, "a");
 
@@ -745,25 +783,6 @@ int mHiPSPNGScripts_processFiles(char *pathname)
       sprintf(transfile2, "%s_trans", filebase2);
       sprintf(transfile3, "%s_trans", filebase3);
 
-
-      if(debug)
-      {
-         printf("\n--------------------------------------------------\n");
-
-         printf("XXX> origfile:         [%s]\n", origfile);
-         fflush(stdout);
-
-         printf("XXX> blue/gray:        [%s] -> [%s] -> [%s] : [%s]\n", filepath1, filename1, filebase1, histfile1);
-         fflush(stdout);
-
-         if(color)
-         {
-            printf("XXX> green:            [%s] -> [%s] -> [%s] : [%s]\n", filepath2, filename2, filebase2, histfile2);
-            printf("XXX> red:              [%s] -> [%s] -> [%s] : [%s]\n", filepath3, filename3, filebase3, histfile3);
-            fflush(stdout);
-         }
-      }
-
       strcpy(pngfile, origfile);
 
       ptr = strstr(pngfile, ".fits");
@@ -773,6 +792,27 @@ int mHiPSPNGScripts_processFiles(char *pathname)
       strcat(pngfile, ".png");
 
 
+      sprintf(newdir, "%s%s", outdir, relative);
+
+      if(!cloud)
+      {
+         if(strcmp(newdir, olddir) != 0)
+         {
+            sprintf(cmd, "mkdir -p %s\n", newdir);
+            
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n", cmd);
+            fflush(fjob);
+
+            strcpy(olddir, newdir);
+         }
+      }
+
       sprintf(pngpath, "%s%s/%s", outdir, relative, origfile);
 
       ptr = strstr(pngpath, ".fits");
@@ -781,50 +821,55 @@ int mHiPSPNGScripts_processFiles(char *pathname)
 
       strcat(pngpath, ".png");
 
-      if(debug)
-      {
-         printf("XXX> pngfile:          [%s]\n",   pngfile);
-         printf("XXX> pngpath:          [%s]\n\n", pngpath);
-         fflush(stdout);
-      }
+      if(!cloud)
+         strcpy(pngfile, pngpath);
 
 
       // Run mTranspose and mViewer
 
       if(color)
       {
-         sprintf(cmd, "aws s3 cp %s %s", filepath1, filebase1);
-
-         if(debug)
+         if(cloud)
          {
-            printf("DEBUG> COMMAND: [%s]\n", cmd);
-            fflush(stdout);
+            sprintf(cmd, "aws s3 cp %s %s", filepath1, filebase1);
+
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n", cmd);
+            fflush(fjob);
+
+            sprintf(cmd, "aws s3 cp %s %s", filepath2, filebase2);
+
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n", cmd);
+            fflush(fjob);
+
+            sprintf(cmd, "aws s3 cp %s %s", filepath3, filebase3);
+
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n\n", cmd);
+            fflush(fjob);
          }
-
-         fprintf(fjob, "%s\n", cmd);
-         fflush(fjob);
-
-         sprintf(cmd, "aws s3 cp %s %s", filepath2, filebase2);
-
-         if(debug)
+         else
          {
-            printf("DEBUG> COMMAND: [%s]\n", cmd);
-            fflush(stdout);
+            strcpy(filebase1, filepath1);
+            strcpy(filebase2, filepath2);
+            strcpy(filebase3, filepath3);
          }
-
-         fprintf(fjob, "%s\n", cmd);
-         fflush(fjob);
-
-         sprintf(cmd, "aws s3 cp %s %s", filepath3, filebase3);
-
-         if(debug)
-         {
-            printf("DEBUG> COMMAND: [%s]\n", cmd);
-            fflush(stdout);
-         }
-
-         fprintf(fjob, "%s\n\n", cmd);
-         fflush(fjob);
 
          sprintf(cmd, "mTranspose %s %s 2 1", filebase1, transfile1);
 
@@ -859,8 +904,12 @@ int mHiPSPNGScripts_processFiles(char *pathname)
          fprintf(fjob, "%s\n\n", cmd);
          fflush(fjob);
 
-         sprintf(cmd, "mViewer -brightness %-g -contrast %-g \\\n        -blue  %s -histfile histfile1 \\\n        -green %s -histfile histfile2 \\\n        -red   %s -histfile histfile3 \\\n        -out   %s",
-            brightness, contrast, transfile1, transfile2, transfile3, pngfile);
+         if(cloud)
+            sprintf(cmd, "mViewer -brightness %-g -contrast %-g \\\n        -blue  %s -histfile histfile1 \\\n        -green %s -histfile histfile2 \\\n        -red   %s -histfile histfile3 \\\n        -out   %s",
+               brightness, contrast, transfile1, transfile2, transfile3, pngfile);
+         else
+            sprintf(cmd, "mViewer -brightness %-g -contrast %-g \\\n        -blue  %s -histfile %s \\\n        -green %s -histfile %s \\\n        -red   %s -histfile %s \\\n        -out   %s",
+               brightness, contrast, transfile1, histfile1, transfile2, histfile2, transfile3, histfile3, pngfile);
 
          if(debug)
          {
@@ -871,13 +920,31 @@ int mHiPSPNGScripts_processFiles(char *pathname)
          fprintf(fjob, "%s\n\n", cmd);
          fflush(fjob);
 
-         fprintf(fjob, "rm %s %s %s\n", filebase1, filebase2, filebase3);
+         if(cloud)
+            fprintf(fjob, "rm %s %s %s\n", filebase1, filebase2, filebase3);
+
          fprintf(fjob, "rm %s %s %s\n\n", transfile1, transfile2, transfile3);
       }
 
       else
       {
-         sprintf(cmd, "mTranspose %s %s 2 1", filename1, transfile1);
+         if(cloud)
+         {
+            sprintf(cmd, "aws s3 cp %s %s", filepath1, filebase1);
+
+            if(debug)
+            {
+               printf("DEBUG> COMMAND: [%s]\n", cmd);
+               fflush(stdout);
+            }
+
+            fprintf(fjob, "%s\n\n", cmd);
+            fflush(fjob);
+         }
+         else
+            strcpy(filebase1, filepath1);
+
+         sprintf(cmd, "mTranspose %s %s 2 1", filebase1, transfile1);
 
          if(debug)
          {
@@ -900,23 +967,28 @@ int mHiPSPNGScripts_processFiles(char *pathname)
          fprintf(fjob, "%s\n\n", cmd);
          fflush(fjob);
 
-         fprintf(fjob, "rm %s\n", filebase1);
+         if(cloud)
+            fprintf(fjob, "rm %s\n", filebase1);
+
          fprintf(fjob, "rm %s\n\n", transfile1);
       }
 
 
-      sprintf(cmd, "aws s3 cp %s %s", pngfile, pngpath);
-
-      if(debug)
+      if(cloud)
       {
-         printf("DEBUG> COMMAND: [%s]\n", cmd);
-         fflush(stdout);
+         sprintf(cmd, "aws s3 cp %s %s", pngfile, pngpath);
+
+         if(debug)
+         {
+            printf("DEBUG> COMMAND: [%s]\n", cmd);
+            fflush(stdout);
+         }
+
+         fprintf(fjob, "%s\n\n", cmd);
+         fflush(fjob);
+
+         fprintf(fjob, "rm %s\n\n\n", pngfile);
       }
-
-      fprintf(fjob, "%s\n\n", cmd);
-      fflush(fjob);
-
-      fprintf(fjob, "rm %s\n\n\n", pngfile);
 
       ++task;
 
