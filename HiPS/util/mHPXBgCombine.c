@@ -9,6 +9,7 @@
 #include <strings.h>
 #include <math.h>
 #include <dirent.h>
+#include <sys/time.h>
 
 #include <fitsio.h>
 #include <mtbl.h>
@@ -1175,7 +1176,7 @@ int main(int argc, char **argv)
                               j, fits[j].plus,
                            (int)naxis[0],
                            (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
+                           (int)fpixel[0], (int)fpixel[1], (int)fpixel[2], (int)fpixel[3], 
                            (int)nelements, status);
                      fflush(stdout);
                      printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
@@ -1207,9 +1208,9 @@ int main(int argc, char **argv)
                         printf("XXX> First image SOUTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
                            (int)naxis[0],
                            (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
+                           (int)fpixel[0], (int)fpixel[1], (int)fpixel[2], (int)fpixel[3], 
                            (int)nelements, status);
-                     printf("XXX> First image SOUTH fpixel = %d %d %d %d, nelements = %d, status = %d\n", fpixel[0], fpixel[1], fpixel[2], fpixel[3], (int)nelements, status);
+                     printf("XXX> First image SOUTH fpixel = %d %d %d %d, nelements = %d, status = %d\n", (int)fpixel[0], (int)fpixel[1], (int)fpixel[2], (int)fpixel[3], (int)nelements, status);
                      fflush(stdout);
                      printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
                      fflush(stdout);
@@ -1293,7 +1294,7 @@ int main(int argc, char **argv)
                         printf("XXX> Second image NORTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
                            (int)naxis[0],
                            (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
+                           (int)fpixel[0], (int)fpixel[1], (int)fpixel[2], (int)fpixel[3], 
                            (int)nelements, status);
                         fflush(stdout);
                         printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
@@ -1327,7 +1328,7 @@ int main(int argc, char **argv)
                         printf("XXX> Second image SOUTH %dx%d fpixel = %d %d %d %d, nelements = %d, status = %d\n",
                            (int)naxis[0],
                            (int)naxis[1],
-                           fpixel[0], fpixel[1], fpixel[2], fpixel[3], 
+                           (int)fpixel[0], (int)fpixel[1], (int)fpixel[2], (int)fpixel[3], 
                            (int)nelements, status);
                         fflush(stdout);
                         printf("[struct stat=\"ERROR\", msg=\"Error reading FITS file [%s].\"]\n", filename);
