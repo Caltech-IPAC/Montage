@@ -1,0 +1,44 @@
+{
+   "module":"mDiffFit",
+
+   "function":"mDiffFit",
+
+   "desc" : "mDiffFit combines the mDiff and mFit functionality and optionally discards the difference image.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"fname1",      "desc":"First image."},
+      {"type":"string",                    "name":"fname2",      "desc":"Second image."},
+      {"type":"string",                    "name":"diffname",    "desc":"Difference image (output)."},
+      {"type":"string",                    "name":"template",    "desc":"FITS header file used to define the desired."},
+      {"type":"boolean", "default":false,  "name":"keep",        "desc":"Flag to keep temporary diff image."},
+      {"type":"boolean", "default":false,  "name":"levelOnly",   "desc":"Flag to fit level of diff only, not slopes."},
+      {"type":"boolean", "default":false,  "name":"noAreas",     "desc":"Flag indicating there are no area images."},
+      {"type":"int",     "default":0,      "name":"border",      "desc":"Border to ignore in diff/fitting."},
+      {"type":"boolean", "default":false,  "name":"debug",       "desc":"Debug flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"double",                    "name":"a",              "desc":"Plane fit coefficient for X axis."},
+      {"type":"double",                    "name":"b",              "desc":"Plane fit coefficient for Y axis."},
+      {"type":"double",                    "name":"c",              "desc":"Plane fit constant offset."},
+      {"type":"double",                    "name":"crpix1",         "desc":"X-axis pixel coordinate for center of region."},
+      {"type":"double",                    "name":"crpix2",         "desc":"Y-axis pixel coordinate for center of region."},
+      {"type":"double",                    "name":"xmin",           "desc":"Minimum X-axis value."},
+      {"type":"double",                    "name":"xmax",           "desc":"Maximum X-axis value."},
+      {"type":"double",                    "name":"ymin",           "desc":"Minimum Y-axis value."},
+      {"type":"double",                    "name":"ymax",           "desc":"Maximum Y-axis value."},
+      {"type":"double",                    "name":"xcenter",        "desc":"Center X location."},
+      {"type":"double",                    "name":"ycenter",        "desc":"Center Y location."},
+      {"type":"int",                       "name":"npixel",         "desc":"Total number of pixels fit."},
+      {"type":"double",                    "name":"rms",            "desc":"RMS of fit (pixels with large offset values were excluded in fit)."},
+      {"type":"double",                    "name":"boxx",           "desc":"Rectanguar bounding box X center."},
+      {"type":"double",                    "name":"boxy",           "desc":"Rectanguar bounding box Y center."},
+      {"type":"double",                    "name":"boxwidth",       "desc":"Rectanguar bounding box width."},
+      {"type":"double",                    "name":"boxheight",      "desc":"Rectanguar bounding box height."},
+      {"type":"double",                    "name":"boxang",         "desc":"Rectanguar bounding box rotation angle."}
+   ]
+}
