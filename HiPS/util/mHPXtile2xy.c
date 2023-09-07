@@ -9,6 +9,7 @@ Version  Developer        Date     Change
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <math.h>
 
 #define MAXHIPS 256
@@ -97,8 +98,8 @@ void mHPXtile2xy_transform(int level, int tile, int *xtile, int *ytile)
 
    if(debug)
    {
-      printf("\nDEBUG> tile level   = %ld\n", level);
-      printf("DEBUG> tile         = %ld (input)\n", tile);
+      printf("\nDEBUG> tile level   = %d\n", level);
+      printf("DEBUG> tile         = %d (input)\n", tile);
       fflush(stdout);
    }
 
@@ -110,7 +111,7 @@ void mHPXtile2xy_transform(int level, int tile, int *xtile, int *ytile)
 
    if(debug)
    {
-      printf("\nDEBUG> nside(tile)  = %ld\n", nside);
+      printf("\nDEBUG> nside(tile)  = %d\n", nside);
       fflush(stdout);
    }
 
@@ -171,7 +172,7 @@ void mHPXtile2xy_transform(int level, int tile, int *xtile, int *ytile)
 
    if(debug)
    {
-      printf("DEBUG> Absolute:      X = %7d, Y = %7d (level %ld)\n", x, y, level);
+      printf("DEBUG> Absolute:      X = %7d, Y = %7d (level %d)\n", x, y, level);
       fflush(stdout);
    }
 

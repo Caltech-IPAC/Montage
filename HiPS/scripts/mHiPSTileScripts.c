@@ -70,9 +70,10 @@ int main(int argc, char **argv)
    /* Process the command-line parameters */
    /***************************************/
 
-   debug     = 0;
-   maxorder = -1;
+   debug           = 0;
+   maxorder        = -1;
    single_threaded = 0;
+   cloud           = 0;
 
    opterr = 0;
 
@@ -175,10 +176,13 @@ int main(int argc, char **argv)
 
    if(debug)
    {
-      printf("DEBUG> scriptdir:  [%s]\n", scriptdir);
-      printf("DEBUG> platedir:   [%s]\n", platedir);
-      printf("DEBUG> tiledir:    [%s]\n", tiledir);
-      printf("DEBUG> platelist:  [%s]\n", platelist);
+      printf("DEBUG> single_threaded:   %d \n", single_threaded);
+      printf("DEBUG> maxorder:          %d \n", maxorder);
+      printf("DEBUG> minorder:          %d \n", minorder);
+      printf("DEBUG> scriptdir:        [%s]\n", scriptdir);
+      printf("DEBUG> platedir:         [%s]\n", platedir);
+      printf("DEBUG> tiledir:          [%s]\n", tiledir);
+      printf("DEBUG> platelist:        [%s]\n", platelist);
       fflush(stdout);
    }
 
@@ -309,11 +313,14 @@ int main(int argc, char **argv)
       fprintf(fscript, "echo Plate %s, Task %d\n\n", plate, count);
 
 
-      sprintf(cmd, "mkdir -p tiles");
+      if(!cloud)
+      {
+         sprintf(cmd, "mkdir -p %s", tiledir);
 
-      fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);                          
-      fprintf(fscript, "%s\n", cmd);                                            
-      fflush(fscript);  
+         fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);                          
+         fprintf(fscript, "%s\n", cmd);                                            
+         fflush(fscript);  
+      }
 
 
       for(iorder=maxorder; iorder>=minorder; --iorder)

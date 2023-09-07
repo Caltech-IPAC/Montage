@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
 
             if(status)
             {
-               printf("[struct stat=\"ERROR\", msg=\"mTiuleHdr failed\"]\n");
+               printf("[struct stat=\"ERROR\", msg=\"mTileHdr failed\"]\n");
                fflush(stdout);
                exit(0);
             }

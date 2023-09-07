@@ -516,7 +516,8 @@ int mHiPSPNGScripts_localFiles(char *pathname)
 
                mHiPSPNGScripts_localFiles(dirname);
          }
-         else if(strncmp(entry->d_name + strlen(entry->d_name) - 5, ".fits", 5) == 0)
+         else if( strlen(entry->d_name) > 5
+              && strncmp(entry->d_name + strlen(entry->d_name) - 5, ".fits", 5) == 0)
          {
             if(debug)
             {

@@ -15,6 +15,7 @@ extern int optind, opterr;
 extern int getopt(int argc, char *const *argv, const char *options);
 
 int runScript(char *cmd);
+int runCmd   (char *cmd);
 
 int  debug;
 
@@ -346,8 +347,9 @@ int main(int argc, char **argv)
 
          if(line[strlen(line)-1] == '\n'
          || line[strlen(line)-1] == '\r')
-            line[strlen(line)-1] == '\0';
          {
+            line[strlen(line)-1] = '\0';
+
             if(strncmp(line + i, "datasetname", 11) == 0)
             {
                strcat(outline, dataset);

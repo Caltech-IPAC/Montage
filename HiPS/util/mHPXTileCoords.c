@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 
 /*************************************************************************/
 /*                                                                       */
-/*  mHPXTileCoords_transform                                                */
+/*  mHPXTileCoords_transform                                             */
 /*                                                                       */
 /*  Given a HiPS tile level and tile ID within that level, determine     */
 /*  the x, y HPX location for the tile.                                  */
