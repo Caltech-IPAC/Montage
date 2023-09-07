@@ -513,10 +513,10 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       point        = (Vec *) malloc(npoints * sizeof(Vec));
       point_normal = (Vec *) malloc(npoints * sizeof(Vec));
                       
-      pix2wcs(wcsbox,              -0.5,              -0.5, &point_ra[0], &point_dec[0]);
-      pix2wcs(wcsbox, wcsbox->nxpix+0.5,              -0.5, &point_ra[1], &point_dec[1]);
+      pix2wcs(wcsbox,               0.5,               0.5, &point_ra[0], &point_dec[0]);
+      pix2wcs(wcsbox, wcsbox->nxpix+0.5,               0.5, &point_ra[1], &point_dec[1]);
       pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &point_ra[2], &point_dec[2]);
-      pix2wcs(wcsbox,              -0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]);
+      pix2wcs(wcsbox,               0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]);
 
       box_radius = 0;
 
@@ -658,10 +658,10 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       point        = (Vec *) malloc(npoints * sizeof(Vec));
       point_normal = (Vec *) malloc(npoints * sizeof(Vec));
 
-      pix2wcs(wcsbox,              -0.5,              -0.5, &point_ra[0], &point_dec[0]); if(wcsbox->offscl) haveHeaderCorners = 0;
-      pix2wcs(wcsbox, wcsbox->nxpix+0.5,              -0.5, &point_ra[1], &point_dec[1]); if(wcsbox->offscl) haveHeaderCorners = 0;
+      pix2wcs(wcsbox,               0.5,               0.5, &point_ra[0], &point_dec[0]); if(wcsbox->offscl) haveHeaderCorners = 0;
+      pix2wcs(wcsbox, wcsbox->nxpix+0.5,               0.5, &point_ra[1], &point_dec[1]); if(wcsbox->offscl) haveHeaderCorners = 0;
       pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &point_ra[2], &point_dec[2]); if(wcsbox->offscl) haveHeaderCorners = 0;
-      pix2wcs(wcsbox,              -0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]); if(wcsbox->offscl) haveHeaderCorners = 0;
+      pix2wcs(wcsbox,               0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]); if(wcsbox->offscl) haveHeaderCorners = 0;
 
       if(debug)
       {
@@ -1200,12 +1200,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          image_center.y = sin(image_center_ra*dtr) * cos(image_center_dec*dtr);
          image_center.z = sin(image_center_dec*dtr);
 
-         pix2wcs(wcsimg, -0.5, -0.5, &lon, &lat);
+         pix2wcs(wcsimg, 0.5, 0.5, &lon, &lat);
          convertCoordinates (csys, (double)equinox, lon, lat, 
                              EQUJ, 2000., &image_corner_ra[0], &image_corner_dec[0], 0.);
 
 
-         pix2wcs(wcsimg, wcsimg->nxpix+0.5, -0.5, &lon, &lat);
+         pix2wcs(wcsimg, wcsimg->nxpix+0.5, 0.5, &lon, &lat);
          convertCoordinates (csys, (double)equinox, lon, lat, 
                              EQUJ, 2000., &image_corner_ra[1], &image_corner_dec[1], 0.);
 
@@ -1215,7 +1215,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                              EQUJ, 2000., &image_corner_ra[2], &image_corner_dec[2], 0.);
 
 
-         pix2wcs(wcsimg, -0.5, wcsimg->nypix+0.5, &lon, &lat);
+         pix2wcs(wcsimg, 0.5, wcsimg->nypix+0.5, &lon, &lat);
          convertCoordinates (csys, (double)equinox, lon, lat, 
                              EQUJ, 2000., &image_corner_ra[3], &image_corner_dec[3], 0.);
       }
@@ -2725,8 +2725,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          }
 
          if(!offscl 
-         && xpix >= -0.5
-         && ypix >= -0.5
+         && xpix >= 0.5
+         && ypix >= 0.5
          && xpix <= wcsbox->nxpix+0.5
          && ypix <= wcsbox->nypix+0.5)
             found = 1;
@@ -2776,8 +2776,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                }
 
                if(!found
-               && xpix >= -0.5
-               && ypix >= -0.5
+               && xpix >= 0.5
+               && ypix >= 0.5
                && xpix <= wcsbox->nxpix+0.5
                && ypix <= wcsbox->nypix+0.5)
                {
@@ -2829,8 +2829,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                fflush(stdout);
             }
 
-            if(xpix >= -0.5
-            && ypix >= -0.5
+            if(xpix >= 0.5
+            && ypix >= 0.5
             && xpix <= wcsbox->nxpix+0.5
             && ypix <= wcsbox->nypix+0.5)
                found = 1;
@@ -2871,8 +2871,8 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                      fflush(stdout);
                   }
 
-                  if(xpix >= -0.5
-                  && ypix >= -0.5
+                  if(xpix >= 0.5
+                  && ypix >= 0.5
                   && xpix <= wcsbox->nxpix+0.5
                   && ypix <= wcsbox->nypix+0.5)
                   {

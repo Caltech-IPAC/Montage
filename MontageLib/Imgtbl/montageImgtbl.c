@@ -1294,7 +1294,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
          if(clockwise)
          {
-            pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1302,7 +1302,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->dec1 = dec;
 
 
-            pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1318,7 +1318,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->dec3 = dec;
 
 
-            pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, wcs->nypix+0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1327,14 +1327,14 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
          else
          {
-            pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
             hdr_rec->ra1 = ra;
             hdr_rec->dec1 = dec;
 
-            pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1350,7 +1350,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->dec3 = dec;
 
 
-            pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, wcs->nypix+0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 

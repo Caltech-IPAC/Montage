@@ -267,7 +267,7 @@ int main(int argc, char **argv)
       exit(0);
    }
 
-   count = 0;
+   count = 1;
 
    while(1)
    {
@@ -380,7 +380,7 @@ int main(int argc, char **argv)
    /* Finish up */
    /*************/
 
-   printf("[struct stat=\"OK\", count=%d]\n", count);
+   printf("[struct stat=\"OK\", count=%d]\n", count-1);
    fflush(stdout);
    exit(0);
 }

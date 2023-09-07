@@ -1,0 +1,29 @@
+{
+   "module":"mTileImage",
+
+   "function":"mTileImage",
+
+   "desc" : "mTileImage uses mSubimage to create a set of NxM tile subimages.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"input_file",    "desc":"FITS file to tile."},
+      {"type":"string",                    "name":"output_base",   "desc":"Base file name (including path) for output tiles"},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
+      {"type":"int",                       "name":"nx",            "desc":"Number of tiles in X direction."},
+      {"type":"int",                       "name":"ny",            "desc":"Number of tiles in Y direction."},
+      {"type":"int",     "default":0,      "name":"xpad",          "desc":"X border padding."},
+      {"type":"int",     "default":0,      "name":"ypad",          "desc":"Y border padding."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output flag."} 
+   ],
+
+   "return":
+   [
+      {"type":"int",                        "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                     "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                        "name":"sizex",         "desc":"X pixel size of nominal tile."},
+      {"type":"int",                        "name":"sizey",         "desc":"Y pixel size of nominal tile."},
+      {"type":"int",                        "name":"ntile",         "desc":"Number of output tiles."},
+      {"type":"int",                        "name":"nfailed",       "desc":"Number tiles that failed."}
+   ]
+}

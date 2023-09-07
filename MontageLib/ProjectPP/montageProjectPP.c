@@ -613,8 +613,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       plane1_to_plane2_transform(0.5, j+0.5, &oxpixe, &oypixe, &two_plane);
 
-      offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
-                oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
+      offscl = (oxpixe < 0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
+                oypixe < 0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
       if(mProjectPP_debug >= 3)
       {
@@ -639,8 +639,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       plane1_to_plane2_transform(input.naxes[0]+0.5, j+0.5,
                                  &oxpixe, &oypixe, &two_plane);
 
-      offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
-                oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
+      offscl = (oxpixe < 0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
+                oypixe < 0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
       if(mProjectPP_debug >= 3)
       {
@@ -670,8 +670,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
    {
       plane1_to_plane2_transform(i+0.5, 0.5, &oxpixe, &oypixe, &two_plane);
 
-      offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
-                oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
+      offscl = (oxpixe < 0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
+                oypixe < 0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
       if(mProjectPP_debug >= 3)
       {
@@ -696,8 +696,8 @@ struct mProjectPPReturn *mProjectPP(char *input_file, char *ofile, char *templat
       plane1_to_plane2_transform(i+0.5, input.naxes[1]+0.5,
                                  &oxpixe, &oypixe, &two_plane);
 
-      offscl = (oxpixe < -0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
-                oypixe < -0.5 || oypixe > two_plane.naxis2_2 + 1.5);
+      offscl = (oxpixe < 0.5 || oxpixe > two_plane.naxis1_2 + 1.5 ||
+                oypixe < 0.5 || oypixe > two_plane.naxis2_2 + 1.5);
 
       if(mProjectPP_debug >= 3)
       {
@@ -2458,8 +2458,8 @@ void mProjectPP_UpdateBounds (double oxpix, double oypix,
    */
 
   plane2_to_plane1_transform(oxpix, oypix, &ixpix, &iypix, &two_plane);
-  offscl = (ixpix < -0.5 || ixpix > two_plane.naxis1_1 + 1.5 ||
-            iypix < -0.5 || iypix > two_plane.naxis2_1 + 1.5);
+  offscl = (ixpix < 0.5 || ixpix > two_plane.naxis1_1 + 1.5 ||
+            iypix < 0.5 || iypix > two_plane.naxis2_1 + 1.5);
 
   if(mProjectPP_debug >= 3)
   {

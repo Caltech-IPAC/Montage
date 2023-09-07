@@ -1314,6 +1314,12 @@ int main(int argc, char **argv, char **envp)
 
          svc_run(cmd);
 
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
+
          strcpy( status, svc_value( "stat" ));
 
          if (strcmp( status, "ERROR") == 0)
@@ -1343,7 +1349,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mArchiveList     %6d (%d images)\n", (int)(currtime - lasttime), nimages);
+            fprintf(fdebug, "TIME: mArchiveList     %6d sec  (%d images)\n", (int)(currtime - lasttime), nimages);
             fflush(fdebug);
          }
 
@@ -1377,6 +1383,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if (strcmp( status, "ERROR") == 0)
@@ -1399,7 +1411,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mCoverageCheck   %6d (%d images)\n",
+               fprintf(fdebug, "TIME: mCoverageCheck   %6d sec  (%d images)\n",
                   (int)(currtime - lasttime), nimages);
                fflush(fdebug);
             }
@@ -1510,7 +1522,7 @@ int main(int argc, char **argv, char **envp)
                   fflush(finfo);
                }
 
-               if(debug > 4)
+               if(debug >= 4)
                {
                   fprintf(fdebug, "DEBUG> [%s]\n", cmd);
                   fflush(fdebug);
@@ -1524,6 +1536,12 @@ int main(int argc, char **argv, char **envp)
                }
 
                svc_run(cmd);
+
+               if(debug >= 4)
+               {
+                  printf("%s\n", svc_value((char *)NULL));
+                  fflush(stdout);
+               }
 
                strcpy( status, svc_value( "stat" ));
 
@@ -1540,6 +1558,15 @@ int main(int argc, char **argv, char **envp)
                }
             }
          
+            time(&currtime);
+
+            if(debug >= 1)
+            {
+               fprintf(fdebug, "TIME: mArchiveGet      %6d sec  (%d images)\n",
+                  (int)(currtime - lasttime), count);
+               fflush(fdebug);
+            }
+
             if(finfo)
             {
                fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> %d downloaded (%d failed)</p>\n",
@@ -1577,6 +1604,12 @@ int main(int argc, char **argv, char **envp)
 
          svc_run(cmd);
 
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
+
          if(xoff != 0. || yoff != 0.)
             sprintf(cmd, "mCoverageCheck  -x %-g -y %-g %s/rimages_big.tbl %s/rimages.tbl -header %s/region.hdr", xoff, yoff, workspace[iband], workspace[iband], workspace[iband]); 
          else
@@ -1590,11 +1623,17 @@ int main(int argc, char **argv, char **envp)
 
          svc_run(cmd);
 
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
+
          nimages = atof(svc_value("count"));
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mCoverageCheck   %6d (%d images)\n",
+            fprintf(fdebug, "TIME: mCoverageCheck   %6d sec  (%d images)\n",
                (int)(currtime - lasttime), nimages);
             fflush(fdebug);
          }
@@ -1622,6 +1661,12 @@ int main(int argc, char **argv, char **envp)
          }
 
          svc_run(cmd);
+
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
 
          nimages = atof(svc_value("count"));
       }
@@ -1667,7 +1712,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-         fprintf(fdebug, "TIME: mImgtbl(raw)     %6d\n", (int)(currtime - lasttime));
+         fprintf(fdebug, "TIME: mImgtbl(raw)     %6d sec \n", (int)(currtime - lasttime));
          fflush(fdebug);
       }
 
@@ -1697,6 +1742,12 @@ int main(int argc, char **argv, char **envp)
          }
 
          svc_run(cmd);
+
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
 
          strcpy( status, svc_value( "stat" ));
 
@@ -1736,7 +1787,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mTANHdr          %6d\n", (int)(currtime - lasttime));
+            fprintf(fdebug, "TIME: mTANHdr          %6d sec \n", (int)(currtime - lasttime));
             fflush(fdebug);
          }
 
@@ -1783,6 +1834,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if(strcmp( status, "ERROR") == 0)
@@ -1801,7 +1858,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mFlatten         %6d (%d images)\n", (int)(currtime - lasttime), nimages);
+            fprintf(fdebug, "TIME: mFlatten         %6d sec  (%d images)\n", (int)(currtime - lasttime), nimages);
             fflush(fdebug);
          }
 
@@ -1846,6 +1903,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if(strcmp( status, "ERROR") == 0)
@@ -1864,7 +1927,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mShrink          %6d (%d images)\n", (int)(currtime - lasttime), nimages);
+            fprintf(fdebug, "TIME: mShrink          %6d sec  (%d images)\n", (int)(currtime - lasttime), nimages);
             fflush(fdebug);
          }
 
@@ -1970,6 +2033,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if(strcmp( status, "ERROR") == 0)
@@ -1988,6 +2057,12 @@ int main(int argc, char **argv, char **envp)
             }
 
             svc_run(cmd);
+
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
 
             strcpy( status, svc_value( "stat" ));
 
@@ -2085,6 +2160,12 @@ int main(int argc, char **argv, char **envp)
 
          svc_run(cmd);
 
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
+
          strcpy( status, svc_value( "stat" ));
 
          ++index;
@@ -2153,15 +2234,15 @@ int main(int argc, char **argv, char **envp)
       if(debug >= 1)
       {
          if(quickMode)
-            fprintf(fdebug, "TIME: mProjectQL       %6d (%d successful, %d failed, %d no overlap)\n",
+            fprintf(fdebug, "TIME: mProjectQL       %6d sec  (%d successful, %d failed, %d no overlap)\n",
                (int)(currtime - lasttime), baseCount, failed, nooverlap);
 
          else if(intan == FAILED && outtan == FAILED)
-            fprintf(fdebug, "TIME: mProject         %6d (%d successful, %d failed, %d no overlap)\n",
+            fprintf(fdebug, "TIME: mProject         %6d sec  (%d successful, %d failed, %d no overlap)\n",
                (int)(currtime - lasttime), baseCount, failed, nooverlap);
 
          else
-            fprintf(fdebug, "TIME: mProjectPP       %6d (%d successful, %d failed, %d no overlap)\n", 
+            fprintf(fdebug, "TIME: mProjectPP       %6d sec  (%d successful, %d failed, %d no overlap)\n", 
                (int)(currtime - lasttime), baseCount, failed, nooverlap);
          fflush(fdebug);
       }
@@ -2197,6 +2278,12 @@ int main(int argc, char **argv, char **envp)
 
          svc_run(cmd);
 
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
+
          sprintf(cmd, "mImgtbl -c projected pimages.tbl");
 
          if(debug >= 4)
@@ -2206,6 +2293,12 @@ int main(int argc, char **argv, char **envp)
          }
 
          svc_run(cmd);
+
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
 
          nimages = atof(svc_value("count"));
 
@@ -2230,6 +2323,12 @@ int main(int argc, char **argv, char **envp)
 
          svc_run(cmd);
 
+         if(debug >= 4)
+         {
+            printf("%s\n", svc_value((char *)NULL));
+            fflush(stdout);
+         }
+
          nimages = atof(svc_value("count"));
 
          if(nimages <= 0)
@@ -2239,7 +2338,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mImgtbl(proj)    %6d\n", (int)(currtime - lasttime));
+            fprintf(fdebug, "TIME: mImgtbl(proj)    %6d sec \n", (int)(currtime - lasttime));
             fflush(fdebug);
          }
 
@@ -2267,6 +2366,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if(strcmp( status, "ERROR") == 0)
@@ -2289,7 +2394,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mOverlaps        %6d (%d overlaps)\n", (int)(currtime - lasttime), noverlap);
+               fprintf(fdebug, "TIME: mOverlaps        %6d sec  (%d overlaps)\n", (int)(currtime - lasttime), noverlap);
                fflush(fdebug);
             }
 
@@ -2387,6 +2492,12 @@ int main(int argc, char **argv, char **envp)
 
                svc_run(cmd);
 
+               if(debug >= 4)
+               {
+                  printf("%s\n", svc_value((char *)NULL));
+                  fflush(stdout);
+               }
+
                strcpy( status, svc_value( "stat" ));
 
                if(strcmp( status, "ABORT") == 0)
@@ -2422,6 +2533,12 @@ int main(int argc, char **argv, char **envp)
                }
 
                svc_run(cmd);
+
+               if(debug >= 4)
+               {
+                  printf("%s\n", svc_value((char *)NULL));
+                  fflush(stdout);
+               }
 
                strcpy( status, svc_value( "stat" ));
 
@@ -2484,7 +2601,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mDiff/mFitplane  %6d (%d diffs,  %d successful, %d failed)\n", 
+               fprintf(fdebug, "TIME: mDiff/mFitplane  %6d sec  (%d diffs,  %d successful, %d failed)\n", 
                   (int)(currtime - lasttime), count, count - failed,  failed);
 
                fflush(fdebug);
@@ -2530,6 +2647,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if(strcmp( status, "ERROR") == 0)
@@ -2543,7 +2666,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mBgModel         %6d\n", (int)(currtime - lasttime));
+               fprintf(fdebug, "TIME: mBgModel         %6d sec \n", (int)(currtime - lasttime));
                fflush(fdebug);
             }
 
@@ -2698,6 +2821,12 @@ int main(int argc, char **argv, char **envp)
 
                svc_run(cmd);
 
+               if(debug >= 4)
+               {
+                  printf("%s\n", svc_value((char *)NULL));
+                  fflush(stdout);
+               }
+
                if(strcmp( status, "ABORT") == 0)
                {
                   strcpy( msg, svc_value( "msg" ));
@@ -2744,7 +2873,7 @@ int main(int argc, char **argv, char **envp)
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mBackground      %6d (%d corrected)\n", (int)(currtime - lasttime), count);
+               fprintf(fdebug, "TIME: mBackground      %6d sec  (%d corrected)\n", (int)(currtime - lasttime), count);
                fflush(fdebug);
             }
 
@@ -2785,11 +2914,17 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             time(&currtime);
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mImgtbl(corr)    %6d\n", (int)(currtime - lasttime));
+               fprintf(fdebug, "TIME: mImgtbl(corr)    %6d sec \n", (int)(currtime - lasttime));
                fflush(fdebug);
             }
 
@@ -2833,6 +2968,12 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             strcpy( status, svc_value( "stat" ));
 
             if(strcmp( status, "ERROR") == 0)
@@ -2858,6 +2999,12 @@ int main(int argc, char **argv, char **envp)
                   }
 
                   svc_run(cmd);
+
+                  if(debug >= 4)
+                  {
+                     printf("%s\n", svc_value((char *)NULL));
+                     fflush(stdout);
+                  }
 
                   strcpy( status, svc_value( "stat" ));
 
@@ -2894,6 +3041,12 @@ int main(int argc, char **argv, char **envp)
                   }
 
                   svc_run(cmd);
+
+                  if(debug >= 4)
+                  {
+                     printf("%s\n", svc_value((char *)NULL));
+                     fflush(stdout);
+                  }
 
                   strcpy( status, svc_value( "stat" ));
 
@@ -2935,6 +3088,12 @@ int main(int argc, char **argv, char **envp)
 
                      svc_run(cmd);
 
+                     if(debug >= 4)
+                     {
+                        printf("%s\n", svc_value((char *)NULL));
+                        fflush(stdout);
+                     }
+
                      strcpy( status, svc_value( "stat" ));
 
                      if(strcmp( status, "ERROR") == 0)
@@ -2969,11 +3128,17 @@ int main(int argc, char **argv, char **envp)
 
             svc_run(cmd);
 
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
+
             time(&currtime);
 
             if(debug >= 1)
             {
-               fprintf(fdebug, "TIME: mAdd(tiles)      %6d\n", (int)(currtime - lasttime));
+               fprintf(fdebug, "TIME: mAdd(tiles)      %6d sec \n", (int)(currtime - lasttime));
                fflush(fdebug);
             }
 
@@ -2984,13 +3149,19 @@ int main(int argc, char **argv, char **envp)
             else
                sprintf(cmd, "mAdd -p tiles timages.tbl region.hdr mosaic.fits");
 
-            if(debug >= 4)
+            if(debug >= 1)
             {
                fprintf(fdebug, "[%s]\n", cmd);
                fflush(fdebug);
             }
 
             svc_run(cmd);
+
+            if(debug >= 4)
+            {
+               printf("%s\n", svc_value((char *)NULL));
+               fflush(stdout);
+            }
 
             strcpy( status, svc_value( "stat" ));
 
@@ -3021,7 +3192,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: mAdd             %6d\n", (int)(currtime - lasttime));
+            fprintf(fdebug, "TIME: mAdd             %6d sec \n", (int)(currtime - lasttime));
             fflush(fdebug);
          }
 
@@ -3085,7 +3256,7 @@ int main(int argc, char **argv, char **envp)
 
          if(debug >= 1)
          {
-            fprintf(fdebug, "TIME: Copy output      %6d (%s)\n",
+            fprintf(fdebug, "TIME: Copy output      %6d sec  (%s)\n",
                (int)(currtime - lasttime), savetmp);
             fflush(fdebug);
          }
@@ -3243,7 +3414,7 @@ int main(int argc, char **argv, char **envp)
          {
             sprintf(cmd, "rm -rf corrected");
 
-            if(debug >= 2)
+            if(debug >= 4)
             {
                fprintf(fdebug, "%s\n", cmd);
                fflush(fdebug);
@@ -3260,7 +3431,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-         fprintf(fdebug, "TIME: Delete workfiles %6d (%d files)\n", (int)(currtime - lasttime), count);
+         fprintf(fdebug, "TIME: Delete workfiles %6d sec  (%d files)\n", (int)(currtime - lasttime), count);
 
          fflush(fdebug);
       }
@@ -3302,6 +3473,12 @@ int main(int argc, char **argv, char **envp)
 
       svc_run(cmd);
 
+      if(debug >= 4)
+      {
+         printf("%s\n", svc_value((char *)NULL));
+         fflush(stdout);
+      }
+
       strcpy( status, svc_value( "stat" ));
 
       if(strcmp( status, "ERROR") == 0)
@@ -3315,7 +3492,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-         fprintf(fdebug, "TIME: mViewer          %6d\n", (int)(currtime - lasttime));
+         fprintf(fdebug, "TIME: mViewer          %6d sec \n", (int)(currtime - lasttime));
          fflush(fdebug);
       }
 
@@ -3508,7 +3685,7 @@ int main(int argc, char **argv, char **envp)
                workspace[0], workspace[1], workspace[2], pngFile);
       }
 
-      if(debug >= 1)
+      if(debug >= 4)
       {
          fprintf(fdebug, "%s\n", cmd);
          fflush(fdebug);
@@ -3521,6 +3698,12 @@ int main(int argc, char **argv, char **envp)
       }
 
       svc_run(cmd);
+
+      if(debug >= 4)
+      {
+         printf("%s\n", svc_value((char *)NULL));
+         fflush(stdout);
+      }
 
       strcpy( status, svc_value( "stat" ));
 
@@ -3535,7 +3718,7 @@ int main(int argc, char **argv, char **envp)
 
       if(debug >= 1)
       {
-         fprintf(fdebug, "TIME: mViewer (color)  %6d\n", (int)(currtime - lasttime));
+         fprintf(fdebug, "TIME: mViewer (color)  %6d sec \n", (int)(currtime - lasttime));
          fflush(fdebug);
       }
 
@@ -3555,7 +3738,7 @@ int main(int argc, char **argv, char **envp)
    /* Delete everything if so instructed */
    /**************************************/ 
 
-   if(deleteAll && ntile*mtile == 1)
+   if(!keepAll && ntile*mtile == 1)
    {
       for(iband=0; iband<nband; ++iband)
       {
@@ -3583,7 +3766,7 @@ int main(int argc, char **argv, char **envp)
       if(debug == 1)
          fprintf(fdebug, "\n");
 
-      fprintf(fdebug, "Mosaic complete.       %6d (total)\n\n", 
+      fprintf(fdebug, "Mosaic complete.       %6d sec  (total)\n\n", 
              (int)(currtime - start));
       fflush(fdebug);
    }

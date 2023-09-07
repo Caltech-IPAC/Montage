@@ -7,11 +7,12 @@
 
    "arguments":
    [
-      {"type":"string",                    "name":"input_file",    "desc":"iReprojected image metadata list."},
+      {"type":"string",                    "name":"input_file",    "desc":"Reprojected image metadata list."},
       {"type":"string",                    "name":"fit_file",      "desc":"Set of image overlap difference fits."},
-      {"type":"string",                    "name":"corr_file",     "desc":"Output table of corrections for images in input list."},
+      {"type":"string",                    "name":"corrtbl",       "desc":"Output table of corrections for images in input list."},
+      {"type":"string",                    "name":"gapdir",        "desc":"Special case when because of projection there is a gap in projection space between adjacent images on the sky."},
       {"type":"boolean", "default":false,  "name":"noslope",       "desc":"Only fit levels, not slopes."},
-      {"type":"boolean", "default":false,  "name":"usall",         "desc":"Use all the input differences (by default we exclude very small overlap areas)."},
+      {"type":"boolean", "default":false,  "name":"useall",        "desc":"Use all the input differences (by default we exclude very small overlap areas)."},
       {"type":"int",     "default":10000,  "name":"niteration",    "desc":"Number of iterations to run."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
    ],

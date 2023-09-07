@@ -269,8 +269,8 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
 
    double    nominal_area = 0;
 
-   double    imin, imax;
-   double    jmin, jmax;
+   double    imin=0, imax=0;
+   double    jmin=0, jmax=0;
 
    double  **dataline;
    double  **arealine;
@@ -307,8 +307,8 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
    int       icdelt1;
    int       icdelt2;
 
-   double    nom_crval1, nom_crval2;
-   double    nom_cdelt1, nom_cdelt2;
+   double    nom_crval1 = 0., nom_crval2 = 0.;
+   double    nom_cdelt1 = 0., nom_cdelt2 = 0.;
    double    dtr;
 
    double    valOffset;
@@ -605,6 +605,7 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
       }
 
       /* Look for maximum height/width */
+
       if (!haveMinMax)
       {
         imax = incrpix1[nfile];
@@ -2464,6 +2465,7 @@ int mAdd_listAdd(int value)
    int i, j, current, prev;
 
    current = listFirst;
+   prev    = current;
 
    if(listMax == 0)
    {

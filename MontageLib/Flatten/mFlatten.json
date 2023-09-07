@@ -1,0 +1,25 @@
+{
+   "module":"mFlatten",
+
+   "function":"mFlatten",
+
+   "desc" : "mFlatten fits a plane to the background in an image and subtracts it off to create a new image.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"infile",      "desc":"Original image."},
+      {"type":"string",                    "name":"outfile",     "desc":"Output image."},
+      {"type":"boolean", "default":false,  "name":"levelOnly",   "desc":"Flag to fit level of diff only, not slopes."},
+      {"type":"int",     "default":0,      "name":"border",      "desc":"Border to ignore in diff/fitting."},
+      {"type":"boolean", "default":false,  "name":"debug",       "desc":"Debug flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"double",                    "name":"a",              "desc":"Plane fit coefficient for X axis."},
+      {"type":"double",                    "name":"b",              "desc":"Plane fit coefficient for Y axis."},
+      {"type":"double",                    "name":"c",              "desc":"Plane fit constant offset."}
+   ]
+}

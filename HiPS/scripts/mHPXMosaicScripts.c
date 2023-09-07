@@ -535,6 +535,8 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "#!/bin/sh\n\n");
 
+      fprintf(fscript, "set -e\n\n");
+
       fprintf(fscript, "date\n");
 
       fprintf(fscript, "echo 'Building plate_%02d_%02d.fits'\n", i, j);
@@ -571,6 +573,11 @@ int main(int argc, char **argv)
          fprintf(fscript, "%s\n", cmd);
       }
 
+      fprintf(fscript, "\nrm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
+      fprintf(fscript, "rm -f %shpx%d_%02d_%02d.hdr\n", mosaicdir, level, i, j);
+      fprintf(fscript, "rm -f %splate_%02d_%02d.hdr\n", mosaicdir, i, j);
+      fprintf(fscript, "rm -f %splate_%02d_%02d_area.fits\n", mosaicdir, i, j);
+
       if(flatten)
       {
             sprintf(cmd, "mFlatten %splate_%02d_%02d.fits %splate_%02d_%02d_flat.fits", 
@@ -580,19 +587,42 @@ int main(int argc, char **argv)
             fprintf(fscript, "%s\n", cmd);
       }
 
-      fprintf(fscript, "\nrm -rf %swork_%02d_%02d\n", mosaicdir, i, j);
-      fprintf(fscript, "rm -f %shpx%d_%02d_%02d.hdr\n", mosaicdir, level, i, j);
-      fprintf(fscript, "rm -f %splate_%02d_%02d.hdr\n", mosaicdir, i, j);
-      fprintf(fscript, "rm -f %splate_%02d_%02d_area.fits\n", mosaicdir, i, j);
-
       if(strlen(archive) > 0)
       {
          if(flatten)
+         {
+            sprintf(cmd, "mShrink %splate_%02d_%02d_flat.fits %splate_%02d_%02d_small.fits 16", 
+             mosaicdir, i, j, mosaicdir, i, j);
+
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+            fprintf(fscript, "%s\n", cmd);
+
             sprintf(cmd, "aws s3 cp plate_%02d_%02d_flat.fits s3://%s/plate_%02d_%02d.fits",
                i, j, archive, i, j);
+         }
          else
+         {
+            sprintf(cmd, "mShrink %splate_%02d_%02d.fits %splate_%02d_%02d_small.fits 16", 
+             mosaicdir, i, j, mosaicdir, i, j);
+
+            fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+            fprintf(fscript, "%s\n", cmd);
+
             sprintf(cmd, "aws s3 cp plate_%02d_%02d.fits s3://%s/plate_%02d_%02d.fits",
                i, j, archive, i, j);
+         }
+
+         fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+         fprintf(fscript, "%s\n", cmd);
+
+         sprintf(cmd, "mViewer -ct 1 -gray  %splate_%02d_%02d_small.fits min max gaussian-log -out %splate_%02d_%02d.png", 
+          mosaicdir, i, j, mosaicdir, i, j);
+
+         fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
+         fprintf(fscript, "%s\n", cmd);
+
+         sprintf(cmd, "aws s3 cp plate_%02d_%02d.png s3://%s/plate_%02d_%02d.png",
+            i, j, archive, i, j);
 
          fprintf(fscript, "\necho 'COMMAND: %s'\n", cmd);
          fprintf(fscript, "%s\n", cmd);

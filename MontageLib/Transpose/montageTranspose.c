@@ -77,7 +77,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
 {
    int        i, j, k, l;
    int        it, jt, kt, lt;
-   int        bitpix, datatype, first;
+   int        bitpix, datatype=0, first;
    int        nullcnt, status, nfound, keynum;
    long       fpixel[4];
 
@@ -88,19 +88,19 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    double     bscale;
    double     bzero;
 
-   double    *inDouble;
-   float     *inFloat;
-   long long *inLongLong;
-   long      *inLong;
-   short     *inShort;
-   char      *inByte;
+   double    *inDouble   = (double    *) NULL;
+   float     *inFloat    = (float     *) NULL;
+   long long *inLongLong = (long long *) NULL;
+   long      *inLong     = (long      *) NULL;
+   short     *inShort    = (short     *) NULL;
+   char      *inByte     = (char      *) NULL;
 
-   double    ****outDouble;
-   float     ****outFloat;
-   long long ****outLongLong;
-   long      ****outLong;
-   short     ****outShort;
-   char      ****outByte;
+   double    ****outDouble   = (double    ****) NULL;
+   float     ****outFloat    = (float     ****) NULL;
+   long long ****outLongLong = (long long ****) NULL;
+   long      ****outLong     = (long      ****) NULL;
+   short     ****outShort    = (short     ****) NULL;
+   char      ****outByte     = (char      ****) NULL;
 
    char       card      [STRLEN];
    char       newcard   [STRLEN];
@@ -109,7 +109,7 @@ struct mTransposeReturn *mTranspose(char *inputFile, char *outputFile, int innor
    char       comment   [STRLEN];
    char       errstr    [STRLEN];
 
-   double     mindata, maxdata;
+   double     mindata=0., maxdata=0.;
 
    fitsfile  *inFptr;
    fitsfile  *outFptr;

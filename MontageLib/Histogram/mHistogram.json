@@ -9,6 +9,10 @@
    [
       {"type":"string",                    "name":"imgFile",       "desc":"Input FITS file."},
       {"type":"string",                    "name":"histFile",      "desc":"Output histogram file."},
+      {"type":"double",  "default":-1.0,   "name":"xmin",          "desc":"xmin..ymax define pixel region to use (default to extremes)."},
+      {"type":"double",  "default":-1.0,   "name":"xmax",          "desc":"xmin..ymax define pixel region to use (default to extremes)."},
+      {"type":"double",  "default":-1.0,   "name":"ymin",          "desc":"xmin..ymax define pixel region to use (default to extremes)."},
+      {"type":"double",  "default":-1.0,   "name":"ymax",          "desc":"xmin..ymax define pixel region to use (default to extremes)."},
       {"type":"string",                    "name":"minString",     "desc":"Data range minimum as a string (to allow '%' and 's' suffix."},
       {"type":"string",                    "name":"maxString",     "desc":"Data range maximum as a string (to allow '%' and 's' suffix."},
       {"type":"string",                    "name":"stretchType",   "desc":"Stretch type (linear, power(log**N), sinh, gaussian or gaussian-log)"},
