@@ -15,7 +15,7 @@
       {"type":"boolean", "default":false, "name":"keepAll",      "desc":"Flag to keep temporary difference images."},
       {"type":"boolean", "default":false, "name":"levelOnly",    "desc":"Flag to fit level of differences only, not slopes."},
       {"type":"boolean", "default":false, "name":"noAreas",      "desc":"Flag indicating there are no area images."},
-      {"type":"string",                   "name":"archive",      "desc":"Special case: Retrieve data from AWS S3 bucket."},
+      {"type":"string",                   "name":"archive",      "desc":"Special case when using AWS S3 storage."},
       {"type":"int",     "default":0,     "name":"debug",        "desc":"Debugging output flag."}
    ],
    

@@ -401,12 +401,12 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
          /* overlaps; use slow mode to be sure)               */
 
 
-         pix2wcs(output.wcs, -0.5, -0.5, &lon, &lat);
+         pix2wcs(output.wcs, 0.5, 0.5, &lon, &lat);
          convertCoordinates (output.sys, output.epoch, lon, lat,
                              EQUJ, 2000., &region_corner_ra[0], &region_corner_dec[0], 0.);
 
 
-         pix2wcs(output.wcs, output.wcs->nxpix+0.5, -0.5, &lon, &lat);
+         pix2wcs(output.wcs, output.wcs->nxpix+0.5, 0.5, &lon, &lat);
          convertCoordinates (output.sys, output.epoch, lon, lat,
                              EQUJ, 2000., &region_corner_ra[1], &region_corner_dec[1], 0.);
 
@@ -416,7 +416,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
                              EQUJ, 2000., &region_corner_ra[2], &region_corner_dec[2], 0.);
 
 
-         pix2wcs(output.wcs, -0.5, output.wcs->nypix+0.5, &lon, &lat);
+         pix2wcs(output.wcs, 0.5, output.wcs->nypix+0.5, &lon, &lat);
          convertCoordinates (output.sys, output.epoch, lon, lat,
                              EQUJ, 2000., &region_corner_ra[3], &region_corner_dec[3], 0.);
 
@@ -818,11 +818,11 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
                              EQUJ, 2000., &image_corner_ra[3], &image_corner_dec[3], 0.0);
 
 
-         pix2wcs(output.wcs, -0.5, -0.5, &lon, &lat);
+         pix2wcs(output.wcs, 0.5, 0.5, &lon, &lat);
          convertCoordinates (output.sys, output.epoch, lon, lat,
                              EQUJ, 2000., &region_corner_ra[0], &region_corner_dec[0], 0.);
 
-         pix2wcs(output.wcs, output.wcs->nxpix+0.5, -0.5, &lon, &lat);
+         pix2wcs(output.wcs, output.wcs->nxpix+0.5, 0.5, &lon, &lat);
          convertCoordinates (output.sys, output.epoch, lon, lat,
                              EQUJ, 2000., &region_corner_ra[1], &region_corner_dec[1], 0.);
 
@@ -832,7 +832,7 @@ struct mSubsetReturn *mSubset(char *tblfile, char *template, char *subtbl, int f
                              EQUJ, 2000., &region_corner_ra[2], &region_corner_dec[2], 0.);
 
 
-         pix2wcs(output.wcs, -0.5, output.wcs->nypix+0.5, &lon, &lat);
+         pix2wcs(output.wcs, 0.5, output.wcs->nypix+0.5, &lon, &lat);
          convertCoordinates (output.sys, output.epoch, lon, lat,
                              EQUJ, 2000., &region_corner_ra[3], &region_corner_dec[3], 0.);
 

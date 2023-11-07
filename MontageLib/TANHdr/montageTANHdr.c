@@ -1909,7 +1909,7 @@ int mTANHdr_printHeader(char *header)
 int mTANHdr_gaussj(double **a, int n, double **b, int m)
 {
    int   *indxc, *indxr, *ipiv;
-   int    i, icol, irow, j, k, l, ll;
+   int    i, icol=0, irow=0, j, k, l, ll;
    double big, dum, pivinv, temp;
 
    int    maxi, maxj;

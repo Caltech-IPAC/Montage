@@ -1,4 +1,4 @@
-UNAME_S := $(shell uname -s)
+UNAME_S := $(shell uname)
 
 SO_FLAG := 
 
@@ -12,6 +12,7 @@ pgm:
 		(cd util          && $(MAKE))
 		(cd Add           && $(MAKE) && $(MAKE) install)
 		(cd AddCube       && $(MAKE) && $(MAKE) install)
+		(cd  AddMem       && $(MAKE) && $(MAKE) install)
 		(cd Background    && $(MAKE) && $(MAKE) install)
 		(cd BestImage     && $(MAKE) && $(MAKE) install)
 		(cd BgModel       && $(MAKE) && $(MAKE) install)
@@ -19,6 +20,7 @@ pgm:
 		(cd Diff          && $(MAKE) && $(MAKE) install)
 		(cd Examine       && $(MAKE) && $(MAKE) install)
 		(cd Fitplane      && $(MAKE) && $(MAKE) install)
+		(cd DiffFit       && $(MAKE) && $(MAKE) install)
 		(cd FixNaN        && $(MAKE) && $(MAKE) install)
 		(cd Flatten       && $(MAKE) && $(MAKE) install)
 		(cd GetHdr        && $(MAKE) && $(MAKE) install)
@@ -30,6 +32,7 @@ pgm:
 		(cd ArchiveExec   && $(MAKE) && $(MAKE) install)
 		(cd MakeHdr       && $(MAKE) && $(MAKE) install)
 		(cd MakeImg       && $(MAKE) && $(MAKE) install)
+		(cd Mask          && $(MAKE) && $(MAKE) install)
 		(cd Overlaps      && $(MAKE) && $(MAKE) install)
 		(cd Project       && $(MAKE) && $(MAKE) install)
 		(cd ProjectCube   && $(MAKE) && $(MAKE) install)
@@ -39,8 +42,11 @@ pgm:
 		(cd ShrinkCube    && $(MAKE) && $(MAKE) install)
 		(cd Shrink        && $(MAKE) && $(MAKE) install)
 		(cd SubCube       && $(MAKE) && $(MAKE) install)
+		(cd SubHdr        && $(MAKE) && $(MAKE) install)
 		(cd Subimage      && $(MAKE) && $(MAKE) install)
+		(cd Subset        && $(MAKE) && $(MAKE) install)
 		(cd TANHdr        && $(MAKE) && $(MAKE) install)
+		(cd TileImage     && $(MAKE) && $(MAKE) install)
 		(cd Transpose     && $(MAKE) && $(MAKE) install)
 		(cd WWT           && $(MAKE) && $(MAKE) install)
 		(cd Viewer        && $(MAKE) && $(MAKE) install)
@@ -57,6 +63,7 @@ lib:
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -64,6 +71,7 @@ lib:
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
 			CoverageCheck/montageCoverageCheck.o \
+			DiffFit/montageDiffFit.o \
 			Diff/montageDiff.o \
 			Examine/montageExamine.o \
 			Fitplane/montageFitplane.o \
@@ -75,6 +83,7 @@ lib:
 			Imgtbl/montageImgtbl.o \
 			MakeHdr/montageMakeHdr.o \
 			MakeImg/montageMakeImg.o \
+			Mask/montageMask.o \
 			Overlaps/montageOverlaps.o \
 			ProjectCube/montageProjectCube.o \
 			Project/montageProject.o \
@@ -84,12 +93,16 @@ lib:
 			ShrinkCube/montageShrinkCube.o \
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
+			SubHdr/montageSubHdr.o \
 			Subimage/montageSubimage.o \
+			Subset/montageSubset.o \
 			TANHdr/montageTANHdr.o \
+			TileImage/montageTileImage.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
 			Viewer/mViewer_graphics.o \
 			Viewer/mViewer_grid.o \
+			Viewer/mViewer_boundingbox.o \
 			BgExec/montageBgExec.o \
 			DiffExec/montageDiffExec.o \
 			FitExec/montageFitExec.o \
@@ -100,6 +113,7 @@ lib:
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -107,6 +121,7 @@ lib:
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
 			CoverageCheck/montageCoverageCheck.o \
+			DiffFit/montageDiffFit.o \
 			Diff/montageDiff.o \
 			Examine/montageExamine.o \
 			Fitplane/montageFitplane.o \
@@ -118,6 +133,7 @@ lib:
 			Imgtbl/montageImgtbl.o \
 			MakeHdr/montageMakeHdr.o \
 			MakeImg/montageMakeImg.o \
+			Mask/montageMask.o \
 			Overlaps/montageOverlaps.o \
 			ProjectCube/montageProjectCube.o \
 			Project/montageProject.o \
@@ -127,12 +143,16 @@ lib:
 			ShrinkCube/montageShrinkCube.o \
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
+			SubHdr/montageSubHdr.o \
 			Subimage/montageSubimage.o \
+			Subset/montageSubset.o \
 			TANHdr/montageTANHdr.o \
+			TileImage/montageTileImage.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
 			Viewer/mViewer_graphics.o \
 			Viewer/mViewer_grid.o \
+			Viewer/mViewer_boundingbox.o \
 			BgExec/montageBgExec.o \
 			DiffExec/montageDiffExec.o \
 			FitExec/montageFitExec.o \
@@ -146,6 +166,7 @@ pythonlibs:
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
 			AddCube/montageAddCube.o \
+			AddMem/montageAddMem.o \
 			ArchiveList/montageArchiveList.o \
 			ArchiveGet/montageArchiveGet.o \
 			ArchiveExec/montageArchiveExec.o \
@@ -153,6 +174,7 @@ pythonlibs:
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
 			CoverageCheck/montageCoverageCheck.o \
+			DiffFit/montageDiffFit.o \
 			Diff/montageDiff.o \
 			Examine/montageExamine.o \
 			Fitplane/montageFitplane.o \
@@ -164,6 +186,7 @@ pythonlibs:
 			Imgtbl/montageImgtbl.o \
 			MakeHdr/montageMakeHdr.o \
 			MakeImg/montageMakeImg.o \
+			Mask/montageMask.o \
 			Overlaps/montageOverlaps.o \
 			ProjectCube/montageProjectCube.o \
 			Project/montageProject.o \
@@ -173,227 +196,61 @@ pythonlibs:
 			ShrinkCube/montageShrinkCube.o \
 			Shrink/montageShrink.o \
 			SubCube/montageSubCube.o \
+			SubHdr/montageSubHdr.o \
 			Subimage/montageSubimage.o \
+			Subset/montageSubset.o \
 			TANHdr/montageTANHdr.o \
+			TileImage/montageTileImage.o \
 			Transpose/montageTranspose.o \
 			Viewer/montageViewer.o \
 			Viewer/mViewer_graphics.o \
 			Viewer/mViewer_grid.o \
+			Viewer/mViewer_boundingbox.o \
 			BgExec/montageBgExec.o \
 			DiffExec/montageDiffExec.o \
 			FitExec/montageFitExec.o \
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o \
-			../lib/src/boundaries/boundaries.o \
-			../lib/src/cfitsio-3.49/buffers.o \
-			../lib/src/cfitsio-3.49/cfileio.o \
-			../lib/src/cfitsio-3.49/checksum.o \
-			../lib/src/cfitsio-3.49/drvrfile.o \
-			../lib/src/cfitsio-3.49/drvrmem.o \
-			../lib/src/cfitsio-3.49/drvrnet.o \
-			../lib/src/cfitsio-3.49/drvrsmem.o \
-			../lib/src/cfitsio-3.49/editcol.o \
-			../lib/src/cfitsio-3.49/edithdu.o \
-			../lib/src/cfitsio-3.49/eval_f.o \
-			../lib/src/cfitsio-3.49/eval_l.o \
-			../lib/src/cfitsio-3.49/eval_y.o \
-			../lib/src/cfitsio-3.49/f77_wrap1.o \
-			../lib/src/cfitsio-3.49/f77_wrap2.o \
-			../lib/src/cfitsio-3.49/f77_wrap3.o \
-			../lib/src/cfitsio-3.49/f77_wrap4.o \
-			../lib/src/cfitsio-3.49/fitscore.o \
-			../lib/src/cfitsio-3.49/fits_hcompress.o \
-			../lib/src/cfitsio-3.49/fits_hdecompress.o \
-			../lib/src/cfitsio-3.49/getcolb.o \
-			../lib/src/cfitsio-3.49/getcold.o \
-			../lib/src/cfitsio-3.49/getcole.o \
-			../lib/src/cfitsio-3.49/getcoli.o \
-			../lib/src/cfitsio-3.49/getcolj.o \
-			../lib/src/cfitsio-3.49/getcolk.o \
-			../lib/src/cfitsio-3.49/getcoll.o \
-			../lib/src/cfitsio-3.49/getcol.o \
-			../lib/src/cfitsio-3.49/getcolsb.o \
-			../lib/src/cfitsio-3.49/getcols.o \
-			../lib/src/cfitsio-3.49/getcolui.o \
-			../lib/src/cfitsio-3.49/getcoluj.o \
-			../lib/src/cfitsio-3.49/getcoluk.o \
-			../lib/src/cfitsio-3.49/getkey.o \
-			../lib/src/cfitsio-3.49/group.o \
-			../lib/src/cfitsio-3.49/grparser.o \
-			../lib/src/cfitsio-3.49/histo.o \
-			../lib/src/cfitsio-3.49/imcompress.o \
-			../lib/src/cfitsio-3.49/iraffits.o \
-			../lib/src/cfitsio-3.49/modkey.o \
-			../lib/src/cfitsio-3.49/pliocomp.o \
-			../lib/src/cfitsio-3.49/putcolb.o \
-			../lib/src/cfitsio-3.49/putcold.o \
-			../lib/src/cfitsio-3.49/putcole.o \
-			../lib/src/cfitsio-3.49/putcoli.o \
-			../lib/src/cfitsio-3.49/putcolj.o \
-			../lib/src/cfitsio-3.49/putcolk.o \
-			../lib/src/cfitsio-3.49/putcoll.o \
-			../lib/src/cfitsio-3.49/putcol.o \
-			../lib/src/cfitsio-3.49/putcolsb.o \
-			../lib/src/cfitsio-3.49/putcols.o \
-			../lib/src/cfitsio-3.49/putcolui.o \
-			../lib/src/cfitsio-3.49/putcoluj.o \
-			../lib/src/cfitsio-3.49/putcoluk.o \
-			../lib/src/cfitsio-3.49/putcolu.o \
-			../lib/src/cfitsio-3.49/putkey.o \
-			../lib/src/cfitsio-3.49/quantize.o \
-			../lib/src/cfitsio-3.49/region.o \
-			../lib/src/cfitsio-3.49/ricecomp.o \
-			../lib/src/cfitsio-3.49/scalnull.o \
-			../lib/src/cfitsio-3.49/simplerng.o \
-			../lib/src/cfitsio-3.49/swapproc.o \
-			../lib/src/cfitsio-3.49/wcssub.o \
-			../lib/src/cfitsio-3.49/wcsutil.o \
-			../lib/src/cmd/cmd.o \
-			../lib/src/coord/ccalc.o \
-			../lib/src/coord/computeFKCorrections.o \
-			../lib/src/coord/convertBesselianJulian.o \
-			../lib/src/coord/convertCoordinates.o \
-			../lib/src/coord/convertEclEqu.o \
-			../lib/src/coord/convertEquGal.o \
-			../lib/src/coord/convertGalSgal.o \
-			../lib/src/coord/decimalDegreeToSex.o \
-			../lib/src/coord/parseCoordinateString.o \
-			../lib/src/coord/precessBesselian.o \
-			../lib/src/coord/precessJulian.o \
-			../lib/src/coord/sexToDecimalDegree.o \
-			../lib/src/jpeg-8b/jaricom.o \
-			../lib/src/jpeg-8b/jcapimin.o \
-			../lib/src/jpeg-8b/jcapistd.o \
-			../lib/src/jpeg-8b/jcarith.o \
-			../lib/src/jpeg-8b/jccoefct.o \
-			../lib/src/jpeg-8b/jccolor.o \
-			../lib/src/jpeg-8b/jcdctmgr.o \
-			../lib/src/jpeg-8b/jchuff.o \
-			../lib/src/jpeg-8b/jcinit.o \
-			../lib/src/jpeg-8b/jcmainct.o \
-			../lib/src/jpeg-8b/jcmarker.o \
-			../lib/src/jpeg-8b/jcmaster.o \
-			../lib/src/jpeg-8b/jcomapi.o \
-			../lib/src/jpeg-8b/jcparam.o \
-			../lib/src/jpeg-8b/jcprepct.o \
-			../lib/src/jpeg-8b/jcsample.o \
-			../lib/src/jpeg-8b/jctrans.o \
-			../lib/src/jpeg-8b/jdapimin.o \
-			../lib/src/jpeg-8b/jdapistd.o \
-			../lib/src/jpeg-8b/jdarith.o \
-			../lib/src/jpeg-8b/jdatadst.o \
-			../lib/src/jpeg-8b/jdatasrc.o \
-			../lib/src/jpeg-8b/jdcoefct.o \
-			../lib/src/jpeg-8b/jdcolor.o \
-			../lib/src/jpeg-8b/jddctmgr.o \
-			../lib/src/jpeg-8b/jdhuff.o \
-			../lib/src/jpeg-8b/jdinput.o \
-			../lib/src/jpeg-8b/jdmainct.o \
-			../lib/src/jpeg-8b/jdmarker.o \
-			../lib/src/jpeg-8b/jdmaster.o \
-			../lib/src/jpeg-8b/jdmerge.o \
-			../lib/src/jpeg-8b/jdpostct.o \
-			../lib/src/jpeg-8b/jdsample.o \
-			../lib/src/jpeg-8b/jdtrans.o \
-			../lib/src/jpeg-8b/jerror.o \
-			../lib/src/jpeg-8b/jfdctflt.o \
-			../lib/src/jpeg-8b/jfdctfst.o \
-			../lib/src/jpeg-8b/jfdctint.o \
-			../lib/src/jpeg-8b/jidctflt.o \
-			../lib/src/jpeg-8b/jidctfst.o \
-			../lib/src/jpeg-8b/jidctint.o \
-			../lib/src/jpeg-8b/jmemmgr.o \
-			../lib/src/jpeg-8b/jmemnobs.o \
-			../lib/src/jpeg-8b/jquant1.o \
-			../lib/src/jpeg-8b/jquant2.o \
-			../lib/src/jpeg-8b/jutils.o \
-			../lib/src/json/jsonlib.o \
-			../lib/src/lodepng_20140823/lodepng.o \
-			../lib/src/mtbl/mtbl.o \
-			../lib/src/pixbounds/pixbounds.o \
-			../lib/src/two_plane_v1.1/initdistdata.o \
-			../lib/src/two_plane_v1.1/redefine_pointing.o \
-			../lib/src/two_plane_v1.1/two_plane.o \
-			../lib/src/two_plane_v1.1/undistort.o \
-			../lib/src/wcssubs3.9.0_montage/cel.o \
-			../lib/src/wcssubs3.9.0_montage/dateutil.o \
-			../lib/src/wcssubs3.9.0_montage/dsspos.o \
-			../lib/src/wcssubs3.9.0_montage/fileutil.o \
-			../lib/src/wcssubs3.9.0_montage/fitsfile.o \
-			../lib/src/wcssubs3.9.0_montage/hget.o \
-			../lib/src/wcssubs3.9.0_montage/hput.o \
-			../lib/src/wcssubs3.9.0_montage/iget.o \
-			../lib/src/wcssubs3.9.0_montage/imhfile.o \
-			../lib/src/wcssubs3.9.0_montage/imio.o \
-			../lib/src/wcssubs3.9.0_montage/lin.o \
-			../lib/src/wcssubs3.9.0_montage/platepos.o \
-			../lib/src/wcssubs3.9.0_montage/poly.o \
-			../lib/src/wcssubs3.9.0_montage/proj.o \
-			../lib/src/wcssubs3.9.0_montage/sph.o \
-			../lib/src/wcssubs3.9.0_montage/tnxpos.o \
-			../lib/src/wcssubs3.9.0_montage/wcscon.o \
-			../lib/src/wcssubs3.9.0_montage/wcsinit.o \
-			../lib/src/wcssubs3.9.0_montage/wcslib.o \
-			../lib/src/wcssubs3.9.0_montage/wcs.o \
-			../lib/src/wcssubs3.9.0_montage/wcstrig.o \
-			../lib/src/wcssubs3.9.0_montage/worldpos.o \
-			../lib/src/wcssubs3.9.0_montage/zpxpos.o \
-			../lib/src/www/www.o \
-			../lib/src/freetype-2.9.1//objs/.libs/autofit.o \
-			../lib/src/freetype-2.9.1//objs/.libs/bdf.o \
-			../lib/src/freetype-2.9.1//objs/.libs/cff.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftbase.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftbbox.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftbdf.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftbitmap.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftbzip2.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftcache.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftcid.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftdebug.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftfstype.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftgasp.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftglyph.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftgxval.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftgzip.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftinit.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftlzw.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftmm.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftotval.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftpatent.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftpfr.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftstroke.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftsynth.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftsystem.o \
-			../lib/src/freetype-2.9.1//objs/.libs/fttype1.o \
-			../lib/src/freetype-2.9.1//objs/.libs/ftwinfnt.o \
-			../lib/src/freetype-2.9.1//objs/.libs/pcf.o \
-			../lib/src/freetype-2.9.1//objs/.libs/pfr.o \
-			../lib/src/freetype-2.9.1//objs/.libs/psaux.o \
-			../lib/src/freetype-2.9.1//objs/.libs/pshinter.o \
-			../lib/src/freetype-2.9.1//objs/.libs/psnames.o \
-			../lib/src/freetype-2.9.1//objs/.libs/raster.o \
-			../lib/src/freetype-2.9.1//objs/.libs/sfnt.o \
-			../lib/src/freetype-2.9.1//objs/.libs/smooth.o \
-			../lib/src/freetype-2.9.1//objs/.libs/truetype.o \
-			../lib/src/freetype-2.9.1//objs/.libs/type1.o \
-			../lib/src/freetype-2.9.1//objs/.libs/type1cid.o \
-			../lib/src/freetype-2.9.1//objs/.libs/type42.o \
-			../lib/src/freetype-2.9.1//objs/.libs/winfnt.o \
-			../lib/src/bzip2-1.0.6/blocksort.o \
-			../lib/src/bzip2-1.0.6/huffman.o \
-			../lib/src/bzip2-1.0.6/crctable.o \
-			../lib/src/bzip2-1.0.6/randtable.o \
-			../lib/src/bzip2-1.0.6/decompress.o \
-			../lib/src/bzip2-1.0.6/bzlib.o \
-         ../python/MontagePy/lib
+		../python/MontagePy/lib
+
+
+                # We need to collect all the library .o files for the Extension build.
+		# The last two are special; the .libs subdirectory contain versions of the
+		# .o files compiled with -fPIC.
+
+		find ../lib/src/bzip2-1.0.6                -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/cfitsio-3.49               -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/cmd                        -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/coord                      -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/mtbl                       -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/svc                        -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/json                       -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/boundaries                 -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/pixbounds                  -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/www                        -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/wcssubs3.9.0_montage       -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/two_plane_v1.1             -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/lodepng_20140823           -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/jpeg-8b/.libs              -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/freetype-2.9.1/objs/.libs  -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		
+
+                # These .o files were for executables and contain main()
+
+		rm ../python/MontagePy/lib/bzip2recover.o
+		rm ../python/MontagePy/lib/bzip2.o
+
+		
+                # There are two libraries with conflicting .o file names
+
 		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
 		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
-# The last two lines are needed because we have .o file name conflicts
 
 doc:
 			gcc -o mLibDoc mLibDoc.c
 			mLibDoc Add
 			mLibDoc AddCube
+			mLibDoc AddMem
 			mLibDoc ArchiveList
 			mLibDoc ArchiveGet
 			mLibDoc ArchiveExec
@@ -402,6 +259,7 @@ doc:
 			mLibDoc BgModel
 			mLibDoc CoverageCheck
 			mLibDoc Diff
+			mLibDoc DiffFit
 			mLibDoc Examine
 			mLibDoc Fitplane
 			mLibDoc FixNaN
@@ -412,6 +270,7 @@ doc:
 			mLibDoc Imgtbl
 			mLibDoc MakeHdr
 			mLibDoc MakeImg
+			mLibDoc Mask
 			mLibDoc Overlaps
 			mLibDoc ProjectCube
 			mLibDoc Project
@@ -421,8 +280,11 @@ doc:
 			mLibDoc ShrinkCube
 			mLibDoc Shrink
 			mLibDoc SubCube
+			mLibDoc SubHdr
 			mLibDoc Subimage
+			mLibDoc Subset
 			mLibDoc TANHdr
+			mLibDoc TileImage
 			mLibDoc Transpose
 			mLibDoc Viewer
 			mLibDoc BgExec
@@ -435,6 +297,7 @@ jupyter:
 			gcc -o mJupyter mJupyter.c -I../lib/include -L ../lib -lsvc
 			mJupyter Add
 			mJupyter AddCube
+			mJupyter AddMem
 			mJupyter ArchiveList
 			mJupyter ArchiveGet
 			mJupyter ArchiveExec
@@ -443,6 +306,7 @@ jupyter:
 			mJupyter BgModel
 			mJupyter CoverageCheck
 			mJupyter Diff
+			mJupyter DiffFit
 			mJupyter Examine
 			mJupyter Fitplane
 			mJupyter FixNaN
@@ -453,6 +317,7 @@ jupyter:
 			mJupyter Imgtbl
 			mJupyter MakeHdr
 			mJupyter MakeImg
+			mJupyter Mask
 			mJupyter Overlaps
 			mJupyter ProjectCube
 			mJupyter Project
@@ -462,8 +327,11 @@ jupyter:
 			mJupyter ShrinkCube
 			mJupyter Shrink
 			mJupyter SubCube
+			mJupyter SubHdr
 			mJupyter Subimage
+			mJupyter Subset
 			mJupyter TANHdr
+			mJupyter TileImage
 			mJupyter Transpose
 			mJupyter Viewer
 			mJupyter BgExec
@@ -473,45 +341,51 @@ jupyter:
 			mJupyter ProjExec
 
 clean:
-		(cd util          && $(MAKE) clean)
+		(cd util          && test ! -e Makefile || $(MAKE) clean)
 		(cd Add           && test ! -e Makefile || $(MAKE) clean)
 		(cd AddCube       && test ! -e Makefile || $(MAKE) clean)
+		(cd AddMem        && test ! -e Makefile || $(MAKE) clean)
 		(cd ArchiveList   && test ! -e Makefile || $(MAKE) clean)
-		(cd ArchiveGet    && $(MAKE) clean)
-		(cd ArchiveExec   && $(MAKE) clean)
+		(cd ArchiveGet    && test ! -e Makefile || $(MAKE) clean)
+		(cd ArchiveExec   && test ! -e Makefile || $(MAKE) clean)
 		(cd Background    && test ! -e Makefile || $(MAKE) clean)
-		(cd BestImage     && $(MAKE) clean)
-		(cd BgModel       && $(MAKE) clean)
+		(cd BestImage     && test ! -e Makefile || $(MAKE) clean)
+		(cd BgModel       && test ! -e Makefile || $(MAKE) clean)
 		(cd CoverageCheck && test ! -e Makefile || $(MAKE) clean)
 		(cd Diff          && test ! -e Makefile || $(MAKE) clean)
+		(cd DiffFit       && test ! -e Makefile || $(MAKE) clean)
 		(cd Examine       && test ! -e Makefile || $(MAKE) clean)
-		(cd Fitplane      && $(MAKE) clean)
+		(cd Fitplane      && test ! -e Makefile || $(MAKE) clean)
 		(cd FixNaN        && test ! -e Makefile || $(MAKE) clean)
-		(cd Flatten       && $(MAKE) clean)
-		(cd GetHdr        && $(MAKE) clean)
+		(cd Flatten       && test ! -e Makefile || $(MAKE) clean)
+		(cd GetHdr        && test ! -e Makefile || $(MAKE) clean)
 		(cd Hdr           && test ! -e Makefile || $(MAKE) clean)
-		(cd Histogram     && $(MAKE) clean)
+		(cd Histogram     && test ! -e Makefile || $(MAKE) clean)
 		(cd Imgtbl        && test ! -e Makefile || $(MAKE) clean)
 		(cd MakeHdr       && test ! -e Makefile || $(MAKE) clean)
 		(cd MakeImg       && test ! -e Makefile || $(MAKE) clean)
+		(cd Mask          && test ! -e Makefile || $(MAKE) clean)
 		(cd Overlaps      && test ! -e Makefile || $(MAKE) clean)
 		(cd ProjectCube   && test ! -e Makefile || $(MAKE) clean)
 		(cd Project       && test ! -e Makefile || $(MAKE) clean)
 		(cd ProjectPP     && test ! -e Makefile || $(MAKE) clean)
 		(cd ProjectQL     && test ! -e Makefile || $(MAKE) clean)
-		(cd PutHdr        && $(MAKE) clean)
-		(cd ShrinkCube    && $(MAKE) clean)
-		(cd Shrink        && $(MAKE) clean)
+		(cd PutHdr        && test ! -e Makefile || $(MAKE) clean)
+		(cd ShrinkCube    && test ! -e Makefile || $(MAKE) clean)
+		(cd Shrink        && test ! -e Makefile || $(MAKE) clean)
 		(cd SubCube       && test ! -e Makefile || $(MAKE) clean)
+		(cd SubHdr        && test ! -e Makefile || $(MAKE) clean)
 		(cd Subimage      && test ! -e Makefile || $(MAKE) clean)
-		(cd TANHdr        && $(MAKE) clean)
+		(cd Subset        && test ! -e Makefile || $(MAKE) clean)
+		(cd TANHdr        && test ! -e Makefile || $(MAKE) clean)
+		(cd TileImage     && test ! -e Makefile || $(MAKE) clean)
 		(cd Transpose     && test ! -e Makefile || $(MAKE) clean)
 		(cd WWT           && test ! -e Makefile || $(MAKE) clean)
 		(cd Viewer        && test ! -e Makefile || $(MAKE) clean)
-		(cd DiffExec      && $(MAKE) clean)
-		(cd BgExec        && $(MAKE) clean)
-		(cd DiffFitExec   && $(MAKE) clean)
-		(cd FitExec       && $(MAKE) clean)
-		(cd ProjExec      && $(MAKE) clean)
+		(cd DiffExec      && test ! -e Makefile || $(MAKE) clean)
+		(cd BgExec        && test ! -e Makefile || $(MAKE) clean)
+		(cd DiffFitExec   && test ! -e Makefile || $(MAKE) clean)
+		(cd FitExec       && test ! -e Makefile || $(MAKE) clean)
+		(cd ProjExec      && test ! -e Makefile || $(MAKE) clean)
 		rm -f libmontage.a libmontage.so
 		rm -f ../python/MontagePy/lib/*.o

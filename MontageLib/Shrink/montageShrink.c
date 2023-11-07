@@ -138,7 +138,7 @@ static char montage_msgstr[1024];
 struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, double cdelt, int hduin, int fixedSize, int debug)
 {
    int       i, j, ii, jj, status, bufrow,  split;
-   int       ibuffer, jbuffer, ifactor, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
+   int       ibuffer, jbuffer=0, ifactor=0, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
    long      fpixel[4], fpixelo[4], nelements, nelementso;
    double    obegin, oend;
    double   *colfact, *rowfact;

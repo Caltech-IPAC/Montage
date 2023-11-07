@@ -124,18 +124,18 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
 
    int     inaxis;
 
-   int     ictype1;
-   int     ictype2;
-   int     iequinox;
-   int     inl;
-   int     ins;
-   int     icrval1;
-   int     icrval2;
-   int     icrpix1;
-   int     icrpix2;
-   int     icdelt1;
-   int     icdelt2;
-   int     icrota2;
+   int     ictype1=0;
+   int     ictype2=0;
+   int     iequinox=0;
+   int     inl=0;
+   int     ins=0;
+   int     icrval1=0;
+   int     icrval2=0;
+   int     icrpix1=0;
+   int     icrpix2=0;
+   int     icdelt1=0;
+   int     icdelt2=0;
+   int     icrota2=0;
 
    int     ilon1, ilat1;
    int     ilon2, ilat2;
@@ -164,15 +164,15 @@ struct mMakeHdrReturn *mMakeHdr(char *tblfile, char *template, char *csysin, dou
 
    int     naxis,  colNaxis;
 
-   int     naxis3, colNaxis3;
-   double  crval3, colCrval3;
-   double  crpix3, colCrpix3;
-   double  cdelt3, colCdelt3;
+   int     naxis3, colNaxis3=0;
+   double  crval3=0., colCrval3=0.;
+   double  crpix3=0., colCrpix3=0.;
+   double  cdelt3=0., colCdelt3=0.;
 
-   int     naxis4, colNaxis4;
-   double  crval4, colCrval4;
-   double  crpix4, colCrpix4;
-   double  cdelt4, colCdelt4;
+   int     naxis4, colNaxis4=0;
+   double  crval4=0., colCrval4=0.;
+   double  crpix4=0., colCrpix4=0.;
+   double  cdelt4=0., colCdelt4=0.;
 
    double  minpix,    maxpix;
    double  colMinpix, colMaxpix;

@@ -16,10 +16,10 @@ os.environ['CFLAGS'] = ''
 os.environ['ARCHFLAGS'] = '-arch x86_64'
 
 extensions = [
-    Extension("MontagePy._wrappers", ["MontagePy/_wrappers.pyx"],
+    Extension("MontagePy._wrappers", ["_wrappers.pyx"],
         include_dirs = [os.path.join(LIB, 'include'), os.path.join(LIB, 'src', 'bzip2-1.0.6'), MONTAGELIB],
         extra_objects = objs),
-    Extension("MontagePy.main", ["MontagePy/main.pyx"],
+    Extension("MontagePy.main", ["main.pyx"],
         include_dirs = [os.path.join(LIB, 'include'), MONTAGELIB])
 ]
 

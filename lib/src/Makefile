@@ -13,7 +13,7 @@ all:
 	(cd two_plane_v1.1 && $(MAKE) && $(MAKE) install)
 	(cd lodepng_20140823 && $(MAKE) && $(MAKE) install)
 	(cd jpeg-8b && ./configure --with-pic && $(MAKE) && cp .libs/libjpeg.a ../.. && cp jpeglib.h jconfig.h jmorecfg.h ../../include)
-	(cd freetype-2.9.1 && ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib && $(MAKE) && $(MAKE) install)
+	(cd freetype-2.9.1 && ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib --without-bzip2 --without-harfbuzz && $(MAKE) && $(MAKE) install)
 	(cd .. && ranlib *.a)
 	chmod 644 ../include/*.h
 

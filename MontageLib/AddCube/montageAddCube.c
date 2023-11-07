@@ -180,13 +180,13 @@ struct mAddCubeReturn *mAddCube(char *inpath, char *tblfile, char *template_file
    int       haveMinMax;
    int       avg_status = 0;
 
-   long      fpixel[4], nelements;
+   long      fpixel[4], nelements = 0;
    int       nullcnt;
 
    double    nominal_area = 0;
 
-   double    imin, imax;
-   double    jmin, jmax;
+   double    imin=0, imax=0;
+   double    jmin=0, jmax=0;
 
    double  **dataline;
    double  **arealine;
@@ -231,8 +231,8 @@ struct mAddCubeReturn *mAddCube(char *inpath, char *tblfile, char *template_file
    int       icdelt3;
    int       icdelt4;
 
-   double nom_crval1, nom_crval2, nom_crval3, nom_crval4;
-   double nom_cdelt1, nom_cdelt2, nom_cdelt3, nom_cdelt4;
+   double nom_crval1 = 0., nom_crval2 = 0., nom_crval3 = 0., nom_crval4 = 0.;
+   double nom_cdelt1 = 0., nom_cdelt2 = 0., nom_cdelt3 = 0., nom_cdelt4 = 0.;
    double dtr;
 
    double valOffset;
@@ -549,12 +549,14 @@ struct mAddCubeReturn *mAddCube(char *inpath, char *tblfile, char *template_file
             /* We went the wrong direction:         */
             break;
           }
-             /* Got closer to the header */
-           incrpix1[nfile] = tryval;
+
+          /* Got closer to the header */
+          incrpix1[nfile] = tryval;
         }
       }
 
       /* Look for maximum height/width */
+
       if (!haveMinMax)
       {
         imax = incrpix1[nfile];
@@ -2506,6 +2508,7 @@ int mAddCube_listAdd(int value)
    int i, j, current, prev;
 
    current = listFirst;
+   prev    = current;
 
    if(listMax == 0)
    {
@@ -2573,6 +2576,7 @@ int mAddCube_listDelete(int value)
    int i, current, prev, next;
 
    current = listFirst;
+   prev    = current;
 
    while(1)
    {

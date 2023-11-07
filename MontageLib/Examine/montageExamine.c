@@ -82,7 +82,7 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
    int    status, clockwise, nfound;
    int    npix, nnull, first;
    int    ixpix, iypix;
-   int    maxi, maxj;
+   int    maxi=0, maxj=0;
 
    char  *header;
    char   tmpstr[32768];
@@ -126,8 +126,8 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
    double rot, beta, dtr;
    double r;
 
-   double sumflux, sumflux2, sumn, mean, background, oldbackground, rms, dot;
-   double sigmaref, sigmamax, sigmamin;
+   double sumflux, sumflux2, sumn, mean=0., background, oldbackground, rms=0., dot;
+   double sigmaref=0., sigmamax=0., sigmamin=0.;
    double val, valx, valy, valra, valdec;
    double min, minx, miny, minra, mindec;
    double max, maxx, maxy, maxra, maxdec;
@@ -385,12 +385,12 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
 
    if(!clockwise)
    {
-      pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+      pix2wcs(wcs, 0.5, 0.5, &lon, &lat);
       convertCoordinates (csys, equinox, lon, lat, 
                           EQUJ, 2000., &ra1, &dec1, 0.);
 
 
-      pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+      pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &lon, &lat);
       convertCoordinates (csys, equinox, lon, lat, 
                           EQUJ, 2000., &ra2, &dec2, 0.);
 
@@ -400,18 +400,18 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
                           EQUJ, 2000., &ra3, &dec3, 0.);
 
 
-      pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+      pix2wcs(wcs, 0.5, wcs->nypix+0.5, &lon, &lat);
       convertCoordinates (csys, equinox, lon, lat, 
                           EQUJ, 2000., &ra4, &dec4, 0.);
    }
    else
    {
-      pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+      pix2wcs(wcs, 0.5, 0.5, &lon, &lat);
       convertCoordinates (csys, equinox, lon, lat, 
                           EQUJ, 2000., &ra2, &dec2, 0.);
 
 
-      pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+      pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &lon, &lat);
       convertCoordinates (csys, equinox, lon, lat, 
                           EQUJ, 2000., &ra1, &dec1, 0.);
 
@@ -421,7 +421,7 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
                           EQUJ, 2000., &ra4, &dec4, 0.);
 
 
-      pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+      pix2wcs(wcs, 0.5, wcs->nypix+0.5, &lon, &lat);
       convertCoordinates (csys, equinox, lon, lat, 
                           EQUJ, 2000., &ra3, &dec3, 0.);
    }

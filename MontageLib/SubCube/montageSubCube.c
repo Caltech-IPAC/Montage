@@ -105,8 +105,8 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
    int       imin, imax, jmin, jmax;
    int       haveBlank;
 
-   int       sys;
-   double    epoch;
+   int       sys = 0;
+   double    epoch = 0.;
    double    lon, lat;
    double    xpix, ypix;
    double    xoff, yoff;
@@ -933,7 +933,7 @@ struct WorldCoor *mSubCube_getFileInfo(fitsfile *infptr, char *header[], struct 
 
 int mSubCube_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams *params)
 {
-   double tmp, tmp3, tmp4;
+   double tmp, tmp3=0., tmp4=0.;
    int naxis2;
    int status = 0;
    
@@ -1056,12 +1056,12 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
    int       j3, j4, inRange;
    int       status = 0;
 
-   double             *buffer_double,   refval_double;
-   float              *buffer_float,    refval_float;
-   unsigned long long *buffer_longlong, refval_longlong;
-   unsigned long      *buffer_long,     refval_long;
-   unsigned short     *buffer_short,    refval_short;
-   unsigned char      *buffer_byte,     refval_byte;
+   double             *buffer_double =   (double *)            NULL,   refval_double;
+   float              *buffer_float =    (float *)             NULL,    refval_float;
+   unsigned long long *buffer_longlong = (unsigned long long *)NULL, refval_longlong;
+   unsigned long      *buffer_long =     (unsigned long *)     NULL,     refval_long;
+   unsigned short     *buffer_short =    (unsigned short *)    NULL,    refval_short;
+   unsigned char      *buffer_byte =     (unsigned char *)     NULL,     refval_byte;
 
 
    /*************************************************/

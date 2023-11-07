@@ -106,7 +106,7 @@ struct mDiffFitReturn *mDiffFit(char *fname1, char *fname2, char *diffname, char
 
    free(diff);
 
-   fitplane = mFitplane(diffname, levelOnly, border, 0);
+   fitplane = mFitplane(diffname, 0, levelOnly, border, 0);
 
    if(mDiffFit_debug)
    {
