@@ -1196,11 +1196,24 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          else
             hdr_rec->ns = atoi(value);
 
+         status=0;
          if(fits_read_keyword(fptr, "NAXIS2", value, comment, &status))
             hdr_rec->nl = 0;
          else
             hdr_rec->nl = atoi(value);
 
+
+         // Special check for ZNAXIS1, ZNAXIS2: Image compressed and stored in binary FITS table
+
+         status=0;
+         if(!fits_read_keyword(fptr, "ZNAXIS1", value, comment, &status))
+            hdr_rec->ns = atoi(value);
+
+         status=0;
+         if(!fits_read_keyword(fptr, "ZNAXIS2", value, comment, &status))
+            hdr_rec->nl = atoi(value);
+         
+        
          strcpy(hdr_rec->ctype1, "");
          strcpy(hdr_rec->ctype2, "");
 
