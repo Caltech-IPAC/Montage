@@ -1,0 +1,22 @@
+{
+   "module":"mMask",
+
+   "function":"mMask",
+
+   "desc" : "mMask mask off regions of an image (makes the values NaN) based on a set of boxes defined in an input file.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"infile",        "desc":"Input FITS file."},
+      {"type":"string",                    "name":"outfile",       "desc":"Mask output FITS file."},
+      {"type":"string",                    "name":"boxfile",       "desc":"Boxes to mask off."},
+      {"type":"int",     "default":0,      "name":"hdu",           "desc":"Optional HDU offset for input file."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."}
+   ]
+}
