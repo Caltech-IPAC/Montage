@@ -3988,11 +3988,31 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             naxis1 = naxisl;
 
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero (red image).");
+               return returnStruct;
+            }
+
             status = 0;
             if(fits_read_key(redfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
             naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero (red image).");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -4166,11 +4186,31 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             naxis1 = naxisl;
 
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero (green image).");
+               return returnStruct;
+            }
+
             status = 0;
             if(fits_read_key(greenfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
             naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero (green image).");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -4261,11 +4301,31 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             naxis1 = naxisl;
 
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero (blue image).");
+               return returnStruct;
+            }
+
             status = 0;
             if(fits_read_key(bluefptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
             naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero (blue image).");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -5291,11 +5351,31 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             naxis1 = naxisl;
 
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero.");
+               return returnStruct;
+            }
+
             status = 0;
             if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
             naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero.");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -5307,18 +5387,19 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          }
       }
 
-      if(strcmp(wcs->ptype, "HPX") == 0)
-      {
-         hpx = 1;
-
-         hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
-
-         hpxPix = 4 * hpxPix;
-      }
-
-
       if(!nowcs)
+      {
+         if(strcmp(wcs->ptype, "HPX") == 0)
+         {
+            hpx = 1;
+
+            hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
+
+            hpxPix = 4 * hpxPix;
+         }
+
          montage_checkWCS(wcs);
+      }
 
       naxis1 = wcs->nxpix;
       naxis2 = wcs->nypix;
