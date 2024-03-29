@@ -42,6 +42,10 @@ for VERSION in $(ls /opt/python); do
 
    /opt/python/$VERSION/bin/python -m build --wheel
 
+   auditwheel repair dist/*.whl
+
+   rm dist/*
+
 done
 
 mv wheelhouse/* dist
