@@ -1,108 +1,47 @@
 #!/bin/sh
 
 # This script is specifit to building the 'manylinux' wheels
-# on a Centos05 platform (in our case under Docker).  Things
-# like python2/python3 and auditwheel are already installed
-# in the Docker image we ae using.
+# on a Centos05 platform (in our case under Docker).  Multiple
+# Python versions and the auditwheel utility (which we need to
+# to touch up wheel files for use on all "manylinux" hosts.
 #
-# In the Docker container, Python 2.7 is installed in
+# The Docker image we are using is
 #
-#    /opt/python/cp27-cp27m/bin
+#    pytorch/manylinux-cuda102 
 #
-# and Python 3.6 is installed in
+# (though this changes rapidly as python version come and go).
 #
-#    /opt/python/cp36-cp36m/bin
+# In this Docker container, several Python versions (e.g., 3.11)
+# are nstalled in, e.g.:
 #
-# Both have 'python' and 'pip', only 3.6 has 'auditwheel'.
-# To avoid confusion, we'll use full paths here.
+#    /opt/python/cp311-cp311/bin
+#
+# All these Python instances have 'python' and 'pip'.
 
 
+rm -rf wheelhouse
 
-rm -rf wheelhouse dist
+for VERSION in $(ls /opt/python); do
 
+   rm -rf src
+   rm -rf build
+   rm -rf dist
+   rm -rf MontagePy.egg-info
+   rm -rf wrappers.pxd
 
-# Python 2.7
+   mkdir -p src/MontagePy
+   cp ../../data/fonts/FreeSans.ttf src/MontagePy
 
-rm -rf MontagePy.egg-info build dist MontagePy/__pycache__
+   /opt/python/$VERSION/bin/python parse.py
 
-/opt/python/cp27-cp27m/bin/python parse.py
+   sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import importlib_resources\n\n    if fontFile == "":\n        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")' src/MontagePy/_wrappers.pyx > src/MontagePy/tmpfile
 
-sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import pkg_resources\n\n    if fontFile == "":\n        fontFile = pkg_resources.resource_filename("MontagePy", "FreeSans.ttf")' MontagePy/_wrappers.pyx > MontagePy/tmpfile
-mv MontagePy/tmpfile MontagePy/_wrappers.pyx
+   mv src/MontagePy/tmpfile src/MontagePy/_wrappers.pyx
 
-/opt/python/cp27-cp27m/bin/python setup_manylinux.py build bdist_wheel
+   cp src/MontagePy/wrappers.pxd .
 
-auditwheel repair dist/*.whl
+   /opt/python/$VERSION/bin/python -m build --wheel
 
-rm dist/*
-
-
-# Python 3.5
-
-rm -rf MontagePy.egg-info build dist MontagePy/__pycache__
-
-/opt/python/cp35-cp35m/bin/python parse.py
-
-sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import pkg_resources\n\n    if fontFile == "":\n        fontFile = pkg_resources.resource_filename("MontagePy", "FreeSans.ttf")' MontagePy/_wrappers.pyx > MontagePy/tmpfile
-mv MontagePy/tmpfile MontagePy/_wrappers.pyx
-
-/opt/python/cp35-cp35m/bin/python setup_manylinux.py build bdist_wheel
-
-auditwheel repair dist/*.whl
-
-rm dist/*
-
-
-
-# Python 3.6
-
-rm -rf MontagePy.egg-info build dist MontagePy/__pycache__
-
-/opt/python/cp36-cp36m/bin/python parse.py
-
-sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import pkg_resources\n\n    if fontFile == "":\n        fontFile = pkg_resources.resource_filename("MontagePy", "FreeSans.ttf")' MontagePy/_wrappers.pyx > MontagePy/tmpfile
-mv MontagePy/tmpfile MontagePy/_wrappers.pyx
-
-/opt/python/cp36-cp36m/bin/python setup_manylinux.py build bdist_wheel
-
-auditwheel repair dist/*.whl
-
-rm dist/*
-
-
-
-# Python 3.7
-
-rm -rf MontagePy.egg-info build dist MontagePy/__pycache__
-
-/opt/python/cp37-cp37m/bin/python parse.py
-
-sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import pkg_resources\n\n    if fontFile == "":\n        fontFile = pkg_resources.resource_filename("MontagePy", "FreeSans.ttf")' MontagePy/_wrappers.pyx > MontagePy/tmpfile
-mv MontagePy/tmpfile MontagePy/_wrappers.pyx
-
-/opt/python/cp37-cp37m/bin/python setup_manylinux.py build bdist_wheel
-
-auditwheel repair dist/*.whl
-
-rm dist/*
-
-
-
-# Python 3.8
-
-rm -rf MontagePy.egg-info build dist MontagePy/__pycache__
-
-/opt/python/cp38-cp38/bin/python parse.py
-
-sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import pkg_resources\n\n    if fontFile == "":\n        fontFile = pkg_resources.resource_filename("MontagePy", "FreeSans.ttf")' MontagePy/_wrappers.pyx > MontagePy/tmpfile
-mv MontagePy/tmpfile MontagePy/_wrappers.pyx
-
-/opt/python/cp38-cp38/bin/python setup_manylinux.py build bdist_wheel
-
-auditwheel repair dist/*.whl
-
-rm dist/*
-
-
+done
 
 mv wheelhouse/* dist

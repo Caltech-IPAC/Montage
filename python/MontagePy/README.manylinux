@@ -1,0 +1,53 @@
+
+
+------------------------------------------------------------------
+Using Docker to Build "manylinx" Wheels for MontagePy Distribution
+------------------------------------------------------------------
+
+
+In general, pip-installable wheel files need to be made for each combination of OS and Python versions.  For Linux, that is ameliorated by use of the
+"manylinux" construct a build using a single OS version (if done right) can be run on many, if not all, other Linux versions.  This reduces the number of variant wheel files to just the current extant Python versions.
+ 
+This is widely-enough used that special Docker containers exist that package everything up in one place.  At the time of this writing (March 29, 2024) we are using
+ 
+
+      pytorch/manylinux-cuda102
+ 
+
+which is based on Centos 7 and includes Python 3.7 through Python 3.11 (in directory /opt/python) and the utility auditwheel that does final clean-up. 
+-----
+
+To start the Docker container, run
+
+
+      manylinux_docker.sh
+
+
+The instances of Python installed in the Docker container don't have a few packages that our processing needs.  In particular, the new standard wheel build process needs a package with the overly generic name of "build".  For our processing we need "Cython" and "jinja2".  Since there are five
+installations of Python and we need to update all of them, we have written a little script to streamline this process.  This script needs to be run ev
+ery time we start the Docker container.  Since whole process is run very infrequently (roughly once a year when a new version of Python comes out) we
+haven't bothered to create a custom image.
+
+We also need to add one of the Python instances (currently 3.11) to our general path so we can run Python as part of our pre-processing of the build.
+
+-----
+
+Once the Docker container has been started and we are inside it, we need to retrieve and build Montage (currently the 'develop' branch):
+
+
+      git clone https://github.com/Caltech-IPAC/Montage.git
+      git checkout develop
+      cd Montage
+      make
+
+
+Note that we aren't using the build (if it was done) outside the container where this file was found; we want code compiled inside the container.  We also do a little configuration:
+
+
+      export PATH=.:/opt/python/cp311-cp311/bin:$PATH
+
+      cd python/MontagePy
+
+      ./configure_manylinux.sh
+
+
