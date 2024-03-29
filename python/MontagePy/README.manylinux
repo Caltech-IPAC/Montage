@@ -20,7 +20,7 @@ which is based on Centos 7 and includes Python 3.7 through Python 3.11 (in direc
 To start the Docker container, run
 
 
-      manylinux_docker.sh
+   docker run --interactive --tty --user 0 pytorch/manylinux-cuda102 /bin/bash
 
 
 The instances of Python installed in the Docker container don't have a few packages that our processing needs.  In particular, the new standard wheel build process needs a package with the overly generic name of "build".  For our processing we need "Cython" and "jinja2".  Since there are five
