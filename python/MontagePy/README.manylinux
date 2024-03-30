@@ -44,10 +44,7 @@ Once the Docker container has been started and we are inside it, we need to retr
 Note that we aren't using the build (if it was done) outside the container where this file was found; we want code compiled inside the container.  We also do a little configuration:
 
 
-      export PATH=.:/opt/python/cp311-cp311/bin:$PATH
-
       cd python/MontagePy
-
       ./configure_manylinux.sh
 
 -----
@@ -58,4 +55,4 @@ Finally, we build the wheel file:
       ./make_manylinux.sh
 
 
-At the end of this, the wheel files are in the "dist" subdirectory.   
+At the end of this, the wheel files are in the "wheelhouse" subdirectory (both in the container and in a copy on the host OS in the directory where the Docker container was started).   
