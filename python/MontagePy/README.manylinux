@@ -11,16 +11,16 @@ In general, pip-installable wheel files need to be made for each combination of 
 This is widely-enough used that special Docker containers exist that package everything up in one place.  At the time of this writing (March 29, 2024) we are using
  
 
-      pytorch/manylinux-cuda102
+      quay.io/pypa/manylinux2014_x86_64
  
 
-which is based on Centos 7 and includes Python 3.7 through Python 3.11 (in directory /opt/python) and the utility auditwheel that does final clean-up. 
+which is based on Centos 7 and includes Python 3.6 through Python 3.12 (in directory /opt/python) and the utility auditwheel that does final clean-up. 
 -----
 
 To start the Docker container, run
 
 
-   docker run --interactive --tty --user 0 pytorch/manylinux-cuda102 /bin/bash
+   docker run --interactive --tty --user 0 --volume `pwd`:/external quay.io/pypa/manylinux2014_x86_64 /bin/bash
 
 
 The instances of Python installed in the Docker container don't have a few packages that our processing needs.  In particular, the new standard wheel build process needs a package with the overly generic name of "build".  For our processing we need "Cython" and "jinja2".  Since there are five
@@ -36,8 +36,8 @@ Once the Docker container has been started and we are inside it, we need to retr
 
 
       git clone https://github.com/Caltech-IPAC/Montage.git
-      git checkout develop
       cd Montage
+      git checkout develop
       make
 
 
@@ -50,4 +50,12 @@ Note that we aren't using the build (if it was done) outside the container where
 
       ./configure_manylinux.sh
 
+-----
 
+Finally, we build the wheel file:
+
+
+      ./make_manylinux.sh
+
+
+At the end of this, the wheel files are in the "dist" subdirectory.   

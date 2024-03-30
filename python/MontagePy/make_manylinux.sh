@@ -1,31 +1,15 @@
 #!/bin/sh
 
-# This script is specifit to building the 'manylinux' wheels
-# on a Centos05 platform (in our case under Docker).  Multiple
-# Python versions and the auditwheel utility (which we need to
-# to touch up wheel files for use on all "manylinux" hosts.
-#
-# The Docker image we are using is
-#
-#    pytorch/manylinux-cuda102 
-#
-# (though this changes rapidly as python version come and go).
-#
-# In this Docker container, several Python versions (e.g., 3.11)
-# are nstalled in, e.g.:
-#
-#    /opt/python/cp311-cp311/bin
-#
-# All these Python instances have 'python' and 'pip'.
-
+# This script is specific to building the 'manylinux' wheels
+# on a Centos05 platform (in our case under Docker).
 
 rm -rf wheelhouse
 
 for VERSION in $(ls /opt/python); do
 
    rm -rf src
-   rm -rf build
    rm -rf dist
+   rm -rf build
    rm -rf MontagePy.egg-info
    rm -rf wrappers.pxd
 
@@ -44,8 +28,37 @@ for VERSION in $(ls /opt/python); do
 
    auditwheel repair dist/*.whl
 
-   rm dist/*
-
 done
 
-mv wheelhouse/* dist
+
+
+# Get the host OS file permissions.  The host directory
+# where we started Docker is mounted inside the container
+# as '/external'.
+
+LSLINE=`ls -l / | grep external`
+
+LSWORDS=($LSLINE)
+
+HOST_UID=${LSWORDS[2]}
+HOST_GID=${LSWORDS[3]}
+
+
+
+# Copy the wheel files to the host and set ownership.
+
+rm -rf /external/wheelhouse
+mkdir  /external/wheelhouse
+
+chown $HOST_UID /external/wheelhouse
+chgrp $HOST_GID /external/wheelhouse
+
+
+for WHEEL in $(ls wheelhouse); do
+
+   cp wheelhouse/$WHEEL /external/wheelhouse/$WHEEL
+
+   chown $HOST_UID /external/wheelhouse/$WHEEL
+   chgrp $HOST_GID /external/wheelhouse/$WHEEL
+
+done
