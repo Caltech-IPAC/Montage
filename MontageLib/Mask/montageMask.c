@@ -12,7 +12,6 @@ Version  Developer        Date     Change
 #include <string.h>
 #include <strings.h>
 #include <math.h>
-#include <malloc.h>
 #include <coord.h>
 
 #include <mMask.h>

@@ -141,7 +141,7 @@ int main(int argc, char **argv)
             break;
 
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
+            printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
             exit(1);
             break;
       }
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
    if(argc-optind < 5)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScript [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mHiPSPNGScripts [-d][-s(ingle-threaded)][-h(ave-images)][-b brightness][-c contrast][-t color-table] scriptdir tiledir histfile [tiledir2 histfile2 tiledir3 histfile3] imglist pngdir\"]\n");
       exit(1);
    }
 
@@ -955,8 +955,12 @@ int mHiPSPNGScripts_processFiles(char *pathname)
          fprintf(fjob, "%s\n", cmd);
          fflush(fjob);
 
-         sprintf(cmd, "mViewer -ct %d -brightness %-g -contrast %-g \\\n -gray %s -histfile histfile1 \\\n -png %s",
-            ct, brightness, contrast, transfile1, pngfile);
+         if(cloud)
+            sprintf(cmd, "mViewer -ct %d -brightness %-g -contrast %-g \\\n -gray %s -histfile histfile1 \\\n -png %s",
+               ct, brightness, contrast, transfile1, pngfile);
+         else
+            sprintf(cmd, "mViewer -ct %d -brightness %-g -contrast %-g \\\n -gray %s -histfile %s \\\n -png %s",
+            ct, brightness, contrast, transfile1, histfile1, pngfile);
 
          if(debug)
          {

@@ -10,7 +10,7 @@
       {"type":"string",                    "name":"fname1",      "desc":"First image."},
       {"type":"string",                    "name":"fname2",      "desc":"Second image."},
       {"type":"string",                    "name":"diffname",    "desc":"Difference image (output)."},
-      {"type":"string",                    "name":"template",    "desc":"FITS header file used to define the desired."},
+      {"type":"string",                    "name":"template",    "desc":"FITS header file used to define the projection."},
       {"type":"boolean", "default":false,  "name":"keep",        "desc":"Flag to keep temporary diff image."},
       {"type":"boolean", "default":false,  "name":"levelOnly",   "desc":"Flag to fit level of diff only, not slopes."},
       {"type":"boolean", "default":false,  "name":"noAreas",     "desc":"Flag indicating there are no area images."},
