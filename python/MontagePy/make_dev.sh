@@ -1,15 +1,16 @@
 #!/bin/sh
 
-# This script is for our local use but is easily modified.
+# This script is for our local use but should work on most 
+# systems and is easily modified.
 
-rm -rf src/MontagePy/main.pyx
-rm -rf src/MontagePy/_wrappers.pyx
-rm -rf src/MontagePy/wrappers.pxd
+rm -rf src
+rm -rf build
+rm -rf dist
+rm -rf MontagePy.egg-info
 rm -rf wrappers.pxd
 
-rm -rf dist/*
-
-cp setup_manylinux.py setup.py
+mkdir -p src/MontagePy
+cp ../../data/fonts/FreeSans.ttf src/MontagePy
 
 python parse.py
 
