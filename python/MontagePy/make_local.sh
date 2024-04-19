@@ -1,13 +1,23 @@
-# /bin/sh
+#!/bin/sh
 
-rm -rf wheelhouse dist
-rm -rf MontagePy.egg-info build MontagePy/__pycache__
-rm -f main.c main.pyx _wrappers.c wrappers.pxd _wrappers.pyx
+# This script is for our local use but should work on most 
+# systems and is easily modified.
+
+rm -rf src
+rm -rf build
+rm -rf dist
+rm -rf MontagePy.egg-info
+rm -rf wrappers.pxd
+
+mkdir -p src/MontagePy
+cp ../../data/fonts/FreeSans.ttf src/MontagePy
 
 python parse.py
 
-sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import pkg_resources\n\n    if fontFile == "":\n        fontFile = pkg_resources.resource_filename("MontagePy", "FreeSans.ttf")' _wrappers.pyx > tmpfile
+sed '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import importlib_resources\n\n    if fontFile == "":\n        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")' src/MontagePy/_wrappers.pyx > src/MontagePy/tmpfile
 
-mv tmpfile _wrappers.pyx
+mv src/MontagePy/tmpfile src/MontagePy/_wrappers.pyx
 
-python setup_manylinux.py build bdist_wheel
+cp src/MontagePy/wrappers.pxd .
+
+python -m build --wheel
