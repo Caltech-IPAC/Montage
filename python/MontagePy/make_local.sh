@@ -7,7 +7,6 @@ rm -rf src
 rm -rf build
 rm -rf dist
 rm -rf MontagePy.egg-info
-rm -rf wrappers.pxd
 
 mkdir -p src/MontagePy
 cp ../../data/fonts/FreeSans.ttf src/MontagePy

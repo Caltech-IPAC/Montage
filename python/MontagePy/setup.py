@@ -19,14 +19,10 @@ os.environ['ARCHFLAGS'] = '-arch x86_64'
 
 extensions = [
     Extension('MontagePy._wrappers', ['src/MontagePy/_wrappers.pyx'],
-        include_dirs = [os.path.join(LIB, 'include'),
-                        os.path.join(LIB, 'src', 'bzip2-1.0.6'),
-                        MONTAGELIB, 'src/MontagePy'],
+        include_dirs = [os.path.join(LIB, 'include'), MONTAGELIB],
         extra_objects = objs),
 
-    Extension('MontagePy.main', ['src/MontagePy/main.pyx'],
-        include_dirs = [os.path.join(LIB, 'include'),
-                        MONTAGELIB, 'src/MontagePy'])
+    Extension('MontagePy.main', ['src/MontagePy/main.pyx'])
 ]
 
 setup(
