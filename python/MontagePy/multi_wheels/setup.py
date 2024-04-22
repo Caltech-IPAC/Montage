@@ -1,9 +1,9 @@
 import os
+import platform
 
 from setuptools import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
-import platform
 
 TOP        = os.path.abspath(os.path.join(os.getcwd(), 'Montage'))
 LIB        = os.path.join(TOP, 'lib')
@@ -20,13 +20,13 @@ os.environ['CFLAGS'   ] = ''
 os.environ['ARCHFLAGS'] = '-arch ' + machine
 
 extensions = [
-    Extension('MontagePy._wrappers', ['_wrappers.pyx'],
+    Extension('MontagePy._wrappers', ['src/MontagePy/_wrappers.pyx'],
         include_dirs = [os.path.join(LIB, 'include'),
                         os.path.join(LIB, 'src', 'bzip2-1.0.6'),
                         MONTAGELIB],
         extra_objects = objs),
 
-    Extension('MontagePy.main', ['main.pyx'],
+    Extension('MontagePy.main', ['src/MontagePy/main.pyx'],
         include_dirs = [os.path.join(LIB, 'include'),
                         MONTAGELIB])
 ]

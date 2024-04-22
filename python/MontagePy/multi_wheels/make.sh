@@ -45,14 +45,12 @@ if [ "$KERNEL" == "Darwin" ] ; then
    export MACOSX_DEPLOYMENT_TARGET='11.1'
 fi
 
-echo "$KERNEL"
-echo "$OS"
-echo "$SED"
-echo "$CIBW_ARCHS"
-echo "$CIBW_BUILD"
-echo "$CIBW_BUILD_FRONTEND"
-
-exit 1
+echo "KERNEL>             " "$KERNEL"
+echo "OS>                 " "$OS"
+echo "SED>                " "$SED"
+echo "CIBW_ARCHS>         " "$CIBW_ARCHS"
+echo "CIBW_BUILD>         " "$CIBW_BUILD"
+echo "CIBW_BUILD_FRONTEND>" "$CIBW_BUILD_FRONTEND"
 
 
 # Up-front cleanup
@@ -100,16 +98,7 @@ mv tmpfile _wrappers.pyx
 
 # Build all the MacOS-related wheels
 
-python run cibuildwheel --platform $OS > build.out
+pip install pipx
 
+pipx run cibuildwheel --platform $OS
 
-# Post cleanup
-
-# rm -rf src
-# rm -rf build
-# rm -rf dist
-# rm -rf MontagePy.egg-info
-# rm -rf wrappers.pxd
-# rm -rf _wrappers.pyx
-# rm -rf main.pyx
-# rm -rf Montage lib/*
