@@ -1,8 +1,11 @@
 import os
+import platform
 
 from setuptools import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
+
+machine = platform.machine()
 
 TOP        = os.path.abspath(os.path.join(os.getcwd(), '../..'))
 
@@ -15,7 +18,7 @@ for obj in os.listdir('lib'):
 
 os.environ['CC'       ] = 'gcc'
 os.environ['CFLAGS'   ] = ''
-os.environ['ARCHFLAGS'] = '-arch x86_64'
+os.environ['ARCHFLAGS'] = '-arch ' + machine
 
 extensions = [
     Extension('MontagePy._wrappers', ['src/MontagePy/_wrappers.pyx'],
