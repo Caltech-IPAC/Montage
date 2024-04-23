@@ -1,4 +1,0 @@
-
-These files are for builds a set of Python wheels for multiple target systems using cibuildwheels (and, in the case of Linux) a standard 'manylinux' Docker container.  While kept here, it doesn't use this copy of Montage but rather draws a new one from the Montage development branch on GitHub.
-
-So the best idea is to copy just this directory to a separate place on build machine and run this 'make.sh' there.

@@ -27,25 +27,13 @@
 # Different settings are used for Linux, so we set things depending on what 'uname'
 # says about the system.
 
+export OS='macos'
 export CIBW_BUILD='*'
 export CIBW_BUILD_FRONTEND='build'
+export CIBW_ARCHS='universal2'
+export MACOSX_DEPLOYMENT_TARGET='11.1'
+export SED='gsed'
 
-KERNEL=$(uname -s)
-
-if [ "$KERNEL" == "Linux" ] ; then
-   export OS='linux'
-   export CIBW_ARCHS='x86_64'
-   export SED='sed'
-fi
-
-if [ "$KERNEL" == "Darwin" ] ; then
-   export OS='macos'
-   export CIBW_ARCHS='universal2'
-   export SED='gsed'
-   export MACOSX_DEPLOYMENT_TARGET='11.1'
-fi
-
-echo "KERNEL>             " "$KERNEL"
 echo "OS>                 " "$OS"
 echo "SED>                " "$SED"
 echo "CIBW_ARCHS>         " "$CIBW_ARCHS"
