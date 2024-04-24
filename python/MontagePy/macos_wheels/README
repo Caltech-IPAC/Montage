@@ -21,7 +21,7 @@ But there is yet another wrinkle.  Mac has been transitioning to a different chi
 
 ---
 
-Next, we have to decide which Python versions we want to support and install those on our build Mac.  At the moment the supported versions are 3.8 through 3.12, though both this and the MacOSX versions tend to change every year.  Python versions for MacOSX come as standard .pkg files and install to /System/Library/Frameworks/Python.framework/Versions.  There is a Mac program called "installer" that you can use, but just doing it manually through the GUI is good enough.
+Next, we have to decide which Python versions we want to support and install those on our build Mac.  At the moment the supported versions are 3.8 through 3.12, though both this and the MacOSX versions tend to change every year.  Python versions for MacOSX come as standard .pkg files and install to /Library/Frameworks/Python.framework/Versions.  There is a Mac program called "installer" that you can use, but just doing it manually through the GUI is good enough.
 
 ---
 
