@@ -1,114 +1,52 @@
 
-=========
-MontagePy
-=========
+Building a Montage Python Binary Extension 
+------------------------------------------
 
-Montage is a toolkit for mosaicking and visualizing astronomical images.
-It contains dozens of routines for reprojecting FITS images and datacubes,
-matching backgrounds for a collection of reprojected images, coadding with
-proper attention to weighting, and visualizing the results with a variety
-of overlays (source catalogs, image set metadata, coordinate grids).
+If you want to build Python binary extension wheels for Montage generally,
+things get complicated.  This is covered for Linux and MacOS in two 
+subdirectories.  But for most people who want to buid wheel for their own
+use and on the machine where they will use it, the process is quite 
+straightforward.
 
-All standard projections are available, plus a couple of specialized ones
-(HEALPix and WWT TOAST).  Focal plane distortion models are also supported
-using the SAO WCS library.
+In fact for Linux, all you need to do is install a few packages in Python
+and run the "make_local.sh" script included here.  There result is a 
+wheel (zip) file in the "dist" subdirectory which you can then "pip 
+install" into Python (if you already have Montage install using the same
+version number, you might have to run "pip uninstall MontagePy" first).
 
+The packages needed are "jinja2" and "build".
 
-Reprojecting
-============
-Different use cases are best served with customized approached to 
-image reprojection and Montage has four:
+For MacOSX, there are few additional things that have to be done.
+The most important has to do with the way OSX deals with building code
+that needs to run on multiple OS versions.  Mac executable are generally
+forward version compatible.  That is, if you build it on an older version
+it will also run on anything newer.  Their compiler can also be told to
+build for a previous OS version (the "deployment target").  So people 
+building distributable code usually target a version a few years old.
 
-* mProject, which handles all projections and is reliably flux conserving.
-  While the most flexible, it is also the slowest.
+It gets more complicated when you need to link with libraries built by
+someone else (as we have to do with Python).  Then your choice of target
+version has to match theirs.  Right now, the current MacOSX version is 14.4
+but the Python version we can install are all built with a target of 11.1
+(Anaconda; the version for the build from python.org is 10.9).
 
-* mProjectPP, which is also flux conserving and much faster but only
-  supports a few (tangent plane) projections.  However, since TAN is 
-  by far the most commonly-used projection, it is commonly used.
+Therefore we have to make sure all our code is compiled to the same target.
+This is done with an environment variable:
 
-* mProjectQL is not 100% flux conserving but the fastest of the three.
-  It supports all projections and the algorithm is similar the that
-  used by the SWARP package.  While not flux conserving in theory, 
-  all tests so far have found it's output to be indistinguishable from
-  the above routines.
+   MACOSX_DEPLOYMENT_TARGET='11.1' 
 
-* mProjectCube is a variant of mProject extended and optimized for 
-  image cubes (images with a third/fourth dimension).
+Next, the Mac comes in two hardware flavors, x86_64 chips and ARM64.
+Their recommended approach is to construct "universal2" object code, where
+both versions are generated and kept in a single file (executable, .o
+ or .so).  Since here we are just building for the local hardware, we
+can let the compiler default to that.
 
+Finally, the build includes one "sed" call, which is currently set 
+up to use GNU sed (the Linux default).  The Mac doesn't support this
+out of the box and we may update this to something that works the same
+on both versions in thd future but for now the simplest thing is to install
+the GNU sed (using "brew install gnu-sed") and change the "make_local"
+script to use "gsed" instead of "sed".  
 
-Background Matching
-===================
-Montage relies on image data having been taken with overlaps between
-the individual images for matching backgrounds.  The image-image 
-differences are individually computed and fit (to get offset levels
-and optionally slopes), then a global relaxation technique is used to
-determine the best individual image offsets to apply to minimize the
-overall differences.
-
-Various instrumental and observing anomolies (like persistence issues
-and transient airglow) in the individual images can compromise this
-process but it will still produce the best model available without
-those artifacts being removed beforehand.
-
-
-Coaddition into Final Mosaic
-============================
-All through the reprojection and correction process, individual 
-pixel weights are maintained.  This incudes any input weighting that
-may have been given (the reprojection algorithms support this) and 
-keeping track of fractional pixel effects around the image edges and
-any "holes" in the images.
-
-The final coaddition takes this weighting into account when coadding
-and the coadding process can take different forms (sum, average,
-mid-average or even just count), though the default is a simple 
-averaging in the normal case where the image data represents flux 
-density.
-
-
-Visualization
-=============
-The main Montage visualization routine (mViewer) can produce PNG or
-JPEG images of either a single image (grayscale or psuedo-color) or
-three image (red, green, blue) plus any number of overlays.
-
-Some ancillary Montage tools often used with mViewer include:
-
-* mSubimage, to cut out regions of a FITS image, either based on
-  sky location or pixel range.
-
-* mShrink, to shrink (or expand) a FITS image through (fractional)
-  pixel replication.
-
-* mHistogram, which can pre-generate a histogram used by mViewer.
-  mViewer can generate the same histogram on the fly for a single
-  image but with mHistogram the same stretch can be applied to a
-  set of images (e.g. tiles for display).
-
-
-Ancillary Tools
-===============
-There are a number of other support tools, mainly reflecting issues
-that arose in the course of working with image sets:
-
-* mImgtbl, which scans directories/trees for FITS images with 
-  WCS in the header.  Most commonly used on a structured collection
-  in a single subdirectory as part of the above processing.
-
-* mGetHdr/mPutHdr, for fixing errant FIT headers.  mGetHdr pulls 
-  the entire FITS header out into an editable text files, then
-  mPutHdr can be used to create a new image from the old using
-  the edited text as a replacement header.
-
-* mFixNaN.  There is a lot of data where pixels that should be 
-  "blank" (i.e. floating point NaN values) are stored as some 
-  other value (frequently zero).  This routine can be used to 
-  fix that.
-
-* Executives: Several steps in the mosaicking process involves 
-  looping over an image list (reprojection, background analysis
-  and background correction).  Montage contains executive processes
-  (e.g. mProjExec) to simplify the process.
-
-And there is a growing list of other such routines.
-
+After that the process describe in the second paragraph above is the
+same.
