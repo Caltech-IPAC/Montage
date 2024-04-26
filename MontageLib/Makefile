@@ -245,9 +245,6 @@ pythonlibs:
 
 		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
 		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
-		cp ../lib/src/bzip2-1.0.6/compress.o         ../python/MontagePy/lib/bzip2_compress.o
-		cp ../lib/src/cfitsio-3.25/compress.o        ../python/MontagePy/lib/compress.o
-# The last four lines are needed because we have .o file name conflicts
 
 doc:
 			gcc -o mLibDoc mLibDoc.c
