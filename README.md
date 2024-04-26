@@ -37,6 +37,8 @@ target and we are building as many of these as we can and pushing them
 to PyPI but if someone want to extend Montage for their own use they
 can use the same infrastructure to build custom wheels as well.
 
+The Montage 6.0 release can be accessed via git tag "v6.1".
+
 --------------
 
 Montage (http://montage.ipac.caltech.edu) is an Open Source toolkit,
