@@ -332,10 +332,7 @@ int main(int argc, char **argv, char **envp)
 
    double allowedError;
 
-   double ra[4], dec[4];
    double rac, decc;
-   double x1, y1, z1;
-   double x2, y2, z2;
    double xpos, ypos;
    double dtr;
 
@@ -944,7 +941,6 @@ int main(int argc, char **argv, char **envp)
       if(fhdr == (FILE *)NULL)
          printerr("Can't open header template file");
 
-
       bhdr = fopen("big_region.hdr", "w+");
 
       if(bhdr == (FILE *)NULL) 
@@ -1100,8 +1096,6 @@ int main(int argc, char **argv, char **envp)
 
       npts = 0;
 
-      convertCoordinates(sys, epoch, xpos, ypos,
-                         EQUJ, 2000., &rac, &decc, 0.0);
 
       // BOTTOM
       
@@ -1122,7 +1116,6 @@ int main(int argc, char **argv, char **envp)
          }
       }
 
-      pix2wcs(wcs, wcs->nxpix+0.5, wcs->nypix+0.5, &xpos, &ypos);
 
       // TOP   
       
@@ -1299,9 +1292,6 @@ int main(int argc, char **argv, char **envp)
 
          lasttime = currtime;
 
-         // scale = scale * 1.42;
-         scale = scale * 2.00;
-       
          if(noSubset)
             sprintf(cmd, "mArchiveList %s %s \"%.4f %.4f eq j2000\" %.2f %.2f remote.tbl", 
                survey[iband], band[iband], rac, decc, width, height);
@@ -1460,7 +1450,6 @@ int main(int argc, char **argv, char **envp)
                fflush(finfo);
             }
 
-            sprintf(cmd, "mArchiveExec ../remote.tbl");
 
             /***********************************/ 
             /* Open the region list table file */
@@ -1482,7 +1471,6 @@ int main(int argc, char **argv, char **envp)
                exit(1);
             }
 
-            svc_run(cmd);
 
             /*****************************************/ 
             /* Read the records and call mArchiveGet */
@@ -1588,19 +1576,9 @@ int main(int argc, char **argv, char **envp)
             }
 
             lasttime = currtime;
-
-            if(debug >= 4)
-            {
-               fprintf(fdebug, "chdir to [%s]\n", workspace[iband]);
-               fflush(fdebug);
-            }
-
-            chdir(workspace[iband]);
          }
       }
 
-
-      
 
       /********************************************/ 
       /* Create and open the raw image table file */
@@ -1720,43 +1698,6 @@ int main(int argc, char **argv, char **envp)
       }
 
       chdir(workspace[iband]);
-
-      sprintf(cmd, "mv %s/rimages_full.tbl .", rawdir);
-
-      if(debug >= 4)
-      {
-         fprintf(fdebug, "[%s]\n", cmd);
-         fflush(fdebug);
-      }
-
-      system(cmd);
-
-      sprintf(cmd, "mCoverageCheck rimages_full.tbl rimages.tbl -header region.hdr");
-
-      if(debug >= 4)
-      {
-         fprintf(fdebug, "[%s]\n", cmd);
-         fflush(fdebug);
-      }
-
-      svc_run(cmd);
-
-      strcpy( status, svc_value( "stat" ));
-
-      if(strcmp( status, "ERROR") == 0)
-      {
-         strcpy (msg, svc_value( "msg" ));
-         printerr(msg);
-      }
-
-      nimages = atof(svc_value("count"));
-
-      if (nimages == 0)
-      {
-         sprintf( msg, "%s/%s has no data covering area", survey[iband], band[iband]);
-
-         printerr(msg);
-      }
 
       ncols = topen("rimages.tbl");
 
@@ -2496,9 +2437,6 @@ int main(int argc, char **argv, char **envp)
                fflush(finfo);
             }
 
-      /***************************************/ 
-      /* Open the difference list table file */
-      /***************************************/ 
 
             /***************************************************/ 
             /* Read the records and call mDiff, then mFitplane */
@@ -2680,7 +2618,6 @@ int main(int argc, char **argv, char **envp)
             lasttime = currtime;
          }
 
-            strcpy( status, svc_value( "stat" ));
 
          /*********************************/
          /* Generate the correction table */
@@ -2740,18 +2677,10 @@ int main(int argc, char **argv, char **envp)
                fprintf(finfo, "<hr style='color: #fefefe;' />\n");
                fflush(finfo);
             }
-         }
 
             lasttime = currtime;
          }
 
-         if(finfo)
-         {
-            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d diffs, %d successful, %d failed)</p>\n",
-               (int)(currtime - lasttime), count, count-failed, failed);
-            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
-            fflush(finfo);
-         }
 
          /**************************************/ 
          /* Background correct all the images  */
@@ -2772,7 +2701,6 @@ int main(int argc, char **argv, char **envp)
                fflush(finfo);
             }
 
-         svc_run(cmd);
 
             /**************************************/
             /* Allocate space for the corrections */
@@ -2836,8 +2764,6 @@ int main(int argc, char **argv, char **envp)
          
             tclose();
 
-            printerr(msg);
-         }
 
             /***************************************************/ 
             /* Read through the image list.                    */
@@ -2929,29 +2855,7 @@ int main(int argc, char **argv, char **envp)
                   unlink(areafile);
                }
 
-            if(finfo)
-            {
-               fprintf(finfo, "<span style='color: blue;'><tt>%s</tt></span><br/>\n", cmd);
-               fflush(finfo);
             }
-
-            svc_run(cmd);
-
-            if(strcmp( status, "ABORT") == 0)
-            {
-               strcpy( msg, svc_value( "msg" ));
-
-               printf("[struct stat=\"ERROR\", msg=\"%s\"]\n", msg);
-               fflush(stdout);
-
-               exit(1);
-            }
-
-            strcpy( status, svc_value( "stat" ));
-
-            ++count;
-            if(strcmp( status, "ERROR") == 0)
-               ++failed;
 
             if(!keepAll)
             {
@@ -2983,24 +2887,6 @@ int main(int argc, char **argv, char **envp)
 
             lasttime = currtime;
          }
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mBackground      %6d (%d corrected)\n", (int)(currtime - lasttime), count);
-            fflush(fdebug);
-         }
-
-         if(finfo)
-         {
-            fprintf(finfo, "<p>TIME: <span style='color:red; font-size: 16px;'>%d sec</span> (%d images corrected)</p>\n",
-               (int)(currtime - lasttime), count);
-            fprintf(finfo, "<hr style='color: #fefefe;' />\n");
-            fflush(finfo);
-         }
-
-         lasttime = currtime;
       }
 
 
@@ -3056,17 +2942,6 @@ int main(int argc, char **argv, char **envp)
             fflush(finfo);
          }
 
-         svc_run(cmd);
-
-         time(&currtime);
-
-         if(debug >= 1)
-         {
-            fprintf(fdebug, "TIME: mImgtbl(corr)    %6d\n", (int)(currtime - lasttime));
-            fflush(fdebug);
-         }
-
-         lasttime = currtime;
 
          if(ntile*mtile == 1)
          {
@@ -3439,8 +3314,6 @@ int main(int argc, char **argv, char **envp)
             tclose();
          }
 
-         tclose();
-
          if(!keepAll)
          {
             unlink("big_region.hdr");
@@ -3549,8 +3422,6 @@ int main(int argc, char **argv, char **envp)
 
             system(cmd);
          }
-
-         system(cmd);
       }
 
       if(!noBackground)
@@ -3767,8 +3638,6 @@ int main(int argc, char **argv, char **envp)
          fflush(fdebug);
       }
 
-   if(strlen(pngFile) > 0)
-   {
       if(nband == 1)
       {
          if(finfo)
