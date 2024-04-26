@@ -140,8 +140,7 @@ base_libs = $(addprefix $(CM_BASE_DIR)/lib/, \
 	libconfig.a libvarcmd.a libmtbl.a libsvc.a libjson.a)
 tps_libs = $(addprefix $(CM_TPS_DIR)/lib/, \
 	libcfitsio.a libwcs.a libnedcli.a libsimcli.a)
-env_libs =  $(addprefix $(CM_ENV_DIR)/misc/lib/, libscew.a) $(addprefix $(CM_ENV_DIR)/core/lib64/, libcrypto.a)
-
+env_libs =  $(addprefix $(CM_ENV_DIR)/misc/lib/, libscew.a) /usr/lib64/libcrypto.so
 
 
 # ================================================================
@@ -192,33 +191,28 @@ nph-mViewerHdr :	$(srcmviewerhdr:.c=.o) $(base_libs)
 
 # Cleans the build tree
 clean :
-		rm -f *.o $(progs) ./.build_env core webcontent.tar data.tar
+		rm -f *.o $(progs) ./.build_env core webcontent.tar
 
 # The same as clean
 distclean :	clean
 
 # Creates required installation directories
 installdirs :
-#		$(INSTALL_DIR) $(datadir) $(cgidir) $(appdir)
 		$(INSTALL_DIR) $(cgidir) $(appdir)
 
 
 
 # Creates a tar-ball for all web content
 FORCE:
-data.tar : FORCE
-		tar -cf $@ -C $(srcdir)/data .
+#data.tar : FORCE
 webcontent.tar : FORCE 
 		tar -cf $@ -C $(srcdir)/html .
 
 
 # Installs executables
-install :       $(progs) data.tar webcontent.tar installdirs 
+install :       $(progs) webcontent.tar installdirs 
 		tar -cf webcontent.tar -C $(srcdir)/html .
 		$(INSTALL_PROGRAM) $(progs) $(cgidir)
-#		rm -rf $(datadir)/*
-#		$(INSTALL_DATA) data.tar $(datadir)
-#		cd $(datadir); tar -xf data.tar; rm data.tar
 		rm -rf $(appdir)/*
 		$(INSTALL_DATA) webcontent.tar $(appdir)
 		cd $(appdir); tar -xf webcontent.tar; rm webcontent.tar
@@ -227,7 +221,6 @@ install :       $(progs) data.tar webcontent.tar installdirs
 
 # Uninstalls the product
 uninstall :
-#		rm -rf $(cgidir) $(appdir) $(datadir)
 		rm -rf $(cgidir) $(appdir)
 
 # ================================================================

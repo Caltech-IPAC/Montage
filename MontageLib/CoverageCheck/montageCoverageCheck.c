@@ -105,19 +105,25 @@ Version  Developer        Date     Change
 /*                         (i.e. for a subset of projections) and we     */
 /*                         don't have the four corners in the metadata.  */
 /*                                                                       */
+/*   double xoff           For use with all-sky wrap-around situations;  */
+/*   double yoff           shift location by xoff,yoff pixels and check  */
+/*                         again if point is inside template. This       */
+/*                         constitutes a shift of 360 degrees in         */
+/*                         longitude.                                    */
+/*                                                                       */
 /*   int    debug          Debugging output level                        */
 /*                                                                       */
 /*************************************************************************/
 
 struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int modein, char *hdrfile, 
-                                            int narray, double *array, char *inpath, int debug)
+                                            int narray, double *array, char *inpath,
+                                            double xoff, double yoff, int debug)
 {
-
    int    i, j, inext, jnext,  offscl, ii, blankRec;
    int    tblmode, stat, ncol, nrow, is_covered; 
    int    status, clockwise, interior, intersectionCode;
    int    ibegin, jbegin, iend, jend, nelements, imode;
-
+   int    haveHeaderCorners=1, isHPX=0, hpxPix=0, hpxLevel;
 
    FILE  *fout;
 
@@ -128,24 +134,42 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
    double lon, lat;
    double loni, lati;
    double xmin, xmax, ymin, ymax;
-   double dot, ra, dec;
-   double center_ra, center_dec, box_xsize, box_ysize, xsize, ysize;
+   double dot, ra, dec, dist;
+   double center_ra, center_dec;
+
    double new_center_ra, new_center_dec;
-   double box_rotation, box_radius, circle_radius, dist;
    double center_dist, scale_factor;
-   double point_ra[256], point_dec[256], xpix, ypix;
+   double xpix, ypix;
+   double xpos, ypos;
+   double oxpix, oypix;
    double dtr;
+
+   double *point_ra  = (double *)NULL;
+   double *point_dec = (double *)NULL;
+
+   double box_xsize     = 0.;
+   double box_ysize     = 0.;
+   double box_rotation  = 0.;
+   double xsize         = 0.;
+   double ysize         = 0.;
+   double circle_radius = 0.;
+   double box_radius    = 0.;
+
+   struct bndInfo *box = (struct bndInfo *)NULL;
 
    char  *checkWCS;
 
-   Vec    point[256], center, edge;
-   Vec    point_normal[256];
+   Vec    *point        = (Vec *)NULL;
+   Vec    *point_normal = (Vec *)NULL;
+
+   Vec    center, edge;
    Vec    normal1, normal2, direction;
 
-   int    npoints;
+   int    npoints = 0;
 
    char   proj[16];
-   int    csys;
+   int    csys = 0;
+   int    csys_region = 0;
 
    int    ictype1;
    int    ictype2;
@@ -172,22 +196,23 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
    char   ctype1[256];
    char   ctype2[256];
 
-   int    nl, naxis1;
-   int    ns, naxis2;
+   int    nl, naxis1 = 0;
+   int    ns, naxis2 = 0;
 
    int    equinox;
-   double epoch;
+   double epoch = 0.;
+   double epoch_region = 0.;
 
-   double crpix1;
-   double crpix2;
+   double crpix1 = 0.;
+   double crpix2 = 0.;
 
-   double crval1;
-   double crval2;
+   double crval1 = 0.;
+   double crval2 = 0.;
 
-   double cdelt1;
-   double cdelt2;
+   double cdelt1 = 0.;
+   double cdelt2 = 0.;
 
-   double crota2;
+   double crota2 = 0.;
 
    double image_center_ra, image_center_dec;
    double image_corner_ra[4], image_corner_dec[4];
@@ -223,15 +248,19 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
    struct mCoverageCheckReturn *returnStruct;
 
 
+   if(debug)
+   {
+      printf("montageCoverageCheck: DEBUG on.\n");
+      fflush(stdout);
+   }
+
+   wcsbox = (struct WorldCoor *)NULL;
+   wcsimg = (struct WorldCoor *)NULL;
+
    if(inpath == (char *)NULL)
       strcpy(path, "");
    else
       strcpy(path, inpath);
-
-
-   box_xsize    = 0.;
-   box_ysize    = 0.;
-   box_rotation = 0.;
 
    strcpy(in.sys,   "EQ");
    strcpy(in.fmt,   "DDR");
@@ -301,6 +330,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       center.y = 0.;
       center.z = 0.;
 
+      point_ra     = (double *) malloc(narray * sizeof(double));
+      point_dec    = (double *) malloc(narray * sizeof(double));
+
+      point        = (Vec *) malloc(narray * sizeof(Vec));
+      point_normal = (Vec *) malloc(narray * sizeof(Vec));
+
       for(i=0; i<narray; i+=2)
       {
          point_ra [npoints] = array[i];
@@ -309,6 +344,10 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          point[npoints].x = cos(point_ra[npoints]*dtr) * cos(point_dec[npoints]*dtr);
          point[npoints].y = sin(point_ra[npoints]*dtr) * cos(point_dec[npoints]*dtr);
          point[npoints].z = sin(point_dec[npoints]*dtr);
+
+         point_normal[npoints].x = 0.;
+         point_normal[npoints].y = 0.;
+         point_normal[npoints].z = 0.;
 
          center.x += point[npoints].x;
          center.y += point[npoints].y;
@@ -329,7 +368,15 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       if(status < 0)
       {
-         sprintf(returnStruct->msg, "Failed to find bounding polygon for points");
+         if(point_ra)     free(point_ra);
+         if(point_dec)    free(point_dec);
+         if(point)        free(point);
+         if(point_normal) free(point_normal);
+
+         if(wcsbox) wcsfree(wcsbox);
+         if(wcsimg) wcsfree(wcsimg);
+
+         sprintf(returnStruct->msg, "Failed to find bounding polygon for set of points");
          return returnStruct;
       }
 
@@ -382,6 +429,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                    point[i].x, point[i].y, point[i].z);
 
          printf("\nBounding radius: %11.6f\n", box_radius);
+         fflush(stdout);
       }
    }
 
@@ -456,13 +504,19 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          strcpy(returnStruct->msg, checkWCS);
          return returnStruct;
       }
-                      
-      pix2wcs(wcsbox,              -0.5,              -0.5, &point_ra[0], &point_dec[0]);
-      pix2wcs(wcsbox, wcsbox->nxpix+0.5,              -0.5, &point_ra[1], &point_dec[1]);
-      pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &point_ra[2], &point_dec[2]);
-      pix2wcs(wcsbox,              -0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]);
 
       npoints = 4;
+
+      point_ra     = (double *) malloc(npoints * sizeof(double));
+      point_dec    = (double *) malloc(npoints * sizeof(double));
+
+      point        = (Vec *) malloc(npoints * sizeof(Vec));
+      point_normal = (Vec *) malloc(npoints * sizeof(Vec));
+                      
+      pix2wcs(wcsbox,               0.5,               0.5, &point_ra[0], &point_dec[0]);
+      pix2wcs(wcsbox, wcsbox->nxpix+0.5,               0.5, &point_ra[1], &point_dec[1]);
+      pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &point_ra[2], &point_dec[2]);
+      pix2wcs(wcsbox,               0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]);
 
       box_radius = 0;
 
@@ -471,6 +525,10 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          point[i].x = cos(point_ra[i]*dtr) * cos(point_dec[i]*dtr);
          point[i].y = sin(point_ra[i]*dtr) * cos(point_dec[i]*dtr);
          point[i].z = sin(point_dec[i]*dtr);
+
+         point_normal[i].x = 0.;
+         point_normal[i].y = 0.;
+         point_normal[i].z = 0.;
 
          dist = acos(mCoverageCheck_Dot(&point[i], &center)) / dtr;
 
@@ -507,13 +565,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          if (debug)
          {
             printf("\nXsize= %11.6f, Ysize=%11.6f\n", xsize, ysize);
+            fflush(stdout);
          }
       }
    }
 
 
-   /* If the mode is HEADER, use the WCS library     */
-   /* to determine the points and a bounding circle. */
+   /* If the mode is HEADER, we will find the corners and then */
+   /* treat it the same as BOX.                                */
 
    else if(imode == HEADER)
    {
@@ -527,137 +586,132 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       if(wcsbox->syswcs == WCS_J2000)
       {
-         csys  = EQUJ;
-         epoch = 2000.;
+         csys_region  = EQUJ;
+         epoch_region = 2000.;
 
          if(wcsbox->equinox == 1950.)
-            epoch = 1950;
+            epoch_region = 1950;
       }
       else if(wcsbox->syswcs == WCS_B1950)
       {
-         csys  = EQUB;
-         epoch = 1950.;
+         csys_region  = EQUB;
+         epoch_region = 1950.;
 
          if(wcsbox->equinox == 2000.)
-            epoch = 2000.;
+            epoch_region = 2000.;
       }
       else if(wcsbox->syswcs == WCS_GALACTIC)
       {
-         csys  = GAL;
-         epoch = 2000.;
+         csys_region  = GAL;
+         epoch_region = 2000.;
       }
       else if(wcsbox->syswcs == WCS_ECLIPTIC)
       {
-         csys  = ECLJ;
-         epoch = 2000.;
+         csys_region  = ECLJ;
+         epoch_region = 2000.;
 
          if(wcsbox->equinox == 1950.)
          {
-            csys  = ECLB;
-            epoch = 1950.;
+            csys_region  = ECLB;
+            epoch_region = 1950.;
          }
       }
       else
       {
-         csys  = EQUJ;
-         epoch = 2000.;
+         csys_region  = EQUJ;
+         epoch_region = 2000.;
+      }
+         
+      if (debug)
+      {
+         printf("\nHEADER mode.  wcsbox initialized: csys_region = %d, epoch_region = %-g\n\n", 
+               csys_region, epoch_region);
+         fflush(stdout);
       }
       
-      pix2wcs(wcsbox, (wcsbox->nxpix+1.)/2., (wcsbox->nypix+1.)/2., &lon, &lat);
+      checkWCS = montage_checkWCS(wcsbox);
+         
+      if(checkWCS)
+      {
+         strcpy(returnStruct->msg, checkWCS);
+         return returnStruct;
+      }
 
-      convertCoordinates (csys, epoch, lon, lat, 
-                          EQUJ, 2000., &center_ra, &center_dec, 0.);
+      pix2wcs(wcsbox, wcsbox->nxpix/2.+0.5, wcsbox->nypix/2.+0.5, &center_ra, &center_dec);
+
+      convertCoordinates (csys_region, epoch_region, center_ra, center_dec,
+                          EQUJ, 2000., &lon, &lat, 0.);
+
+      center_ra  = lon;
+      center_dec = lat;
 
       center.x = cos(center_ra*dtr) * cos(center_dec*dtr);
       center.y = sin(center_ra*dtr) * cos(center_dec*dtr);
       center.z = sin(center_dec*dtr);
 
+
       npoints = 4;
 
-      pix2wcs(wcsbox,              -0.5,              -0.5, &lon, &lat);
+      point_ra     = (double *) malloc(npoints * sizeof(double));
+      point_dec    = (double *) malloc(npoints * sizeof(double));
 
-      convertCoordinates (csys, epoch, lon, lat, 
-                          EQUJ, 2000., &point_ra[0], &point_dec[0], 0.);
+      point        = (Vec *) malloc(npoints * sizeof(Vec));
+      point_normal = (Vec *) malloc(npoints * sizeof(Vec));
+
+      pix2wcs(wcsbox,               0.5,               0.5, &point_ra[0], &point_dec[0]); if(wcsbox->offscl) haveHeaderCorners = 0;
+      pix2wcs(wcsbox, wcsbox->nxpix+0.5,               0.5, &point_ra[1], &point_dec[1]); if(wcsbox->offscl) haveHeaderCorners = 0;
+      pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &point_ra[2], &point_dec[2]); if(wcsbox->offscl) haveHeaderCorners = 0;
+      pix2wcs(wcsbox,               0.5, wcsbox->nypix+0.5, &point_ra[3], &point_dec[3]); if(wcsbox->offscl) haveHeaderCorners = 0;
 
       if(debug)
       {
-         printf("Header corner 0: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[0], point_dec[0]);
+         printf("\nHEADER mode.  haveHeaderCorners = %d\n", haveHeaderCorners);
          fflush(stdout);
       }
 
-      pix2wcs(wcsbox, wcsbox->nxpix+0.5,              -0.5, &lon, &lat);
+      dist = 0;
 
-      convertCoordinates (csys, epoch, lon, lat, 
-                          EQUJ, 2000., &point_ra[1], &point_dec[1], 0.);
-
-      if(debug)
+      for(j=0; j<4; ++j)
       {
-         printf("Header corner 1: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[1], point_dec[1]);
-         fflush(stdout);
+         convertCoordinates (csys_region, epoch_region, point_ra[j], point_dec[j], 
+                             EQUJ, 2000., &lon, &lat, 0.);
+
+         point_ra [j] = lon;
+         point_dec[j] = lat;
+
+         dist = acos(mCoverageCheck_Dot(&point[j], &center)) / dtr;
+
+         if(dist > box_radius)
+            box_radius = dist;
       }
 
-      pix2wcs(wcsbox, wcsbox->nxpix+0.5, wcsbox->nypix+0.5, &lon, &lat);
+      clockwise = 0;
 
-      convertCoordinates (csys, epoch, lon, lat, 
-                          EQUJ, 2000., &point_ra[2], &point_dec[2], 0.);
+      if((wcsbox->xinc < 0 && wcsbox->yinc < 0)
+      || (wcsbox->xinc > 0 && wcsbox->yinc > 0)) clockwise = 1;
 
-      if(debug)
+      if(!clockwise)
       {
-         printf("Header corner 2: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[2], point_dec[2]);
-         fflush(stdout);
+         mCoverageCheck_swap(&point_ra [0], &point_ra [3]);
+         mCoverageCheck_swap(&point_dec[0], &point_dec[3]);
+
+         mCoverageCheck_swap(&point_ra [1], &point_ra [2]);
+         mCoverageCheck_swap(&point_dec[1], &point_dec[2]);
       }
-
-      pix2wcs(wcsbox,              -0.5, wcsbox->nypix+0.5, &lon, &lat);
-
-      convertCoordinates (csys, epoch, lon, lat, 
-                          EQUJ, 2000., &point_ra[3], &point_dec[3], 0.);
-
-      if(debug)
-      {
-         printf("Header corner 3: %1.6f %10.6f -> %10.6f %10.6f\n", lon, lat, point_ra[3], point_dec[3]);
-         fflush(stdout);
-      }
-
-
-      /* Find an ordered bounding polygon for these points */
-
-      status = bndBoundaries(npoints, point_ra, point_dec, 3);
-
-      if(status < 0)
-      {
-         sprintf(returnStruct->msg, "Failed to find bounding polygon for points");
-         return returnStruct;
-      }
-
-      if(debug)
-      {
-         printf("\nBounding Polygon:\n");
-
-         for(i=0; i<bndNpoints; ++i)
-         {
-            printf("%25.20f %25.20f\n", bndPoints[i].lon, bndPoints[i].lat);
-            fflush(stdout);
-         }
-      }
-
-      for(i=0; i<bndNpoints; ++i)
-      {
-         point_ra [i] = bndPoints[i].lon;
-         point_dec[i] = bndPoints[i].lat;
-
-         point[i].x = bndPoints[i].x;
-         point[i].y = bndPoints[i].y;
-         point[i].z = bndPoints[i].z;
-      }
-
-      npoints = bndNpoints;
-
 
       box_radius = 0;
 
-      for(i=0; i<npoints; ++i)
+      for(j=0; j<npoints; ++j)
       {
-         dist = acos(mCoverageCheck_Dot(&point[i], &center)) / dtr;
+         point[j].x = cos(point_ra[j]*dtr) * cos(point_dec[j]*dtr);
+         point[j].y = sin(point_ra[j]*dtr) * cos(point_dec[j]*dtr);
+         point[j].z = sin(point_dec[j]*dtr);
+
+         point_normal[j].x = 0.;
+         point_normal[j].y = 0.;
+         point_normal[j].z = 0.;
+
+         dist = acos(mCoverageCheck_Dot(&point[j], &center)) / dtr;
 
          if(dist > box_radius)
             box_radius = dist;
@@ -665,12 +719,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          
       if(debug)
       {
-         printf("\nHEADER:\n");
+         printf("\nHEADER search:\n\n");
+
          printf("Center:    %11.6f %11.6f (%10.6f,%10.6f,%10.6f)\n",
                  center_ra, center_dec,
                  center.x, center.y, center.z);
-         printf("Size:      %11.6f %11.6f\n", box_xsize, box_ysize);
-         printf("Angle:     %11.6f\n\n", box_rotation);
 
          for(i=0; i<npoints; ++i)
             printf("Corner %d:  %11.6f %11.6f (%10.6f,%10.6f,%10.6f)\n",
@@ -678,6 +731,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                    point[i].x, point[i].y, point[i].z);
 
          printf("\nBounding radius: %11.6f\n", box_radius);
+         fflush(stdout);
       }
    }
 
@@ -717,6 +771,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                  center_ra, center_dec,
                  center.x, center.y, center.z);
          printf("Radius:    %11.6f\n", circle_radius);
+         fflush(stdout);
       }
    }
 
@@ -744,6 +799,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          printf("Location:  %11.6f %11.6f (%10.6f,%10.6f,%10.6f)\n",
                  center_ra, center_dec,
                  center.x, center.y, center.z);
+         fflush(stdout);
       }
 
       circle_radius = 0.;
@@ -754,10 +810,24 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    ncol = topen(infile);
  
+   if(debug)
+   {
+      printf("ncol = %d\n", ncol);
+      fflush(stdout);
+   }
+
    if(ncol < 0)
    {
+      if(point_ra)     free(point_ra);
+      if(point_dec)    free(point_dec);
+      if(point)        free(point);
+      if(point_normal) free(point_normal);
+
+      if(wcsbox) wcsfree(wcsbox);
+      if(wcsimg) wcsfree(wcsimg);
+
       sprintf(returnStruct->msg, "Error opening table %s", infile);
-      fflush(stdout);
+
       return returnStruct;
    }
 
@@ -765,6 +835,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    if(fout == (FILE *)NULL)
    {
+      if(point_ra)     free(point_ra);
+      if(point_dec)    free(point_dec);
+      if(point)        free(point);
+      if(point_normal) free(point_normal);
+
+      if(wcsbox) wcsfree(wcsbox);
+      if(wcsimg) wcsfree(wcsimg);
+
       sprintf(returnStruct->msg, "Cannot create output file (%s)", outfile);
       return returnStruct;
    }
@@ -870,6 +948,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
       if(ifname < 0)
       {
+         if(point_ra)     free(point_ra);
+         if(point_dec)    free(point_dec);
+         if(point)        free(point);
+         if(point_normal) free(point_normal);
+
+         if(wcsbox) wcsfree(wcsbox);
+         if(wcsimg) wcsfree(wcsimg);
+
          sprintf(returnStruct->msg, "CUTOUT mode needs a valid 'fname' or 'file' column");
          return returnStruct;
       }
@@ -906,6 +992,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
    if(tblmode == NULLMODE)
    {
+      if(point_ra)     free(point_ra);
+      if(point_dec)    free(point_dec);
+      if(point)        free(point);
+      if(point_normal) free(point_normal);
+
+      if(wcsbox) wcsfree(wcsbox);
+      if(wcsimg) wcsfree(wcsimg);
+
       sprintf(returnStruct->msg, "Need either WCS or corner columns.");
       return returnStruct;
    }
@@ -927,6 +1021,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          break;
 
       ++nrow;
+
+      if(debug)
+      {
+         printf("\nRead record %d\n", nrow);
+         fflush(stdout);
+      }
 
 
       /* If we don't have the corners, compute them */
@@ -1059,6 +1159,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
          if(checkWCS)
          {
+            if(point_ra)     free(point_ra);
+            if(point_dec)    free(point_dec);
+            if(point)        free(point);
+            if(point_normal) free(point_normal);
+
+            if(wcsbox) wcsfree(wcsbox);
+            if(wcsimg) wcsfree(wcsimg);
+
             strcpy(returnStruct->msg, checkWCS);
             return returnStruct;
          }
@@ -1071,6 +1179,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
          if (nowcs (wcsimg)) 
          {
+            if(point_ra)     free(point_ra);
+            if(point_dec)    free(point_dec);
+            if(point)        free(point);
+            if(point_normal) free(point_normal);
+
+            if(wcsbox) wcsfree(wcsbox);
+            if(wcsimg) wcsfree(wcsimg);
+
             sprintf(returnStruct->msg, "Failed to create wcs structure for record %d.", nrow);
             return returnStruct;
          }
@@ -1084,12 +1200,12 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
          image_center.y = sin(image_center_ra*dtr) * cos(image_center_dec*dtr);
          image_center.z = sin(image_center_dec*dtr);
 
-         pix2wcs(wcsimg, -0.5, -0.5, &lon, &lat);
+         pix2wcs(wcsimg, 0.5, 0.5, &lon, &lat);
          convertCoordinates (csys, (double)equinox, lon, lat, 
                              EQUJ, 2000., &image_corner_ra[0], &image_corner_dec[0], 0.);
 
 
-         pix2wcs(wcsimg, wcsimg->nxpix+0.5, -0.5, &lon, &lat);
+         pix2wcs(wcsimg, wcsimg->nxpix+0.5, 0.5, &lon, &lat);
          convertCoordinates (csys, (double)equinox, lon, lat, 
                              EQUJ, 2000., &image_corner_ra[1], &image_corner_dec[1], 0.);
 
@@ -1099,7 +1215,7 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                              EQUJ, 2000., &image_corner_ra[2], &image_corner_dec[2], 0.);
 
 
-         pix2wcs(wcsimg, -0.5, wcsimg->nypix+0.5, &lon, &lat);
+         pix2wcs(wcsimg, 0.5, wcsimg->nypix+0.5, &lon, &lat);
          convertCoordinates (csys, (double)equinox, lon, lat, 
                              EQUJ, 2000., &image_corner_ra[3], &image_corner_dec[3], 0.);
       }
@@ -1210,13 +1326,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                    acos(mCoverageCheck_Dot(&image_corner[i], &image_center)) / dtr);
 
          printf("\n   Bounding radius: %11.6f\n", image_box_radius);
+         fflush(stdout);
       }
 
 
       
       /***********************************************/
       /* The checks are specific to the region shape */
-      /* (point or circle or box/polygon)            */
+      /* (point, circle, box/polygon, or header).    */
       /*                                             */
       /* In each case, we first check to see if the  */
       /* bounding radii overlap (if not, we discard  */
@@ -1295,9 +1412,11 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
       }
 
 
-      /**************************/
-      /* BOX/POINTS/HEADER Mode */
-      /**************************/
+      /**********************************************************************/
+      /* Polygon-like Mode: For both the region and the table of images,    */
+      /* we have an ordered polygon so we can mostly use a point-in-polygon */
+      /* set of checks.                                                     */
+      /**********************************************************************/
 
       else if(imode == BOX || imode == POINTS || imode == HEADER || imode == CUTOUT)
       {
@@ -1441,6 +1560,334 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                   break;
             }
          }
+
+
+         /* There is a situation with header-based regions that arises sometime which we will try      */
+         /* to address (at least partially here.  If the header defines a region where one or more     */
+         /* corner is off the defined projection space the "four corner" approach used above will      */
+         /* fail (examples are Healpix and Aitoff projections).                                        */
+
+         /* For the mos part, the "input" image list (the table) won't have this problem since they    */
+         /* tend to be observed data where the projections are are things like TAN and SIN.  At least  */
+         /* that is what we have run into most in real life.  So in this section we will use as a      */
+         /* simplifying assumption that at least one pixel on the border of the "input" image is       */
+         /* inside the header-defined region.  Not perfect but it probably covers 90% of the practical */
+         /* use cases.                                                                                 */
+
+         /* For HPX in particular, we have to decide when to apply a "wrap-around" correction since    */
+         /* the projection actually includes duplicate pixels in the lower left and upper right.       */
+
+         /* We only use this if we previously determined that some region corners do not have          */
+         /* coordinates.                                                                               */
+
+         if(!haveHeaderCorners && !is_covered && imode == HEADER)
+         {
+            if(strcmp(wcsbox->ptype, "HPX") == 0)
+            {
+               isHPX = 1;
+
+               hpxPix = 90.0 / fabs(wcsbox->xinc) / sqrt(2.0) + 0.5;
+
+               hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+               hpxPix = pow(2., (double)hpxLevel) + 0.5;
+
+               hpxPix = 4 * hpxPix;
+
+               if(debug)
+               {
+                  printf("\nHEADER mode.  HPX Projection:  hpxLevel = %d, hpxPix = %d\n", 
+                        hpxLevel, hpxPix);
+                  fflush(stdout);
+               }
+            }
+            
+
+            /* If we find ourselves running this section of code, we will need wcsimg (the WCS */
+            /* for the table image).  We might have it if we used WCSMODE table processing but */
+            /* if not we'll have to generate it here from the table columns.                   */
+
+            bndSetDebug(0);
+
+            box = bndBoundingBox(4, image_corner_ra, image_corner_dec);
+
+            if(box == (struct bndInfo *)NULL)
+            {
+               if(wcsbox) wcsfree(wcsbox);
+               if(wcsimg) wcsfree(wcsimg);
+
+               sprintf(returnStruct->msg, "Failed to find bounding box for image corners");
+               return returnStruct;
+            }
+
+            strcpy(tmpHeader, "");
+            sprintf(temp, "SIMPLE  = T"                         ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "BITPIX  = -64"                       ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "NAXIS   = 2"                         ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "NAXIS1  = %d",     1000              ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "NAXIS2  = %d",     1000              ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CTYPE1  = '%s'",   "RA---TAN"        ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CTYPE2  = '%s'",   "DEC--TAN"        ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CRVAL1  = %14.9f", box->centerLon    ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CRVAL2  = %14.9f", box->centerLat    ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CRPIX1  = %14.9f", 500.5             ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CRPIX2  = %14.9f", 500.5             ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CDELT1  = %14.9f", box->lonSize/1000.); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CDELT2  = %14.9f", box->latSize/1000.); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "CROTA2  = %14.9f", box->posAngle     ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "EQUINOX = %d",     2000              ); mCoverageCheck_stradd(tmpHeader, temp);
+            sprintf(temp, "END"                                 ); mCoverageCheck_stradd(tmpHeader, temp);
+
+            wcsimg = wcsinit(tmpHeader);
+
+
+            // Go around the output of the image from the table (wcsimg) checking whether the
+            // pixels are inside the header region.  Stop as soon as we find one.  Actually,
+            // we check the left/right edge, then the top/bottom
+
+            /* Check input left and right */
+
+            for (j=0; j<wcsimg->nypix; ++j)
+            {
+               // LEFT
+
+               // Convert from image WCS to sky
+
+               pix2wcs(wcsimg, 0.5, j+0.5, &xpos, &ypos);
+
+               convertCoordinates(csys, epoch, xpos, ypos,
+                                  csys_region, epoch_region, &lon, &lat, 0.0);
+
+               offscl = wcsimg->offscl;
+
+               if(!offscl)
+               {
+                  // Convert from sky to header WCS
+
+                  wcs2pix(wcsbox, lon, lat, &oxpix, &oypix, &offscl);
+
+                  if(offscl && isHPX)
+                  {
+                     if(oxpix < -(double)hpxPix/2.)
+                     {
+                        oxpix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oxpix >  (double)hpxPix/2.)
+                     {
+                        oxpix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+
+
+                     if(oypix < -(double)hpxPix/2.)
+                     {
+                        oypix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oypix >  (double)hpxPix/2.)
+                     {
+                        oypix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+                  }
+
+                  if(!offscl)
+                  {
+                     if(oxpix >= 0.5 && oxpix <= wcsbox->nxpix + 0.5
+                     && oypix >= 0.5 && oypix <= wcsbox->nypix + 0.5)
+                     {
+                        is_covered = 1;
+                        break;
+                     }
+                  }
+               }
+
+
+               // RIGHT
+
+               // Convert from image WCS to sky
+
+               pix2wcs(wcsimg, wcsimg->nxpix+0.5, j+0.5, &xpos, &ypos);
+
+               convertCoordinates(csys, epoch, xpos, ypos,
+                                  csys_region, epoch_region, &lon, &lat, 0.0);
+
+               offscl = wcsimg->offscl;
+
+               if(!offscl)
+               {
+                  // Convert from sky to header WCS
+                  
+                  wcs2pix(wcsbox, lon, lat, &oxpix, &oypix, &offscl);
+
+                  if(offscl && isHPX)
+                  {
+                     if(oxpix < -(double)hpxPix/2.)
+                     {
+                        oxpix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oxpix >  (double)hpxPix/2.)
+                     {
+                        oxpix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+
+
+                     if(oypix < -(double)hpxPix/2.)
+                     {
+                        oypix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oypix >  (double)hpxPix/2.)
+                     {
+                        oypix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+                  }
+
+                  if(!offscl)
+                  {
+                     if(oxpix >= 0.5 && oxpix <= wcsbox->nxpix + 0.5
+                     && oypix >= 0.5 && oypix <= wcsbox->nypix + 0.5)
+                     {
+                        is_covered = 1;
+                        break;
+                     }
+                  }
+               }
+
+               if(is_covered)
+                  break;
+            }
+
+
+            /* Check input top and bottom */
+
+            for (i=0; i<wcsimg->nxpix; ++i)
+            {
+               // BOTTOM
+
+               // Convert from image WCS to sky
+
+               pix2wcs(wcsimg, i+0.5, 0.5, &xpos, &ypos);
+
+               convertCoordinates(csys, epoch, xpos, ypos,
+                                  csys_region, epoch_region, &lon, &lat, 0.0);
+
+               offscl = wcsimg->offscl;
+
+               if(!offscl)
+               {
+                  // Convert from sky to header WCS
+
+                  wcs2pix(wcsbox, lon, lat, &oxpix, &oypix, &offscl);
+
+                  if(offscl && isHPX)
+                  {
+                     if(oxpix < -(double)hpxPix/2.)
+                     {
+                        oxpix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oxpix >  (double)hpxPix/2.)
+                     {
+                        oxpix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+
+
+                     if(oypix < -(double)hpxPix/2.)
+                     {
+                        oypix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oypix >  (double)hpxPix/2.)
+                     {
+                        oypix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+                  }
+
+                  if(!offscl)
+                  {
+                     if(oxpix >= 0.5 && oxpix <= wcsbox->nxpix + 0.5
+                     && oypix >= 0.5 && oypix <= wcsbox->nypix + 0.5)
+                     {
+                        is_covered = 1;
+                        break;
+                     }
+                  }
+               }
+
+
+               // TOP
+
+               // Convert from image WCS to sky
+
+               pix2wcs(wcsimg, i+0.5, wcsimg->nypix+0.5, &xpos, &ypos);
+
+               convertCoordinates(csys, epoch, xpos, ypos,
+                                  csys_region, epoch_region, &lon, &lat, 0.0);
+
+               offscl = wcsimg->offscl;
+
+               if(!offscl)
+               {
+                  // Convert from sky to header WCS
+
+                  wcs2pix(wcsbox, lon, lat, &oxpix, &oypix, &offscl);
+
+                  if(offscl && isHPX)
+                  {
+                     if(oxpix < -(double)hpxPix/2.)
+                     {
+                        oxpix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oxpix >  (double)hpxPix/2.)
+                     {
+                        oxpix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+
+
+                     if(oypix < -(double)hpxPix/2.)
+                     {
+                        oypix += (double)hpxPix;
+                        offscl = 0;
+                     }
+
+                     if(oypix >  (double)hpxPix/2.)
+                     {
+                        oypix -= (double)hpxPix;
+                        offscl = 0;
+                     }
+                  }
+
+                  if(!offscl)
+                  {
+                     if(oxpix >= 0.5 && oxpix <= wcsbox->nxpix + 0.5
+                     && oypix >= 0.5 && oypix <= wcsbox->nypix + 0.5)
+                     {
+                        is_covered = 1;
+                        break;
+                     }
+                  }
+               }
+
+               if(is_covered)
+                  break;
+            }
+         } /* end if(!is_covered && imode == HEADER) */
 
 
          /* For CUTOUT, we may need the exact WCS set up */
@@ -1610,6 +2057,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                   status = 0;
                   if(fits_open_file(&fptr, fname, READONLY, &status))
                   {
+                     if(point_ra)     free(point_ra);
+                     if(point_dec)    free(point_dec);
+                     if(point)        free(point);
+                     if(point_normal) free(point_normal);
+
+                     if(wcsbox) wcsfree(wcsbox);
+                     if(wcsimg) wcsfree(wcsimg);
+
                      sprintf(returnStruct->msg, "Image file %s missing or invalid FITS", fname);
                      return returnStruct;
                   }
@@ -1617,6 +2072,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
                   status = 0;
                   if(fits_get_image_wcs_keys(fptr, &header, &status))
                   {
+                     if(point_ra)     free(point_ra);
+                     if(point_dec)    free(point_dec);
+                     if(point)        free(point);
+                     if(point_normal) free(point_normal);
+
+                     if(wcsbox) wcsfree(wcsbox);
+                     if(wcsimg) wcsfree(wcsimg);
+
                      fits_get_errstatus(status, status_str);
 
                      strcpy(returnStruct->msg, status_str);
@@ -1628,6 +2091,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
                   if(wcsimg == (struct WorldCoor *)NULL)
                   {
+                     if(point_ra)     free(point_ra);
+                     if(point_dec)    free(point_dec);
+                     if(point)        free(point);
+                     if(point_normal) free(point_normal);
+
+                     if(wcsbox) wcsfree(wcsbox);
+                     if(wcsimg) wcsfree(wcsimg);
+
                      sprintf(returnStruct->msg, "Input wcsinit() failed.");
                      return returnStruct;
                   }
@@ -1684,6 +2155,14 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
             if(checkWCS)
             {
+               if(point_ra)     free(point_ra);
+               if(point_dec)    free(point_dec);
+               if(point)        free(point);
+               if(point_normal) free(point_normal);
+
+               if(wcsbox) wcsfree(wcsbox);
+               if(wcsimg) wcsfree(wcsimg);
+
                strcpy(returnStruct->msg, checkWCS);
                return returnStruct;
             }
@@ -1696,8 +2175,16 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
 
             if (nowcs (wcsimg)) 
             {
-              sprintf(returnStruct->msg, "Failed to create wcs structure for record %d.", nrow);
-              return returnStruct;
+               if(point_ra)     free(point_ra);
+               if(point_dec)    free(point_dec);
+               if(point)        free(point);
+               if(point_normal) free(point_normal);
+
+               if(wcsbox) wcsfree(wcsbox);
+               if(wcsimg) wcsfree(wcsimg);
+
+               sprintf(returnStruct->msg, "Failed to create wcs structure for record %d.", nrow);
+               return returnStruct;
             }
 
 
@@ -2210,11 +2697,226 @@ struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mod
             continue;
          }
       }
+
+      /*
+      else if(imode == HEADER)
+      {
+         found  = 0;
+         offscl = 0;
+
+         longjump = 0;
+
+         convertCoordinates (EQUJ, 2000., image_center_ra, image_center_dec, 
+                             csys_region, epoch_region, &lon, &lat, 0.);
+
+         wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+         if(xoffset != 0. 
+         || yoffset != 0.)
+         {
+            if(fabs(xpix) > fabs(xoffset)/2.
+            || fabs(ypix) > fabs(yoffset)/2.)
+            {
+               xpix -= xoffset;
+               ypix -= yoffset;
+
+               offscl = 0;
+            }
+         }
+
+         if(!offscl 
+         && xpix >= 0.5
+         && ypix >= 0.5
+         && xpix <= wcsbox->nxpix+0.5
+         && ypix <= wcsbox->nypix+0.5)
+            found = 1;
+
+
+         distance = sqrt((xpix * wcsbox->xinc) * (xpix * wcsbox->xinc)
+                       + (ypix * wcsbox->yinc) * (ypix * wcsbox->yinc));
+
+         if(distance > 180.)
+            longjump = 1;
+
+         if(debug)
+         {
+            printf("Checking center (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)   Distance = %-g\n",
+               lon, lat, xpix, ypix, offscl, distance);
+            fflush(stdout);
+         }
+
+
+         if(!found)
+         {
+            for(j=0; j<4; ++j)
+            {
+               offscl = 0;
+
+               convertCoordinates (EQUJ, 2000., image_corner_ra[j], image_corner_dec[j], 
+                                   csys_region, epoch_region, &lon, &lat, 0.);
+
+               wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+               if(xoffset != 0.) xpix -= xoffset;
+               if(yoffset != 0.) ypix -= yoffset;
+
+               if(xoffset != 0. || yoffset != 0.) offscl = 0;
+
+               distance = sqrt((xpix * wcsbox->xinc) * (xpix * wcsbox->xinc)
+                             + (ypix * wcsbox->yinc) * (ypix * wcsbox->yinc));
+
+               if(distance > 180.)
+                  longjump = 1;
+
+               if(debug)
+               {
+                  printf("Checking corner %d (%-g,%-g) against wcsbox region -> (%-g,%-g)(%d)   Distance = %-g\n",
+                     j, lon, lat, xpix, ypix, offscl, distance);
+                  fflush(stdout);
+               }
+
+               if(!found
+               && xpix >= 0.5
+               && ypix >= 0.5
+               && xpix <= wcsbox->nxpix+0.5
+               && ypix <= wcsbox->nypix+0.5)
+               {
+                  found = 1;
+                  break;
+               }
+            }
+         }
+
+
+         // There are some projections (HPX, CAR, etc.) where the sky wraps around
+         // (in the case of of HPX even partially duplicating regions).  If the template
+         // image center is on one side of the wraparound (usually 0/360 point) and all
+         // of a comparison image is on the other, it will look like there is a huge
+         // offset (though not exactly 360 degrees).  We can recheck after shifting the
+         // center of one of them by 360 degrees.
+         //
+         // This duplicates the code above but won't be used unless this "long jump"
+         // situation is encountered.
+
+         if(!found && longjump)
+         {
+            convertCoordinates (EQUJ, 2000., image_center_ra, image_center_dec, 
+                                csys_region, epoch_region, &lon, &lat, 0.);
+
+            wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+            if(debug)
+            {
+               printf("[Long Jump] Checking center   (%-g,%-g) against wcsbox region -> (%-g,%-g) -> (%-g,%-g)",
+                     lon, lat, xoff-xpix, yoff-ypix, xpix, ypix);
+               fflush(stdout);
+            }
+
+            if(xpix > 0)
+            {
+               xpix = xpix - xoff;
+               ypix = xpix - yoff;
+            }
+            else
+            {
+               xpix = xpix + xoff;
+               ypix = ypix + yoff;
+            }
+
+            if(debug)
+            {
+               printf(" -> (%-g,%-g)\n", xpix, ypix);
+               fflush(stdout);
+            }
+
+            if(xpix >= 0.5
+            && ypix >= 0.5
+            && xpix <= wcsbox->nxpix+0.5
+            && ypix <= wcsbox->nypix+0.5)
+               found = 1;
+
+            if(!found)
+            {
+               for(j=0; j<4; ++j)
+               {
+                  offscl = 0;
+
+                  convertCoordinates (EQUJ, 2000., image_corner_ra[j], image_corner_dec[j], 
+                                      csys_region, epoch_region, &lon, &lat, 0.);
+
+                  wcs2pix(wcsbox, lon, lat, &xpix, &ypix, &offscl);
+
+                  if(debug)
+                  {
+                     printf("[Long Jump] Checking corner %d (%-g,%-g) against wcsbox region -> (%-g,%-g) -> (%-g,%-g)",
+                           j, lon, lat, xoff-xpix, yoff-ypix, xpix, ypix);
+
+                     fflush(stdout);
+                  }
+
+                  if(lon > 0)
+                  {
+                     xpix = xpix - xoff;
+                     ypix = ypix - yoff;
+                  }
+                  else
+                  {
+                     xpix = xpix + xoff;
+                     ypix = ypix + yoff;
+                  }
+
+                  if(debug)
+                  {
+                     printf(" -> (%-g,%-g)\n", xpix, ypix);
+                     fflush(stdout);
+                  }
+
+                  if(xpix >= 0.5
+                  && ypix >= 0.5
+                  && xpix <= wcsbox->nxpix+0.5
+                  && ypix <= wcsbox->nypix+0.5)
+                  {
+                     found = 1;
+                     break;
+                  }
+               }
+            }
+         }
+         
+         if(debug)
+         {
+            printf("found = %d\n", found);
+            fflush(stdout);
+         }
+
+         if(found)
+         {
+            if(debug)
+            {
+               printf("\n******** HEADER Overlap (center or corner) *********\n");
+               fflush(stdout);
+            }
+
+            fprintf(fout, "%s\n", tbl_rec_string);
+            fflush(fout);
+            ++nimages;
+
+            continue;
+         }
+      }
+      */
    }
 
    fflush(fout);
    fclose(fout);
 
+   if(point_ra)     free(point_ra);
+   if(point_dec)    free(point_dec);
+   if(point)        free(point);
+   if(point_normal) free(point_normal);
+
+   if(wcsbox) wcsfree(wcsbox);
+   if(wcsimg) wcsfree(wcsimg);
 
    returnStruct->status = 0;
 

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="MontageDev" id="0" package="Montage" hostname="vmmontage.ipac.caltech.edu" tests="17" failures= "0" errors="0" skipped="0" time="41.6" timestamp="2022-11-18T08:37:38">
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS1" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS2" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS3" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS4" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_basic_reprojection" time="33.2">
+    <system-out>[struct stat="OK", module="mProject", time=32.1]</system-out>
+  </testcase>
+  
+  <testcase classname="mProject" name="mProject_bad_input_WCS5" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS6" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS7" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS8" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+  
+  <testcase classname="mProject" name="mProject_bad_input_WCS9" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS10" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS11" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS12" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+  
+  <testcase classname="mProject" name="mProject_bad_input_WCS13" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS14" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS15" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+
+  <testcase classname="mProject" name="mProject_bad_input_WCS16" time="0.05">
+    <system-out>[struct stat="ERROR", msg="Input wcsinit() failed."]</system-out>
+  </testcase>
+</testsuite>

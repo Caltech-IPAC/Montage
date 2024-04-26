@@ -40,7 +40,6 @@ Version  Developer        Date     Change
 #include <time.h>
 #include <math.h>
 
-#include "montage.h"
 #include "fitsio.h"
 #include "wcs.h"
 #include "mNaN.h"
@@ -80,6 +79,8 @@ struct
    input, input_area, output, output_area;
 
 static time_t currtime, start;
+
+FILE *fstatus;
 
 
 /*************************************************************************/

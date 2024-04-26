@@ -39,7 +39,6 @@ static int mSubCube_debug;
 static int isflat;
 static int bitpix;
 
-int haveBlank;
 static long blank;
 
 static char content[128];
@@ -104,9 +103,10 @@ struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double ra
    double    cdelt[10];
    int       allPixels, shrinkWrap;
    int       imin, imax, jmin, jmax;
+   int       haveBlank;
 
-   int       sys;
-   double    epoch;
+   int       sys = 0;
+   double    epoch = 0.;
    double    lon, lat;
    double    xpix, ypix;
    double    xoff, yoff;
@@ -933,7 +933,7 @@ struct WorldCoor *mSubCube_getFileInfo(fitsfile *infptr, char *header[], struct 
 
 int mSubCube_copyHeaderInfo(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams *params)
 {
-   double tmp, tmp3, tmp4;
+   double tmp, tmp3=0., tmp4=0.;
    int naxis2;
    int status = 0;
    
@@ -1056,12 +1056,12 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
    int       j3, j4, inRange;
    int       status = 0;
 
-   double             *buffer_double,   refval_double;
-   float              *buffer_float,    refval_float;
-   unsigned long long *buffer_longlong, refval_longlong;
-   unsigned long      *buffer_long,     refval_long;
-   unsigned short     *buffer_short,    refval_short;
-   unsigned char      *buffer_byte,     refval_byte;
+   double             *buffer_double =   (double *)            NULL,   refval_double;
+   float              *buffer_float =    (float *)             NULL,    refval_float;
+   unsigned long long *buffer_longlong = (unsigned long long *)NULL, refval_longlong;
+   unsigned long      *buffer_long =     (unsigned long *)     NULL,     refval_long;
+   unsigned short     *buffer_short =    (unsigned short *)    NULL,    refval_short;
+   unsigned char      *buffer_byte =     (unsigned char *)     NULL,     refval_byte;
 
 
    /*************************************************/
@@ -1080,7 +1080,7 @@ int mSubCube_copyData(fitsfile *infptr, fitsfile *outfptr, struct mSubCubeParams
    float  fnan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    dnan = value.d8;
    fnan = value.d4[0];
@@ -1378,7 +1378,7 @@ int mSubCube_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
    double dnan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    dnan = value.d;
 

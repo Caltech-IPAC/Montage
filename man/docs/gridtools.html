@@ -1,0 +1,84 @@
+  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+		  <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+		  <head>
+  <title>Grid Tools</title>
+
+<!--#include virtual="include/header.html"-->
+
+<div id="documentation">
+
+<h1>Grid Tools</h1>
+
+<p class="note">These modules have been used extensively but have not been subject to the same rigorous testing to which the core modules have been subjected.  We advise users to contact Montage (<a href="mailto:montage.ipac.caltech.edu">montage@ipac.caltech.edu</a>) before employing them to verify limitations in their use and changes in the interfaces.</p>
+
+<p>Montage has been widely used as a Grid and parallel computing application, but by design itself contains almost no code specific to that purpose.  A few modules can be compiled with MPI functionality turned on, but the principle way Montage is used in these environments is by invoking the individual modules in parallel through a higher level executive.  The <tt>grid/Pegasus</tt> subdirectory contains modules that can generate a Directed Acyclic Graph (DAG) representation of the mosaicking process for a set of on-line surveys (e.g., 2MASS).  This information is fed to the Pegasus software from ISI (the Information Sciences Institute), which produces processing plans for Condor (or Condor-G on the Teragrid).  See the detailed information below.</p>
+
+<p>There is also a general linear executive (<a href="mExec.html"><tt>mExec</tt></a>) for which an MPI version is planned but not yet available.</p>
+
+<p><b>Pegasus:</b><br>
+<a href="http://pegasus.isi.edu">Pegasus</a> (Planning for Execution in Grids) is a tool, developed at Information Sciences Institute (ISI), University of Southern California (USC), to transform "abstract workflows" into "concrete workflows" that can be executed on a computational grid.  The input to Pegasus, the abstract workflow, specifies the filenames to be encountered and jobs to be run during the mosaic processing, and dependencies between jobs, which dictates which jobs can be run in parallel.  Pegasus produces an executable, concrete workflow after consulting various Grid information services that provide information about data locations and grid resources.  In this way, it maps the abstract workflow onto the available grid resources so that standard Grid tools like Condor-G can execute it.  For more information on Pegasus, see <a href="http://pegasus.isi.edu">http://pegasus.isi.edu</a>. </p>
+
+<dl class="ls">
+  <dt class="file">mConcatFit</dt>
+  <dd>Merge multiple plane fit parameter files (from mFitplane) into one file.  This module is only needed in a Grid environment where the mFitplane jobs may run in parallel on computers that do not share a file system.  In this case, the fit parameters have to be merged into one file before mBgModel can be called.</dd>
+
+  <dt lass="file">mDAG</dt>
+  <dd>Creates an XML-based Directed Acyclic Graph (DAG) that specifies  "jobs"    or Montage modules to be run to produce a mosaic,  "files" to be consumed or generated during processing (input, intermediate, and output files), and "dependencies" between jobs and files that imply an order in which jobs should be run.  In this "abstract graph", logical names are assigned to jobs and files.  The abstract graph is intended to be an input to a job scheduler, such as Pegasus in the Chimera Virtual Data System. </dd>
+
+  <dt class="file">mDAGFiles</dt>
+  <dd>Connect to a remote service to generate a zip archive containing all of the input files needed by Pegasus to schedule the Montage workflow on the Grid.  The zip archive includes the abstract workflow, the output mosaic template header file, and the image tables for the raw images, projected images, and background rectified images.</dd>
+
+  <dt class="file">mDAGTbls</dt>
+  <dd>Given an image table, construct the tables of projected and background corrected images.</dd>
+
+  <dt class="file">mDiffFit</dt>
+  <dd>Run mDiff immediatly followed by mFitplane and check the first to decide whether to run the second. </dd>
+
+  <dt class="file">mGridExec</dt>
+  <dd>Given the name of the zip file, it starts the execution of the mosaic on the grid     </dd>
+
+  <dt class="file">mNotify</dt>
+  <dd>Connect to a remote service to notify user of job status or completion in a Grid environment.  The current implementation does notification via email, but this will be replaced with more sophisticated notification in the future.
+</dd>
+
+  <dt class="file">mPresentation</dt>
+  <dd>Generate HTML wrapper around final mosaic FITS tiles, thumbnail and JPEG.         </dd>
+
+</dl>
+
+<p><b>Globus:</b><br>
+
+<dl class="ls">
+  <dt>mExecTG</dt>
+  <dd>Mosaicking executive for 2MASS, SDSS, DSS. Includes remote data and metadata access. </dd>
+
+  <dt>mNotifyTG</dt>
+  <dd> Contact (via URL) a job the job submission machine with messages about job execution and completion.</dd>
+</dl>
+<p><b>MPI:</b><br>MPI, the message passing interface, is a standard that defines a specification for message passing.  Message passing is a paradigm used to develop computer program that use multiple processes together for a single purpose.  Often, each process is running on a separate processor in a parallel machine such as a cluster.  Running on such a machine often allows a job to be completed in a shorter amount of time that it could be on a single processor.  In this paradigm, the processes generally work independently, but send messages to each other to coordinate their behavior.  Messages are also used for synchronization of the processes.  More information on MPI is available at <a href="http://www-unix.mcs.anl.gov/mpi">http://www.mcs.anl.gov/mpi</a>.</p>
+
+<dl class="ls">
+  <dt class="file">mDiffExec</dt>
+  <dt class="file">mProjExec</dt>
+  <dt class="file">mFitExec</dt>
+  <dt class="file">mBgExec</dt>
+  <dt class="file">mAdd</dt>
+  <dt class="file">mAddExec</dt>
+</dl>
+
+<p>To build MPI versions of these modules, uncomment the lines in the Montage Makefiles (<tt>$INSTALL_DIR/Makefile</tt>):</p>
+<blockquote><pre><tt># MPICC   =   mpicc<br># BINS    =   $(SBINS)  $(MBINS)</tt></pre></blockquote>
+
+
+
+</div>
+
+<div id="docnav">
+<p class="left"><a href="grid.html">&lt;-- Parallelization and Performance</a></p>
+<p class="right"><a href="accuracy.html">Photometric and Calibration Accuracy --&gt;</a></p>
+</div>
+
+
+
+<!--#include virtual="include/footer.html"-->

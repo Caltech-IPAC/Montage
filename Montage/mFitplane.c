@@ -36,7 +36,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <pixbounds.h>
 
-#include "montage.h"
 #include "fitsio.h"
 #include "mNaN.h"
 
@@ -59,6 +58,8 @@ extern int optind, opterr;
 extern int getopt(int argc, char *const *argv, const char *options);
 
 int debugCheck(char *debugStr);
+
+FILE *fstatus;
 
 int   debug;
 

@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mTblExec</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  mXXX does this.
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  XXX [-p <i>imgdir</i>] [-n(o-areas)] [-a mean|median|count] [-e(xact-size)] 
+      [-d <i>level</i>] [-s <i>statusfile</i>] 
+      <b>images.tbl template.hdr out.fits</b>
+  </dd>
+</dl>
+
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+
+  <dt>-a <i>XXXarg</i></dt>
+  <dd>
+  Text about this switch.
+  </dd>
+
+  <dt>-b <i>XXXarg</i></dt>
+  <dd>
+  Text about this switch.
+  </dd>
+
+  <dt>-c <i>XXXarg</i></dt>
+  <dd>
+  Text about this switch.
+  </dd>
+
+</dl>
+
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+
+  <dt>XXX.tbl</dt>
+  <dd>
+  Text about this arg.
+  </dd>
+
+  <dt>XXX.fits</dt>
+  <dd>
+  Text about this arg.
+  </dd>
+
+</dl>
+
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  Description of the results.
+  </dd>
+
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+  <dt>$ mAdd -p proj images.tbl template.hdr output/mosaic.fits</dt>
+  <dd>[struct stat="OK", time=1]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat = "OK", time=<i>time</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mAdd [-p imgdir] [-n(o-areas)] [-a mean|median|count] [-e(xact-size)] [-d level] [-s statusfile] images.tbl template.hdr out.fits"]</li>
+  <li>[struct stat="ERROR", msg="MPI initialization failed"]</li>
+  <li>[struct stat="ERROR", msg="Invalid argument for -a flag"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>
+  <li>[struct stat="ERROR", msg="Invalid image metadata file: <i>filename</i>"]</li>
+  <li>[struct stat="ERROR", msg="Need columns: cntr,fname, crpix1, crpix2, cdelt1, cdelt2, naxis1, naxis2, crval1, crval2 in image list"]<span class="explanation">(missing columns in image metadata table)</span></li>
+  <li>[struct stat="ERROR", msg="Memory allocation failed"]</li>
+  <li>[struct stat="ERROR", msg="Too many open files"]</li>
+  <li>[struct stat="ERROR", msg="Input wcsinit() failed."]</li>
+  <li>[struct stat="ERROR", msg="Failed to allocate enough memory for output arrays"]</li>
+  <li>[struct stat="ERROR", msg="Bad WCS in header template."]</li>
+  <li>[struct stat="ERROR", msg="Images are not in same pixel space."]</li>
+  <li>[struct stat="ERROR", msg="Template file not found."]</li>
+  <li>[struct stat="ERROR", status=<i>stat</i>, msg="<i>FITS library error</i>"]</li>
+  <li>[struct stat="ERROR", msg="<i>general error message</i>"]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

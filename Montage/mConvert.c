@@ -16,7 +16,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <fitsio.h>
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR  256
@@ -29,6 +28,8 @@ void printError    (char *);
 int  readFits      (char *fluxfile);
 int  checkHdr      (char *infile, int hdrflag, int hdu);
 
+FILE *fout;
+
 long naxes[2];
 
 int  debug;
@@ -40,6 +41,8 @@ double    bscalei, bzeroi;
 int       bitpixi;
 
 static time_t currtime, start;
+
+FILE *fstatus;
 
 
 /*************************************************************************/
@@ -92,7 +95,7 @@ int main(int argc, char **argv)
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 

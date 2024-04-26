@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mHdr</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Connects to the IRSA service <span class="file">HdrTemplate</span> to create a <a href="headers.html">header template</a> based on a location, size, resolution and rotation.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mHdr [-s <i>system</i>] [-e <i>equinox</i>] [-h <i>height</i>] [-p <i>pixsize</i>] [-r <i>rotation</i>] <b>object|location width outfile</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-s <i>system</i</dd>
+  <dd>Specify a coordinate system.  Can be one of:
+  <ul>
+    <li>"equatorial" or "eq" (default)</li>
+    <li>"ecliptic" or "ec"</li>
+    <li>"galactic" or "ga"</li>
+    <li>"supergalactic" or "sgal"</li>
+   </ul></dd>
+  <dt>-e <i>equinox</i</dd>
+  <dd>Specify an equinox.  Default is 2000.0</dd>
+  <dt>-h <i>height</i></dt>
+  <dd>Height (y-axis) of area in degrees.  Default is equal to <i>width</i></dd>
+  <dt>-p <i>pixsize</i></dt>
+  <dd>Size of a pixel (in arcsec); default is 1</dd>
+  <dt>-r <i>rotation</i></dt>
+  <dd>Rotation of image; default is 0</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>object|location</dt>
+  <dd>Object string or coordinate location; should be in quotes if there are any spaces or special characters.</dd>
+  <dt>width</dt>
+  <dd>Width (x-axis) of area</dd>
+  <dt>outfile</dt>
+  <dd>Path to output header template</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", count=<i>header-lines</i>]</span></dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<p>If a user wants to create a mosaic centered on m31, 1 degree on each side, the first step is to create a header template that describes the desired mosaic:</p>
+
+<dl class="example">
+  <dt>mHdr "10.68469 +41.26904" 1 m31.hdr</dt>
+  <dd>[struct stat="OK", count=16]</dd>
+</dl>
+
+<p>Now <a href="examples/mHdr/m31.hdr"><span class="file">m31.hdr</span></a> can be used by other Montage modules to generate a mosaic.</p>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", count=<i>header-lines</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mHdr [-s system] [-e equinox] [-h height(deg)] [-p pixsize(arcsec)] [-r rotation] object|location width(deg) outfile (objsect/location must be a single argument string)"]</li>
+  <li>[struct stat="ERROR", msg="Can't open output file <i>outfile</i>"]</li>
+  <li>[struct stat="ERROR", msg="location parameter required"]</li>
+  <li>[struct stat="ERROR", msg="width parameter required"]</li>
+  <li>[struct stat="ERROR", msg="Invalid object/coordinates"]</li>
+  <li>[struct stat="ERROR", msg="Couldn't find host irsa.ipac.caltech.edu"]</li>
+  <li>[struct stat="ERROR", msg="Couldn't create socket"]</li>
+  <li>[struct stat="ERROR", msg="irsa.ipac.caltech.edu: connect failed"]</li>
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

@@ -52,7 +52,6 @@ Version  Developer        Date     Change
 #include <string.h>
 #include <math.h>
 
-#include "montage.h"
 #include <mtbl.h>
 
 #define MAXSTR  256
@@ -66,6 +65,8 @@ Version  Developer        Date     Change
 
 extern char *optarg;
 extern int optind, opterr;
+
+FILE *fstatus;
 
 int    gaussj(float **, int, float **, int);
 int   *ivector(int);

@@ -8,11 +8,16 @@ LIBS   =	-L../../lib -lcfitsio -lm
 .c.o:
 		$(CC) $(CFLAGS)  -c  $*.c
 
-mHistogram:		mHistogram.o montageHistogram.o
+all:		mHistogram mCombineHist
+
+mHistogram:	mHistogram.o montageHistogram.o
 		$(CC) -o mHistogram mHistogram.o montageHistogram.o $(LIBS)
 
+mCombineHist:	mCombineHist.o montageCombineHist.o
+		$(CC) -o mCombineHist mCombineHist.o montageCombineHist.o $(LIBS)
+
 install:
-		cp mHistogram ../../bin
+		cp mHistogram mCombineHist ../../bin
 
 clean:
-		rm -f mHistogram *.o
+		rm -f mHistogram mCombineHist *.o

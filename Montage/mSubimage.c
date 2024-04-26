@@ -61,7 +61,6 @@ Version  Developer        Date     Change
 #include "wcs.h"
 #include "coord.h"
 
-#include "montage.h"
 #include "subImage.h"
 
 int  checkHdr (char *infile, int hdrflag, int hdu);
@@ -75,6 +74,8 @@ double ycorrection;
 extern int debug;
 
 extern char content[];
+
+FILE *fstatus;
 
 
 /*************************************************************************/

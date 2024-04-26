@@ -489,6 +489,14 @@ int  imZoom (struct Mviewer *param)
     }
     else if (strcasecmp (param->cmd, "replaceimplane") == 0) { 
 
+        if ((debugfile) && (fdebug != (FILE *)NULL)) {
+            fprintf (fdebug, "cutoutWidth= [%d] cutoutHeight= [%d]\n", 
+                param->cutoutWidth, param->cutoutHeight); 
+            fprintf (fdebug, "imageWidth= [%d] imageHeight= [%d]\n", 
+                param->imageWidth, param->imageHeight); 
+            fflush (fdebug);
+        } 
+        
         if (param->cutoutWidth > 0)
 	    param->ns = param->cutoutWidth;
 	else
@@ -499,10 +507,10 @@ int  imZoom (struct Mviewer *param)
 	else
 	    param->nl = param->imageHeight;
 
-	
 	if ((debugfile) && (fdebug != (FILE *)NULL)) {
             fprintf (fdebug, "factor= [%lf] reffactor= [%lf]\n",
 	        factor, reffactor);
+            fprintf (fdebug, "ns= [%d] nl= [%d]\n", param->ns, param->nl); 
             fflush (fdebug);
         }
 

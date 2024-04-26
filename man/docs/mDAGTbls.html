@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mDAGTbls</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  <p>mDAGTbls is primarily a utility for mDAG.  In normal Montage processing,
+  one can build support files as you go: retrieve a set of images from an 
+  archive, then make a list of the images retrieved; reproject the images, then
+  make a list of the successfully reprojected images; <i>etc.</i> </p>
+
+  <p>To support a workflow manager which plans processing using an up-front
+  Directed Acyclic Graph (DAG) you need to have pre-determined all of this,
+  plus which image will overlap (for background matching).  You don't have
+  to be completely right (some overlaps may end up empty or some images may
+  have no real data in the region of interest) but you need to build a complete
+  superset.  mDAGTbls does part of this.  Based on a raw image list, it 
+  determines as best it can the image lists (raw images in the region of 
+  interest from larger list of images we have, projected and corrected lists
+  from that). mOverlaps can build the difference list from the raw list.</p>
+
+  <p>We document this here since the same analysis may be of use for planning
+  other than in mDAG.</p>
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  mDAGTbls <b>images.tbl</b> <b>region.hdr</b> <b>rimages.tbl</b> <b>pimages.tbl</b> <b>cimages.tbl</b>
+  </dd>
+</dl>
+
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+
+  <dt>images.tbl</dt>
+  <dd>
+  The set of images we have.  For instance, a set download via mArchiveList/mArchiveGet
+  and often a superset of what we are interested in for a specific mosaic.
+  </dd>
+
+  <dt>region.hdr</dt>
+  <dd>
+  A FITS header template file.  This is used to determine the region of interest
+  for this run.
+  </dd>
+
+  <dt>rimages.tbl</dt>
+  <dd>
+  The "raw" (input) image we will use in this run.
+  </dd>
+
+  <dt>pimages.tbl</dt>
+  <dd>
+  The corresponding projected image list.
+  </dd>
+
+  <dt>cimages.tbl </dt>
+  <dd>
+  The corresponding background-corrected image list.
+  </dd>
+</dl>
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  If successful, the three output image lists will be created. NOTE: It is assumed
+  that the actual raw, reprojected and background-corrected images will be kept in
+  separate directories, so the file names in these tables are identical.
+  </dd>
+</dl>
+
+<p class="dochead">Example:</p>
+
+<dl class="example">
+  <dt>mDAGTbls images.tbl region.hdr rimages.tbl pimages.tbl cimages.tbl</dt>
+
+  <dd>[struct stat="OK", count="48", total="48"]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>filename</i>"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mDAGTbls [-d][-s statusfile] images.tbl hdr.template raw.tbl projected.tbl corrected.tbl"]</li>
+  <li>[struct stat="ERROR", msg="Invalid image metadata file: <i>tblfile</i>"]</li>
+  <li>[struct stat="ERROR", msg="Not enough information to determine coverages (CDELTs or CD matrix)"]</li>
+  <li>[struct stat="ERROR", msg="Need columns: cntr ctype1 ctype2 nl ns crval1 crval2 crpix1 crpix2 cdelt1 cdelt2 crota2 fname (equinox optional)"]</li>
+  <li>[struct stat="ERROR", msg="Invalid output metadata file: <i>tblfile</i>"]</li>
+  <li>[struct stat="ERROR", msg="Bad WCS for image <i>integer</i>"]</li>
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>
+  <li>[struct stat="ERROR", msg="<i>general error message</i>"]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

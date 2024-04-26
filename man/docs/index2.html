@@ -1,0 +1,218 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Guide</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Montage API (Version 4.0)</h1>
+
+<div id="documentation">
+
+<p>Not sure what to use?  See: "<a href="how.html">How Do I...?</a>"</p>
+
+<div class="leftcol">
+<h2>Core Modules:</h2>
+<ul>
+  <li><a href="mAdd.html">mAdd</a></li>
+  <li><a href="mAddCube.html">mAddCube</a></li>
+  <li><a href="mAddExec.html">mAddExec</a></li>
+  <li><a href="mBackground.html">mBackground</a></li>
+  <li><a href="mBgExec.html">mBgExec</a></li>
+  <li><a href="mBgModel.html">mBgModel</a></li>
+  <li><a href="mConvert.html">mConvert</a></li>
+  <li><a href="mCoverageCheck.html">mCoverageCheck</a></li>
+  <li><a href="mDiff.html">mDiff</a></li>
+  <li><a href="mDiffExec.html">mDiffExec</a></li>
+  <li><a href="mFitplane.html">mFitplane</a></li>
+  <li><a href="mFitExec.html">mFitExec</a></li>
+  <li><a href="mDiffFitExec.html">mDiffFitExec</a></li>
+  <li><a href="mFlattenExec.html">mFlattenExec</a></li>
+  <li><a href="mGetHdr.html">mGetHdr</a></li>
+  <li><a href="mHdrCheck.html">mHdrCheck</a></li>
+  <li><a href="mHdrtbl.html">mHdrtbl</a></li>
+  <li><a href="mImgtbl.html">mImgtbl</a></li>
+  <li><a href="mMakeHdr.html">mMakeHdr</a></li>
+  <li><a href="mMakeImg.html">mMakeImg</a></li>
+  <li><a href="mOverlaps.html">mOverlaps</a></li>
+  <li><a href="mProject.html">mProject</a></li>
+  <li><a href="mProjectCube.html">mProjectCube</a></li>
+  <li><a href="mProjectPP.html">mProjectPP</a></li>
+  <li><a href="mProjExec.html">mProjExec</a></li>
+  <li><a href="mPutHdr.html">mPutHdr</a></li>
+  <li><a href="mShrink.html">mShrink</a></li>
+  <li><a href="mShrinkCube.html">mShrinkCube</a></li>
+  <li><a href="mSubCube.html">mSubCube</a></li>
+</ul>
+</div>
+
+
+<div class="rightcol">
+<p>&nbsp;</p>
+<ul>
+  <li><a href="mSubimage.html">mSubimage</a></li>
+  <li><a href="mSubset.html">mSubset</a></li>
+  <li><a href="mTANHdr.html">mTANHdr</a></li>
+  <li><a href="mTblSort.html">mTblSort</a></li>
+  <li><a href="mTileHdr.html">mTileHdr</a></li>
+  <li><a href="mTileImage.html">mTileImage</a></li>
+</ul>
+
+<h2>Utilities:</h2>
+<ul>
+  <li><a href="mArchiveList.html">mArchiveList</a></li>
+  <li><a href="mArchiveGet.html">mArchiveGet</a></li>
+  <li><a href="mArchiveExec.html">mArchiveExec</a></li>
+  <li><a href="mBestImage.html">mBestImage</a></li>
+  <li><a href="mCatMap.html">mCatMap</a></li>
+  <li><a href="mExamine.html">mExamine</a></li>
+  <li><a href="mExec.html">mExec</a></li>
+  <li><a href="mFixNaN.html">mFixNaN</a></li>
+  <li><a href="mHdr.html">mHdr</a></li>
+  <li><a href="mHistogram.html">mHistogram</a></li>
+  <li><a href="mJPEG.html">mJPEG</a></li>
+  <li><a href="mPad.html">mPad</a></li>
+  <li><a href="mPix2Coord.html">mPix2Coord</a></li>
+  <li><a href="mRotate.html">mRotate</a></li>
+  <li><a href="mShrinkHdr.html">mShrinkHdr</a></li>
+  <li><a href="mTranspose.html">mTranspose</a></li>
+  <li><a href="mViewer.html">mViewer</a></li>
+</ul>
+
+<h2>Workflow Tools:</h2>
+<ul>
+  <li><a href="mDAG.html">mDAG</a></li>
+  <li><a href="mDAGTbls.html">mDAGTbls</a></li>
+</ul>
+
+<h2>Read more about <a href="gridtools.html">Grid/Workflow Tools</a></h2>
+</div>
+</div>
+
+<div id="docnav" style="clear:both">
+<p>Included in the Montage distribution are a collection of support libraries, some written
+by us, some external open-source packages.  For completeness, we include a list of these
+libraries here.  For the external libraries, newer versions most likely exist but we have
+not tested them.  If you update those libraries and the build or execution fails, please
+let us know.</p>
+
+<table class="liblist">
+
+   <tr>
+      <td rowspan="6">
+         Internal Libraries:
+      </td>
+      <td>
+         <b>cmd</b>
+      </td>
+      <td>
+         Simple command-line (substring) parser.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <b>mtbl</b>
+      </td>
+      <td>
+         IPAC ASCII table file reader.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <b>coord</b>
+      </td>
+      <td>
+         Coordinate libary (parser, transforms, etc.)
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <b>boundaries</b>
+      </td>
+      <td>
+         Find a bounding box around a set of sky points.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <b>svc</b>
+      </td>
+      <td>
+         Fork/exec child process execution library and return structure parser.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <b>two_plane_v1.1</b>
+      </td>
+      <td>
+         Specialized fast reprojection routine for the case where both projections are tangent plane.<br/>
+         Written by David Makavoz for the Spitzer Space Telescope project.
+      </td>
+   </tr>
+
+   <tr>
+      <td rowspan="2">
+         Standard Astronomy Libraries:
+      </td>
+      <td>
+         <a href="http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html"><b>cfitsio-3.25</b></a>
+      </td>
+      <td>
+         FITS I/O library.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <a href="http://tdc-www.harvard.edu/wcstools/"><b>wcstools-3.8.7</b></a>
+      </td>
+      <td>
+         FITS World Coordinate System library.
+      </td>
+   </tr>
+
+   <tr>
+      <td rowspan="3">
+         Open Source General Libraries:
+      </td>
+      <td>
+         <a href="http://www.freetype.org/"<b>freetype-2.5.4</b></a>
+      </td>
+      <td>
+         String typesetting library.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <a href="http://www.ijg.org/"><b>jpeg-8b</b></a>
+      </td>
+      <td>
+         JPEG format image writing library.
+      </td>
+   </tr>
+
+   <tr>
+      <td>
+         <a href="http://lodev.org/lodepng/"><b>lodepng_20140823</b></a>
+      </td>
+      <td>
+         PNG format image writing library.
+      </td>
+   </tr>
+
+</table>
+</div>
+
+<div id="docnav" style="clear:both">
+<p class="left"><a href="how.html">&lt;-- How Do I...?</a></p>
+<p class="right"><a href="wcs.html">Supported WCS Projections --&gt;</a></p>
+</div>
+
+<!--#include virtual="include/footer.html"-->

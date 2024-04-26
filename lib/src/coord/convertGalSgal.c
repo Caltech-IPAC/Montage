@@ -43,6 +43,8 @@
 
 void convertGalToSgal(double glon, double glat, double *sglon, double *sglat)
 {
+   int coord_debug = 0;
+
    static int nthru = 0;
 
    static double dtor, rtod;

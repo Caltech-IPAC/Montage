@@ -1684,11 +1684,11 @@ int lookup(char *mosaicCenter, double *ra, double *dec)
 
    char   result    [4096];
 
-   strcpy(server, "irsa.ipac.caltech.edu");
+   strcpy(server, "montage.ipac.caltech.edu");
 
    port = 80;
 
-   strcpy(base, "/cgi-bin/Oasis/Lookup/nph-lookup?");
+   strcpy(base, "/cgi-bin/Lookup/nph-lookup?");
 
    objStr = url_encode(mosaicCenter);
 

@@ -46,7 +46,10 @@ int    mViewer_getPixel           (int i, int j, int color);
 
 double mViewer_label_length       (char *face_path, int fontsize, char *text);
 
-void   mViewer_addOverlay         ();
+void   mViewer_drawing            (char *file, int flipY, struct WorldCoor *wcs, int csysimg, double epochimg, char *fontfile);
+
+
+void   mViewer_addOverlay         (double alpha);
 
 void   mViewer_labeledCurve      (char *face_path, int fontsize, int showLine,
                                    double *xcurve, double *ycurve, int npt,
@@ -102,5 +105,11 @@ int    mViewer_readHist           (char *histfile,  double *minval,  double *max
                                    double *datamin, double *datamax, double *median, double *sigma, int *type);
 
 void   mViewer_parseCoordStr      (char *coordStr, int *csys, double *epoch);
+
+void   mViewer_hpxCheck           (int *offscl, double *x, double *y);
+
+void   mViewer_convexHull         (int n, int *xarray, int *yarray, int *nhull, int *xhull, int *yhull);
+
+void   mViewer_boundingbox        (int n, int *x, int *y, double *a, double *b, double *c, double *xbox, double *ybox);
 
 #endif

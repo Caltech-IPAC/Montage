@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mExamine</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  mExamine returns information about the sky coverage of a FITS
+  image (assuming WCS keywords in the header) and optionally 
+  pixel statistics for a region in the image.
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  mExamine [-d][-p <i>ra dec radius</i>] <b>image.fits</b>
+  </dd>
+</dl>
+
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+
+  <dt>-p <i>ra dec radius</i></dt>
+  <dd>
+  Return information about a region (central pixel value, min, max
+  values and location, <i>etc.</i>)  Coordinates and radius are in
+  degrees unless given a "p" suffix, in which case they are in pixels.
+  </dd>
+
+  <dt>-d</dt>
+  <dd>
+  Turn on debugging.
+  </dd>
+
+</dl>
+
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+
+  <dt>image.fits</dt>
+  <dd>
+  FITS file to examine. If the file has multiple HDUs, you can add
+  that to the file name, <i>e.g.</i>, "m51.fits[2]".  If an HDU is
+  a datacube, you can select a plane ("m51.fits[2][256]").  Even if
+  there is a single HDU, you need to specify it if you want to 
+  specify a cube plane ("m51.fits[0][512]").  Note that this syntax
+  may require quotes around the file name string to avoid confusing
+  your shell.
+  </dd>
+
+</dl>
+
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  If successful, returns the following:</p>
+
+  <table>
+      <tr><td> proj     </td></td><td>Image projection </td></tr>
+      <tr><td> csys     </td></td><td>Coordinate system </td></tr>
+      <tr><td> equinox  </td></td><td>Coordinate system equinox </td></tr>
+      <tr><td> naxis    </td></td><td>Number of axes in the file </td></tr>
+      <tr><td> naxis1   </td></td><td>Image width (in pixels)</td></tr>
+      <tr><td> naxis2   </td></td><td>Image height </td></tr>
+      <tr><td> naxis3   </td></td><td>Data cube depth (only if NAXIS > 2) </td></tr>
+      <tr><td> naxis4   </td></td><td>Data cube fourth dimension (only if NAXIS > 3) </td></tr>
+      <tr><td> crval1   </td></td><td>WCS reference coordinate for first axis </td></tr>
+      <tr><td> crval2   </td></td><td>WCS reference coordinate for second axis </td></tr>
+      <tr><td> crpix1   </td></td><td>Pixel value for reference coordinate </td></tr>
+      <tr><td> crpix2   </td></td><td>    </td></tr>
+      <tr><td> cdelt1   </td></td><td>Pixel scale (degrees) </td></tr>
+      <tr><td> cdelt2   </td></td><td>    </td></tr>
+      <tr><td> crota2   </td></td><td>Rotation of image (E of N) </td></tr>
+      <tr><td> lonc     </td></td><td>Sky coordinate of image center </td></tr>
+      <tr><td> latc     </td></td><td>    </td></tr>
+      <tr><td> ximgsize </td></td><td>Image size (degrees) </td></tr>
+      <tr><td> yimgsize </td></td><td>    </td></tr>
+      <tr><td> rotequ   </td></td><td>Rotation of image in Equatorial (J2000) </td></tr>
+      <tr><td> rac      </td></td><td>Equatorial (J2000) coordinates of image center </td></tr>
+      <tr><td> decc     </td></td><td>    </td></tr>
+      <tr><td> ra1      </td></td><td>Equatorial coordinates of four image corners </td></tr>
+      <tr><td> dec1     </td></td><td>    </td></tr>
+      <tr><td> ra2      </td></td><td>    </td></tr>
+      <tr><td> dec2     </td></td><td>    </td></tr>
+      <tr><td> ra3      </td></td><td>    </td></tr>
+      <tr><td> dec3     </td></td><td>    </td></tr>
+      <tr><td> ra4      </td></td><td>    </td></tr>
+      <tr><td> dec4     </td></td><td>    </td></tr>
+   </table>
+
+   <p>and optionally</p>
+
+   <table>
+      <tr><td> radius   </td></td><td>Radius of pixel region (degrees) </td></tr>
+      <tr><td> radpix   </td></td><td>Radius in pixels </td></tr>
+      <tr><td> npixel   </td></td><td>Number of pixels in region </td></tr>
+      <tr><td> nnull    </td></td><td>Number of null pixels </td></tr>
+      <tr><td> aveflux  </td></td><td>Average flux for region </td></tr>
+      <tr><td> rmsflux  </td></td><td>RMS of region fluxes </td></tr>
+      <tr><td> fluxref  </td></td><td>Flux for reference location </td></tr>
+      <tr><td> sigmaref </td></td><td>RMS of fluxes </td></tr>
+      <tr><td> xref     </td></td><td>Pixel coordinates of reference location </td></tr>
+      <tr><td> yref     </td></td><td>    </td></tr>
+      <tr><td> raref    </td></td><td>Equatorial (J2000) coordinated of reference location </td></tr>
+      <tr><td> decref   </td></td><td>    </td></tr>
+      <tr><td> fluxmin  </td></td><td>Same for pixel with minimum flux </td></tr>
+      <tr><td> sigmamin </td></td><td>    </td></tr>
+      <tr><td> xmin     </td></td><td>    </td></tr>
+      <tr><td> ymin     </td></td><td>    </td></tr>
+      <tr><td> ramin    </td></td><td>    </td></tr>
+      <tr><td> decmin   </td></td><td>    </td></tr>
+      <tr><td> fluxmax  </td></td><td>Same for pixel with maximum flux </td></tr>
+      <tr><td> sigmamax </td></td><td>    </td></tr>
+      <tr><td> xmax     </td></td><td>    </td></tr>
+      <tr><td> ymax     </td></td><td>    </td></tr>
+      <tr><td> ramax    </td></td><td>    </td></tr>
+      <tr><td> decmax   </td></td><td>    </td></tr>
+   </table>
+
+   <p>If you specify region that is all blank, npixel will be zero, nnull will
+   be the total number of pixel examined, and the flux related parameters will
+   all be zero.</p>
+  </dd>
+
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+   <dt>mExamine -p 202.5 47.0 0.01 aJ_asky_980527n0240232.fits</p/></td>
+   <dd>[struct stat="OK", proj="SIN", csys="EQUJ", equinox=2000.0, naxis1=512, naxis2=1024, crval1=202.5213942, crval2=47.1131924, crpix1=256.5, crpix2=512.5, cdelt1=0.0002778, cdelt2=0.0002778, crota2=0.0034, lonc=202.5213942, latc=47.1134702, ximgsize=0.142222, yimgsize=0.142222, rotequ=0.0034, rac=202.5213942, decc=47.1131924, ra1=202.6260252, dec1=46.9706487, ra2=202.4171950, dec2=46.9706407, ra3=202.4166112, dec3=47.2553630, ra4=202.6265617, dec4=47.2553710, radius=0.0100000, radpix=36.00, npixel=5476, nnull=0, aveflux=136.807, rmsflux=0.853615, fluxref=137.3, sigmaref=0.578143, xref=309, yref=105, raref=202.5000208, decref=46.9999951, fluxmin=135.042, sigmamin=-2.06764, xmin=328, ymin=77, ramin=202.4922870, decmin=46.9922153, fluxmax=152.299, sigmamax=18.1493, xmax=307, ymax=117, ramax=202.5008338, decmax=47.0033286]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="ERROR", msg="No ra, dec, radius location given or file name missing"]</li>
+  <li>[struct stat="ERROR", msg="File name missing"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mExamine [-d][-p ra dec radius] image.fits"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open FITS file test.fits"]</li>
+  <li>[struct stat="ERROR", msg="Cannot find WCS keys in FITS file test.fits"]</li>
+  <li>[struct stat="ERROR", msg="WCS initialization failed."]</li>
+  <li>[struct stat="ERROR", msg="Location off the image."]</li>
+  <li>[struct stat="ERROR", msg="Error reading FITS data."]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->
+

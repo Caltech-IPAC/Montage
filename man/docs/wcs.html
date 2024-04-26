@@ -1,0 +1,409 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Supported WCS Projections</h1>
+
+<p class="note">Montage supports all projections supported by the World Coordinate System (WCS). </p>
+
+<p>The following projection combinations have been formally tested, although not all have been subject to scientific validation : </p>
+
+<p>(Click <a href="#key">here</a> to see a key explaining the WCS abbreviations)</p>
+
+<table border="1" cellpadding="3" cellspacing="0">
+  <tr>
+    <td align="center"><b>Input<br>Projection</b></td>
+    <td align="center"><b>Output<br>Projection</b></td>
+  </tr>
+
+ <tr>
+  <td>AIT</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>AIT</td>
+  <td>CAR</td>
+ </tr>
+ <tr>
+  <td>AIT</td>
+  <td>COE</td>
+ </tr>
+ <tr>
+  <td>AIT</td>
+  <td>BON</td>
+ </tr>
+ <tr>
+  <td>AIT</td>
+  <td>QSC</td>
+ </tr>
+ <tr>
+  <td>ARC</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>AZP</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>BON</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>BON</td>
+  <td>ZEA</td>
+ </tr>
+ <tr>
+  <td>BON</td>
+  <td>AIT</td>
+ </tr>
+ <tr>
+  <td>CAR</td>
+  <td>AIT</td>
+ </tr>
+ <tr>
+  <td>CAR</td>
+  <td>COE</td>
+ </tr>
+ <tr>
+  <td>CEA</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>CEA</td>
+  <td>SIN</td>
+ </tr>
+ <tr>
+  <td>COD</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>COE</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>COE</td>
+  <td>CAR</td>
+ </tr>
+ <tr>
+  <td>COE</td>
+  <td>AIT</td>
+ </tr>
+ <tr>
+  <td>COO</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>COP</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>CSC</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>CYP</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>MER</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>MOL</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>NCP</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>PAR</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>PCO</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>QSC</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>QSC</td>
+  <td>AIT</td>
+ </tr>
+ <tr>
+  <td>SFL</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>SIN</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>SIN</td>
+  <td>SIN</td>
+ </tr>
+ <tr>
+  <td>STG</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>SZP</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>SIN</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>CEA</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>ZEA</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>CAR</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>AIT</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>COE</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>QSC</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>BON</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>STG</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>NCP</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>ARC</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>ZPN</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>AIR</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>AZP</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>SZP</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>MER</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>CYP</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>SFL</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>PAR</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>MOL</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>COP</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>COD</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>COO</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>PCO</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>TSC</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>CSC</td>
+ </tr>
+ <tr>
+  <td>TSC</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>ZEA</td>
+  <td>TAN</td>
+ </tr>
+ <tr>
+  <td>ZEA</td>
+  <td>BON</td>
+ </tr>
+ <tr>
+  <td>ZPN</td>
+  <td>TAN</td>
+ </tr>
+
+</table>
+
+
+<p>&nbsp;</p>
+
+<p><a name="key"><b>WCS Projection Abbreviations:</b></a></p>
+
+<table border="1" cellpadding="2" cellspacing="0">
+
+
+
+
+ <tr>
+  <td>AIT</td>
+  <td>Hammer-Aitoff</td>
+ </tr>
+ <tr>
+  <td>ARC</td>
+  <td>Zenithal equidistant</td>
+ </tr>
+ <tr>
+  <td>AZP</td>
+  <td>Zenithal Perspective</td>
+ </tr>
+ <tr>
+  <td>BON</td>
+  <td>Bonne's projection</td>
+ </tr>
+ <tr>
+  <td>CAR</td>
+  <td>Cartesian</td>
+ </tr>
+ <tr>
+  <td>CEA</td>
+  <td>Cylindrical Equal Area (requires parameterization by latitude)</td>
+ </tr>
+ <tr>
+  <td>COD</td>
+  <td>Conic Equidistant</td>
+ </tr>
+ <tr>
+  <td>COE</td>
+  <td>Conic Equal Area</td>
+ </tr>
+ <tr>
+  <td>COO</td>
+  <td>Conic orthomorphic</td>
+ </tr>
+ <tr>
+  <td>COP</td>
+  <td>Conic perspective</td>
+ </tr>
+ <tr>
+  <td>CSC</td>
+  <td>COBE quad-cube</td>
+ </tr>
+ <tr>
+  <td>CYP</td>
+  <td>Cylindrical perspective</td>
+ </tr>
+ <tr>
+  <td>MER</td>
+  <td>Mercator</td>
+ </tr>
+ <tr>
+  <td>MOL</td>
+  <td>Molleweide</td>
+ </tr>
+ <tr>
+  <td>NCP</td>
+  <td>North Celestial Pole (SIN special case)</td>
+ </tr>
+ <tr>
+  <td>PAR</td>
+  <td>Parabolic</td>
+ </tr>
+ <tr>
+  <td>PCO</td>
+  <td>Polyconic projection</td>
+ </tr>
+ <tr>
+  <td>QSC</td>
+  <td>Quadrilateral Spherical Cube</td>
+ </tr>
+ <tr>
+  <td>SFL</td>
+  <td>Sanson-Flamsteed</td>
+ </tr>
+ <tr>
+  <td>SIN</td>
+  <td>Generalized stereographic</td>
+ </tr>
+ <tr>
+  <td>STG</td>
+  <td>Stereographic</td>
+ </tr>
+ <tr>
+  <td>SZP</td>
+  <td>Slant zenithal perspective</td>
+ </tr>
+ <tr>
+  <td>TAN</td>
+  <td>Gnomonic (tangent plane)</td>
+ </tr>
+ <tr>
+  <td>TSC</td>
+  <td>Tangential Spherical Cube</td>
+ </tr>
+ <tr>
+  <td>ZEA</td>
+  <td>Zenithal/azimuthal Equal Area</td>
+ </tr>
+ <tr>
+  <td>ZPN</td>
+  <td>Zenithal Polynomial</td>
+ </tr>
+</table>
+
+<div id="docnav">
+<p class="left"><a href="index2.html">&lt;-- Complete API</a></p>
+<p class="right"><a href="headers.html">Header Templates --&gt;</a></p>
+</div>
+
+
+
+
+<!--#include virtual="include/footer.html"-->

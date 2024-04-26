@@ -203,8 +203,18 @@ int main (int argc, char *argv[], char *envp[])
     pid = getpid();
     param.nkey = nkey;
 
+    if(keyword_exists("debug")) {
+        if (keyword_value("debug") != (char *)NULL) {
+            strcpy(str, strtrim(keyword_value("debug")));
+            istatus = str2Integer (str, &debugfile, errmsg);
+        }
+    }
+    
     if (debugfile) {
         sprintf (debugfname, "/tmp/mviewer_%d.debug", pid);
+//        strcpy (debugfname, 
+//            "/koa/cm/ws/mihseh/montage/web/mViewer/mviewer.debug");
+        
         
         fdebug = fopen (debugfname, "w+");
         if (fdebug == (FILE *)NULL) {

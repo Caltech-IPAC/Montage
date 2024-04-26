@@ -190,8 +190,8 @@ struct WorldCoor {
 #define WCS_CSC 24	/* COBE quadrilateralized Spherical Cube */
 #define WCS_QSC 25	/* Quadrilateralized Spherical Cube */
 #define WCS_TSC 26	/* Tangential Spherical Cube */
-#define WCS_HPX 27	/* Tangential Spherical Cube */
-#define WCS_XPH 28	/* Tangential Spherical Cube */
+#define WCS_HPX 27	/* HEALPix */
+#define WCS_XPH 28	/* HEALPix polar */
 #define WCS_NCP 29	/* Special case of SIN from AIPS*/
 #define WCS_GLS 30	/* Same as SFL from AIPS*/
 #define WCS_DSS 31	/* Digitized Sky Survey plate solution */

@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<meta name="Montage has several modules so users can create science-grade mosaics, and analyze and process FITS files." />
+	  <head>
+  <title>Montage User Guide: Software Modules</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Montage Modules</h1>
+
+<p>Montage is a toolkit comprised of several modules, rather than a single executable. This design has many benefits: end users are able to adapt the code for their own purposes, and the software can be scaled across large-scale, parallel systems. The modules generate multiple files during mosaic creation that can be used as QA tools to ensure proper background matching and photometric and astrometric accuracy.</p>
+
+<p>Below is an overview of each module for creating mosaics, and analyzing and processing FITS files.</p>
+
+<ul>
+  <li><a href="#mosaics">Create Mosaics</a></li>
+  <li><a href="#analyze">Analyze FITS Files</a></li>
+  <li><a href="#process">Process FITS Files</a></li>
+</ul>
+
+<p>See the <a href="m101tutorial.html">m101 Tutorial</a> for a complete mosaic-creation workflow. </p>
+<p>Also, the <a href="http://irsa.ipac.caltech.edu/docs/howto/DSS_pleiades_mosaic.html">sample script for creating a Pleiades mosaic</a> is a good introduction to using Montage.</a></li>
+
+<p>
+
+<a name="mosaics"><h2>Create Mosaics:</h2></a>
+
+<table class="table_border">
+<tr>
+  <td>Convert FITS images or mosaics into grayscale or color JPEG images</td>
+  <td><a href="mJPEG.html"><tt>mJPEG</tt></a></td>
+</tr>
+<tr>
+  <td>Create a FITS <a href="headers.html">header template</a> for use in mosaic creation</td>
+  <td><a href="mMakeHdr.html"><tt>mMakeHdr</tt></a></td>
+</tr>
+<tr>
+  <td>Create a 2MASS, SDSS or DSS mosaic based on a size and location</td>
+  <td><a href="mExec.html"><span class="file">mExec</span></a></td>
+</tr>
+<tr>
+  <td>Create a mosaic from images already in the same projection</td>
+  <td><a href="mAdd.html"><span class="file">mAdd</span></a><br>
+  <a href="mAddExec.html"><span class="file">mAddExec</span></a></td>
+</tr>
+<tr>
+  <td>Re-project and mosaic your images, <b>without</b> background rectification</td>
+  <td><a href="mImgtbl.html"><tt>mImgtbl</tt></a><br>
+      <a href="mProjExec.html"><tt>mProjExec</tt></a><br>
+      <a href="mAdd.html"><tt>mAdd</tt></a></td>
+</tr>
+<tr>
+  <td>Re-project and mosaic your images, <b>with</b> background rectification</td>
+  <td><a href="mImgtbl.html"><tt>mImgtbl</tt></a><br>
+      <a href="mProjExec.html"><tt>mProjExec</tt></a><br>
+      <a href="mOverlaps.html"><tt>mOverlaps</tt></a><br>
+      <a href="mDiffExec.html"><tt>mDiffExec</tt></a><br>
+      <a href="mBgModel.html"><tt>mBgModel</tt></a><br>
+      <a href="mFitExec.html"><tt>mFitExec</tt></a><br>
+      <a href="mAdd.html"><tt>mAdd</tt></a></td>
+</tr>
+
+</table>
+
+<a name="analyze"><h2>Analyze FITS Files:</h2></a>
+<table class="table_border">
+<tr>
+  <td>Generate metadata from a set of FITS images</td>
+  <td><a href="mImgtbl.html"><span class="file">mImgtbl</span></a></td>
+</tr>
+<tr>
+  <td>Generate metadata from a set of header files</td>
+  <td><a href="mHdrtbl.html"><span class="file">mHdrtbl</span></a></td>
+</tr>
+<tr>
+  <td>Filter an image metadata table down to those records representing FITS files that overlap a footprint on the sky</td>
+  <td><a href="mCoverageCheck.html"><span class="file">mCoverageCheck</span></a><br><a href="mSubset.html"><tt>mSubset</tt></a></td>
+</tr>
+<tr>
+  <td>Retrieve the header from a FITS image</td>
+  <td><a href="mGetHdr.html"><span class="file">mGetHdr</span></a></td>
+</tr>
+<tr>
+  <td>Check the validity of a FITS image's header</td>
+  <td><a href="mHdrCheck.html"><span class="file">mHdrCheck</span></a></td>
+</tr>
+</table>
+
+<a name="process"><h2>Process FITS Files:</h2></a>
+<table class="table_border">
+<tr>
+  <td>Create a set of tiled images or <a href="headers.html">header templates</a> from a FITS file or header</td>
+  <td><a href="mTileImage.html"><tt>mTileImage</tt></a><br><a href="mTileHdr.html"><tt>mTileHdr</tt></a></td>
+</tr>
+<tr>
+  <td>Re-project FITS images</td>
+  <td><a href="mProject.html"><tt>mProject</tt></a><br>
+      <a href="mProjectPP.html"><tt>mProjectPP</tt></a></td>
+</tr>
+<tr>
+  <td>Convert FITS data to a different data type (ie, integer to floating-point)</td>
+  <td><a href="mConvert.html"><tt>mConvert</tt></a></td>
+</tr>
+<tr>
+  <td>Replace a particular set of values in a FITS image with NaNs (or vice-versa)</td>
+  <td><a href="mFixNaN.html"><span class="file">mNaN</span></a></td>
+</tr>
+<tr>
+  <td>Remove the background from an image</td>
+  <td><a href="mFlattenExec.html"><tt>mFlattenExec</tt></a></td>
+</tr>
+<tr>
+  <td>Replace a FITS image's header with one from an ASCII <a href="headers.html">header template</a></td>
+  <td><a href="mPutHdr.html"><tt>mPutHdr</tt></a></td>
+</tr>
+<tr>
+  <td>Re-size a FITS image</td>
+  <td><a href="mShrink.html"><tt>mShrink</tt></a></td>
+</tr>
+<tr>
+  <td>Create a "cutout" of a FITS image</td>
+  <td><a href="mSubimage.html"><tt>mSubimage</tt></td>
+</tr>
+</table>
+
+<div id="docnav" style="clear:both">
+<p class="left"><a href="index.html">&lt;-- Documentation Index</a></p>
+<p class="right"><a href="index2.html">Detailed API --&gt;</a></p>
+</div>
+
+<!--#include virtual="include/footer.html"-->

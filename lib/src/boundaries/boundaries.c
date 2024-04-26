@@ -54,9 +54,6 @@ struct bndInfo *bndVerticalBoundingBox(int npts, double *lon, double *lat)
    if(status < 0)
       return (struct bndInfo *)NULL;
    
-   if(bndDebug >= 1)
-      bndDrawBox();
-
    retval = (struct bndInfo *)malloc(sizeof(struct bndInfo));
 
    retval->cornerLon[0] = bndCorner1.lon;
@@ -90,9 +87,6 @@ struct bndInfo *bndBoundingBox(int npts, double *lon, double *lat)
    if(status < 0)
       return (struct bndInfo *)NULL;
 
-   if(bndDebug >= 1)
-      bndDrawBox();
-
    retval = (struct bndInfo *)malloc(sizeof(struct bndInfo));
 
    retval->cornerLon[0] = bndCorner1.lon;
@@ -125,9 +119,6 @@ struct bndInfo *bndBoundingCircle(int npts, double *lon, double *lat)
 
    if(status < 0)
       return (struct bndInfo *)NULL;
-
-   if(bndDebug >= 1)
-      bndDrawCircle();
 
    retval = (struct bndInfo *)malloc(sizeof(struct bndInfo));
 
@@ -192,9 +183,6 @@ int bndBoundaries(int npts, double *lon, double *lat, int flag)
    if(bndDebug >= 2)
       PrintSkyPoints();
 
-   if(bndDebug >= 1)
-      bndDrawSkyPoints();
-
    qsort(
       &bndPoints[1],                 /* pointer to 1st elem      */
       bndNpoints-1,                  /* number of elems          */
@@ -231,9 +219,6 @@ int bndBoundaries(int npts, double *lon, double *lat, int flag)
       bndPrintStack(top);
    }
 
-   if(bndDebug >= 1)
-      bndDrawOutline(top);
-
    if(flag == 0)
       bndComputeVerticalBoundingBox(top);
 
@@ -253,7 +238,7 @@ int bndBoundaries(int npts, double *lon, double *lat, int flag)
       bndFree(top);
       return(-1);
    }
-   
+
    return(0);
 }
 
@@ -1385,92 +1370,6 @@ void bndComputeBoundingCircle(struct bndStackCell *t)
 }
 
 
-
-void bndDrawBox()
-{
-   printf("color white\n");
-   printf("ptype o\n");
-   printf("move %13.6f %13.6f\n", bndCorner1.lon, bndCorner1.lat);
-   printf("dot\n");
-   printf("draw %13.6f %13.6f\n", bndCorner2.lon, bndCorner2.lat);
-   printf("draw %13.6f %13.6f\n", bndCorner3.lon, bndCorner3.lat);
-   printf("draw %13.6f %13.6f\n", bndCorner4.lon, bndCorner4.lat);
-   printf("draw %13.6f %13.6f\n", bndCorner1.lon, bndCorner1.lat);
-
-   printf("move %13.6f %13.6f\n", bndCenter.lon, bndCenter.lat);
-   printf("ptype +\n");
-   printf("expand 3\n");
-   printf("dot\n");
-}
-
-
-
-void bndDrawCircle()
-{
-   int    i;
-   double x, y, angle;
-
-   printf("color white\n");
-   printf("ptype o\n");
-
-   bndTANsetup(bndCenter.lon, bndCenter.lat, 0.0);
-
-   for(i=0; i<=360; ++i)
-   {
-      angle = i * bndDTR;
-
-      x = bndRadius * cos(angle);
-      y = bndRadius * sin(angle);
-
-      bndTANdeproj(x, y);
-
-      if(i == 0)
-         printf("move %13.6f %13.6f\n", bndLon, bndLat);
-
-      printf("draw %13.6f %13.6f\n", bndLon, bndLat);
-   }
-
-   printf("move %13.6f %13.6f\n", bndCenter.lon, bndCenter.lat);
-   printf("ptype +\n");
-   printf("expand 3\n");
-   printf("dot\n");
-}
-
-
-
-void bndDrawOutline(struct bndStackCell *t)
-{
-   int first = 1;
-   struct bndStackCell *f;
-
-   f = t;
-
-   while(t) 
-   { 
-      if(first)
-      {
-	 printf("color yellow\n");
-	 printf("move %12.6f %12.6f\n", 
-		t->p->lon, t->p->lat); 
-      }
-      else
-	 printf("draw %12.6f %12.6f\n", 
-		t->p->lon, t->p->lat); 
-
-      t = t->next;
-
-      first = 0;
-   }
-
-   printf("draw %12.6f %12.6f\n", 
-	  f->p->lon, f->p->lat); 
-
-   printf("dot\n");
-   fflush(stdout);
-}
-
-
-
 struct bndStackCell *bndGraham()
 {
    int i;
@@ -1591,29 +1490,6 @@ void PrintSkyPoints(void)
              bndPoints[i].delete);
    }
 }
-
-
-
-void bndDrawSkyPoints(void)
-{
-   int i;
-
-   printf("proj gnomonic\n");
-   printf("pcent %13.6f %13.6f\n", Centroid.lon, Centroid.lat);
-   printf("mcent %13.6f %13.6f\n", Centroid.lon, Centroid.lat);
-   printf("size  %13.6f %13.6f\n", 2.2*bndSize, 2.2*bndSize);
-   printf("color blue\n");
-   printf("border\n");
-   printf("grid\n");
-   printf("color red\n");
-
-   for(i = 0; i < bndNpoints; ++i)
-   {
-      printf("move %13.6f %13.6f\ndot\n", 
-	     bndPoints[i].lon, bndPoints[i].lat);
-   }
-}
-
 
 
 

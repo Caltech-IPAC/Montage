@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+<h1>Building Montage</h1>
+
+<ol>
+  <p><li><a href="download.html">Download</a> the source code for Montage, and save it in the directory of your choice; we will refer to this containing directory as $INSTALL.</li>
+  <p><li>Unzip the file.  For example, if you downloaded <span class="file">Montage_vX.Y.tar.gz</span>, type:<p><span class="file">gunzip Montage_vX.Y.tar.gz</span><p>This will uncompress the file <span class="file">Montage_vX.Y.tar</span>.</li>
+  <p><li>Un-tar the file:<p><span class="file">tar xpf Montage_vX.Y.tar</span><p>This will create the directory <span class="dir"><b>Montage_vX.Y</b></span>, which will include the Montage files and subdirectories.
+  <br><br>
+  <a href="dirlist.txt">Click here</a> to see a packing list of the contents of the directories.
+
+
+
+
+<p>See the <a href="components.html#before">Before Building</a> section in Overview of Components for additional information.</p></li>
+
+
+  <p><li><span class="file">cd</span> into the main Montage directory (Montage_vX.Y) and type "<span class="file">make</span>" to build Montage.  This will build all the libraries and executables (described in <a href="components.html">Montage Components</a>), and place all the executables in <span class="file">$INSTALL/Montage_vX.Y/bin</span>.  Nothing outside the Montage directory will be altered.  The build may take up to several minutes.  There should be a continuous stream of output messages during this process.</li>
+  <p><li>If you want to be able to run the Montage executables from any directory, you will need to add <span class="file">$INSTALL/Montage_vX.Y/bin</span> to your path.<p>
+  For instance, using the bash shell on Linux, after installing Montage in <span class="file">/home/username/Montage_vX.Y</span>, we add the following line to <span class="file">/home/username/.bash-profile</span>:
+  <p>
+  <span class="file">PATH=$PATH:$HOME/Montage_vX.Y/bin</span>
+  <p>If you are using csh, you would add the following line to <span class="file">/home/username/.cshrc</span>:
+  <p>
+  <span class="file">set path = ($path /home/username/Montage_vX.Y/bin)</span>
+
+  </li>
+</ol>
+
+<p>&nbsp;</p>
+
+<h2>Libraries:</h2>
+
+<p>Montage relies on several astronomical libraries, all of which are included in the package and installed when Montage is built (under <span class="dir">lib</span>):</p>
+
+<dl class="ls">
+  <dt class="dir">boundaries</dt>
+  <dd>Given a set of points on the sky, <tt>boundaries</tt> can determine the best-fit polygon containing them.</dd>
+
+  <dt class="dir">cfitsio</dt>
+  <dd>A library of routines for reading and writing data files in the FITS data format, written by William D Pence at HEASARC.</dd>
+
+  <dt class="dir">coord</dt>
+  <dd>Coordinate handling routines to transform coordinates between systems and epochs.</dd>
+
+  <dt class="dir">jpeg</dt>
+  <dd>JPEG image library</dd>
+
+  <dt class="dir">mtbl</dt>
+  <dd>Routines for extracting information from ASCII tables.</dd>
+
+  <dt class="dir">pixbounds</dt>
+  <dd>Boundaries around sets of points in the x-y plane</dd>
+
+  <dt class="dir">svc</dt>
+  <dd>Montage executables all produce structured responses as output (of the form <tt>[struct stat=<i>status</i>, ... <i>additional information</i>]</tt>). The svc library contains routines to start up processes, send commands, and parse the responses
+to extract keyword = value pairs or the value of a particular keyword.</dd>
+
+  <dt class="dir">two_plane</dt>
+  <dd>Plane-to-plane transformations in the tangent plane</dd>
+
+
+  <dt class="dir">wcstools</dt>
+  <dd>Subroutines for setting and using the world coordinate systems (WCS) in the headers of FITS images.  Part of SAO's WCS Tools (<a href="http://tdc-www.harvard.edu/software/wcstools/">http://tdc-www.harvard.edu/software/wcstools/</a>)</dd>
+</dl>
+<p>&nbsp;</p>
+
+<h2>Updating External Libraries:</h2>
+
+<p>If you would like to install a new version of the WCS or CFITSIO libraries under Montage, please read the <a href="components.html#lib">external library notes</a> in "Montage Components."</p>
+
+
+<div id="docnav">
+<p class="left"><a href="requirements.html">&lt;-- System Requirements</a></p>
+<p class="right"><a href="index.html">Documentation Index --&gt;</a></p>
+</div>
+
+<!--#include virtual="include/footer.html"-->

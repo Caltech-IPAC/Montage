@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include "index.h"
 
+long nodeCount;
+
 struct Rect rects[] = {
     { {0, 0, 0, 2, 2, 0} }, /* xmin, ymin, zmin, xmax, ymax, zmax (for 3 dimensional RTree) */
     { {5, 5, 0, 7, 7, 0} },

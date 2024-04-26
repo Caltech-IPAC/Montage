@@ -150,11 +150,19 @@ static struct
 }
 input, weight, output, output_area;
 
+static int    ndata;
+static double **data    = (double **)NULL;
+static double **area    = (double **)NULL;
+
+static double *buffer   = (double  *)NULL;
+static double *weights  = (double  *)NULL;
 
 static double cnpix1, cnpix2;
 static double crpix1, crpix2;
 
 static int    isDSS = 0;
+static int    isHPX = 0;
+static int    hpxPix, hpxLevel;
 
 static double refArea;
 
@@ -277,7 +285,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double    oxpix, oypix;
    double    oxpixMin, oypixMin;
    double    oxpixMax, oypixMax;
-   int       haveIn, haveOut, haveMinMax, haveTop;
+   int       haveIn, haveOut, haveMinMax;
    int       xrefin, yrefin;
    int       xrefout, yrefout;
    int       xpixIndMin, xpixIndMax;
@@ -288,8 +296,6 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    int       jstart, jlength;
    double    xpos, ypos;
    int       offscl, use;
-   double    *buffer;
-   double    *weights;
    double    datamin, datamax;
    double    areamin, areamax;
    double    pixelArea;
@@ -312,12 +318,10 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double    pixel_value  = 0;
    double    weight_value = 1;
 
-   double  **data;
-   double  **area;
+   double    overlapArea = 0.;
 
-   double    overlapArea;
-
-   int       status = 0;
+   int       status  = 0;
+   int       haveTop = 0;
 
    char     output_file[MAXSTR];
 
@@ -326,6 +330,29 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    char     *checkHdr;
 
    struct mProjectReturn *returnStruct;
+
+   buffer  = (double *)NULL;
+   weights = (double *)NULL;
+
+   data    = (double **)NULL;
+   area    = (double **)NULL;
+
+   topl    = (struct Ipos *)NULL;
+   bottoml = (struct Ipos *)NULL;
+   topr    = (struct Ipos *)NULL;
+   bottomr = (struct Ipos *)NULL;
+
+   input.fptr       = (fitsfile *)NULL; 
+   weight.fptr      = (fitsfile *)NULL; 
+   output.fptr      = (fitsfile *)NULL; 
+   output_area.fptr = (fitsfile *)NULL;
+
+   input.wcs  = (struct WorldCoor *)NULL;
+   output.wcs = (struct WorldCoor *)NULL;
+
+   haveTop = 0;
+
+   hpxPix = 0;
 
 
    /*******************************/
@@ -365,7 +392,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -382,7 +409,6 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    xrefout   = 0;
    yrefout   = 0;
 
-   /**************************************************************/
 
 
    /********************************/
@@ -420,6 +446,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
             borderstr);
+         mProject_cleanup();
          return returnStruct;
       }
       else
@@ -432,6 +459,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(border < 0)
    {
       sprintf(returnStruct->msg, "Border value (%d) must be greater than or equal to zero", border);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -444,6 +472,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(checkHdr)
    {
       strcpy(returnStruct->msg, checkHdr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -452,6 +481,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(checkHdr)
    {
       strcpy(returnStruct->msg, checkHdr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -506,6 +536,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(mProject_readFits(input_file, weight_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -535,6 +566,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       || yrefin < 0 || yrefin >= input.naxes[1])
       {
          sprintf(returnStruct->msg, "Debug input pixel coordinates out of range");
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -550,7 +582,26 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(mProject_readTemplate(template_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
+   }
+
+
+   /* Check the WCS header to see if we need to set up       */
+   /* special HPX handling.  The projection type tells us    */
+   /* if this is HPX and the pixel size tells us what order. */
+
+   if(strcmp(output.wcs->ptype, "HPX") == 0)
+   {
+      isHPX = 1;
+
+      hpxPix = 90.0 / fabs(output.wcs->xinc) / sqrt(2.0) + 0.5;
+
+      hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+      hpxPix = pow(2., (double)hpxLevel) + 0.5;
+
+      hpxPix = 4 * hpxPix;
    }
 
    if(output.clockwise)
@@ -608,6 +659,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       if(mProject_readTemplate(template_file) > 0)
       {
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
@@ -631,6 +683,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       || yrefout < 0 || yrefout >= output.naxes[1])
       {
          sprintf(returnStruct->msg, "Debug output pixel coordinates out of range");
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -682,6 +735,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    for (j=0; j<input.naxes[1]+1; ++j)
    {
+      // Left
+      
       pix2wcs(input.wcs, 0.5, j+0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -691,7 +746,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
       wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProject_fixxy(&oxpix, &oypix, &offscl);
+      mProject_fixHPX(&oxpix, &oypix, &offscl);
+      mProject_fix360(&oxpix, &oypix, &offscl);
 
       if(input.wcs->offscl)
          offscl = 1;
@@ -704,6 +760,9 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
          if(oypix > oypixMax) oypixMax = oypix;
       }
 
+      
+      // Right
+      
       pix2wcs(input.wcs, input.naxes[0]+0.5, j+0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -713,7 +772,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
       wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProject_fixxy(&oxpix, &oypix, &offscl);
+      mProject_fixHPX(&oxpix, &oypix, &offscl);
+      mProject_fix360(&oxpix, &oypix, &offscl);
 
       if(input.wcs->offscl)
          offscl = 1;
@@ -732,6 +792,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    for (i=0; i<input.naxes[0]+1; ++i)
    {
+      // Top
+
       pix2wcs(input.wcs, i+0.5, 0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -741,7 +803,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
       wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProject_fixxy(&oxpix, &oypix, &offscl);
+      mProject_fixHPX(&oxpix, &oypix, &offscl);
+      mProject_fix360(&oxpix, &oypix, &offscl);
 
       if(input.wcs->offscl)
          offscl = 1;
@@ -754,6 +817,9 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
          if(oypix > oypixMax) oypixMax = oypix;
       }
 
+
+      // Bottom
+
       pix2wcs(input.wcs, i+0.5, input.naxes[1]+0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -763,7 +829,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
       wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProject_fixxy(&oxpix, &oypix, &offscl);
+      mProject_fixHPX(&oxpix, &oypix, &offscl);
+      mProject_fix360(&oxpix, &oypix, &offscl);
 
       if(input.wcs->offscl)
          offscl = 1;
@@ -852,10 +919,11 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       printf(" jlength  = %-d\n", jlength);
       fflush(stdout);
    }
-
+    
    if(oxpixMin > oxpixMax || oypixMin > oypixMax)
    {
       sprintf(returnStruct->msg, "No overlap");
+      mProject_cleanup();
       return returnStruct;
    }
     
@@ -864,21 +932,25 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    /* Allocate memory for the output image pixels */ 
    /***********************************************/ 
 
-   data = (double **)malloc(jlength * sizeof(double *));
+   ndata = jlength;
+
+   data = (double **)malloc(ndata * sizeof(double *));
 
    if(data == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for output data image array");
+      mProject_cleanup();
       return returnStruct;
    }
 
-   for(j=0; j<jlength; j++)
+   for(j=0; j<ndata; j++)
    {
       data[j] = (double *)malloc(ilength * sizeof(double));
 
       if(data[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for output data image array");
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -886,7 +958,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(mProject_debug >= 1)
    {
       printf("\n%lu bytes allocated for image pixels\n", 
-         ilength * jlength * sizeof(double));
+         ilength * ndata * sizeof(double));
       fflush(stdout);
    }
 
@@ -895,7 +967,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    /* Initialize pixels */
    /*********************/
 
-   for (j=0; j<jlength; ++j)
+   for (j=0; j<ndata; ++j)
    {
       for (i=0; i<ilength; ++i)
       {
@@ -908,21 +980,23 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    /* Allocate memory for the output pixel areas */ 
    /**********************************************/ 
 
-   area = (double **)malloc(jlength * sizeof(double *));
+   area = (double **)malloc(ndata * sizeof(double *));
 
    if(area == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for output area image array");
+      mProject_cleanup();
       return returnStruct;
    }
 
-   for(j=0; j<jlength; j++)
+   for(j=0; j<ndata; j++)
    {
       area[j] = (double *)malloc(ilength * sizeof(double));                               
 
       if(area[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for output area image array");
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -930,7 +1004,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    if(mProject_debug >= 1)
    {
       printf("%lu bytes allocated for pixel areas\n", 
-         ilength * jlength * sizeof(double));
+         ilength * ndata * sizeof(double));
       fflush(stdout);
    }
 
@@ -998,6 +1072,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                        buffer, &nullcnt, &status))
       {
          mProject_printFitsError(status);
+         mProject_cleanup();
          return returnStruct;
       }
 
@@ -1007,6 +1082,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                           weights, &nullcnt, &status))
          {
             mProject_printFitsError(status);
+            mProject_cleanup();
             return returnStruct;
          }
       }
@@ -1062,7 +1138,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                wcs2pix(output.wcs, (topl+i)->lon,  (topl+i)->lat,
                        &((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
 
-               mProject_fixxy(&((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
+               mProject_fixHPX(&((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
+               mProject_fix360(&((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
 
                if(input.wcs->offscl)
                   offscl = 1;
@@ -1123,7 +1200,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                wcs2pix(output.wcs, (topl+i)->lon,  (topl+i)->lat,
                        &((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
 
-               mProject_fixxy(&((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
+               mProject_fixHPX(&((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
+               mProject_fix360(&((topl+i)->oxpix), &((topl+i)->oypix), &offscl);
 
                if(input.wcs->offscl)
                   offscl = 1;
@@ -1168,7 +1246,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                wcs2pix(output.wcs, (topr+i)->lon,  (topr+i)->lat,
                        &((topr+i)->oxpix), &((topr+i)->oypix), &offscl);
 
-               mProject_fixxy(&((topr+i)->oxpix), &((topr+i)->oypix), &offscl);
+               mProject_fixHPX(&((topr+i)->oxpix), &((topr+i)->oypix), &offscl);
+               mProject_fix360(&((topr+i)->oxpix), &((topr+i)->oypix), &offscl);
 
                if(input.wcs->offscl)
                   offscl = 1;
@@ -1239,7 +1318,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
             wcs2pix(output.wcs, (bottoml+i)->lon,  (bottoml+i)->lat,
                     &((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
 
-            mProject_fixxy(&((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
+            mProject_fixHPX(&((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
+            mProject_fix360(&((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
 
             if(input.wcs->offscl)
                offscl = 1;
@@ -1298,7 +1378,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
             wcs2pix(output.wcs, (bottoml+i)->lon,  (bottoml+i)->lat,
                     &((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
 
-            mProject_fixxy(&((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
+            mProject_fixHPX(&((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
+            mProject_fix360(&((bottoml+i)->oxpix), &((bottoml+i)->oypix), &offscl);
 
             if(input.wcs->offscl)
                offscl = 1;
@@ -1343,7 +1424,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
             wcs2pix(output.wcs, (bottomr+i)->lon,  (bottomr+i)->lat,
                     &((bottomr+i)->oxpix), &((bottomr+i)->oypix), &offscl);
 
-            mProject_fixxy(&((bottomr+i)->oxpix), &((bottomr+i)->oypix), &offscl);
+            mProject_fixHPX(&((bottomr+i)->oxpix), &((bottomr+i)->oypix), &offscl);
+            mProject_fix360(&((bottomr+i)->oxpix), &((bottomr+i)->oypix), &offscl);
 
             if(input.wcs->offscl)
                offscl = 1;
@@ -1395,8 +1477,6 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
             if(weight_value < threshold)
                weight_value = 0.;
-
-            weight_value *= fixedWeight;
          }
 
          if(mNaN(pixel_value))
@@ -1563,7 +1643,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                         wcs2pix(output.wcs, ilon[k], ilat[k],
                                 &oxpix, &oypix, &offscl);
 
-                        mProject_fixxy(&oxpix, &oypix, &offscl);
+                        mProject_fixHPX(&oxpix, &oypix, &offscl);
+                        mProject_fix360(&oxpix, &oypix, &offscl);
 
                         printf("   corner %d: (%10.6f,%10.6f) -> [%10.6f,%10.6f]\n", 
                            k+1, ilon[k], ilat[k], oxpix, oypix);
@@ -1578,7 +1659,8 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                         wcs2pix(output.wcs, olon[k], olat[k],
                                 &oxpix, &oypix, &offscl);
 
-                        mProject_fixxy(&oxpix, &oypix, &offscl);
+                        mProject_fixHPX(&oxpix, &oypix, &offscl);
+                        mProject_fix360(&oxpix, &oypix, &offscl);
 
                         printf("   corner %d: (%10.6f,%10.6f) -> [%10.6f,%10.6f]\n", 
                            k+1, olon[k], olat[k], oxpix, oypix);
@@ -1610,19 +1692,19 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
                   if(energyMode)
                   {
                      if (mNaN(data[m-jstart][l-istart]))
-                        data[m-jstart][l-istart] = pixel_value * overlapArea/pixelArea * weight_value;
+                        data[m-jstart][l-istart] = pixel_value * overlapArea/pixelArea * weight_value * fixedWeight;
                      else
-                        data[m-jstart][l-istart] += pixel_value * overlapArea/pixelArea * weight_value;
+                        data[m-jstart][l-istart] += pixel_value * overlapArea/pixelArea * weight_value * fixedWeight;
                   }
                  else
                   {
                      if (mNaN(data[m-jstart][l-istart]))
-                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value;
+                        data[m-jstart][l-istart] = pixel_value * overlapArea * weight_value * fixedWeight;
                      else
-                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value;
+                        data[m-jstart][l-istart] += pixel_value * overlapArea * weight_value * fixedWeight;
                   }
 
-                  area[m-jstart][l-istart] += overlapArea * weight_value;
+                  area[m-jstart][l-istart] += overlapArea * weight_value * fixedWeight;
 
                   if(mProject_debug >= 3)
                   {
@@ -1654,12 +1736,16 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
+
+   input.fptr = (fitsfile *)NULL;
 
    if(haveIn)
    {
       strcpy(returnStruct->msg, "Debug output done.");
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1747,6 +1833,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printError("All pixels are blank. Check for overlap of output template with image file.");
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1780,6 +1867,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1787,6 +1875,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1800,6 +1889,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1813,6 +1903,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1831,6 +1922,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1844,6 +1936,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1863,6 +1956,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1871,6 +1965,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1885,6 +1980,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1893,6 +1989,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1901,6 +1998,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1911,6 +2009,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
@@ -1919,6 +2018,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -1929,6 +2029,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
@@ -1937,6 +2038,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -1948,6 +2050,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1956,6 +2059,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1964,6 +2068,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    {
       mProject_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProject_cleanup();
       return returnStruct;
    }
 
@@ -1974,6 +2079,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
@@ -1982,6 +2088,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -1992,6 +2099,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
@@ -2000,6 +2108,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
    }
@@ -2022,18 +2131,19 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    for(j=jmin; j<=jmax; ++j)
    {
+      status = 0;
+
       if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements, 
                          (void *)(&data[j-jstart][imin-istart]), &status))
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
       ++fpixel[1];
    }
-
-   free(data[0]);
 
    if(mProject_debug >= 1)
    {
@@ -2057,13 +2167,12 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
       {
          mProject_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProject_cleanup();
          return returnStruct;
       }
 
       ++fpixel[1];
    }
-
-   free(area[0]);
 
    if(mProject_debug >= 1)
    {
@@ -2072,33 +2181,13 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
    }
 
 
-   /***********************/
-   /* Close the FITS file */
-   /***********************/
-
-   if(fits_close_file(output.fptr, &status))
-   {
-      mProject_printFitsError(status);
-      strcpy(returnStruct->msg, montage_msgstr);
-      return returnStruct;
-   }
+   /*************/
+   /* Finish up */
+   /*************/
 
    if(mProject_debug >= 1)
    {
-      printf("FITS data image finalized\n"); 
-      fflush(stdout);
-   }
-
-   if(fits_close_file(output_area.fptr, &status))
-   {
-      mProject_printFitsError(status);
-      strcpy(returnStruct->msg, montage_msgstr);
-      return returnStruct;
-   }
-
-   if(mProject_debug >= 1)
-   {
-      printf("FITS area image finalized\n\n"); 
+      printf("Output FITS images finalized.\n"); 
       fflush(stdout);
    }
 
@@ -2111,6 +2200,7 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 
    returnStruct->time = (double)(currtime - start);
 
+   mProject_cleanup();
    return returnStruct;
 }
 
@@ -2121,8 +2211,11 @@ struct mProjectReturn *mProject(char *input_file, char *ofile, char *template_fi
 /*  and call it off-scale.                        */
 /**************************************************/
 
-void mProject_fixxy(double *x, double *y, int *offscl)
+void mProject_fix360(double *x, double *y, int *offscl)
 {
+   if(isHPX)
+      return;
+
    *x = *x - xcorrection;
    *y = *y - ycorrection;
 
@@ -2133,6 +2226,49 @@ void mProject_fixxy(double *x, double *y, int *offscl)
       *offscl = 1;
 
    return;
+}
+
+
+/**************************************************/
+/*  HPX projection has a -180/+180 wraparound     */
+/*  that occurs along a diagonal in the middle of */
+/*  the lower left and upper right faces.  The    */
+/*  image we are trying to reproject can think of */
+/*  itself as being on the other side of this     */
+/*  line and therefore artificially 360 degrees   */
+/*  away in an XY sense.  This detects and        */
+/*  corrects for that offset.                     */
+/**************************************************/
+
+void mProject_fixHPX(double *oxpix, double *oypix, int *offscl)
+{
+   if(*offscl && isHPX)
+   {
+      if(*oxpix < -(double)hpxPix/2.)
+      {
+         *oxpix += (double)hpxPix;
+         *offscl = 0;
+      }
+
+      if(*oxpix >  (double)hpxPix/2.)
+      {
+         *oxpix -= (double)hpxPix;
+         *offscl = 0;
+      }
+    
+    
+      if(*oypix < -(double)hpxPix/2.)
+      {
+         *oypix += (double)hpxPix;
+         *offscl = 0;
+      }
+    
+      if(*oypix >  (double)hpxPix/2.)
+      {
+         *oypix -= (double)hpxPix;
+         *offscl = 0;
+      }
+   }
 }
 
 
@@ -2621,6 +2757,86 @@ int mProject_readFits(char *filename, char *weightfile)
    free(header);
 
    return 0;
+}
+
+
+
+/************************************/
+/*                                  */
+/*  Make sure FITS files are closed */
+/*                                  */
+/************************************/
+
+void mProject_cleanup()
+{
+   int     status, i;
+
+   if(input.wcs)
+   {
+      wcsfree(input.wcs);
+      input.wcs = (struct WorldCoor *)NULL;
+   }
+
+   if(output.wcs)
+   {
+      wcsfree(output.wcs);
+      output.wcs = (struct WorldCoor *)NULL;
+   }
+
+   if(buffer)  free(buffer);
+   if(weights) free(weights);
+
+   if(data)
+   {
+      for(i=0; i<ndata; ++i)
+         free(data[i]);
+
+      free(data);
+   }
+
+   if(area)
+   {
+      for(i=0; i<ndata; ++i)
+         free(area[i]);
+
+      free(area);
+   }
+
+   if(topl)    free(topl);
+   if(bottoml) free(bottoml);
+   if(topr)    free(topr);
+   if(bottomr) free(bottomr);
+
+   data    = (double **)NULL;
+   area    = (double **)NULL;
+
+   buffer  = (double  *)NULL;
+   weights = (double  *)NULL;
+
+   topl    = (struct Ipos *)NULL;
+   bottoml = (struct Ipos *)NULL;
+   topr    = (struct Ipos *)NULL;
+   bottomr = (struct Ipos *)NULL;
+
+   if(input.fptr != (fitsfile *)NULL)
+      fits_close_file(input.fptr, &status);
+
+   if(weight.fptr != (fitsfile *)NULL)
+      fits_close_file(weight.fptr, &status);
+
+   if(output.fptr != (fitsfile *)NULL)
+      fits_close_file(output.fptr, &status);
+
+   if(output_area.fptr != (fitsfile *)NULL)
+      fits_close_file(output_area.fptr, &status);
+
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   return;
 }
 
 

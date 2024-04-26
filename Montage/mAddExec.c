@@ -50,8 +50,6 @@ Version  Developer        Date     Change
 #include <mpi.h>
 #endif
 
-#include "montage.h"
-
 #define MAXSTR     256
 #define HDRLEN   80000
 
@@ -110,6 +108,8 @@ struct outfile
   long      naxes[2];
 }
 output;
+
+FILE *fstatus;
 
 
 /***************************/

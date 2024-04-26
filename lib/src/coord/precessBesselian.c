@@ -17,6 +17,8 @@
 void precessBesselian(double epochin,  double  rain,  double  decin, 
                       double epochout, double *raout, double *decout)
 {
+   int coord_debug = 0;
+
    double rapm, decpm;
 
    if(coord_debug)
@@ -68,6 +70,8 @@ void precessBesselianWithProperMotion
     double pmain, double pmdin, double pin, double vin, 
     double *rapm, double *decpm)
 {
+   int coord_debug = 0;
+
    static double rtod, dtor, delt, f, p[3][3];
    
    static double saveepochin  = -1.0;

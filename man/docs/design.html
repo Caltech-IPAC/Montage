@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+  <title>Design Philosophy</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Design Philosophy</h1>
+
+<p>Montage is a <b>toolkit</b> for assembling astronomical images into mosaics.  Its scientific value derives from three features of its design:</p>
+
+<ul>
+  <li>It uses algorithms that preserve the calibration and positional (astrometric) fidelity of the input images to deliver mosaics that meet user-specified parameters of projection, coordinates, and spatial scale. It supports all projections and coordinate systems in use in astronomy.</li>
+  <li>It contains independent modules for analyzing the geometry of images on the sky, and for creating and managing mosaics; these modules are powerful tools in their own right and have applicability outside mosaic production, in areas such as data validation.</li>
+  <li>It is written in <i>American National Standards Institute</i> (ANSI)-compliant C, and is portable and scaleable - the same engine runs on desktops, clusters or supercomputer environments running common Unix-based operating systems. </li>
+</ul>
+
+
+<p>There are four steps in the production of an image mosaic:</p>
+
+<ul>
+  <li>Discover the geometry of the input images on the sky from the input FITS keywords and use it to calculate the geometry of the output mosaic on the sky</li>
+  <li>Re-project the input images to the same spatial scale, coordinate system, WCS projection, and image rotation</li>
+  <li>Model the background radiation in the input images to achieve common flux scales and background levels across the mosaics</li>
+  <li>Co-add the re-projected, background-corrected images into a mosaic</li>
+</ul>
+
+<p>Each production step has been implemented as an independent module run from an executive script.  This toolkit design offers flexibility to users.  They may, for example, use Montage as a re-projection tool, or deploy a custom background rectification algorithm while taking advantage of the re-projection and co-addition engines.</p>
+
+<div id="docnav">
+<p class="left"><a href="index.html">&lt;-- Documentation Index</a></p>
+<p class="right"><a href="supported.html">Supported File Formats --&gt;</a></p>
+</div>
+
+
+
+
+<!--#include virtual="include/footer.html"-->

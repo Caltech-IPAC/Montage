@@ -24,9 +24,10 @@ Version  Developer        Date     Change
 #include "wcs.h"
 #include "coord.h"
 
-#include "montage.h"
 #include "subImage.h"
 #include "mNaN.h"
+
+extern FILE *fstatus;
 
 int debug;
 
@@ -197,7 +198,7 @@ void montage_copyData(fitsfile *infptr, fitsfile *outfptr, struct imageParams *p
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -291,7 +292,7 @@ void montage_dataRange(fitsfile *infptr, int *imin, int *imax, int *jmin, int *j
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 

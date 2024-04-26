@@ -38,8 +38,6 @@ Version  Developer        Date     Change
 #include <wcs.h>
 #include <coord.h>
 
-#include "montage.h"
-
 #define MAXSTR 256
 #define MAXIMG 256
 
@@ -122,6 +120,8 @@ struct ImgInfo
 char *fileName(char *filename);
 
 int nimages, maximages;
+
+FILE *fstatus;
 
 int debug = 0;
 

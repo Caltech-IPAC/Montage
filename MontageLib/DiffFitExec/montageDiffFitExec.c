@@ -28,8 +28,8 @@ int mDiffFitExec_debug;
 /*                                                                 */
 /*  mDiffFitExec                                                   */
 /*                                                                 */
-/*  This routine combines the mDiff and mFit functionality and     */
-/*  optionally discards the difference images as it goes (to       */
+/*  This routine combines the mDiff and mFitplane functionality    */
+/*  and optionally discards the difference images as it goes (to   */
 /*  minimize the file space needed).   It uses the table of        */
 /*  oerlaps found by mOverlaps, running mDiff, then mFitplane      */
 /*  on the difference images.  These fits are written to an        */
@@ -42,6 +42,8 @@ int mDiffFitExec_debug;
 /*                                                                 */
 /*   char *diffdir     Directory for temporary output diff files.  */
 /*   char *fitfile     Table file for output difference fits info. */
+/*   char *archive     Special case: data is stored in an AWS S3   */             
+/*                     bucket.  Download temporarily.              */             
 /*   int keepAll       Flag to keep temporary diff images.         */
 /*   int levelOnly     Flag to fit level of diff only, not slopes. */
 /*   int noAreas       Flag indicating there are no area images.   */             
@@ -50,7 +52,8 @@ int mDiffFitExec_debug;
 /*******************************************************************/
 
 struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *template, char *diffdir,
-                                        char *fitfile, int keepAll, int levelOnly, int noAreas, int debugin)
+                                        char *fitfile, int keepAll, int levelOnly, int noAreas, 
+                                        char *archive, int debugin)
 {
    int    stat, ncols, count, ffailed, warning, dfailed;
 
@@ -68,6 +71,7 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
    char   diffname[MAXSTR];
    char   rmname  [MAXSTR];
    char   path    [MAXSTR];
+   char   cmd     [MAXSTR];
 
    double a;
    double b;
@@ -117,7 +121,7 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
    if(fout == (FILE *)NULL)
    {
-      sprintf(returnStruct->msg, "Can't open output file.");
+      sprintf(returnStruct->msg, "Can't open output file.  Does location exist?");
       fclose(fout);
       return returnStruct;
    }
@@ -178,20 +182,49 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
       cntr1 = atoi(tval(icntr1));
       cntr2 = atoi(tval(icntr2));
 
-      strcpy(fname1,   montage_filePath(path, tval(ifname1)));
-      strcpy(fname2,   montage_filePath(path, tval(ifname2)));
+      if(strlen(archive) > 0)
+      {
+         strcpy(fname1, tval(ifname1));
+         strcpy(fname2, tval(ifname2));
+
+         sprintf(cmd, "aws s3 cp s3://%s/%s %s 2>1 > /dev/null", archive, fname1, fname1);
+         system(cmd);
+
+         sprintf(cmd, "aws s3 cp s3://%s/%s %s 2>1 > /dev/null", archive, fname2, fname2);
+         system(cmd);
+      }
+      else
+      {
+         strcpy(fname1,   montage_filePath(path, tval(ifname1)));
+         strcpy(fname2,   montage_filePath(path, tval(ifname2)));
+      }
+
       strcpy(diffname, tval(idiffname));
 
       if(diffname[strlen(diffname)-1] != 's')
          strcat(diffname, "s");
 
-      diff = mDiff(fname1, fname2, montage_filePath(diffdir, diffname), template, noAreas, 1., 0);
-
-      if(mDiffFitExec_debug)
+      if(strlen(archive) > 0)
       {
-         printf("mDiff(%s, %s, %s) -> [%s]\n", 
-            fname1, fname2, montage_filePath(diffdir, diffname), diff->msg);
-         fflush(stdout);
+         diff = mDiff(fname1, fname2, diffname, template, noAreas, 1., 0);
+
+         if(mDiffFitExec_debug)
+         {
+            printf("mDiff(%s, %s, %s) -> [%s]\n", 
+               fname1, fname2, diffname, diff->msg);
+            fflush(stdout);
+         }
+      }
+      else
+      {
+         diff = mDiff(fname1, fname2, montage_filePath(diffdir, diffname), template, noAreas, 1., 0);
+
+         if(mDiffFitExec_debug)
+         {
+            printf("mDiff(%s, %s, %s) -> [%s]\n", 
+               fname1, fname2, montage_filePath(diffdir, diffname), diff->msg);
+            fflush(stdout);
+         }
       }
 
       if(diff->status)
@@ -199,13 +232,26 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
       free(diff);
 
-      fitplane = mFitplane(montage_filePath(diffdir, diffname), levelOnly, 0., 0);
-
-      if(mDiffFitExec_debug)
+      if(strlen(archive) > 0)
       {
-         printf("mFitplane(%s) -> [%s]\n", 
-            montage_filePath(diffdir, diffname), fitplane->msg);
-         fflush(stdout);
+         fitplane = mFitplane(diffname, 0, levelOnly, 0., 0);
+
+         if(mDiffFitExec_debug)
+         {
+            printf("mFitplane(%s) -> [%s]\n", diffname, fitplane->msg);
+            fflush(stdout);
+         }
+      }
+      else
+      {
+         fitplane = mFitplane(montage_filePath(diffdir, diffname), 0, levelOnly, 0., 0);
+
+         if(mDiffFitExec_debug)
+         {
+            printf("mFitplane(%s) -> [%s]\n", 
+               montage_filePath(diffdir, diffname), fitplane->msg);
+            fflush(stdout);
+         }
       }
 
       if(fitplane->status)
@@ -244,7 +290,10 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
       if(!keepAll)
       {
-         strcpy(rmname, montage_filePath(diffdir, diffname));
+         if(strlen(archive) > 0)
+            strcpy(rmname, diffname);
+         else
+            strcpy(rmname, montage_filePath(diffdir, diffname));
 
          if(mDiffFitExec_debug)
          {
@@ -254,19 +303,38 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
          unlink(rmname);
 
-         if(!noAreas)
+         rmname[strlen(rmname)-5] = '\0';
+         strcat(rmname, "_area.fits");
+
+         if(mDiffFitExec_debug)
          {
-            rmname[strlen(rmname)-5] = '\0';
-            strcat(rmname, "_area.fits");
-
-            if(mDiffFitExec_debug)
-            {
-               printf("Remove [%s]\n", rmname);
-               fflush(stdout);
-            }
-
-            unlink(rmname);
+            printf("Remove [%s]\n", rmname);
+            fflush(stdout);
          }
+
+         unlink(rmname);
+      }
+
+
+      /* If the data came from S3, remove the local copy */
+
+      if(!keepAll && strlen(archive) > 0)
+      {
+         if(mDiffFitExec_debug)
+         {
+            printf("Remove [%s]\n", fname1);
+            fflush(stdout);
+         }
+
+         unlink(fname1);
+
+         if(mDiffFitExec_debug)
+         {
+            printf("Remove [%s]\n", fname2);
+            fflush(stdout);
+         }
+
+         unlink(fname2);
       }
    }
 
@@ -274,6 +342,8 @@ struct mDiffFitExecReturn *mDiffFitExec(char *inpath, char *tblfile, char *templ
 
 
    /* Finish up */
+
+   ffailed = ffailed - dfailed;
 
    returnStruct->status = 0;
 

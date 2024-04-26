@@ -16,8 +16,6 @@ Version  Developer        Date     Change
 #include <sys/stat.h>
 #include <mtbl.h>
 
-#include "montage.h"
-
 #define MAXSTR 4096
 
 char *svc_value();
@@ -27,6 +25,7 @@ int   svc_debug(FILE *stream);
 char *filePath (char *path, char *fname);
 char *fileName (char *filename);
 
+FILE *fstatus;
 
 extern char *optarg;
 extern int optind, opterr;

@@ -152,6 +152,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
    if(icntr  < 0
    || ifname < 0)
    {
+      tclose();
       strcpy(returnStruct->msg, "Need columns: cntr and fname in image list");
       return returnStruct;
    }
@@ -206,6 +207,7 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
 
    if(ncols <= 0)
    {
+        tclose();
         sprintf(returnStruct->msg, "Invalid corrections  file: %s", fitfile);
         return returnStruct;
    }
@@ -295,22 +297,34 @@ struct mBgExecReturn *mBgExec(char *inpath, char *tblfile, char *fitfile, char *
       if(have[cntr] == 0)
          ++nocorrection;
 
-      background = mBackground(ifile, ofile, a[cntr], b[cntr], c[cntr], noAreas, 0);
-
       if(debug)
       {
-         printf("mBackground(%s, %s, %-g, %-g, %-g) -> [%s]\n", 
-            file, ofile, a[cntr], b[cntr], c[cntr], background->msg);
+         printf("mBackground(%s, %s, %-g, %-g, %-g)\n", 
+            file, ofile, a[cntr], b[cntr], c[cntr]);
          fflush(stdout);
       }
 
+      background = mBackground(ifile, ofile, a[cntr], b[cntr], c[cntr], noAreas, 0);
+
       if(background->status)
+      {
          ++failed;
+
+         if(debug)
+         {
+            printf("Failed.  Message: [%s]\n", background->msg);
+            fflush(stdout);
+         }
+      }
 
       ++count;
 
       free(background);
+
+      background = (struct mBackgroundReturn *)NULL;
    }
+
+   tclose();
 
    if(debug)
    {

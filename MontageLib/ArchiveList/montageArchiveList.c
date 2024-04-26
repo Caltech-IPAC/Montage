@@ -33,6 +33,9 @@ static char montage_msgstr[1024];
 /* images.  The list contains enough information to support mArchiveGet  */
 /* downloads.                                                            */
 /*                                                                       */
+/* The region is defined either by a FITS/header file or by a center     */
+/* location and sizes.                                                   */
+/*                                                                       */
 /*   char  *survey         Data survey to search (e.g. 2MASS, SDSS,      */
 /*                         WISE, etc.)                                   */
 /*                                                                       */
@@ -53,11 +56,12 @@ static char montage_msgstr[1024];
 /*************************************************************************/
 
 
-struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location, double width, double height,
+struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location, double inwidth, double inheight,
                                         char *outfile, int debug)
 {
    int    socket, port, count;
-   double size;
+   double size, width, height;
+   double ra, dec;
   
    char   line      [MAXLEN];
    char   request   [MAXLEN];
@@ -65,6 +69,7 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    char   constraint[MAXLEN];
    char   server    [MAXLEN];
    char   source    [MAXLEN];
+   char   temp      [MAXLEN];
 
    FILE  *fout;
 
@@ -79,6 +84,9 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    char *surveystr;
    char *bandstr;
    char *locstr;
+
+   width  = inwidth;
+   height = inheight;
 
    if(debug)
    {
@@ -106,26 +114,26 @@ struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *location
    strcpy(returnStruct->msg, "");
 
 
-   /* Process command-line parameters */
+   /* Process the parameters */
 
-   strcpy(server, "montage-web.ipac.caltech.edu");
+   strcpy(server, "montage.ipac.caltech.edu");
 
    port = 80;
 
    strcpy(base, "/cgi-bin/ArchiveList/nph-archivelist?");
 
+   size = sqrt(width*width + height*height);
+
    surveystr = mArchiveList_url_encode(survey);
    bandstr   = mArchiveList_url_encode(band);
    locstr    = mArchiveList_url_encode(location);
 
-   size = sqrt(width*width + height*height);
+   sprintf(constraint, "survey=%s+%s&location=%s&width=%.6f&height=%.6f&units=deg&mode=TBL",
+      surveystr, bandstr, locstr, width, height);
 
-   sprintf(constraint, "survey=%s+%s&location=%s&size=%.4f&units=deg&mode=TBL",
-      surveystr, bandstr, locstr, size);
-
+   free(locstr);
    free(surveystr);
    free(bandstr);
-   free(locstr);
 
    fout = fopen(outfile, "w+");
 

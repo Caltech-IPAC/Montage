@@ -176,7 +176,7 @@ struct mFitExecReturn *mFitExec(char *tblfile, char *fitfile, char *diffdir, int
          continue;
       }
 
-      fitplane = mFitplane(diffname, levelOnly, 0., 0);
+      fitplane = mFitplane(diffname, 0, levelOnly, 0., 0);
 
       if(mFitExec_debug)
       {

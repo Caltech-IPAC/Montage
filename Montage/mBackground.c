@@ -40,7 +40,6 @@ Version  Developer        Date     Change
 #include <wcs.h>
 
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR  256
@@ -68,6 +67,8 @@ struct
    input, input_area, output, output_area;
 
 static time_t currtime, start;
+
+FILE *fstatus;
 
 
 /*************************************************************************/

@@ -12,6 +12,7 @@ void refinedEclETermCorrection();
 void correctForEquatorialETerms();
 void correctForEclipticETerms();
 
+int coord_debug = 0;
 
 
 /***************************************************************************/

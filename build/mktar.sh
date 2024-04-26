@@ -12,6 +12,7 @@ tar cvf Montage_`date "+%d%b%y"`.tar \
    Montage/util \
    Montage/grid \
    Montage/MontageLib \
+   Montage/HiPS \
    Montage/ancillary \
    Montage/python \
    Montage/Python_ManyLinux \

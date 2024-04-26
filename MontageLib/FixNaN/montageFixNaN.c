@@ -126,8 +126,6 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int haveVal,
 
    struct mFixNaNReturn *returnStruct;
 
-   FILE* fd;
-
 
    /************************************************/
    /* Make a NaN value to use setting blank pixels */
@@ -146,16 +144,6 @@ struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int haveVal,
       value.c[i] = (char)255;
 
    nan = value.d;
-
-   fd = fopen("/tmp/jcg.debug", "w+");
-
-   fprintf(fd, "XXX> nMinMax:      [%d]\n", nMinMax);
-
-   for(i=0; i<nMinMax; ++i)
-      fprintf(fd, "XXX> [%-g](%d) -> [%-g](%d)\n", minblank[i], ismin[i], maxblank[i], ismax[i]);
-
-   fflush(fd);
-   fclose(fd);
 
 
    /*******************************/

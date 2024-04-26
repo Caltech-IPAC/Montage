@@ -1,6 +1,6 @@
 all:
 	(cd bzip2-1.0.6 && $(MAKE) && cp libbz2.a ../.. && cp bzlib.h ../../include)
-	(cd cfitsio-3.25 && ./configure && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
+	(cd cfitsio-3.49 && ./configure --disable-curl && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
 	(cd cmd && $(MAKE) && $(MAKE) install)
 	(cd coord && $(MAKE) && $(MAKE) install)
 	(cd mtbl && $(MAKE) && $(MAKE) install)
@@ -13,14 +13,14 @@ all:
 	(cd two_plane_v1.1 && $(MAKE) && $(MAKE) install)
 	(cd lodepng_20140823 && $(MAKE) && $(MAKE) install)
 	(cd jpeg-8b && ./configure --with-pic && $(MAKE) && cp .libs/libjpeg.a ../.. && cp jpeglib.h jconfig.h jmorecfg.h ../../include)
-	(cd freetype-2.9.1 && ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib && $(MAKE) && $(MAKE) install)
+	(cd freetype-2.9.1 && ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib --without-bzip2 --without-harfbuzz && $(MAKE) && $(MAKE) install)
 	(cd .. && ranlib *.a)
 	chmod 644 ../include/*.h
 
 clean:
 	rm -rf ../include/* ../freetype ../*.a
 	(cd bzip2-1.0.6 && $(MAKE) clean)
-	test ! -e cfitsio-3.25/Makefile || (cd cfitsio-3.25 && $(MAKE) clean && rm -rf config.log config.cache config.status lib)
+	test ! -e cfitsio-3.49/Makefile || (cd cfitsio-3.49 && $(MAKE) clean && rm -rf config.log config.cache config.status lib)
 	(cd cmd && $(MAKE) clean)
 	(cd coord && $(MAKE) clean)
 	(cd mtbl && $(MAKE) clean)

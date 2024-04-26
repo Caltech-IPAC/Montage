@@ -1,0 +1,84 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mViewer</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>mViewer generates a JPEG image file from a FITS file (or a set of three
+  FITS files in full color).  A data range for each image can be defined,
+  and the data can be stretched by any power of the log() function
+  (including zero: linear) or using custom gaussian histogram equalization
+  algorithms.  Pseudo-color color tables can be applied
+  in single-image mode.</dd>
+
+  <dd>mViewer can also generate overlays on the image of coordinate grids,
+  source catalogs (with scaled symbols), image outlings from metadata tables,
+  plus various markers and labels.</dd>
+
+  <dd>Along with a few other Montage modules, mViewer can be wrapped to support
+  interactive image analysis from Python or through AJAX web interfaces.</dd>
+
+  <dd>The functionality of mViewer goes beyond what is reasonable to capture
+  in a man page.  The user is therefore directed to the <a href="../../mViewer">
+  mViewer</a> documentation suite.</dd>
+</dl>
+
+<p><b>Examples:</b></p>
+
+<p>To create a grayscale image from a FITS file:</p>
+<dl class="example">
+<pre>
+   mViewer -ct 1 -gray SDSS_r.fits -1s max gaussian-log -png SDSS_r.png
+</pre>
+</dl>
+<p align="center"><img src="examples/mViewer/SDSS_r.png" width="600" height="600"></p>
+
+<p><hr width="50%"/></p>
+
+<p>To create a full color image from three co-registered FITS files:</p>
+<dl class="example">
+<pre>
+   mViewer \
+   -blue     /SDSS_u.fits -0.5s max gaussian-log \
+   -green    /SDSS_g.fits -0.5s max gaussian-log \
+   -red      /SDSS_r.fits -0.5s max gaussian-log \
+   -png      SDSS_Color.png
+</pre>
+</dl>
+<p align="center"><img src="examples/mViewer/SDSS_Color.png" width="600" height="600"></p>
+
+<p><hr width="50%"/></p>
+
+<p>A complex example with a catalog overlay (symbol size, shape and color 
+controled by table columns), image metadata, a coordinate grid and some custom
+labeling:</p>
+<dl class="example">
+<pre>
+   mViewer \
+   -color    ffff00 \
+   -symbol   1.0 circle \
+   -scalecol j_m 16.0 mag \
+   -catalog  fp_2mass.tbl \
+   -color    red \
+   -imginfo  irspeakup.tbl \
+   -color    cyan \
+   -imginfo  mipssed.tbl \
+   -blue     /SDSS_u.fits -0.5s max gaussian-log \
+   -green    /SDSS_g.fits -0.5s max gaussian-log \
+   -red      /SDSS_r.fits -0.5s max gaussian-log \
+   -png      SDSS_ColorOverlays.png
+</pre>
+</dl>
+<p align="center"><img src="examples/mViewer/SDSS_ColorOverlays.png" width="600" height="600"></p>
+
+
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

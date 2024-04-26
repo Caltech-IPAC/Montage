@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<div id="tutorial">
+
+<h1>Montage Tutorial: Transposing the Axes of Data Cubes</h1>
+
+<p>The Montage data cube processing modules assume that in a data cube stored in a FITS file, the first two axes of the cube (NAXIS=1, NAXIS=2) represent positional coordinates, such as  Right Ascension and declination, and the third axis (NAXIS3) represents a physical quantity, such as wavelength, redshift or time. In many data cubes, the axes are not organized this way. For many cubes produced by radio astronomy instruments and by integral field spectra, the physical quantity is often the first axis. Thus, the first step in processing a data cube with Montage is to determine the ordering of the axes and to transpose them as needed.</p>
+
+<p>Consider an example data cube, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/OS.20061002.46998.lev1.fits">OS.20061002.46998.lev1.fits</a>, measured with the OSIRIS integral-field spectrograph at the W.M. Keck Observatory.</p>
+
+ 
+<h3>Step One:</b> Determine the order of the axes.</h3>
+
+<p>You may use any tool to read the header of the FITS file, such as the fv tool from <a href="http://heasarc.gsfc.nasa.gov/ftools/fv/fv_download.html" target="_blank">HEASARC</a>. We recommend using the <tt>mGetHdr</tt> utility to write the header to a text file, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/OSIRIS.hdr">OSIRIS.hdr</a>:</p>
+
+<blockquote><span class="file">mGetHdr OS.20061002.46998.lev1.fits OSIRIS.hdr<br />
+	[struct stat="OK", ncard=384]</span></blockquote>
+
+<p>Inspection of the appropriate keywords, printed below, shows that NAXIS1 represents wavelength, NAXIS2 represents RA and NAXIS3 represents Declination:</p>
+
+<blockquote><span class="file"> 
+NAXIS = 3 / number of data axes <br />
+NAXIS1 = 433 / length of data axis 1<br /> 
+NAXIS2 = 66 / length of data axis 2<br /> NAXIS3 = 51 /<br />
+CTYPE3 = 'DEC--TAN' /Declination.<br />
+CUNIT1 = 'nm ' /Vacuum wavelength unit is nanometers <br />
+CUNIT2 = 'deg ' /R.A. unit is degrees, always <br />
+CUNIT3 = 'deg ' /Declination unit is degrees, always <br />
+CRVAL1 = 2121.00 / [nm] Wavelength at reference pixel <br />
+CRVAL3 = -0.0131450173056 / [deg] Declination at reference pixel<br /> 
+CRPIX1 = 1 /Reference pixel location <br />
+CRPIX3 = 25.0000 /Reference pixel location <br />
+CDELT1 = 0.250000 /Wavelength scale is 0.250000 nm/channel <br />
+CDELT3 = 1.38889E-05 /Pixel scale is 0.0500000 arcsec/pixel
+</span>
+</blockquote>
+
+<h3>Step Two:</b> Transpose the axes.</h3>
+
+<p>Use the <tt>mTranspose</tt> utility to transpose the order of the axes so  the axes are RA, Declination, and Wavelength. We are transposing the order from (1,2,3) to (2,3,1), and writing the output to  <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/OS.trans.fits">OS.trans.fits</a>:</p>
+
+<blockquote><span class="file">
+ mTranspose OS.20061002.46998.lev1.fits OS.trans.fits 2 3 1<br />
+ [struct stat="OK", mindata=-16.3227, maxdata=6.83617]</span></blockquote>
+
+<p>You must explicitly state the ordering of all three axes. <tt>mTranspose</tt> will return an error message if you don't:</p>
+
+<blockquote><span class="file">mTranspose OS.20061002.46998.lev1.fits OS.trans.fits 2 3 <br />
+ [struct stat="ERROR", msg="Image has 3 dimensions.  You must list the output order for all of them."]</span></blockquote>
+
+
+<h3>Step Three:</b> Verify that the axes have been transposed.</h3>
+<p>A simple way to do this is to run <tt>mGetHdr</tt> again to create a text file of the header of the transposed cube, <a href="http://montage.ipac.caltech.edu/docs/examples/datacubes/OS.trans.hdr">OS.trans.hdr</a>:
+
+<blockquote><span class="file">mGetHdr OS.trans.fits OS.trans.hdr<br />
+[struct stat="OK", ncard=387]</span></blockquote>
+
+
+<p>Comparison of the keywords, printed below, with those in OSIRIS.hdr, shows that the axes have indeed been transposed.</p>
+
+<blockquote><span class="file"> 
+NAXIS   =                    3 / number of data axes<br />
+NAXIS1  =                   66 / length of data axis 1<br />
+NAXIS2  =                   51 / length of data axis 2<br />
+NAXIS3  =                  433 / length of data axis 3<br />
+...<br />
+CTYPE2  = 'DEC--TAN'           /Declination.<br />
+CUNIT3  = 'nm      '           /Vacuum wavelength unit is nanometers<br />
+CUNIT1  = 'deg     '           /R.A. unit is degrees, always<br />
+CUNIT2  = 'deg     '           /Declination unit is degrees, always<br />
+CRVAL3  =              2121.00 / [nm] Wavelength at reference pixel<br />
+CRVAL2  =     -0.0131450173056 / [deg] Declination at reference pixel<br />
+CRPIX3  =                    1 /Reference pixel location<br />
+CRPIX2  =              25.0000 /Reference pixel location<br />
+CDELT3  =             0.250000 /Wavelength scale is      0.250000 nm/channel<br />
+CDELT2  =          1.38889E-05 /Pixel scale is 0.0500000 arcsec/pixel<br />
+</span></blockquote>
+
+<p>The OSIRIS data file was downloaded form the Keck Observatory Archive (KOA) at <a href="https://koa.ipac.caltech.edu" target="_blank">https://koa.ipac.caltech.edu</a>. The file is part of the observing program "The Mass and Density of 2003 UB313" (M. Brown, PI).</p>
+
+<div id="docnav">
+<p class="left"><a href="troubleshooting.html">&lt;-- Troubleshooting</a></p>
+<p class="right"><a href="index.html">Documentation Index --&gt;</a></p>
+</div>
+
+
+</div>
+<!--#include virtual="include/footer.html"-->

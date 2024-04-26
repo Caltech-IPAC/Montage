@@ -55,7 +55,7 @@ double cgeomGetAngle()
 }
 
 
-int cgeomInit(double *x, double *y, int nin)
+tStack cgeomInit(double *x, double *y, int nin)
 {
    int i;
    tStack top;
@@ -118,7 +118,7 @@ int cgeomInit(double *x, double *y, int nin)
    if(debug)
       cgeomPrintPostscript( top );
 
-   return 0;
+   return top;
 }
 
 
@@ -234,6 +234,25 @@ tStack cgeomPop( tStack s )
 
 
 /*---------------------------------------------------------------------
+Clear stack (which frees all the allocated memory).                    
+---------------------------------------------------------------------*/
+
+void cgeomClear( tStack s )
+{
+   while(s)
+      s = cgeomPop(s);
+
+   free((void *)P);
+
+   P = NULL;
+
+   n = 0;
+
+   return;
+}
+
+
+/*---------------------------------------------------------------------
 Get a new cell, fill it with p, and push it onto the stack.
 Return pointer to new stack top.
 ---------------------------------------------------------------------*/
@@ -335,6 +354,9 @@ void cgeomBox( tStack start )
    firstpoint = -1;
    areamin    = -1.;
    current    = start;
+
+   C3 = 0;
+   C4 = 0;
 
    while (1) 
    { 

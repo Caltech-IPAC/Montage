@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+  <title>Introduction to Montage</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Introduction to Montage</h2>
+
+<p>Montage is a software system for generating astronomical image mosaics according to user-specified size, rotation, WCS-compliant projection and coordinate system, with background modeling and rectification capabilities.  This release of Montage can be run on a single processor, a cluster, a computational grid or a supercomputer.</p>
+
+<p>Montage processes input images that comply with the FITS standard, including specification of the WCS-compliant projection.  The output image will be compliant with the FITS format standard.  Users input the specification of the output image by editing an ASCII file that contains the FITS header keywords; these keywords will be written into the header of the output mosaic.</p>
+
+<p>Production of an image mosaic consists of four steps:</p>
+
+<ul>
+  <li>re-projection of input images to a common spatial scale, coordinate system and World Coordinate System (WCS) projection;</li>
+  <li>modeling of background radiation in images to achieve common flux scales and background level;</li>
+  <li>rectification of images to a common flux scale and background level; and</li>
+  <li>co-addition of re-projected, background-corrected images into a final mosaic.</li>
+</ul>
+
+<p>To accomplish these steps, Montage consists of the following independent components:</p>
+
+<ul>
+  <li>A compute engine that performs all re-projection and co-addition of input</li>
+  <li>A background modeling engine that globally minimizes the inter-image differences</li>
+  <li>A background rectification engine that removes background and instrumental radiation from images</li>
+  <li>An image coaddition engine that calculates weighted averages of pixel fluxes in the final mosaic</li>
+</ul>
+
+<p>Each of these components is run from a high-level script.  This "toolkit" design - stand-alone modules controlled by high level scripts - affords flexibility to users.  They may easily modify or re-write the executives to support custom use-cases and scenarios, while taking advantage of the compute functions.  Users may modify the reprojection module to support new data formats or custom variants of the FITS standard, while leaving the rectification and co-addition modules unaffected.  Alternatively, users can use the reprojection module, but input a custom rectification algorithm.  As long as the background radiation can be modeled as a smoothly varying surface, users can input a custom background model and Montage will generate the rectification parameters for each image.</p>
+
+
+
+
+
+
+
+
+<!--#include virtual="include/footer.html"-->

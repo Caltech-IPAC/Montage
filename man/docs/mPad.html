@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mPad</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  <p>Occasionally we want to pad the border of an image so that there is room for annotation,
+  a color bar, or just for visual effect.  mPad does this and if a color bar is desired
+  it adds one (wherever the user specifies, which might be in the pad or might be over
+  the image).</p>
+
+  <p>The pad around the edges is filled with NULLS (which will be rendered the same as the
+  minimum in the color table but mJPEG/mViewer).  However the user can optionally have
+  NULLs translated to another value with the "-val" argument.</p>
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  mPad [-nowcs][-d <i>level</i>][-val <i>NaN-value</i>][-bar <i>xmin xmax ymin ymax histfile</i>] 
+       <b>in.fits</b> <b>out.fits</b> <b>left</b> <b>right</b> <b>top</b> <b>bottom</b>
+  </dd>
+</dl>
+
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+
+  <dt>-nowcs </dt>
+  <dd>
+  If the image has WCS values in the header, these need to be adjusted to compensate
+  for the padding.  This flag is used to tell the software that the image does not
+  contain WCS keywords so not to try.
+  </dd>
+
+  <dt>-d <i>level</i></dt>
+  <dd>
+  Set debugging level (default none)
+  </dd>
+
+  <dt>-val <i>NaN-value</i></dt>
+  <dd>
+  Value to which NULL pixels should be converted.
+  </dd>
+
+  <dt>-bar <i>xmin xmax<br/>ymin ymax<br/>histfile</i></dt>
+  <dd>
+  <p>Adding a color bar as part of the image is a little trickier than it might at first
+  seem.</p>
+
+  <p>A color bar is a rectangular region of pixels whose data values are set so that
+  it gives the impression of the lookup-table used to render the image.  To do this,
+  we need the image histogram that mViewer (or whatever renderer) would use when
+  displaying the data.</p>
+
+  <p>The easiest way to do this is to 1) use mHistogram to generate the stretchl 2) use
+  mPad to add the pixel array (usually in a pad added around the outside of the image(;
+  and 3) use mViewer with the same pre-build histogram to render the image.</p>
+  </dd>
+
+</dl>
+
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+
+  <dt>in.fits</dt>
+  <dd>
+  Original FITS image.
+  </dd>
+
+  <dt>out.fits</dt>
+  <dd>
+  Padded FITS image.
+  </dd>
+
+  <dt>left right top bottom</dt>
+  <dd>
+  Number of pixels with which to pad the four sides of the image.
+  </dd>
+
+</dl>
+
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  If successful, the result is a new image almost identical to the original
+  but padded around the edges and possibly containing an embedded color bar.
+  When sent to mViewer, that tool can optionally add annotation to the 
+  bar.
+  </dd>
+
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+  <dt>(mHistogram -file SDSS_r.fits -2s max gaussian-log -out SDSS_r.hist)<p/>
+
+      mPad -bar -100 -50 50 -50 SDSS_r.hist SDSS_r.fits sdss.fits 50 250 50 50</dt>
+  <dd>[struct stat="OK"]</dd>
+  <p align="center"><b><font size="-1">Padded image with color bar:</font></b><br><img src="examples/mPad/pad.png" width="600" height="520"></p>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="ERROR", msg="Usage: mPad [-nowcs][-d level][-val NaN-value][-bar xmin xmax ymin ymax histfile] in.fits out.fits left right top bottom"]</li>
+  <li>[struct stat="ERROR", msg="No debug level given"]</li>
+  <li>[struct stat="ERROR", msg="Debug level string is invalid: '<i>badstring</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Debug level value cannot be negative"]</li>
+  <li>[struct stat="ERROR", msg="Not enough information given to draw color bar"]</li>
+  <li>[struct stat="ERROR", msg="Bar X min string is invalid: '<i>badstring</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Bar X max string is invalid: '<i>badstring</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Bar Y min string is invalid: '<i>badstring</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Bar Y max string is invalid: '<i>badstring</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open histogram file <i>badfile</i>"]</li>
+  <li>[struct stat="ERROR", msg="No value given for NaN conversion"]</li>
+  <li>[struct stat="ERROR", msg="NaN conversion value string is invalid: '<i>badstring</i>'"]</li>
+  <li>[struct stat="ERROR", status=<i>stat</i>, msg="<i>FITS library error</i>"]</li>
+  <li>[struct stat="ERROR", msg="<i>general error message</i>"]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

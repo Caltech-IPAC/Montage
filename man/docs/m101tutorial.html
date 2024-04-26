@@ -1,0 +1,420 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<div id="tutorial">
+
+<h1>Montage Tutorial: m101 Mosaic</h1>
+
+<p>In this example, we will create a mosaic of 10 2MASS Atlas images in a 0.2 degree area around m101 in the J band, reprojecting them into the TAN projection.  We will generate both background-matched and uncorrected versions of the mosaic.  The final product will be two mosaics of m101 and their corresponding area images.</p>
+
+<p>Area images are described more thoroughly in the <a href="algorithms.html#coadd">algorithms</a> section.  They are used by Montage when co-adding images together to form a mosaic; once the final product has been created, they no longer need to be kept.</p>
+
+<div align="center">
+<table border="1" cellpadding="2">
+<tr>
+  <td>&nbsp;</td>
+  <td><b>2MASS Atlas Input Images:</b></td>
+  <td><b>Output Mosaics:</b></td>
+</tr>
+<tr>
+  <td><b>Width:</b></td>
+  <td>512</td>
+  <td>2259</td>
+</tr>
+<tr>
+  <td><b>Height:</b></td>
+  <td>1024</td>
+  <td>2199</td>
+</tr>
+<tr>
+  <td><b>Projection:</b></td>
+  <td>SIN (Orthographic)</td>
+  <td>TAN (Gnomonic)</td>
+</tr>
+</table>
+</div>
+<p>&nbsp;</p>
+
+<p>In this tutorial, what the user types is shown after a <span class="file">$</span> prompt, as following:</p>
+
+<blockquote><span class="file">          $ user input</span></blockquote>
+
+<p>Program output will be highlighted in bold, i.e.:</p>
+
+<blockquote><span class="file">          <b>[struct stat="OK"]</b></span></blockquote>
+
+<p>You should make sure that the Montage executable directory (Montage_vX.Y/bin) is in your path before starting this tutorial (see Step 5 in <a href="build.html">Building Montage</a>); otherwise, you will need to explicitly refer to the executables in order to run them.</p>
+
+<p><b>Note:</b> Times shown will differ between systems.</p>
+
+<p>&nbsp;</p>
+
+
+<h3>Step One:</b> Setup</h3>
+
+<p>Download <a href="m101Example/tutorial-initial.tar.gz">http://montage.ipac.caltech.edu/docs/m101Example/tutorial-initial.tar.gz</a> (15.4 MB). To uncompress the file, type the following:</p>
+
+<dl class="commands">
+  <dt>$ gunzip tutorial-initial.tar.gz</dt>
+  <dt>$ tar xvf tutorial-initial.tar</dt>
+</dl>
+
+<p>This will create a directory called <span class="file">m101</span>, with five subdirectories: <span class="file">rawdir</span> containing the original 2MASS images, <span class="file">projdir</span> for the reprojected images, <span class="file">diffdir</span> for the difference images, <span class="file">corrdir</span> for the background-matched images, and <span class="file">final</span> for the finished mosaics. </p>
+
+<p>The total disk space taken up by these files is 20.7 MB.</p>
+
+<p>The header template (<a href="m101Example/template.hdr">template.hdr</a>) is in the main <span class="file">m101</span> directory.  This template is for a TAN projection, whereas the original 2MASS images are all in the SIN projection.  They could just as easily be reprojected back into SIN or any of the other supported projections.</p>
+
+<p><b>Note:</b> The header template was generated so that the area covered <i>completely encloses</i> each input image.  See <a href="caveats.html">Caveat #5</a> for more information on why this is necessary in this release of Montage.</p>
+
+<p>The <span class="file">m101</span> directory can be located anywhere on your system, as long as the Montage bin is in your path.</p>
+
+
+<p>Resulting directory structure:</p>
+
+<pre><tt>m101/
+  |--rawdir/
+  |    |--10 2MASS atlas images, SIN projection
+  |
+  |--projdir/
+  |--diffdir/
+  |--corrdir/
+  |--final/
+  |--<a href="m101Example/template.hdr">template.hdr</a></tt></pre>
+
+<p>&nbsp;</p>
+
+<h3>Step Two:</b> Reproject images.  </h3>
+
+
+<p>Generate an image metadata table describing the contents of <span class="file">rawdir</span>:</p>
+
+<dl class="commands">
+  <dt>$ mImgtbl rawdir images-rawdir.tbl</dt>
+  <dd>[struct stat="OK", count=10, badfits=0]</dd>
+</dl>
+
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">rawdir</span></td>
+<td valign="top">Name of the directory containing the images to be reprojected</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">images-rawdir.tbl</span></td>
+<td valign="top">Output image metadata table</td>
+</tr>
+
+</table>
+
+
+<p>Output file: <a href="m101Example/images-rawdir.tbl">images-rawdir.tbl</a>.</p>
+
+<p>Using this metadata table, run <span class="file">mProjExec</span> to reproject each image:</p>
+
+<dl class="commands">
+  <dt>$ mProjExec -p rawdir images-rawdir.tbl template.hdr projdir stats.tbl</dt>
+  <dd>[struct stat="OK", count=10, failed=0, nooverlap=0]</dd>
+</dl>
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">rawdir</span></td>
+<td valign="top">Name of the directory containing the images to be reprojected</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">images-rawdir.tbl</span></td>
+<td valign="top">Image metadata table describing the files</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">template.hdr</span></td>
+<td valign="top">Header template for the mosaic</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">projdir</span></td>
+<td valign="top">Directory into which reprojected images will be written</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">stats.tbl</span></td>
+<td valign="top">Name of the output table containing processing times and status for each image</td>
+</tr>
+</table>
+
+<p>This step may take several minutes, depending on processor availability.  Since the input 2MASS images are in a tangent-plane projection, <tt>mProjExec</tt> can make use of the fast-reprojection algorithm (<a href="mProjectPP.html"><tt>mProjectPP</tt></a>), saving some time.</p>
+
+<p>This creates a set of reprojected images in the directory <tt>projdir</tt>, and a table showing processing times for each image: <a href="m101Example/stats.tbl">stats.tbl</a>.  After the images have been reprojected, generate a new metadata table that contains the new header information:</p>
+
+<dl class="commands">
+  <dt>$ mImgtbl projdir images.tbl</dt>
+  <dd>[struct stat="OK", count=10, badfits=0]</dd>
+</dl>
+
+<p>New metadata table: <a href="m101Example/images.tbl">images.tbl</a>.</p>
+
+<p>&nbsp;</p>
+
+<h3>Step Three: uncorrected mosaic</h3>
+
+<p>Now we will generate a mosaic from the reprojected images <i>without</i> applying any background matching.  Run <span class="file">mAdd</span> on <span class="file">projdir</span>:</p>
+
+<dl class="commands">
+  <dt>$ mAdd -p projdir images.tbl template.hdr final/m101_uncorrected.fits</dt>
+  <dd>[struct stat="OK", time=8]</dd>
+</dl>
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">projdir</span></td>
+<td valign="top">Name of the directory containing the reprojected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">images.tbl</span></td>
+<td valign="top">Image metadata table describing the files</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">template.hdr</span></td>
+<td valign="top">Header template for the mosaic</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">final/m101_uncorrected.fits</span></td>
+<td valign="top">Name of the output file to be created</td>
+</tr>
+</table>
+
+
+<p><b>Uncorrected mosaic:</b>
+<br><br>
+<a href="m101Example/final/m101_uncorrected.fits">m101_uncorrected.fits</a><br>
+<a href="m101Example/final/m101_uncorrected_area.fits">m101_uncorrected_area.fits</a></p>
+
+<p>This step generally runs in under a minute.</p>
+
+<p>To create a grayscale JPEG of the output:</p>
+<dl class="commands">
+  <dt>mJPEG -gray final/m101_uncorrected.fits 20% 99.98% loglog -out final/m101_uncorrected.jpg</dt>
+  <dd>[struct stat="OK", min=80.747, minpercent=20.00, max=180.914, maxpercent=99.98]</dd>
+</dl>
+
+<p align="center"><img src="m101Example/final/m101_uncorrected.jpg" /></p>
+
+<p>&nbsp;</p>
+
+
+
+<h3>Step Four: Background Modeling</h3>
+
+<p>In order to smooth out the background levels between overlapping images, Montage creates a set of difference images from each pair of overlaps and fits a plane to each one.  </p>
+
+<p>First, Montage needs to know which images overlap, which can be determined using <span class="file">mOverlaps</span>:</p>
+
+<dl class="commands">
+  <dt>$ mOverlaps images.tbl diffs.tbl</dt>
+  <dd>[struct stat="OK", count=17]</dd>
+</dl>
+
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">images.tbl</span></td>
+<td valign="top">Image metadata table describing the files</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">diffs.tbl</span></td>
+<td valign="top">Name of the output table to be generated</td>
+</tr>
+</table>
+
+
+<p>This generates the file <a href="m101Example/diffs.tbl">diffs.tbl</a>, and should take several seconds to finish</p>
+
+<p><span class="file">mDiffExec</span> uses this file to subtract each pair of overlapping images, creating a set of difference images in the specified <span class="file">diffdir</span> subdirectory:</p>
+
+<dl class="commands">
+  <dt>$ mDiffExec -p projdir diffs.tbl template.hdr diffdir</dt>
+  <dd>[struct stat="OK", count=17, failed=0]</dd>
+</dl>
+
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">projdir</span></td>
+<td valign="top">Name of the directory containing the reprojected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">diffs.tbl</span></td>
+<td valign="top">Name of the differences table generated by <span class="file">mOverlaps</span></td>
+</tr>
+<tr>
+<td valign="top"><span class="file">template.hdr</span></td>
+<td valign="top">Header template for the mosaic</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">diffdir</span></td>
+<td valign="top">Directory into which the difference images will be written</td>
+</tr>
+</table>
+
+<p>The length of time necessary to run <span class="file">mDiffExec</span> will depend on the number of difference images being generated, but it will take less time than <span class="file">mProjExec</span>.</p>
+
+
+
+<p>Output directory: <tt>diffdir</tt>.</p>
+
+<p>Next, use <span class="file">mFitExec</span> to calculate plane-fitting coefficients for each difference image:</p>
+
+<dl class="commands">
+  <dt>$ mFitExec diffs.tbl fits.tbl diffdir</dt>
+  <dd>[struct stat="OK", count=17, failed=0, warning=0, missing=0]</dd>
+</dl>
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">diffs.tbl</span></td>
+<td valign="top">Differences table generated by <span class="file">mOverlaps</span></td>
+</tr>
+<tr>
+<td valign="top"><span class="file">fits.tbl</span></td>
+<td valign="top">Output table containing plane-fitting coefficients</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">diffdir</span></td>
+<td valign="top">Directory containing the difference images</td>
+</tr>
+</table>
+
+
+<p>This process, which takes several seconds, creates the plane-fitting metadata table: <a href="m101Example/fits.tbl">fits.tbl</a>.</p>
+
+<p>&nbsp;</p>
+
+<h3>Step Five: Background Matching</h3>
+
+<p>Now that Montage has calculated the best way to smooth out the overlap regions using the difference images, it needs to apply the background removal to the original reprojected images. </p>
+
+<p>The first step is creating a table of corrections that need to be applied to each image using <span class="file">mBgModel</span>:</p>
+
+<dl class="commands">
+  <dt>$ mBgModel images.tbl fits.tbl corrections.tbl</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">images.tbl</span></td>
+<td valign="top">Image metadata table containing information on the reprojected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">fits.tbl</span></td>
+<td valign="top">Plane-fitting table generated by <span class="file">mFitExec</span></td>
+</tr>
+<tr>
+<td valign="top"><span class="file">corrections.tbl</span></td>
+<td valign="top">Global corrections table to be generated.</td>
+</tr>
+</table>
+
+
+
+<p>Resulting corrections table: <a href="m101Example/corrections.tbl">corrections.tbl</a>.</p>
+
+<p>Next, use <span class="file">mBgExec</span> to actually apply the background matching to each reprojected image:</p>
+
+<dl class="commands"> 
+  <dt>$ mBgExec -p projdir images.tbl corrections.tbl corrdir</dt>
+  <dd>[struct stat="OK", count=10, nocorrection=0, failed=0]</dd>
+</dl>
+
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">projdir</span></td>
+<td valign="top">Directory containing the reprojected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">images.tbl</span></td>
+<td valign="top">Image metadata table describing the reprojected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">corrections.tbl</span></td>
+<td valign="top">Set of corrections generated by <span class="file">mBgModel</span></td>
+</tr>
+<tr>
+<td valign="top"><span class="file">corrdir</span></td>
+<td valign="top">Directory into which the corrected images will be placed</td>
+</tr>
+</table>
+<p>This creates a set of background-matched, reprojected images in the directory <tt>corrdir</tt>.</p>
+
+
+<p>Neither of these steps should take more than a few seconds.</p>
+
+<p>&nbsp;</p>
+
+<p><b>Step Six:</b> Corrected Mosaic</p>
+
+<p>To coadd all the reprojected, smoothed images into your final mosaic:</p>
+
+<dl class="commands">
+  <dt>$ mAdd -p corrdir images.tbl template.hdr final/m101_mosaic.fits</dt>
+  <dd>[struct stat="OK", time=1]</dd>
+</dl>
+
+<p>where:</p>
+<table border="1" cellpadding="2" cellspacing="0">
+<tr>
+<td valign="top"><span class="file">corrdir</span></td>
+<td valign="top">Directory containing the reprojected and background-corrected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">images.tbl</span></td>
+<td valign="top">Image metadata table describing the reprojected images</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">template.hdr</span></td>
+<td valign="top">Header template for the mosaic</td>
+</tr>
+<tr>
+<td valign="top"><span class="file">final/m101_mosaic.fits</span></td>
+<td valign="top">Name of the output mosaic</td>
+</tr>
+</table>
+
+<p><b>Final output:</b><br><br>
+<a href="m101Example/final/m101_mosaic.fits">m101_mosaic.fits</a><br>
+<a href="m101Example/final/m101_mosaic_area.fits">m101_mosaic_area.fits</a>
+
+<p>To create a grayscale JPEG of the output:</p>
+<dl class="commands">
+  <dt>mJPEG -gray final/m101_mosaic.fits 0s max gaussian-log -out final/m101_mosaic.jpg</dt>
+  <dd>[struct stat="OK", min=82.7157, minpercent=50.00, max=9628.28, maxpercent=100.00]</dd>
+</dl>
+
+<p align="center"><img src="m101Example/final/m101_mosaic.jpg" /></p>
+
+<p><b>Note:</b> Once your final product has been generated, you no longer need to keep all the intermediate files (projdir, diffdir, corrdir, and all area images).</p>
+<div id="docnav">
+<p class="left"><a href="troubleshooting.html">&lt;-- Troubleshooting</a></p>
+<p class="right"><a href="index.html">Documentation Index --&gt;</a></p>
+</div>
+
+
+</div>
+<!--#include virtual="include/footer.html"-->

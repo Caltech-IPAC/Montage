@@ -24,6 +24,7 @@ int printHeader (char *header);
 static struct WorldCoor *wcs;
 
 FILE    *fstatus;
+FILE    *fout;
 
 extern char *optarg;
 extern int optind, opterr;

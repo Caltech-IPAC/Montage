@@ -1,0 +1,25 @@
+{
+   "module":"mFlatten",
+
+   "function":"mFlatten",
+
+   "desc" : "mFlatten combines the mFitplane and mBackground functionality to create an image with the background removed.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"infile",      "desc":"Input image."},
+      {"type":"string",                    "name":"outfile",     "desc":"Output image."},
+      {"type":"boolean", "default":false,  "name":"levelOnly",   "desc":"Flag to fit level of diff only, not slopes."},
+      {"type":"int",     "default":0,      "name":"border",      "desc":"Border to ignore in fitting."},
+      {"type":"boolean", "default":false,  "name":"debug",       "desc":"Debug flag."}
+   ],
+   
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"double",                    "name":"a",              "desc":"Plane fit coefficient for X axis."},
+      {"type":"double",                    "name":"b",              "desc":"Plane fit coefficient for Y axis."},
+      {"type":"double",                    "name":"c",              "desc":"Plane fit constant offset."}
+   ]
+}

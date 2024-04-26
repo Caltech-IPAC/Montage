@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mShrinkCube</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>A utility for reducing the size of a FITS cube, by averaging blocks of pixels by any factor spatially and
+  by integer factors in the third dimension.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mShrinkCube [-f] [-d <i>level</i>] [-m factor] [-s <i>statusfile</i>] <b>in.fits out.fits factor</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-f</dt>
+  <dd>Fixed-size flag - specify output size of image, instead of the size of blocks of pixels to be averaged</dd>
+  <dt>-d <i>level</i></dt>
+  <dd>Turns on debugging to the specified level (1-4).</dd>
+  <dt>-m <i>factor</i></dt>
+  <dd>The (positive integer) factor by which to compress the cube in the third (usually wavelength-related) dimension.</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS cube</dd>
+  <dt>out.fits</dt>
+  <dd>Path to output FITS cube.</dd>
+  <dt>factor</dt>
+  <dd>Size of blocks, in (fractional) pixels, to average. File size will be reduced by 1/<i>factor</i> squared. If the -f (fixed-size) flag is used, <i>factor</i> is the desired width of the output image.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>[Normal mode]: FITS output image, reduced in size by a factor of (1/<i>factor</i>)^2  .</dd>
+  <dd>[Fixed-size mode]: FITS output image of width <i>factor</i></dd>
+</dl>
+
+<p class="dochead">Examples</p>
+
+<dl class="example">
+  <dt>$ mShrinkCube final/out.fits final/out-lowres_5.fits 5</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK"]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mShrink [-f(ixed-size)] [-d level] [-m factor] [-s statusfile] in.fits out.fits factor"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Image size <i>factor</i> cannot be interpreted as an real number"]</li>   
+  <li>[struct stat="ERROR", msg="Shrink factor <i>factor</i> cannot be interpreted as an real number"]</li>   
+  <li>[struct stat="ERROR", msg=\"Shrink factor <i>factor</i> must be positive"]</li>   
+  <li>[struct stat="ERROR", msg="HDU value (<i>n</i>) must be a non-negative integer"]</li>
+  <li>[struct stat="ERROR", msg="Third axis compression factor (<i>n</i>) must be a positive integer"]</li>
+  <li>[struct stat="ERROR", msg="Image file <i>in.fits</i> missing of invalid FITS."]</li>   
+  <li>[struct stat="ERROR", status=<i>n</i>, msg="<i>FITS library error</i>"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

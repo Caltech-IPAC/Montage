@@ -52,15 +52,17 @@ Version  Developer        Date     Change
 
 
 int  mDiff_debug;
-int  noAreas;
+int  diff_noAreas;
 
 struct
 {
+   int       bitpix;
+   int       hdrsize;
    fitsfile *fptr;
    long      naxes[2];
    double    crpix1, crpix2;
 }
-   input, input_area, output, output_area;
+   diff_input, diff_input_area, diff_output, diff_output_area;
 
 static time_t currtime, start;
 
@@ -110,9 +112,12 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 {
    int       i, j, ifile, status;
    long      fpixel[4], nelements;
-   int       nullcnt;
-   int       imin, jmin, haveMinMax;
-   int       imax, jmax;
+   int       nullcnt, haveMinMax;
+   int       imin, imax, jmin, jmax;
+   int       bitpix1, hdrsize1;
+   int       bitpix2, hdrsize2;
+   int       imin1, imax1, jmin1, jmax1;
+   int       imin2, imax2, jmin2, jmax2;
    int       istart, iend, ilength;
    int       jstart, jend, jlength;
    double   *buffer, *abuffer;
@@ -181,7 +186,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -191,8 +196,8 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* Process the command-line parameters */
    /***************************************/
 
-   mDiff_debug   = debugin;
-   noAreas = noAreasin;
+   mDiff_debug  = debugin;
+   diff_noAreas = noAreasin;
 
    strcpy(output_file, ofile);
 
@@ -297,10 +302,10 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 
    if(mDiff_debug >= 1)
    {
-      printf("output.naxes[0] =  %ld\n", output.naxes[0]);
-      printf("output.naxes[1] =  %ld\n", output.naxes[1]);
-      printf("output.crpix1   =  %-g\n", output.crpix1);
-      printf("output.crpix2   =  %-g\n", output.crpix2);
+      printf("diff_output.naxes[0] =  %ld\n", diff_output.naxes[0]);
+      printf("diff_output.naxes[1] =  %ld\n", diff_output.naxes[1]);
+      printf("diff_output.crpix1   =  %-g\n", diff_output.crpix1);
+      printf("diff_output.crpix2   =  %-g\n", diff_output.crpix2);
       fflush(stdout);
    }
 
@@ -317,49 +322,50 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   imin = output.crpix1 - input.crpix1;
-   jmin = output.crpix2 - input.crpix2;
+   bitpix1  = diff_input.bitpix;
+   hdrsize1 = diff_input.hdrsize;
 
-   imax = imin + input.naxes[0];
-   jmax = jmin + input.naxes[1];
+   imin1 = diff_output.crpix1 - diff_input.crpix1;
+   jmin1 = diff_output.crpix2 - diff_input.crpix2;
 
-   istart = imin;
-   iend   = imax;
+   imax1 = imin1 + diff_input.naxes[0];
+   jmax1 = jmin1 + diff_input.naxes[1];
 
-   jstart = jmin;
-   jend   = jmax;
+   istart = imin1;
+   iend   = imax1;
+
+   jstart = jmin1;
+   jend   = jmax1;
 
    if(mDiff_debug >= 1)
    {
       printf("\nFile 1:\n");
-      printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-      printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-      printf("input.crpix1         =  %-g\n",   input.crpix1);
-      printf("input.crpix2         =  %-g\n",   input.crpix2);
-      printf("imin                 =  %d\n",    imin);
-      printf("imax                 =  %d\n",    imax);
-      printf("jmin                 =  %d\n",    jmin);
-      printf("jmax                 =  %d\n\n",  jmax);
-      printf("istart               =  %d\n",    istart);
-      printf("iend                 =  %d\n",    iend);
-      printf("jstart               =  %d\n",    jstart);
-      printf("jend                 =  %d\n",    jend);
+      printf("bitpix1              =  %d\n",    bitpix1);
+      printf("hdrsize1             =  %d\n",    hdrsize1);
+      printf("diff_input.naxes[0]       =  %ld\n",   diff_input.naxes[0]);
+      printf("diff_input.naxes[1]       =  %ld\n",   diff_input.naxes[1]);
+      printf("diff_input.crpix1         =  %-g\n",   diff_input.crpix1);
+      printf("diff_input.crpix2         =  %-g\n",   diff_input.crpix2);
+      printf("imin1                =  %d\n",    imin1);
+      printf("imax1                =  %d\n",    imax1);
+      printf("jmin1                =  %d\n",    jmin1);
+      printf("jmax1                =  %d\n\n",  jmax1);
 
       fflush(stdout);
    }
 
    status = 0;
 
-   if(fits_close_file(input.fptr, &status))
+   if(fits_close_file(diff_input.fptr, &status))
    {
       mDiff_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
-      if(fits_close_file(input_area.fptr, &status))
+      if(fits_close_file(diff_input_area.fptr, &status))
       {
          mDiff_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
@@ -373,58 +379,56 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   imin = output.crpix1 - input.crpix1;
-   jmin = output.crpix2 - input.crpix2;
+   bitpix2  = diff_input.bitpix;
+   hdrsize2 = diff_input.hdrsize;
 
-   imax = imin + input.naxes[0];
-   jmax = jmin + input.naxes[1];
+   imin2 = diff_output.crpix1 - diff_input.crpix1;
+   jmin2 = diff_output.crpix2 - diff_input.crpix2;
+
+   imax2 = imin2 + diff_input.naxes[0];
+   jmax2 = jmin2 + diff_input.naxes[1];
 
    if(mDiff_debug >= 1)
    {
       printf("\nFile 2:\n");
-      printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-      printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-      printf("input.crpix1         =  %-g\n",   input.crpix1);
-      printf("input.crpix2         =  %-g\n",   input.crpix2);
-      printf("imin                 =  %d\n",    imin);
-      printf("imax                 =  %d\n",    imax);
-      printf("jmin                 =  %d\n",    jmin);
-      printf("jmax                 =  %d\n",    jmax);
-      printf("istart               =  %d\n\n",  istart);
-      printf("iend                 =  %d\n",    iend);
-      printf("jstart               =  %d\n",    jstart);
-      printf("jend                 =  %d\n",    jend);
+      printf("bitpix2              =  %d\n",    bitpix2);
+      printf("hdrsize2             =  %d\n",    hdrsize2);
+      printf("diff_input.naxes[0]       =  %ld\n",   diff_input.naxes[0]);
+      printf("diff_input.naxes[1]       =  %ld\n",   diff_input.naxes[1]);
+      printf("diff_input.crpix1         =  %-g\n",   diff_input.crpix1);
+      printf("diff_input.crpix2         =  %-g\n",   diff_input.crpix2);
+      printf("imin2                =  %d\n",    imin2);
+      printf("imax2                =  %d\n",    imax2);
+      printf("jmin2                =  %d\n",    jmin2);
+      printf("jmax2                =  %d\n\n",  jmax2);
       printf("\n");
 
       fflush(stdout);
    }
 
-   if(imin > istart) istart = imin;
-   if(imax < iend  ) iend   = imax;
+   if(imin2 > istart) istart = imin2;
+   if(imax2 < iend  ) iend   = imax2;
 
-   if(jmin > jstart) jstart = jmin;
-   if(jmax < jend  ) jend   = jmax;
+   if(jmin2 > jstart) jstart = jmin2;
+   if(jmax2 < jend  ) jend   = jmax2;
 
    if(istart < 0) istart = 0;
    if(jstart < 0) jstart = 0;
 
-   if(iend > output.naxes[0]-1) iend = output.naxes[0]-1;
-   if(jend > output.naxes[1]-1) jend = output.naxes[1]-1;
+   if(iend > diff_output.naxes[0]-1) iend = diff_output.naxes[0]-1;
+   if(jend > diff_output.naxes[1]-1) jend = diff_output.naxes[1]-1;
 
-   ilength = iend - istart + 1;
-   jlength = jend - jstart + 1;
+   ilength = iend - istart;
+   jlength = jend - jstart;
 
    if(mDiff_debug >= 1)
    {
       printf("\nComposite:\n");
-      printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-      printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-      printf("input.crpix1         =  %-g\n",   input.crpix1);
-      printf("input.crpix2         =  %-g\n",   input.crpix2);
       printf("istart               =  %d\n",    istart);
       printf("iend                 =  %d\n",    iend);
       printf("jstart               =  %d\n",    jstart);
       printf("jend                 =  %d\n",    jend);
+      printf("\n");
       printf("ilength              =  %d\n",    ilength);
       printf("jlength              =  %d\n",    jlength);
       printf("\n");
@@ -432,22 +436,38 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       fflush(stdout);
    }
 
-   if(fits_close_file(input.fptr, &status))
+
+   /* Parts of each image to read (image coordinates) */
+
+   imax1 = iend   - imin1;
+   imin1 = istart - imin1;
+
+   jmax1 = jend   - jmin1;
+   jmin1 = jstart - jmin1;
+
+   imax2 = iend   - imin2;
+   imin2 = istart - imin2;
+
+   jmax2 = jend   - jmin2;
+   jmin2 = jstart - jmin2;
+
+   if(fits_close_file(diff_input.fptr, &status))
    {
       mDiff_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
-      if(fits_close_file(input_area.fptr, &status))
+      if(fits_close_file(diff_input_area.fptr, &status))
       {
          mDiff_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
    }
+
 
    /*********************/
    /* Check for overlap */
@@ -486,7 +506,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    {
       for (i=0; i<ilength; ++i)
       {
-         data[j][i] = 0.;
+         data[j][i] = nan;
       }
    }
 
@@ -538,103 +558,89 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    min_diff  = nan;
    max_diff  = nan;
 
-   for(ifile=0; ifile<2; ++ifile)
+
+   /******************************/
+   /* Read the first input image */
+   /******************************/
+
+   ifile = 0;
+
+   if(mDiff_readFits(infile[ifile], inarea[ifile]) > 0)
    {
-      /************************/
-      /* Read the input image */
-      /************************/
+      strcpy(returnStruct->msg, montage_msgstr);
+      return returnStruct;
+   }
 
-      if(mDiff_readFits(infile[ifile], inarea[ifile]) > 0)
+
+   /**********************************************************/
+   /* Create the output array by processing the input pixels */
+   /**********************************************************/
+
+   buffer  = (double *)malloc(ilength * sizeof(double));
+   abuffer = (double *)malloc(ilength * sizeof(double));
+
+   for(i=0; i<ilength; ++i)
+   {
+      buffer[i]  = nan;
+      abuffer[i] = 0.;
+   }
+
+   fpixel[0] = imin1+1;
+   fpixel[1] = jmin1+1;
+   fpixel[2] = 1;
+   fpixel[3] = 1;
+
+   nelements = ilength;
+
+   status = 0;
+
+
+   /*****************************/
+   /* Loop over the input lines */
+   /*****************************/
+
+   for (j=jmin1; j<jmax1; ++j)
+   {
+      if(mDiff_debug >= 2)
       {
-         strcpy(returnStruct->msg, montage_msgstr);
-         return returnStruct;
-      }
-
-      imin = output.crpix1 - input.crpix1;
-      jmin = output.crpix2 - input.crpix2;
-
-      if(mDiff_debug >= 1)
-      {
-         printf("\nflux file            =  %s\n",  infile[ifile]);
-         printf("input.naxes[0]       =  %ld\n",   input.naxes[0]);
-         printf("input.naxes[1]       =  %ld\n",   input.naxes[1]);
-         printf("input.crpix1         =  %-g\n",   input.crpix1);
-         printf("input.crpix2         =  %-g\n",   input.crpix2);
-         printf("\narea file            =  %s\n",  inarea[ifile]);
-         printf("input_area.naxes[0]  =  %ld\n",   input.naxes[0]);
-         printf("input_area.naxes[1]  =  %ld\n",   input.naxes[1]);
-         printf("input_area.crpix1    =  %-g\n",   input.crpix1);
-         printf("input_area.crpix2    =  %-g\n",   input.crpix2);
-         printf("\nimin                 =  %d\n",  imin);
-         printf("jmin                 =  %d\n\n",  jmin);
-
+         printf("Processing file %d [%s] / input row %5d\n", ifile, infile[ifile], j);
          fflush(stdout);
       }
 
 
-      /**********************************************************/
-      /* Create the output array by processing the input pixels */
-      /**********************************************************/
+      /***********************************/
+      /* Read a line from the input file */
+      /***********************************/
 
-      buffer  = (double *)malloc(input.naxes[0] * sizeof(double));
-      abuffer = (double *)malloc(input.naxes[0] * sizeof(double));
-
-      fpixel[0] = 1;
-      fpixel[1] = 1;
-      fpixel[2] = 1;
-      fpixel[3] = 1;
-
-      nelements = input.naxes[0];
-
-      status = 0;
-
-
-      /*****************************/
-      /* Loop over the input lines */
-      /*****************************/
-
-      for (j=0; j<input.naxes[1]; ++j)
+      if(fits_read_pix(diff_input.fptr, TDOUBLE, fpixel, nelements, &nan,
+                       buffer, &nullcnt, &status))
       {
-         if(mDiff_debug >= 2)
+         free(buffer);
+         free(abuffer);
+
+         for(j=0; j<jlength; ++j)
          {
-            printf("\rProcessing input row %5d  ", j);
-            fflush(stdout);
+            free(data[j]);
+            free(area[j]);
          }
 
+         free(data);
+         free(area);
 
-         /***********************************/
-         /* Read a line from the input file */
-         /***********************************/
-
-         if(fits_read_pix(input.fptr, TDOUBLE, fpixel, nelements, &nan,
-                          buffer, &nullcnt, &status))
-         {
-            free(buffer);
-            free(abuffer);
-
-            for(j=0; j<jlength; ++j)
-            {
-               free(data[j]);
-               free(area[j]);
-            }
-
-            free(data);
-            free(area);
-
-            mDiff_printFitsError(status);
-            strcpy(returnStruct->msg, montage_msgstr);
-            return returnStruct;
-         }
-         
-         
-         if(noAreas)
-         {
-            for(i=0; i<input.naxes[0]; ++i)
-               abuffer[i] = 1.;
-         }
-         else
-         {
-         if(fits_read_pix(input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
+         mDiff_printFitsError(status);
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+      }
+      
+      
+      if(diff_noAreas)
+      {
+         for(i=0; i<ilength; ++i)
+            abuffer[i] = 1.;
+      }
+      else
+      {
+         if(fits_read_pix(diff_input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
                           abuffer, &nullcnt, &status))
          {
             free(buffer);
@@ -653,139 +659,111 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
             strcpy(returnStruct->msg, montage_msgstr);
             return returnStruct;
          }
-         }
-         
-         ++fpixel[1];
+      }
+      
+      ++fpixel[1];
 
 
-         /************************/
-         /* For each input pixel */
-         /************************/
+      /************************/
+      /* For each input pixel */
+      /************************/
 
-         for (i=0; i<input.naxes[0]; ++i)
+      for (i=imin1; i<imax1; ++i)
+      {
+         pixel_value = buffer[i-imin1] * abuffer[i-imin1];
+
+         if(mNaN(min_pixel)) min_pixel = pixel_value;
+         if(mNaN(max_pixel)) max_pixel = pixel_value;
+
+         if(abuffer[i-imin1] > 0. && pixel_value < min_pixel)
+            min_pixel = pixel_value;
+
+         if(abuffer[i-imin1] > 0. && pixel_value > max_pixel)
+            max_pixel = pixel_value;
+
+         if(mDiff_debug >= 4)
          {
-            pixel_value = buffer[i] * abuffer[i];
+            printf("input: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
+               j, i, buffer[i-imin1], abuffer[i-imin1], j-jmin1, i-imin1);
+            fflush(stdout);
+         }
 
-            if(mNaN(min_pixel)) min_pixel = pixel_value;
-            if(mNaN(max_pixel)) max_pixel = pixel_value;
+         if(mDiff_debug >= 3)
+         {
+            printf("keep: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
+               j, i, buffer[i-imin1], abuffer[i-imin1], j-jmin1, i-imin1);
+            fflush(stdout);
+         }
 
-            if(abuffer[i] > 0. && pixel_value < min_pixel)
-               min_pixel = pixel_value;
-
-            if(abuffer[i] > 0. && pixel_value > max_pixel)
-               max_pixel = pixel_value;
-
-            if(mDiff_debug >= 4)
+         if(mNaN(buffer[i-imin1]) || abuffer[i-imin1] <= 0.)
+         {
+            if(mDiff_debug >= 5)
             {
-               printf("input: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
-                  j, i, buffer[i], abuffer[i], j+jmin-jstart, i+imin-istart);
+               printf("First file. Setting data to NaN and area to zero.\n");
                fflush(stdout);
             }
 
-            if(i+imin < istart) continue;
-            if(j+jmin < jstart) continue;
+            data[j-jmin1][i-imin1] = nan;
+            area[j-jmin1][i-imin1] = 0.;
 
-            if(i+imin >= iend) continue;
-            if(j+jmin >= jend) continue;
-
-            if(mDiff_debug >= 3)
+            if(mDiff_debug >= 5)
             {
-               printf("keep: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
-                  j, i, buffer[i], abuffer[i], j+jmin-jstart, i+imin-istart);
+               printf("done.\n");
                fflush(stdout);
             }
 
-            if(ifile == 0)
+            continue;
+         }
+         else
+         {
+            if(mDiff_debug >= 5)
             {
-               if(mNaN(buffer[i])
-               || abuffer[i] <= 0.)
-               {
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("First file. Setting data to NaN and area to zero.\n");
-                     fflush(stdout);
-                  }
-
-                  data[j+jmin-jstart][i+imin-istart] = nan;
-                  area[j+jmin-jstart][i+imin-istart] = 0.;
-
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("done.\n");
-                     fflush(stdout);
-                  }
-
-                  continue;
-               }
-               else
-               {
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("First file. Setting data to pixel value.\n");
-                     fflush(stdout);
-                  }
-
-                  data[j+jmin-jstart][i+imin-istart] = pixel_value;
-                  area[j+jmin-jstart][i+imin-istart] = abuffer[i];
-
-                  ++narea1;
-                  avearea1 += abuffer[i];
-
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("done.\n");
-                     fflush(stdout);
-                  }
-
-               }
+               printf("First file. Setting data to pixel value.\n");
+               fflush(stdout);
             }
-            else
+
+            data[j-jmin1][i-imin1] = pixel_value;
+            area[j-jmin1][i-imin1] = abuffer[i-imin1];
+
+            ++narea1;
+            avearea1 += abuffer[i-imin1];
+
+            if(mDiff_debug >= 5)
             {
-              if(mNaN(buffer[i])
-               || abuffer[i] <= 0.
-               || data[j+jmin-jstart][i+imin-istart] == nan
-               || area[j+jmin-jstart][i+imin-istart] == 0.)
-               {
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("Second file. One or the other value is NaN (or zero area).\n");
-                     fflush(stdout);
-                  }
-
-                  data[j+jmin-jstart][i+imin-istart] = nan;
-                  area[j+jmin-jstart][i+imin-istart] = 0.;
-
-                  continue;
-               }
-               else
-               {
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("Second file. Subtracting pixel value.\n");
-                     fflush(stdout);
-                  }
-
-                  data[j+jmin-jstart][i+imin-istart] -= factor*pixel_value;
-                  area[j+jmin-jstart][i+imin-istart] += abuffer[i];
-
-                  ++narea2;
-                  avearea2 += abuffer[i];
-
-                  if(mDiff_debug >= 5)
-                  {
-                     printf("done.\n");
-                     fflush(stdout);
-                  }
-               }
+               printf("done.\n");
+               fflush(stdout);
             }
+
          }
       }
+   }
 
+   if(fits_close_file(diff_input.fptr, &status))
+   {
       free(buffer);
       free(abuffer);
 
-      if(fits_close_file(input.fptr, &status))
+      for(j=0; j<jlength; ++j)
       {
+         free(data[j]);
+         free(area[j]);
+      }
+
+      free(data);
+      free(area);
+
+      mDiff_printFitsError(status);
+      strcpy(returnStruct->msg, montage_msgstr);
+      return returnStruct;
+   }
+
+   if(!diff_noAreas)
+   {
+      if(fits_close_file(diff_input_area.fptr, &status))
+      {
+         free(buffer);
+         free(abuffer);
+
          for(j=0; j<jlength; ++j)
          {
             free(data[j]);
@@ -799,11 +777,88 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
+   }
 
-      if(!noAreas)
+
+
+   /*******************************/
+   /* Read the second input image */
+   /*******************************/
+
+   ifile = 1;
+
+   if(mDiff_readFits(infile[ifile], inarea[ifile]) > 0)
+   {
+      strcpy(returnStruct->msg, montage_msgstr);
+      return returnStruct;
+   }
+
+
+   /**********************************************************/
+   /* Create the output array by processing the input pixels */
+   /**********************************************************/
+
+   fpixel[0] = imin2+1;
+   fpixel[1] = jmin2+1;
+   fpixel[2] = 1;
+   fpixel[3] = 1;
+
+   nelements = ilength;
+
+   status = 0;
+
+
+   /*****************************/
+   /* Loop over the input lines */
+   /*****************************/
+
+   for (j=jmin2; j<jmax2; ++j)
+   {
+      if(mDiff_debug >= 2)
       {
-         if(fits_close_file(input_area.fptr, &status))
+         printf("Processing file %d [%s] / input row %5d\n", ifile, infile[ifile], j);
+         fflush(stdout);
+      }
+
+
+      /***********************************/
+      /* Read a line from the input file */
+      /***********************************/
+
+      if(fits_read_pix(diff_input.fptr, TDOUBLE, fpixel, nelements, &nan,
+                       buffer, &nullcnt, &status))
+      {
+         free(buffer);
+         free(abuffer);
+
+         for(j=0; j<jlength; ++j)
          {
+            free(data[j]);
+            free(area[j]);
+         }
+
+         free(data);
+         free(area);
+
+         mDiff_printFitsError(status);
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+      }
+      
+      
+      if(diff_noAreas)
+      {
+         for(i=0; i<ilength; ++i)
+            abuffer[i] = 1.;
+      }
+      else
+      {
+         if(fits_read_pix(diff_input_area.fptr, TDOUBLE, fpixel, nelements, &nan,
+                          abuffer, &nullcnt, &status))
+         {
+            free(buffer);
+            free(abuffer);
+
             for(j=0; j<jlength; ++j)
             {
                free(data[j]);
@@ -818,7 +873,123 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
             return returnStruct;
          }
       }
+      
+      ++fpixel[1];
+
+
+      /************************/
+      /* For each input pixel */
+      /************************/
+
+      for (i=imin2; i<imax2; ++i)
+      {
+         pixel_value = buffer[i-imin2] * abuffer[i-imin2];
+
+         if(mNaN(min_pixel)) min_pixel = pixel_value;
+         if(mNaN(max_pixel)) max_pixel = pixel_value;
+
+         if(abuffer[i-imin2] > 0. && pixel_value < min_pixel)
+            min_pixel = pixel_value;
+
+         if(abuffer[i-imin2] > 0. && pixel_value > max_pixel)
+            max_pixel = pixel_value;
+
+         if(mDiff_debug >= 4)
+         {
+            printf("input: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
+               j, i, buffer[i-imin2], abuffer[i-imin2], j-jmin2, i-imin2);
+            fflush(stdout);
+         }
+
+         if(mDiff_debug >= 3)
+         {
+            printf("keep: line %5d / pixel %5d, value = %10.2e (%10.2e) [array: %5d %5d]\n",
+               j, i, buffer[i-imin2], abuffer[i-imin2], j-jmin2, i-imin2);
+            fflush(stdout);
+         }
+
+        if(mNaN(buffer[i-imin2])
+         || abuffer[i-imin2] <= 0.
+         || data[j-jmin2][i-imin2] == nan
+         || area[j-jmin2][i-imin2] == 0.)
+         {
+            if(mDiff_debug >= 5)
+            {
+               printf("Second file. One or the other value is NaN (or zero area).\n");
+               fflush(stdout);
+            }
+
+            data[j-jmin2][i-imin2] = nan;
+            area[j-jmin2][i-imin2] = 0.;
+
+            continue;
+         }
+         else
+         {
+            if(mDiff_debug >= 5)
+            {
+               printf("Second file. Subtracting pixel value.\n");
+               fflush(stdout);
+            }
+
+            data[j-jmin2][i-imin2] -= factor*pixel_value;
+            area[j-jmin2][i-imin2] += abuffer[i-imin2];
+
+            ++narea2;
+            avearea2 += abuffer[i-imin2];
+
+            if(mDiff_debug >= 5)
+            {
+               printf("done.\n");
+               fflush(stdout);
+            }
+         }
+      }
    }
+
+   if(fits_close_file(diff_input.fptr, &status))
+   {
+      free(buffer);
+      free(abuffer);
+
+      for(j=0; j<jlength; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+      }
+
+      free(data);
+      free(area);
+
+      mDiff_printFitsError(status);
+      strcpy(returnStruct->msg, montage_msgstr);
+      return returnStruct;
+   }
+
+   if(!diff_noAreas)
+   {
+      if(fits_close_file(diff_input_area.fptr, &status))
+      {
+         free(buffer);
+         free(abuffer);
+
+         for(j=0; j<jlength; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+         }
+
+         free(data);
+         free(area);
+
+         mDiff_printFitsError(status);
+         strcpy(returnStruct->msg, montage_msgstr);
+         return returnStruct;
+      }
+   }
+
+   free(buffer);
+   free(abuffer);
 
    if(mDiff_debug >= 1)
    {
@@ -959,7 +1130,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    remove(output_file);               
    remove(output_area_file);               
 
-   if(fits_create_file(&output.fptr, output_file, &status)) 
+   if(fits_create_file(&diff_output.fptr, output_file, &status)) 
    {
       for(j=0; j<jlength; ++j)
       {
@@ -975,7 +1146,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_create_file(&output_area.fptr, output_area_file, &status)) 
+   if(fits_create_file(&diff_output_area.fptr, output_area_file, &status)) 
    {
       for(j=0; j<jlength; ++j)
       {
@@ -997,7 +1168,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* handled automatically.                                */
    /*********************************************************/
 
-   if (fits_create_img(output.fptr, bitpix, naxis, output.naxes, &status))
+   if (fits_create_img(diff_output.fptr, bitpix, naxis, diff_output.naxes, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1019,7 +1190,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       fflush(stdout);
    }
 
-   if (fits_create_img(output_area.fptr, bitpix, naxis, output_area.naxes, &status))
+   if (fits_create_img(diff_output_area.fptr, bitpix, naxis, diff_output_area.naxes, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1046,7 +1217,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* Set FITS header from a template file */
    /****************************************/
 
-   if(fits_write_key_template(output.fptr, template_file, &status))
+   if(fits_write_key_template(diff_output.fptr, template_file, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1068,7 +1239,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       fflush(stdout);
    }
 
-   if(fits_write_key_template(output_area.fptr, template_file, &status))
+   if(fits_write_key_template(diff_output_area.fptr, template_file, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1095,7 +1266,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* Modify BITPIX to be -64 */
    /***************************/
 
-   if(fits_update_key_lng(output.fptr, "BITPIX", -64,
+   if(fits_update_key_lng(diff_output.fptr, "BITPIX", -64,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1112,7 +1283,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "BITPIX", -64,
+   if(fits_update_key_lng(diff_output_area.fptr, "BITPIX", -64,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1134,7 +1305,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* Update NAXIS, NAXIS1, NAXIS2, CRPIX1 and CRPIX2 */
    /***************************************************/
 
-   if(fits_update_key_lng(output.fptr, "NAXIS", 2,
+   if(fits_update_key_lng(diff_output.fptr, "NAXIS", 2,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1151,7 +1322,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output.fptr, "NAXIS1", imax-imin+1,
+   if(fits_update_key_lng(diff_output.fptr, "NAXIS1", imax-imin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1168,7 +1339,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output.fptr, "NAXIS2", jmax-jmin+1,
+   if(fits_update_key_lng(diff_output.fptr, "NAXIS2", jmax-jmin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1185,7 +1356,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output.fptr, "CRPIX1", output.crpix1-imin, -14,
+   if(fits_update_key_dbl(diff_output.fptr, "CRPIX1", diff_output.crpix1-imin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1202,7 +1373,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output.fptr, "CRPIX2", output.crpix2-jmin, -14,
+   if(fits_update_key_dbl(diff_output.fptr, "CRPIX2", diff_output.crpix2-jmin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1219,7 +1390,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "NAXIS", 2,
+   if(fits_update_key_lng(diff_output_area.fptr, "NAXIS", 2,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1236,7 +1407,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "NAXIS1", imax-imin+1,
+   if(fits_update_key_lng(diff_output_area.fptr, "NAXIS1", imax-imin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1253,7 +1424,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_lng(output_area.fptr, "NAXIS2", jmax-jmin+1,
+   if(fits_update_key_lng(diff_output_area.fptr, "NAXIS2", jmax-jmin+1,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1270,7 +1441,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output_area.fptr, "CRPIX1", output.crpix1-imin, -14,
+   if(fits_update_key_dbl(diff_output_area.fptr, "CRPIX1", diff_output.crpix1-imin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1287,7 +1458,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       return returnStruct;
    }
 
-   if(fits_update_key_dbl(output_area.fptr, "CRPIX2", output.crpix2-jmin, -14,
+   if(fits_update_key_dbl(diff_output_area.fptr, "CRPIX2", diff_output.crpix2-jmin, -14,
                                   (char *)NULL, &status))
    {
       for(j=0; j<jlength; ++j)
@@ -1321,7 +1492,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 
    for(j=jmin; j<=jmax; ++j)
    {
-      if (fits_write_pix(output.fptr, TDOUBLE, fpixel, nelements, 
+      if (fits_write_pix(diff_output.fptr, TDOUBLE, fpixel, nelements, 
                          (void *)(&data[j-jstart][imin-istart]), &status))
       {
          for(i=0; i<jlength; ++i)
@@ -1358,7 +1529,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 
    for(j=jmin; j<=jmax; ++j)
    {
-      if (fits_write_pix(output_area.fptr, TDOUBLE, fpixel, nelements,
+      if (fits_write_pix(diff_output_area.fptr, TDOUBLE, fpixel, nelements,
                          (void *)(&area[j-jstart][imin-istart]), &status))
       {
          for(i=0; i<jlength; ++i)
@@ -1389,7 +1560,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
    /* Close the FITS file */
    /***********************/
 
-   if(fits_close_file(output.fptr, &status))
+   if(fits_close_file(diff_output.fptr, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1411,7 +1582,7 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
       fflush(stdout);
    }
 
-   if(fits_close_file(output_area.fptr, &status))
+   if(fits_close_file(diff_output_area.fptr, &status))
    {
       for(j=0; j<jlength; ++j)
       {
@@ -1575,26 +1746,26 @@ int mDiff_parseLine(char *line)
 
    if(strcmp(keyword, "NAXIS1") == 0)
    {
-      output.naxes[0] = atoi(value);
-      output_area.naxes[0] = atoi(value);
+      diff_output.naxes[0] = atoi(value);
+      diff_output_area.naxes[0] = atoi(value);
    }
 
    if(strcmp(keyword, "NAXIS2") == 0)
    {
-      output.naxes[1] = atoi(value);
-      output_area.naxes[1] = atoi(value);
+      diff_output.naxes[1] = atoi(value);
+      diff_output_area.naxes[1] = atoi(value);
    }
 
    if(strcmp(keyword, "CRPIX1") == 0)
    {
-      output.crpix1 = atof(value);
-      output_area.crpix1 = atof(value);
+      diff_output.crpix1 = atof(value);
+      diff_output_area.crpix1 = atof(value);
    }
 
    if(strcmp(keyword, "CRPIX2") == 0)
    {
-      output.crpix2 = atof(value);
-      output_area.crpix2 = atof(value);
+      diff_output.crpix2 = atof(value);
+      diff_output_area.crpix2 = atof(value);
    }
 
    return 0;
@@ -1610,16 +1781,17 @@ int mDiff_parseLine(char *line)
 
 int mDiff_readFits(char *fluxfile, char *areafile)
 {
-   int    status, nfound;
+   int    status, nfound, bitpix;
    long   naxes[2];
    double crpix[2];
    char   errstr[MAXSTR];
+   char  *header;
 
    status = 0;
 
-   if(!noAreas)
+   if(!diff_noAreas)
    {
-      if(fits_open_file(&input_area.fptr, areafile, READONLY, &status))
+      if(fits_open_file(&diff_input_area.fptr, areafile, READONLY, &status))
       {
          sprintf(errstr, "Area file %s missing or invalid FITS", areafile);
          mDiff_printError(errstr);
@@ -1627,36 +1799,54 @@ int mDiff_readFits(char *fluxfile, char *areafile)
       }
    }
 
-   if(fits_open_file(&input.fptr, fluxfile, READONLY, &status))
+   if(fits_open_file(&diff_input.fptr, fluxfile, READONLY, &status))
    {
       sprintf(errstr, "Image file %s missing or invalid FITS", fluxfile);
       mDiff_printError(errstr);
       return 1;
    }
 
-   if(fits_read_keys_lng(input.fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
+   if(fits_get_img_type(diff_input.fptr, &bitpix, &status))
+   {
+      mDiff_printFitsError(status);
+      return 1;
+   }
+
+   diff_input.bitpix = bitpix;
+
+   if(fits_read_keys_lng(diff_input.fptr, "NAXIS", 1, 2, naxes, &nfound, &status))
    {
       mDiff_printFitsError(status);
       return 1;
    }
    
-   input.naxes[0] = naxes[0];
-   input.naxes[1] = naxes[1];
+   diff_input.naxes[0] = naxes[0];
+   diff_input.naxes[1] = naxes[1];
 
-   input_area.naxes[0] = naxes[0];
-   input_area.naxes[1] = naxes[1];
+   diff_input_area.naxes[0] = naxes[0];
+   diff_input_area.naxes[1] = naxes[1];
 
-   if(fits_read_keys_dbl(input.fptr, "CRPIX", 1, 2, crpix, &nfound, &status))
+   if(fits_read_keys_dbl(diff_input.fptr, "CRPIX", 1, 2, crpix, &nfound, &status))
    {
       mDiff_printFitsError(status);
       return 1;
    }
 
-   input.crpix1 = crpix[0];
-   input.crpix2 = crpix[1];
+   diff_input.crpix1 = crpix[0];
+   diff_input.crpix2 = crpix[1];
 
-   input_area.crpix1 = crpix[0];
-   input_area.crpix2 = crpix[1];
+   diff_input_area.crpix1 = crpix[0];
+   diff_input_area.crpix2 = crpix[1];
+
+   if(fits_get_image_wcs_keys(diff_input.fptr, &header, &status))
+   {
+      mDiff_printFitsError(status);
+      return 1;
+   }
+
+   diff_input.hdrsize = (int)strlen(header);
+
+   free(header);
    
    return 0;
 }

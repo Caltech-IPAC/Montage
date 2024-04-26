@@ -15,13 +15,15 @@ Version  Developer        Date     Change
 #include <time.h>
 #include <math.h>
 
-#include "montage.h"
 #include "fitsio.h"
 #include "wcs.h"
 #include "mNaN.h"
 
 #define MAXSTR  256
 #define MAXFILE 256
+
+FILE *fstatus;
+FILE *fout;
 
 char input_file  [MAXSTR];
 char output_file [MAXSTR];

@@ -2,8 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
-5.5      Michel Kraemer   05Aug19  Fix memory leak
-5.4      John Good        26Apr17  Added SUM 'averaging' mode (for X-ray observers)
+5.2      John Good        26Apr17  Added SUM 'averaging' mode (for X-ray observers)
 5.3      John Good        08Sep15  fits_read_pix() incorrect null value
 5.2      Daniel S. Katz   16Jul10  Small change for MPI with new fits library
 5.1      John Good        09Jul06  Only show maxopen warning in debug mode
@@ -270,8 +269,8 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
 
    double    nominal_area = 0;
 
-   double    imin, imax;
-   double    jmin, jmax;
+   double    imin=0, imax=0;
+   double    jmin=0, jmax=0;
 
    double  **dataline;
    double  **arealine;
@@ -308,8 +307,8 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
    int       icdelt1;
    int       icdelt2;
 
-   double    nom_crval1, nom_crval2;
-   double    nom_cdelt1, nom_cdelt2;
+   double    nom_crval1 = 0., nom_crval2 = 0.;
+   double    nom_cdelt1 = 0., nom_cdelt2 = 0.;
    double    dtr;
 
    double    valOffset;
@@ -345,7 +344,7 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -606,6 +605,7 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
       }
 
       /* Look for maximum height/width */
+
       if (!haveMinMax)
       {
         imax = incrpix1[nfile];
@@ -1624,12 +1624,17 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
                }
             }
 
-            if(fabs(imgWCS->cd[0] - hdrWCS->cd[0]) > 1.e-8
-            || fabs(imgWCS->cd[1] - hdrWCS->cd[1]) > 1.e-8
-            || fabs(imgWCS->cd[2] - hdrWCS->cd[2]) > 1.e-8
-            || fabs(imgWCS->cd[3] - hdrWCS->cd[3]) > 1.e-8)
+            if(fabs(imgWCS->cd[0] - hdrWCS->cd[0]) > 1.e-8)
             {
-               sprintf(errstr, "Image %s header CD/CDELT does not match template", infile[ifile]);
+               sprintf(errstr, "Image %s header CD/CDELT1 does not match template (%.8f vs %.8f)", infile[ifile], imgWCS->cd[0], hdrWCS->cd[0]);
+               mAdd_printError(errstr);
+               strcpy(returnStruct->msg, montage_msgstr);
+               return returnStruct;
+            }
+
+            if(fabs(imgWCS->cd[1] - hdrWCS->cd[1]) > 1.e-8)
+            {
+               sprintf(errstr, "Image %s header CD/CDELT2 does not match template (%.8f vs %.8f)", infile[ifile], imgWCS->cd[1], hdrWCS->cd[1]);
                mAdd_printError(errstr);
                strcpy(returnStruct->msg, montage_msgstr);
                return returnStruct;
@@ -1642,9 +1647,6 @@ struct mAddReturn *mAdd(char *inpath, char *tblfile, char *template_file, char *
                strcpy(returnStruct->msg, montage_msgstr);
                return returnStruct;
             }
-
-            wcsfree(imgWCS);
-            free(inputHeader);
          } 
 
 
@@ -2463,6 +2465,7 @@ int mAdd_listAdd(int value)
    int i, j, current, prev;
 
    current = listFirst;
+   prev    = current;
 
    if(listMax == 0)
    {

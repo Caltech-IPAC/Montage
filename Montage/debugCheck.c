@@ -10,7 +10,9 @@ Version  Developer        Date     Change
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "montage.h"
+
+extern FILE *fstatus;
+
 
 /**********************************************************/
 /*                                                        */

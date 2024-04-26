@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mBackground</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Remove a background plane from a FITS image.  The background correction applied to the image is specified as Ax+By+C, where (x,y) is the pixel coordinate using the image center as the origin, and (A,B,C) are the background plane parameters specified as linear coefficients.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mBackground [-d <i>level</i>] [-n(o-areas)] [-s <i>statusfile</i>] <b>in.fits out.fits A B C</b></dd>
+  <dd>mBackground [-t] [-d level] [-n(o-areas)] [-s <i>statusfile</i>] <b>in.fits out.fits images.tbl corrfile.tbl</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d <i>level</i></dt>
+  <dd>Turns on debugging to the specified level.</dd>
+  <dt>-n</dt>
+  <dd>Indicates that no area images are present (assumes equal weighting for each data pixel)</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>mBackground output and errors will be written to <i>statusfile</i> instead of stdout.</dd>
+  <dt>-t</dt>
+  <dd>Run in table mode. Starts a group of mBackground runs in parallel, reading off the same pair of tables to determine which files and background corrections to work with. Recommended for running only on grids or parallel processors.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS file</dd>
+  <dt>out.fits</dt>
+  <dd>Output FITS file</dd>
+  <dt>A B C</dt>
+  <dd>Corrections (as given by mFitplane or mFitExec)</dd>
+  <dt>images.tbl</dt>
+  <dd>When run as part of a GRID processing job, mBackground requires the image metadata table to retrieve the filenames of images.</dd>
+  <dt>corrections.tbl</dt>
+  <dd>When run as part of a GRID processing job, mBackground requires a table of corrections (from mFitplane and mFitExec) to apply to the corresponding image (from images.tbl).</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>Output FITS image with background subtraction applied.</dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<p>The following is sample output from <span class="file">mFitplane</span> for a FITS image, <span class="file">in.fits</span>:</p>
+
+<dl class="example">
+  <dd>[struct stat="OK", a=-0.000144415, b=-0.000133642, c=-31.8984, crpix1=758.5, crpix2=-1032, xmin=-758.5, xmax=-349.5, ymin=1032, ymax=1498, xcenter=-555.007, ycenter=1265.26, rms=0.576727]</dd>
+</dl>
+
+<p>We use the plane coefficients calculated by <span class="file">mFitplane</span> to subtract the background from the image:</p>
+
+<dl class="example">
+  <dt>$ mBackground projdir/in.fits bg_removed/in.fits -0.000144415 -0.000133642 -31.8984</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat = "OK"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mBackground [-d level] [-n(o-areas)] [-s statusfile] in.fits out.fits A B C | mBackground [-t] [-d level] [-n(o-areas)] [-s statusfile]  in.fits out.fits images.tbl corrfile.tbl"]</li>   
+  <li>[struct stat="ERROR", msg="No status file name given"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="No debug level given"]</li>   
+  <li>[struct stat="ERROR", msg="Debug level string is invalid: <i>string</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Debug level value cannot be negative"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid input file <i>filename</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid output file <i>filename</i>"]</li>   
+  <li>[struct stat="ERROR", msg="A coefficient string is not a number"]</li>   
+  <li>[struct stat="ERROR", msg="B coefficient string is not a number"]</li>   
+  <li>[struct stat="ERROR", msg="C coefficient string is not a number"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid image metadata file: <i>images.tbl</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Image table needs columns cntr and fname"]</li>   
+  <li>[struct stat="ERROR", msg="Hit end of image table without finding file name"]</li>   
+  <li>[struct stat="ERROR", msg="Need columns: id,a,b,c in corrections file"]</li>   
+  <li>[struct stat="ERROR", msg="Hit end of corrections table without finding data"]</li>   
+  <li>[struct stat="ERROR", status=<i>error-code</i>, msg="<i>FITS library error message</i>"]</li>
+  <li>[struct stat="ERROR", msg="<i>general error message</i>"]</li>
+</ul>
+
+</div>
+</div>
+
+<!--#include virtual="include/footer.html"-->

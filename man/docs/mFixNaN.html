@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mFixNan</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Converts NaNs found in the image to some other value (given by the user), <i>or</i> converts a range of supplied values into NaNs. </dd> 
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mFixNaN [-d <i>level</i>] [-v <i>NaN-value</i>] <b>in.fits out.fits</b> [<i>minblank maxblank</i>]</dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d <i>level</i></dt>
+  <dd>Turn on debugging to the specified level (1-3)</dd>
+  <dt>-v <i>NaN-value</i></dt>
+  <dd>Value to use in place of any NaNs</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS image file</dd>
+  <dt>out.fits</dt>
+  <dd>Path of output FITS file.  To run in "count" mode without creating an output file, use a dash ("-") for this argument.</dd>
+  <dt>minblank maxblank</dt>
+  <dd>If the "-v" switch is not used, <span class="file">mFixNaN</span> will replace all pixel values between <i>minblank</i> and <i>maxblank</i> with NaN. </dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", rangeCount=<i>rangeCount</i>, nanCount=<i>nanCount</i>]</dd>
+  <dd><i>rangeCount</i> is the number of pixels that were found between <i>minblank</i> and <i>maxblank</i>, if they were specified.  If not (i.e., NaNs were removed and replaced with <i>value</i>), <i>nanCount</i> is the number of NaNs removed.</dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<p>A FITS image with BITPIX -64 (double-precision floating point) was generated without using NaNs; all "blank" pixels are represented by very small negative numbers.  This can throw off initial attempts to display the image with a proper stretch, and does not conform to the FITS standard.  To replace all those "blank" pixels with NaNs:</p>
+
+<dl class="example">
+  <dt>mFixNaN original.fits NaN.fits -4.61169e32 -4.61169e10</dt>
+  <dd>[struct stat="OK", rangeCount=1321, nanCount=0]</dd>
+</dl>
+
+<p>To convert those NaNs back into a single pixel value:</p>
+<dl class="example">
+  <dt>mFixNaN -v -4.6e32 NaN.fits blankval.fits</dt>
+  <dd>[struct stat="OK", rangeCount=0, nanCount=1321]</dd>
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", rangeCount=<i>rangeCount</i>, nanCount=<i>nanCount</i>"]</li>
+  <li>[struct stat="ERROR", msg="Usage: mFixNaN [-d level] [-v NaN-value] in.fits out.fits [minblank maxblank] (output file name '-' means no file)"]</li>
+  <li>[struct stat="ERROR", msg="No debug level given"]</li>
+  <li>[struct stat="ERROR", msg="Debug level string is invalid: <i>level</i>"]</li>
+  <li>[struct stat="ERROR", msg="Debug level string is invalid: <i>level</i>"]</li>
+  <li>[struct stat="ERROR", msg="Debug level string cannot be negative"]</li>
+  <li>[struct stat="ERROR", msg="No value given for NaN conversion"]</li>
+  <li>[struct stat="ERROR", msg="NaN conversion value string is invalid: '<i>NaN-value</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Invalid input file '<i>in.fits</i>']</li>
+  <li>[struct stat="ERROR", msg="min blank value string is not a number"]</li>
+  <li>[struct stat="ERROR", msg="max blank value string is not a number"]</li>
+  <li>[struct stat="ERROR", msg="Image file <i>in.fits</i> missing or invalid FITS"]</li>
+  <li>[struct stat="ERROR", status=<i>errnum</i>, msg="<i>FITS library error</i>"]</li>
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

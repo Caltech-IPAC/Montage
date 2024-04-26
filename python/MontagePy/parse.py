@@ -138,11 +138,11 @@ for json_file in glob.glob(os.path.join(MONTAGELIB, '*', '*.json')):
 
     functions.append(function)
 
-with open('MontagePy/wrappers.pxd', 'w') as f:
+with open('src/MontagePy/wrappers.pxd', 'w') as f:
     f.write(template_pxd.render(functions=functions))
 
-with open('MontagePy/_wrappers.pyx', 'w') as f:
+with open('src/MontagePy/_wrappers.pyx', 'w') as f:
     f.write(template_pyx.render(functions=functions))
 
-with open('MontagePy/main.pyx', 'w') as f:
+with open('src/MontagePy/main.pyx', 'w') as f:
     f.write(template_main_pyx.render(functions=functions))

@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mSHrinkHdr</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  <p>There are two ways to generate "thumbnail" images.  One is to build a full-resolution mosaic
+  and shrink it down using mShrink to the scale desired.  This process can be costly if the
+  full resolution image is not desired (or not desired yet).  It is much faster to mosaic at
+  the scale of the thumbnail itself.  One reason for doing this could be to evaluate whether
+  th full-resolution mosaic is worth building at all.</p>
+
+  <p>mShrinkHdr is a simple utility that takes a FITS header template (such as might come out of
+  mMakeHdr or mHdr) and make a new one at a differenc pixel scale.  The default scale for this
+  new header is 200 pixels, though the user can override this with any value.</p>
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  mShrinkHdr [-d][-s </i>scale</i>] <b>template.hdr</b> <b>shrunken.hdr</b>
+  </dd>
+</dl>
+
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+
+  <dt>-d</dt>
+  <dd>
+  Turn on debugging.
+  </dd>
+
+  <dt>-s <i>scale</i></dt>
+  <dd>
+  Set the size in pixels of the larger axis.
+  </dd>
+
+</dl>
+
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+
+  <dt>template.hdr</dt>
+  <dd>
+  Original FITS header template.
+  </dd>
+
+  <dt>shrunken.hdr</dt>
+  <dd>
+  "Thumbnail" FITS header template.
+  </dd>
+
+</dl>
+
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  If successful, the result is a new FITS header template with a size and
+  pixel scale appropriate to making a thumbnail mosaic.
+  </dd>
+
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+  <dt>$ mShrinkHdr region.hdr thumbnail.hdr</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="ERROR", msg="Usage: mShrinkHdr [-d][-s scale] template.hdr shrunken.hdr"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open output template file"]</li>
+  <li>[struct stat="ERROR", msg="Bad template: <i>filename</i>"]</li>
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

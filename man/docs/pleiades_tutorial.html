@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>DSS Pleiades Mosaic How-To</title>
+<!--#include virtual="include/header.html"-->
+
+<div id="tutorial">
+
+<h1>Montage Tutorial: Pleiades Mosaic</h1>
+
+<div style="float:left; margin:2em 2em 2em 0;">
+    <a href="images/DSS_pleiades_mosaic_thumb.jpg"><img src="images/DSS_pleiades_mosaic.jpg" alt="DSS pleiades mosaic" height="150" width="150" /></a>
+</div>
+<p>The <a href="http://tldp.org/LDP/abs/html/">bash</a> script below, courtesy of Inseok Song (U. Georgia), uses Montage v3.0 to create a mosaic of the Pleiades from online Digitized Sky Survey (DSS2) data. 
+</p>
+<p>Relevant DSS2 FITS files are downloaded automatically through
+    <tt>mArchiveList</tt> and <tt>mArchiveExec</tt> commands of the
+    <a href="http://montage.ipac.caltech.edu/">Montage</a> package.
+    Downloaded files are mosaicked into a 3x3 degree image via <tt>mProjExec</tt>
+
+    and <tt>mAdd</tt> commands. Three large images are then put together as a false
+    color image through the <tt>mJPEG</tt> command, where DSS2B/DSS2R/DSS2IR data are
+    represented as blue/green/red, respectively. A gaussian-log image scale
+    is used with a valid data range between -1 sigma and 99.999% of the
+    maximum image value.
+</p>
+<p>
+    To create your own image, you must create your own image definition file (e.g.
+    <tt>pleiades.hdr</tt>), and change the center position and size of your image
+    in the <tt>mArchiveList</tt> command below.
+
+</p>
+<p>
+    For more information, contact the
+    <a href="/cgi-bin/Helpdesk/nph-genTicketForm?projname=Montage&amp;projmail=montage@ipac.caltech.edu">Montage Help Desk</a>.
+</p> 
+
+<h2 style="margin-top:1.5em;">Contents of <tt>pleiades.bash</tt></h2>
+<pre><tt>
+  #!/bin/bash
+  # Pleiades Image creation BASH script.
+  # Inseok Song, 2007
+  for bands in DSS2B DSS2R DSS2IR; do echo Processing ${bands};
+  mkdir $bands;
+  cd $bands;
+  mkdir raw projected;
+  cd raw;
+  mArchiveList dss ${bands} "56.5 23.75" 3 3 remote.tbl;
+  mArchiveExec remote.tbl;
+  cd .. ;
+  mImgtbl raw rimages.tbl ;
+  mProjExec -p raw rimages.tbl ../pleiades.hdr projected stats.tbl ;
+  mImgtbl projected pimages.tbl ;
+  mAdd -p projected pimages.tbl ../pleiades.hdr ${bands}.fits ;
+  cd .. ;
+  done
+
+  mJPEG -blue DSS2B/DSS2B.fits -1s 99.999% gaussian-log \
+        -green DSS2R/DSS2R.fits -1s 99.999% gaussian-log \
+        -red DSS2IR/DSS2IR.fits -1s 99.999% gaussian-log \
+        -out DSS2_BRIR.jpg
+</tt></pre>
+
+<h2>Contents of <tt>pleiades.hdr</tt></h2>
+
+<pre><tt>
+  SIMPLE = T
+  BITPIX = -64
+  NAXIS = 2
+  NAXIS1 = 4801
+  NAXIS2 = 4800
+  CTYPE1 = 'RA---TAN'
+  CTYPE2 = 'DEC--TAN'
+  CRVAL1 = 56.500000
+  CRVAL2 = 23.750000
+  CRPIX1 = 2401.000000
+  CRPIX2 = 2400.500000
+  CDELT1 = -0.000625000
+  CDELT2 = 0.000625000
+  CROTA2 = 0.000000
+  EQUINOX = 2000.0
+  END
+</tt></pre>
+
+</div>
+<!--#include virtual="include/footer.html"-->

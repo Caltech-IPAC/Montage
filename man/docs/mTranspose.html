@@ -1,0 +1,79 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mTranspose</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>Montage (and a lot of other software) find it hard to work with WCS information that are not connected to the first two axes in a datacube.  Rather than over-complicate all the cube-related software we have opted for having this utility for transposing the data.  The default for the program is to examine the cube and rearrange the data so the first two axes represent sky longitude and latitude but the user can optionally specify the order of the rearrangement themselves (this also allows transforming reprojected cubes back into the original order for use by other programs).</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mTranspose [-d <i>level</i>] [-s <i>statusfile</i>] <b>incube.fits outcube.fits [outaxis1 outaxis2 [outaxi3 [outaxis4]]]</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-d <i>level</i></dt>
+  <dd>Turns on debugging to the specified level (1-3).</dd>
+
+  <dt>-s <i>statusfile</i></dt>
+  <dd>mTranspose output and errors will be written to <i>statusfile</i> instead of stdout.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>incube.fits</dt>
+  <dd>Input FITS cube (3 or 4 dimensions).</dd>
+
+  <dt>outcube.fits</dt>
+  <dd>Output FITS cube.</dd>
+
+  <dt>outaxis1 ... outaxis4</dt>
+  <dd>The input axis numbers (1,2,3,4) in output order.</dd>
+</dl>
+
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>mTranspose rearranges the data value so the axes are in a different order.  As much as possible, the FITS header keywords are renamed accordingly but as it is not alway possible to identify which parameters have axis "subscripts" it may be necessary to manually modify the headera(<i>e.g.</i>, using mGetHdr / mPutHdr) after the fact.</dd>
+
+</dl>
+
+<dl class="example">
+  <dt>$ mTranspose in.fits out.fits 3 2 1 4</dt>
+  <dd>[struct stat="OK", mindata=2234.5, maxdata=10234.4]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat = "OK", mindata=<i>value</i>, maxdata=<i>value</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mTranspose [-d level] [-s statusfile] in.fits out.fits [outaxis1 outaxis2 [outaxis3 [outaxis4]]]"]</li>
+  <li>[struct stat="ERROR", msg="No status file name given"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>filename</i>"]</li>
+  <li>[struct stat="ERROR", msg="No debug level given"]</li>
+  <li>[struct stat="ERROR", msg="Debug level string is invalid: '<i>string</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Debug level value cannot be negative"]</li>
+  <li>[struct stat="ERROR", msg="Invalid input file '<i>string</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Invalid output file '<i>string</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Axis ID 1 cannot be interpreted as an integer."]</li>
+  <li>[struct stat="ERROR", msg="Axis ID 2 cannot be interpreted as an integer."]</li>
+  <li>[struct stat="ERROR", msg="Axis ID 3 cannot be interpreted as an integer."]</li>
+  <li>[struct stat="ERROR", msg="Axis ID 4 cannot be interpreted as an integer."]</li>
+  <li>[struct stat="ERROR", status=<i>stat</i>, msg="<i>FITS library error</i>"]</li>
+  <li>[struct stat="ERROR", msg="<i>general error message</i>"]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

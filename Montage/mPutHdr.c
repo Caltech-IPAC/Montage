@@ -20,8 +20,6 @@ Version  Developer        Date     Change
 
 #include "fitsio.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 
 extern char *optarg;
@@ -58,6 +56,8 @@ struct
 
 long  bitpix,  naxis,  naxis1,  naxis2,  naxis3,  naxis4;
 int  tbitpix, tnaxis, tnaxis1, tnaxis2, tnaxis3, tnaxis4;
+
+FILE *fstatus;
 
 
 

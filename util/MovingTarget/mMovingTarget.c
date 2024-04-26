@@ -48,7 +48,6 @@ Version  Developer        Date     Change
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <montage.h>
 #include <cmd.h>
 #include <wcs.h>
 #include <coord.h>
@@ -86,7 +85,8 @@ char regionTypeStr[4][32] = {"POINT", "CONE", "BOX"};
 
 
 long listNodeCount;
-long nodeCount;
+
+extern long nodeCount;
 
 typedef struct vec
 {
@@ -127,6 +127,7 @@ typedef struct rectStruct
 }
 RectInfo;
 
+FILE *fstatus;
 
 extern char *optarg;
 extern int   optind, opterr;

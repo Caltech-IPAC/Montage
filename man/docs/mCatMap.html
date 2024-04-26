@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+<div id="wrapper">
+<h1>mCatMap</h1>
+
+<div id="usage">
+<a name="usage"></a>
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><span class="file">mCatMap</span> is a point-source imaging program.  The user defines a general output FITS image, and its pixels are populated from a table of point sources.  The source fluxes (or just source counts) from the table are added into the appropriate pixel to create an output image.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mCatMap [-c <i>column</i>] [-m <i>refmag</i>] [-d <i>level</i>] [-w <i>size</i>] <b>in.tbl out.fits hdr.template</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-c <i>column</i></dt>
+  <dd>Name of the table column that contains flux levels.  If not specified, pixels will be populated with source counts rather than summed flux values.</dd>
+  <dt>-m <i>refmag</i></dt>
+  <dd>Set a reference magnitude to use when calculating fluxes.</dd>
+  <dt>-d <i>level</i></dt>
+  <dd>Turn on debugging to the specified level (1-3)</dd>
+  <dt>-w <i>size</i></dt>
+  <dd>Set a spread size for point sources (default is to use no spread).  Allowed values are 3 or 5.</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.tbl</dt>
+  <dd>Input table of source metadata.</dd>
+  <dt>out.fits</dt>
+  <dd>Path of output FITS file.</dd>
+  <dt>hdr.template</dt>
+  <dd>ASCII <a href="headers.html">header template</a> defining output FITS file.</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd><span class="file">[struct stat="OK", time=<i>seconds</i>]</dd>
+</dl>
+
+<a name="ex"></a><p class="dochead">Examples:</p>
+
+<p>To create an image showing the 2MASS point source fluxes (<a href="examples/mCatMap/2mass_pt.tbl"><span class="file">2mass_pt.tbl</span></a>) in a 2 square degree area defined by <a href="examples/mCatMap/2mass_pt.hdr"><span class="file">2mass_pt.hdr</span></a>:</p>
+
+<dl class="example">
+  <dt>mCatMap -c flux 2mass_pt.tbl 2mass_pt.fits 2mass_pt.hdr</dt>
+  <dd>[struct stat="OK", time=4]</dd>
+</dl>
+
+<p>Output image:</p>
+<p align="center"><img src="examples/mCatMap/2mass_pt.jpg"></p>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", time=<i>seconds</i>]</li>
+  <li>[struct stat="ERROR", msg="Usage: mCatMap [-c column] [-m refmag] [-d level] [-w size] in.tbl out.fits hdr.template"]</li>
+  <li>[struct stat="ERROR", msg="Can't open input table <i>in.tbl</i>"]</li>
+  <li>[struct stat="ERROR", msg="Can't find column 'ra'"]</li>
+  <li>[struct stat="ERROR", msg="Can't find column 'dec'"]</li>
+  <li>[struct stat="ERROR", msg="Can't find column '<i>column</i>'"]</li>
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed"]</li>
+  <li>[struct stat="ERROR", msg="Template file not found"]</li>
+</ul>
+
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

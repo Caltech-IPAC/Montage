@@ -108,6 +108,8 @@ static char montage_msgstr[1024];
 /*   int    energyMode     Pixel values are total energy rather than     */
 /*                         energy density.                               */
 /*                                                                       */
+/*   double drizzle        Optional pixel area 'drizzle' factor          */
+/*                                                                       */
 /*   char  *borderStr      Optional string that contains either a border */
 /*                         width or comma-separated "x1,y1,x2,y2, ..."   */
 /*                         pairs defining a pixel region polygon where   */
@@ -129,8 +131,8 @@ static char montage_msgstr[1024];
 /*************************************************************************/
 
 struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, char *projdir, int quickMode,
-                                  int exact, int expand, int energyMode, char *borderStr, char *scaleCol,
-                                  char *weightCol, int restart, char *stats, int debugin)
+                                  int exact, int expand, int energyMode, double drizzle, char *borderStr, 
+                                  char *scaleCol, char *weightCol, int restart, char *stats, int debugin)
 {
    int    stat, ncols, count, hdu, failed, nooverlap;
    int    ifname, ihdu, iweight, iscale, inp2p, outp2p;
@@ -138,7 +140,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    int    interp, noAreas, fullRegion;
 
    double maxerror, weight, time;
-   double drizzle, threshold, fluxScale;
+   double threshold, fluxScale;
 
    char   fname      [MAXSTR];
    char   infile     [MAXSTR];
@@ -171,7 +173,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
    int    fitsstat = 0;
 
-   inheader = malloc(MAXHDR);
+   inheader = (char *)NULL;
 
    mProjExec_debug = debugin;
 
@@ -182,6 +184,8 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       strcpy(path, ".");
    else
       strcpy(path, inpath);
+
+   fout = (FILE *)NULL;
 
 
    /*******************************/
@@ -201,14 +205,12 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    if(montage_checkFile(tblfile) != 0)
    {
       sprintf(returnStruct->msg, "Image metadata file (%s) does not exist", tblfile);
-      free(inheader);
       return returnStruct;
    }
 
    if(montage_checkFile(projdir) != 2)
    {
       sprintf(returnStruct->msg, "Output directory (%s) does not exist", projdir);
-      free(inheader);
       return returnStruct;
    }
 
@@ -225,7 +227,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    noAreas    = 0;
    interp     = NEAREST;
 
-   drizzle    = 1.;
    threshold  = 0.;
 
    if(strlen(stats) > 0)
@@ -238,7 +239,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(fout == (FILE *)NULL)
       {
          sprintf(returnStruct->msg, "Can't open output file.");
-         free(inheader);
          return returnStruct;
       }
    }
@@ -336,7 +336,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    if(ncols < 0)
    {
       sprintf(returnStruct->msg, "Error opening image list table file.");
-      free(inheader);
 
       if(strlen(stats) > 0)
          fclose(fout);
@@ -351,7 +350,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
    if(ifname < 0)
    {
       sprintf(returnStruct->msg, "Need column fname in input");
-      free(inheader);
 
       if(strlen(stats) > 0)
          fclose(fout);
@@ -369,7 +367,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(iweight < 0)
       {
          sprintf(returnStruct->msg, "Need column %s in input", weightCol);
-         free(inheader);
 
          if(strlen(stats) > 0)
             fclose(fout);
@@ -388,7 +385,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(iscale < 0)
       {
          sprintf(returnStruct->msg, "Need column %s in input", scaleCol);
-         free(inheader);
 
          if(strlen(stats) > 0)
             fclose(fout);
@@ -455,10 +451,11 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       if(strcmp(infile, outfile) == 0)
       {
          sprintf(returnStruct->msg, "Output would overwrite input");
-         free(inheader);
 
          if(strlen(stats) > 0)
             fclose(fout);
+
+         wcsfree(wcsout);
 
          return returnStruct;
       }
@@ -507,6 +504,9 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
             continue;
          }
       }
+
+      if(inheader)
+         free(inheader);
 
       if(fits_get_image_wcs_keys(infptr, &inheader, &fitsstat))
       {
@@ -578,6 +578,8 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
          inp2p = INTRINSIC;
       }
 
+      wcsfree(wcsin);
+
       if(tryAltIn)
       {
          getHdr = mGetHdr(infile, origHdr, hdu, 0, 0);
@@ -599,7 +601,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          // mTANHdr
 
-         tanHdr = mTANHdr(origHdr, altout, 5, 50, 0.01, 0, 0);
+         tanHdr = mTANHdr(origHdr, altin, 5, 50, 0.01, 0, 0);
 
          if(mProjExec_debug)
          {
@@ -684,7 +686,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectCube(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectCube(%s weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -703,12 +705,12 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectQL(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectQL(%s weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
 
-      else if(!wcsMatch)
+      else if(!wcsMatch || exact)
       {
          project = mProject(infile, outfile, template, hdu, weightFile, weight, threshold,
                             borderStr, drizzle, fluxScale, energyMode, expand, fullRegion, 0);
@@ -722,7 +724,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProject(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProject(%s, weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -741,7 +743,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectPP(%s) -> [%s] (COMPUTED/COMPUTED)\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectPP(%s weight=%-g) -> [%s] (COMPUTED/COMPUTED)\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -781,7 +783,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectPP(%s) -> [%s] (INTRINSIC/COMPUTED)\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectPP(%s weight=%-g) -> [%s] (INTRINSIC/COMPUTED)\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -802,7 +804,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProjectPP(%s) -> [%s] (INTRINSIC/INTRINSIC)\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProjectPP(%s weight=%-g) -> [%s] (INTRINSIC/INTRINSIC)\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -821,7 +823,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
          if(mProjExec_debug)
          {
-            fprintf(mProjExec_fdebug, "mProject(%s) -> [%s]\n", infile, msg);
+            fprintf(mProjExec_fdebug, "mProject(%s weight=%-g) -> [%s]\n", infile, weight, msg);
             fflush(mProjExec_fdebug);
          }
       }
@@ -862,8 +864,12 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
       }
    }
 
+   tclose();
+
    if(strlen(stats) > 0)
       fclose(fout);
+
+   wcsfree(wcsout);
 
    free(inheader);
 
@@ -892,7 +898,7 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
 int mProjExec_readTemplate(char *filename)
 {
-   int       j, naxes;
+   int       j, naxes = 0;
    FILE     *fp;
    char      line[MAXSTR];
    char      header[80000];

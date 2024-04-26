@@ -16,7 +16,6 @@ Version  Developer        Date     Change
 #include <string.h>
 #include <wcs.h>
 
-#include "montage.h"
 #include "fitsio.h"
 
 extern char *optarg;
@@ -32,6 +31,9 @@ int  checkFile    (char *filename);
 int  checkHdr     (char *infile, int hdrflag, int hdu);
 void checkHdrExact(int stringent);
 int  errorOutput  (char *msg);
+
+FILE *fstatus;
+FILE *fout;
 
 
 /*************************************************************************/

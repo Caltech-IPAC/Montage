@@ -36,7 +36,6 @@ Version  Developer        Date     Change
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "montage.h"
 #include "fitsio.h"
 #include "wcs.h"
 
@@ -45,6 +44,8 @@ Version  Developer        Date     Change
 #define FITS   0
 #define HDR    1
 #define EITHER 2
+
+extern FILE *fstatus;
 
 int havePLTRAH;
 
@@ -61,6 +62,7 @@ int haveCRVAL1;
 int haveCRVAL2;
 int haveCDELT1;
 int haveCDELT2;
+int haveCROTA2;
 int haveCD1_1;
 int haveCD1_2;
 int haveCD2_1;
@@ -75,7 +77,8 @@ char ctype1[1024];
 char ctype2[1024];
 
 char *hdrCheck_outfile = (char *)NULL;
-FILE *fout;
+
+extern FILE *fout;
 
 int CHdebug    = 0;
 int errorCount = 0;
@@ -161,7 +164,8 @@ int checkHdr(char *infile, int hdrflag, int hdu)
    haveCRPIX1  = 0;
    haveCRPIX2  = 0;
    haveCDELT1  = 0;
-   haveCDELT2  = 0;
+   haveCDELT1  = 0;
+   haveCROTA2  = 0;
    haveCD1_1   = 0;
    haveCD1_2   = 0;
    haveCD2_1   = 0;
@@ -658,6 +662,8 @@ int fitsCheck(char *keyword, char *value)
 
    else if(strcmp(keyword, "CROTA2") == 0)
    {
+      haveCROTA2 = 1;
+
       dval = strtod(value, &end);
 
       if(end < value + (int)strlen(value))

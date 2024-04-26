@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
    char     *end;
 
-   double    ra, dec, xsize, ysize;
+   double    ra=0., dec=0., xsize=0., ysize=0.;
 
    struct mSubCubeReturn *returnStruct;
 

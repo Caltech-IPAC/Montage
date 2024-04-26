@@ -1,0 +1,616 @@
+/*  Global style defaults */
+
+body
+{
+  margin: 0;
+  padding: 0;
+  color: #000;
+  font-size: medium;
+  background: url('images/background.jpg') repeat-y 50% 0;
+}
+
+#container
+{
+  width: 796px;
+  margin: 0 auto 0 auto;
+}
+
+a,
+a:link,
+a:hover,
+a:visited,
+a:active,
+a:focus
+{
+  border: 0;
+  color: #990099;
+  background-color: inherit;
+}
+
+img {border: 0; }
+
+#montage-banner
+{
+  margin: 0;
+  padding: 0;
+  width: 796px;
+}
+
+
+#nav
+{
+  margin: 0 auto 0 auto;
+  width: 754px;
+  padding: 0;
+  font-size: 90%;
+  font-weight: bold;
+  font-family: arial,geneva,verdana,helvetica,sans-serif;
+  background: #fff;
+}
+
+#nav ul
+{
+  margin: 0 auto 0 auto;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+#nav li
+{ 
+  float: left;
+  padding: 3px 8px 3px 8px;
+  margin: 1px 1px 0 1px;
+  border-top: 1px solid #996699;
+  border-right: 1px solid #996699;
+  border-left: 1px solid #996699;
+  list-style: none;
+  display: block;
+}
+
+#nav a {
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  margin: 0;
+  width: 100%;
+  padding: 0;
+  color: #660066;
+}
+
+#nav a:hover
+{
+  color: #990099;
+}
+
+.table_noborder
+{
+  width: 100%;
+  padding: 5px;
+}
+.table_noborder th
+{
+  background-color: #660066;
+  text-align: left;
+  color: #FFFFFF;
+  font-size: 120%;
+}
+.table_noborder td
+{
+  margin: 5px;
+  padding: 3px;
+  font-size: 100%;
+  vertical-align: top;
+}
+.table_noborder tr.alt
+{
+  background: #cccccc;
+}
+
+.table_noborder ul
+{
+  margin: 0;
+}
+.table_border
+{
+  border-collapse: collapse;
+  width: 100%;
+  padding: 5px;
+}
+.table_border th
+{
+  vertical-align: top;
+  text-align: left;
+  font-size: 120%;
+}
+.table_border td
+{
+  border: 1px solid #000;
+  margin: 5px;
+  padding: 3px;
+  font-size: 100%;
+  vertical-align: top;
+}
+td.nowrap
+{
+  white-space: nowrap;
+}
+
+
+
+#content
+{
+  clear: both;
+  margin: 0 0px 5px 0px;
+  padding: 10px 5px 5px 5px;
+  background: #fff;
+  font-size: 85%;
+  font-family: arial,geneva,verdana,helvetica,sans-serif;
+  border-top: 2px solid #996699;
+
+}
+
+#content h1
+{
+  text-align: left;
+  padding-left: 5px;
+  font-size: 140%;
+  font-weight: bold;
+  color: #442244;
+  border-bottom: 2px solid #669999;
+}
+#content h2
+{
+  text-align: left;
+  font-size: 120%;
+  font-weight: bold;
+  color: #442244;
+}
+
+
+#content td
+{
+  font-size: 100%;
+}
+
+#documentation
+{
+  width: 100%;
+  padding: 0;
+  margin: 0 auto 0 auto;
+}
+
+#documentation .note
+{
+  font-size: 100%;
+  font-weight: bold;
+  font-style: italic;
+}
+#documentation .rightcol
+{
+  float: right;
+  width: 50%;
+  padding: 0;
+  margin: 0;
+}
+#documentation .leftcol
+{
+  float: left;
+  width: 50%;
+  padding: 0;
+  margin: 0;
+}
+#documentation h2 
+{
+  font-size: 110%;
+  font-weight: bold;
+  padding: 15px 0 0 20px;
+  margin: 0;
+}
+#documentation ul
+{
+  margin: 0;
+  padding: 0 0 0 25px;
+}
+#documentation li 
+{
+  margin-left: 5px;
+}
+#frontpanel
+{
+  float: left;
+  width: 550px;
+}
+#frontpanel p
+{
+  display: block;
+  clear: both;
+  margin: 0;
+  padding: 5px 0 0 0;
+  text-align: justify;
+}
+#frontpanel dl
+{
+  margin: 10px 0 0 0;
+  padding: 0;
+  list-style: none;
+  display: inline;
+}
+#frontpanel .leftcol
+{
+  float: left;
+  width: 225px;
+  padding-left: 20px;
+}
+#frontpanel .rightcol
+{
+  float: right;
+  width: 225px;
+  padding-right: 20px;
+}
+
+#frontpanel dt 
+{
+  margin: 0;
+  padding: 0 5px 0 0;
+  font-weight: bold;
+  float: left;
+}
+#frontpanel dd
+{
+  margin: 0 5px 5px 0;
+  padding: 0;
+  font-size: 100%;
+}
+
+#content #news
+{
+  float: right;
+  margin: 0;
+  width: 200px;
+}
+#content #news ul
+{
+  margin: 0;
+  padding: 0;
+}
+#content #news li
+{
+  margin: 0 5px 0 15px;
+  padding: 0;
+}
+#content #news dl
+{
+  list-style: none;
+  padding: 5px;
+}
+#content #news dt
+{
+  font-weight: bold;
+  font-size: 100%;
+  font-family: arial,geneva,verdana,helvetica,sans-serif;
+  color: #442244;
+}
+#news dd
+{
+  font-size: 100%;
+  font-family: arial,geneva,verdana,helvetica,sans-serif;
+  padding: 0 0 10px 0;
+  margin: 0;
+}
+
+.note 
+{
+  font-weight: bold;
+  font-size: 90%;
+  font-style: italic;
+}
+.note_centered 
+{
+  font-weight: bold;
+  font-size: 90%;
+  font-style: italic;
+  text-align: center;
+}
+
+dl.ls 
+{
+  padding-left: 15px;
+}
+.ls dd
+{
+  padding-bottom: 10px;
+}
+.dir
+{
+  font-weight: bold;
+  font-family: courier;
+}
+.file
+{
+  font-family: courier;
+}
+tt
+{
+  font-family: courier;
+}
+
+#gallery
+{
+  float: left;
+  padding: 0;
+  margin: 0;
+  width: 700px;
+}
+#gallery dl
+{
+  float: left;
+  margin: 0;
+  display: inline;
+  padding: 0 0 30px 0;
+}
+
+#gallery dt 
+{
+  float: right;
+  width: 540px;
+  margin: 0;
+  padding: 0 0 5px 0;
+  font-size: 120%;
+  font-weight: bold;
+}
+#gallery dd
+{
+  margin: 0 0 0 160px;
+  padding: 0;
+  font-size: 100%;
+}
+#gallery dl dd.img {
+  margin: 0;
+  padding: 0 10px 0 0;
+  width: 150px;
+  float: left;
+}
+#gallery dd.img img{
+  float: left;
+  padding: 0;
+  margin: 0;
+}
+
+/* reverse float */
+#gallery .alt dt {
+  float: left;
+}
+#gallery .alt dd {
+  margin: 0 160px 0 0;
+  padding: 0 10px 0 0;
+}
+#gallery .alt dd.img img {
+  float: right;
+}
+
+#usage {
+  margin: 0 auto 0 auto;
+  padding: 0 5px 0 5px;
+}
+
+.description 
+{
+  clear: both;
+}
+
+#usage .description dt 
+{
+  font-weight: bold;
+  padding: 15px 0 0 0;
+  margin: 0;
+}
+#usage .description dd 
+{
+  padding: 5px 0 0 10px;
+  margin: 0;
+}
+
+#usage .syntax dt 
+{
+  font-weight: bold;
+  padding: 15px 0 0 0;
+  margin: 0;
+}
+#usage .syntax dd
+{
+  font-family: courier;
+  padding: 5px 0 0 10px;
+  margin: 0;
+}
+
+#usage .dochead
+{
+  clear: both;
+  font-weight: bold;
+  padding: 15px 0 0 0;
+  margin: 0;
+}
+
+#usage .args dt
+{
+  font-family: courier;
+  float: left;
+  clear: both;
+  padding:  5px 5px 10px;
+  width: 20%;
+  margin: 0;
+}
+#usage .args dd
+{
+  float: right;
+  padding: 5px 0 5px 0;
+  margin: 0;
+  width: 78%;
+}
+
+#usage .returncodes
+{
+  list-style: none;
+  font-family: courier;
+  padding: 10px 0 0 10px;
+  margin: 0;
+}
+#usage .returncodes li 
+{
+  padding: 0 0 10px 0;
+}
+#usage .returncodes .explanation 
+{
+  padding: 0;
+  margin: 0;
+  font-family: arial,geneva,verdana,helvetica,sans-serif;
+  font-style: italic;
+  padding: 0 0 0 5px;
+  color: #552255;
+}
+
+#usage .example
+{
+  padding: 0;
+  margin: 0;
+  font-family: courier;
+}
+#usage .example dt
+{
+  padding: 10px 0 0 10px;
+  margin: 0;
+}
+#usage .example dd
+{
+  padding: 0 0 10px 10px;
+  margin: 0
+}
+
+#tutorial .commands
+{
+  padding: 0;
+  margin: 0;
+  font-family: courier;
+}
+#tutorial .commands dt 
+{
+  padding: 10px 0 0 10px;
+  margin: 0;
+}
+#tutorial .commands dd
+{
+  padding: 0 0 10px 10px;
+  margin: 0;
+  font-weight: bold;
+}
+
+.inset
+{
+  clear: both;  
+  margin: 10px 40px 5px 40px;
+  padding: 20px;
+}
+.inset img
+{
+  display: block;
+  margin: 0 auto 0 auto;
+  padding: 0;
+  border: 0;
+}
+.caption
+{
+  margin: 0px 20px 10px 20px;
+  text-align: justify;
+  font-weight: bold;
+  font-size: 80%;
+  padding: 0;
+}
+  
+
+#wrapper
+{
+  position: relative;
+}
+
+.app_block 
+{
+  margin: 5px auto 5px auto;
+  padding: 10px;
+  border-top: 2px solid #aaaaaa;
+  text-align: justify;
+  position: relative;
+}
+
+.app_img_desc
+{
+  margin: 0px 20px 10px 20px;
+  text-align: justify;
+  font-weight: bold;
+  font-size: 80%;
+  padding: 0;
+}
+.app_block img
+{
+  display: block;
+  border: 0;
+  margin: 5px auto 0px auto;
+  padding: 0;
+}
+
+li 
+{
+  padding-top: 3px;
+}
+
+#docnav
+{
+  width:650px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  margin: 0 auto 0 auto;
+}
+#docnav .left
+{
+  display: inline;
+  float: left;
+  padding: 0;
+  margin:0;
+}
+#docnav .right
+{
+  padding: 0;
+  margin:0;
+  display: inline;
+  float: right;
+}
+
+#footer
+{
+  clear: both;
+  width: 700px;
+  margin: 0 auto 0 auto;
+  border-top: 1px solid #cccccc;
+  padding-top: 20px;
+}
+.foot-just 
+{
+  font-size: 80%;
+  text-align: justify;
+}
+.foot-unjust
+{
+  font-size: 80%;
+}
+
+.liblist table 
+{
+  border: 1px solid #a0a0a0;
+  border-collapse: collapse;
+}
+
+.liblist td 
+{
+  vertical-align: top; 
+  padding: 3px 10px 3px 20px; 
+  border: 1px solid #a0a0a0;
+}

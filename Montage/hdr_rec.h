@@ -1,4 +1,4 @@
-/* Module: hdr_rec.c
+/* Module: hdr_rec.h
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
@@ -6,7 +6,7 @@ Version  Developer        Date     Change
 1.3      John Good        12Jan06  Changed file size to "long long" 
 1.2      John Good        27Jun03  Added a few comments for clarity 
 1.1      John Good        27Mar03  Removed unused 'good' 
-				   flag from structure
+				                       flag from structure
 1.0      John Good        29Jan03  Baseline code
 
 */

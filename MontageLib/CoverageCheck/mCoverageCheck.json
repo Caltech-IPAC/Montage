@@ -14,6 +14,8 @@
       {"type":"int",     "default":0,      "name":"narray",        "desc":"Size of the 'array' of real numbers to use."},
       {"type":"double*", "default":0,      "name":"array",         "desc":"Array of real numbers.  The size and use depend on mode.  For instance for mode 0 (POINTS) the number is twice the number of vertices in the polygon."},
       {"type":"string",  "default":"",     "name":"path",          "desc":"Path to the data files (if we have them and want a double check on WCS info)."},
+      {"type":"double",  "default":0.0,    "name":"xoff",          "desc":"X-offset to compensate for projection sky wrap-around."},
+      {"type":"double",  "default":0.0,    "name":"yoff",          "desc":"Y-offset to compensate for projection sky wrap-around."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
    ],
 

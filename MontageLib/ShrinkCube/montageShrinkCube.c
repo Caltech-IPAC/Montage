@@ -115,7 +115,7 @@ struct mShrinkCubeReturn *mShrinkCube(char *input_file, char *output_file, doubl
                                 int mfactor, int hduin, int fixedSize, int debug)
 {
    int       i, j, ii, jj, status, bufrow, split;
-   int       ibuffer, jbuffer, ifactor, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
+   int       ibuffer, jbuffer=0, ifactor=0, nbuf, nullcnt, k, l, imin, imax, jmin, jmax;
    int       m, j3, j4;
    long      fpixel[4], fpixelo[4], nelements, nelementso;
    double    obegin, oend;
@@ -144,7 +144,7 @@ struct mShrinkCubeReturn *mShrinkCube(char *input_file, char *output_file, doubl
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 

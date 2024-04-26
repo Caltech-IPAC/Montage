@@ -766,6 +766,7 @@ int mImgtbl_get_files (char *pathname)
 
 int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 {
+   int       isDSS;
    char     *header;
    char      value[1024], comment[1024], *ptr;
    char     *checkWCS;
@@ -847,203 +848,214 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       /* WCS library initialization    */
       /* to segfault.  Check these.    */
 
-      /* CTYPE1 Existence */
+      /* The one exception to this is if we have a DSS plate projection.  If this is */
+      /* is indicated, don't bother.                                                 */
 
+      isDSS = 1;
       status = 0;
-      if(fits_read_keyword(fptr, "CTYPE1", value, comment, &status))
+      if(fits_read_keyword(fptr, "PLTRAH", value, comment, &status))
+         isDSS = 0;
+
+      if(!isDSS)
       {
+         /* CTYPE1 Existence */
+
+         status = 0;
+         if(fits_read_keyword(fptr, "CTYPE1", value, comment, &status))
+         {
+            if(mImgtbl_debug)
+            {
+               printf("Missing CTYPE1 in file %s\n", fname);
+               fflush(stdout);
+            }
+
+            wcs = (struct WorldCoor *)NULL;
+
+            if(hdr_rec->hdu == 1)
+               first_failed = 1;
+
+            ++nfailed;
+            ++badwcs;
+
+            if(info)
+            {
+               printf("[struct stat=\"INFO\", msg=\"Missing CTYPE1\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+               fflush(stdout);
+            }
+
+            badhdr = 1;
+
+            ++nbadwcs;
+
+            if(!showbad)
+               continue;
+         }
+
          if(mImgtbl_debug)
          {
-            printf("Missing CTYPE1 in file %s\n", fname);
+            printf("DEBUG> CTYPE1 check: [%s] badhdr -> %d\n", value, badhdr);
             fflush(stdout);
          }
 
-         wcs = (struct WorldCoor *)NULL;
 
-         if(hdr_rec->hdu == 1)
-            first_failed = 1;
+         /* CTYPE1 Value */
 
-         ++nfailed;
-         ++badwcs;
-
-         if(info)
+         if(!badhdr)
          {
-            printf("[struct stat=\"INFO\", msg=\"Missing CTYPE1\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+            ptr = value;
+
+            if(*ptr == '\'' && value[strlen(value)-1] == '\'')
+            {
+               value[strlen(value)-1] = '\0';
+               ++ptr;
+            }
+
+            if(strlen(ptr) < 8)
+               *ptr = '\0';
+
+            while(*ptr != '-' && *ptr != '\0') ++ptr;
+            while(*ptr == '-' && *ptr != '\0') ++ptr;
+
+            if(strlen(ptr) == 0)
+            {
+               if(mImgtbl_debug)
+               {
+                  printf("Invalid CTYPE1 in file %s\n", fname);
+                  fflush(stdout);
+               }
+
+               wcs = (struct WorldCoor *)NULL;
+
+               if(hdr_rec->hdu == 1)
+                  first_failed = 1;
+
+               ++nfailed;
+               ++badwcs;
+
+               if(info)
+               {
+                  printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE1\", file=\"%s\", hdu=%d]\n",
+                     fname, hdr_rec->hdu);
+                  
+                  fflush(stdout);
+               }
+
+               badhdr = 1;
+
+               ++nbadwcs;
+
+               if(!showbad)
+                  continue;
+            }
+         }
+
+         if(mImgtbl_debug)
+         {
+            printf("DEBUG> CTYPE1 value check: badhdr -> %d\n", badhdr);
             fflush(stdout);
          }
 
-         badhdr = 1;
-
-         ++nbadwcs;
-
-         if(!showbad)
-            continue;
-      }
-
-      if(mImgtbl_debug)
-      {
-         printf("DEBUG> CTYPE1 check: [%s] badhdr -> %d\n", value, badhdr);
-         fflush(stdout);
-      }
 
 
-      /* CTYPE1 Value */
+         /* CTYPE2 Existence */
 
-      if(!badhdr)
-      {
-         ptr = value;
-
-         if(*ptr == '\'' && value[strlen(value)-1] == '\'')
+         if(!badhdr)
          {
-            value[strlen(value)-1] = '\0';
-            ++ptr;
+            status = 0;
+            if(fits_read_keyword(fptr, "CTYPE2", value, comment, &status))
+            {
+               if(mImgtbl_debug)
+               {
+                  printf("Missing CTYPE2 in file %s\n", fname);
+                  fflush(stdout);
+               }
+
+               wcs = (struct WorldCoor *)NULL;
+
+               if(hdr_rec->hdu == 1)
+                  first_failed = 1;
+
+               ++nfailed;
+               ++badwcs;
+
+               if(info)
+               {
+                  printf("[struct stat=\"INFO\", msg=\"Missing CTYPE2\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+                  
+                  fflush(stdout);
+               }
+
+               badhdr = 1;
+
+               ++nbadwcs;
+
+               if(showbad)
+                  continue;
+            }
          }
 
-         if(strlen(ptr) < 8)
-            *ptr = '\0';
-
-         while(*ptr != '-' && *ptr != '\0') ++ptr;
-         while(*ptr == '-' && *ptr != '\0') ++ptr;
-
-         if(strlen(ptr) == 0)
+         if(mImgtbl_debug)
          {
-            if(mImgtbl_debug)
-            {
-               printf("Invalid CTYPE1 in file %s\n", fname);
-               fflush(stdout);
-            }
-
-            wcs = (struct WorldCoor *)NULL;
-
-            if(hdr_rec->hdu == 1)
-               first_failed = 1;
-
-            ++nfailed;
-            ++badwcs;
-
-            if(info)
-            {
-               printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE1\", file=\"%s\", hdu=%d]\n",
-                  fname, hdr_rec->hdu);
-               
-               fflush(stdout);
-            }
-
-            badhdr = 1;
-
-            ++nbadwcs;
-
-            if(!showbad)
-               continue;
-         }
-      }
-
-      if(mImgtbl_debug)
-      {
-         printf("DEBUG> CTYPE1 value check: badhdr -> %d\n", badhdr);
-         fflush(stdout);
-      }
-
-
-
-      /* CTYPE2 Existence */
-
-      if(!badhdr)
-      {
-         status = 0;
-         if(fits_read_keyword(fptr, "CTYPE2", value, comment, &status))
-         {
-            if(mImgtbl_debug)
-            {
-               printf("Missing CTYPE2 in file %s\n", fname);
-               fflush(stdout);
-            }
-
-            wcs = (struct WorldCoor *)NULL;
-
-            if(hdr_rec->hdu == 1)
-               first_failed = 1;
-
-            ++nfailed;
-            ++badwcs;
-
-            if(info)
-            {
-               printf("[struct stat=\"INFO\", msg=\"Missing CTYPE2\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
-               
-               fflush(stdout);
-            }
-
-            badhdr = 1;
-
-            ++nbadwcs;
-
-            if(showbad)
-               continue;
-         }
-      }
-
-      if(mImgtbl_debug)
-      {
-         printf("DEBUG> CTYPE2 check: [%s] badhdr -> %d\n", value, badhdr);
-         fflush(stdout);
-      }
-
-
-      /* CTYPE2 Value */
-
-      if(!badhdr)
-      {
-         ptr = value;
-
-         if(*ptr == '\'' && value[strlen(value)-1] == '\'')
-         {
-            value[strlen(value)-1] = '\0';
-            ++ptr;
+            printf("DEBUG> CTYPE2 check: [%s] badhdr -> %d\n", value, badhdr);
+            fflush(stdout);
          }
 
-         if(strlen(ptr) < 8)
-            *ptr = '\0';
 
-         while(*ptr != '-' && *ptr != '\0') ++ptr;
-         while(*ptr == '-' && *ptr != '\0') ++ptr;
+         /* CTYPE2 Value */
 
-         if(strlen(ptr) == 0)
+         if(!badhdr)
          {
-            if(mImgtbl_debug)
+            ptr = value;
+
+            if(*ptr == '\'' && value[strlen(value)-1] == '\'')
             {
-               printf("Invalid CTYPE2 in file %s\n", fname);
-               fflush(stdout);
+               value[strlen(value)-1] = '\0';
+               ++ptr;
             }
 
-            wcs = (struct WorldCoor *)NULL;
+            if(strlen(ptr) < 8)
+               *ptr = '\0';
 
-            if(hdr_rec->hdu == 1)
-               first_failed = 1;
+            while(*ptr != '-' && *ptr != '\0') ++ptr;
+            while(*ptr == '-' && *ptr != '\0') ++ptr;
 
-            ++nfailed;
-            ++badwcs;
-
-            if(info)
+            if(strlen(ptr) == 0)
             {
-               printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE2\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
-               
-               fflush(stdout);
+               if(mImgtbl_debug)
+               {
+                  printf("Invalid CTYPE2 in file %s\n", fname);
+                  fflush(stdout);
+               }
+
+               wcs = (struct WorldCoor *)NULL;
+
+               if(hdr_rec->hdu == 1)
+                  first_failed = 1;
+
+               ++nfailed;
+               ++badwcs;
+
+               if(info)
+               {
+                  printf("[struct stat=\"INFO\", msg=\"Invalid CTYPE2\", file=\"%s\", hdu=%d]\n", fname, hdr_rec->hdu);
+                  
+                  fflush(stdout);
+               }
+
+               badhdr = 1;
+
+               ++nbadwcs;
+
+               if(!showbad)
+                  continue;
             }
-
-            badhdr = 1;
-
-            ++nbadwcs;
-
-            if(!showbad)
-               continue;
          }
-      }
 
-      if(mImgtbl_debug)
-      {
-         printf("DEBUG> CTYPE2 value check: badhdr -> %d\n", badhdr);
-         fflush(stdout);
+         if(mImgtbl_debug)
+         {
+            printf("DEBUG> CTYPE2 value check: badhdr -> %d\n", badhdr);
+            fflush(stdout);
+         }
       }
 
 
@@ -1184,11 +1196,24 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          else
             hdr_rec->ns = atoi(value);
 
+         status=0;
          if(fits_read_keyword(fptr, "NAXIS2", value, comment, &status))
             hdr_rec->nl = 0;
          else
             hdr_rec->nl = atoi(value);
 
+
+         // Special check for ZNAXIS1, ZNAXIS2: Image compressed and stored in binary FITS table
+
+         status=0;
+         if(!fits_read_keyword(fptr, "ZNAXIS1", value, comment, &status))
+            hdr_rec->ns = atoi(value);
+
+         status=0;
+         if(!fits_read_keyword(fptr, "ZNAXIS2", value, comment, &status))
+            hdr_rec->nl = atoi(value);
+         
+        
          strcpy(hdr_rec->ctype1, "");
          strcpy(hdr_rec->ctype2, "");
 
@@ -1282,7 +1307,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
          if(clockwise)
          {
-            pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1290,7 +1315,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->dec1 = dec;
 
 
-            pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1306,7 +1331,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->dec3 = dec;
 
 
-            pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, wcs->nypix+0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1315,14 +1340,14 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
          else
          {
-            pix2wcs(wcs, -0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
             hdr_rec->ra1 = ra;
             hdr_rec->dec1 = dec;
 
-            pix2wcs(wcs, wcs->nxpix+0.5, -0.5, &lon, &lat);
+            pix2wcs(wcs, wcs->nxpix+0.5, 0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 
@@ -1338,7 +1363,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->dec3 = dec;
 
 
-            pix2wcs(wcs, -0.5, wcs->nypix+0.5, &lon, &lat);
+            pix2wcs(wcs, 0.5, wcs->nypix+0.5, &lon, &lat);
             convertCoordinates (csys, equinox, lon, lat,
                                 EQUJ, 2000., &ra, &dec, 0.);
 

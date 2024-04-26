@@ -37,7 +37,6 @@ Version  Developer        Date     Change
 #include <errno.h>
 #include <math.h>
 
-#include <montage.h>
 #include <fitsio.h>
 #include <wcs.h>
 #include <coord.h>
@@ -88,6 +87,8 @@ int     checkHdr           (char *infile, int hdrflag, int hdu);
 int     stradd             (char *header, char *card);
 
 
+
+FILE *fstatus;
 
 double dtr;
 

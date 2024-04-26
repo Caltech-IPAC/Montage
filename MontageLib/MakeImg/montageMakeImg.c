@@ -44,7 +44,7 @@ int      *flat;
 double   *ref;
 int      *ismag;
 int      *sys;
-double   *epoch;
+double   *imgepoch;
 int       nimage;
 char   **image_file;
 double   *refval;
@@ -275,7 +275,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
    ref            = (double *)malloc(MAXFILE * sizeof(double));
    ismag          = (int    *)malloc(MAXFILE * sizeof(int));
    sys            = (int    *)malloc(MAXFILE * sizeof(int));
-   epoch          = (double *)malloc(MAXFILE * sizeof(double));
+   imgepoch       = (double *)malloc(MAXFILE * sizeof(double));
    refval         = (double *)malloc(MAXFILE * sizeof(double));
 
    arrayfile      = (char   *)malloc(STRLEN * sizeof(char));
@@ -385,7 +385,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
                   strcat(coordStr, " ");
                   strcat(coordStr, argv[index+5]);
 
-                  mMakeImg_parseCoordStr(coordStr, &sys[ncat], &epoch[ncat]);
+                  mMakeImg_parseCoordStr(coordStr, &sys[ncat], &imgepoch[ncat]);
 
                   ref[ncat] = atof(argv[index+6]);
 
@@ -635,13 +635,13 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
 
             strcpy(csys, "EQU J2000");
 
-            sys  [ncat] = EQUJ;
-            epoch[ncat] = 2000.;
+            sys     [ncat] = EQUJ;
+            imgepoch[ncat] = 2000.;
 
             if(json_val(layout, keystr, valstr))
                strcpy(csys, valstr);
 
-            mMakeImg_parseCoordStr(csys, &sys[ncat], &epoch[ncat]);
+            mMakeImg_parseCoordStr(csys, &sys[ncat], &imgepoch[ncat]);
 
             ++ncat;
          }
@@ -721,7 +721,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
          printf("ref     [%d]     =  %-g\n",  i, ref     [i]);
          printf("ismag   [%d]     =  %d \n",  i, ismag   [i]);
          printf("sys     [%d]     =  %d \n",  i, sys     [i]);
-         printf("epoch   [%d]     =  %-g\n",  i, epoch   [i]);
+         printf("imgepoch[%d]     =  %-g\n",  i, imgepoch[i]);
       }
 
       printf("\nnimage          =  %d\n",  nimage);
@@ -995,7 +995,7 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
          ilon = atof(tval(loncol));
          ilat = atof(tval(latcol));
 
-         convertCoordinates(sys[ifile], epoch[ifile],  ilon,  ilat,
+         convertCoordinates(sys[ifile], imgepoch[ifile],  ilon,  ilat,
                             output.sys, output.epoch, &olon, &olat, 0.);
 
          if(fluxcol < 0)
@@ -2364,7 +2364,7 @@ void mMakeImg_cleanup()
       free(ref);
       free(ismag);
       free(sys);
-      free(epoch);
+      free(imgepoch);
 
       free(arrayfile);
    }

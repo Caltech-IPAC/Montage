@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+    <!--#include virtual="include/header.html"-->
+    <div id="wrapper">
+    <h1>mCoverageCheck</h1>
+
+
+<div id="usage">
+<a name="usage"></a>
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><span class="file">mCoverageCheck</span> can be used to subset an image metadata table (containing FITS/WCS information or image corners) by determining which records in the table represent images that overlap with a region definition (box or circle in the sky) given on the command line.</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mCoverageCheck [-s <i>statusfile</i>] <b>in.tbl out.tbl -<i>mode</i> &lt;parameters&gt;</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are sent to <i>statusfile</i> instead of to stdout</dd> </tr>
+  <dt>-<i>mode</i></dt>
+  <dd>Can be one of:
+    <ul>
+      <li><b>points</b> (used to describe a convex polygon)</li>
+      <li><b>box</b></li>
+      <li><b>circle</b></li>
+      <li><b>header</b> (area is described in a header file)</li>
+      <li><b>point</b> (find images that overlap one particular point on the sky)</li>
+      <li><b>cutout</b> (operates like <i>box</i> mode, but returns metadata that represents what the input images would look like after being subset to exactly match the cutout area)</li>
+    </ul></dd>
+</dl>
+
+<p class="dochead">
+<dl class="args">
+  <dt>in.tbl</dt>
+  <dd>Input metadata table.</dd>
+  <dt>out.tbl</dt>
+  <dd>Output metadata table, to contain subset of in.tbl.</dd>
+  <dt><i>parameters</i></dt>
+  <dd><dd>Depends on mode as following:
+    <ul>
+      <li><i>points</i>: <span class="file">ra1 dec1 ra2 dec2 ... raN decN</span> (must be at least 3 vertices)</li>
+      <li><i>box</i>: <span class="file">ra dec xsize [ysize [rotation]]</span><br>where <i>ra, dec</i> is the center of the box, and <i>size</i> is in degrees.
+      <li><i>circle</i>: <span class="file">ra dec radius</span><br>where <i>ra, dec</i> is the center of the circle, and <i>radius</i> is in degrees (default is 0, in which case it's treated like a point search).</li>
+      <li><i>point</i>: <span class="file">ra dec</span></li>
+      <li><i>header</i>: <span class="file">region.hdr</span> (path to an ASCII header template that defines the region of interest)</li>
+      <li><i>cutout</i>: <span class="file">ra dec xsize [ysize]</span><br>where <i>ra, dec</i> is the center of the cutout area, and <i>size</i> is in degrees.</li> 
+  </dd>
+</dl>
+
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>The output file <i>out.tbl</i> is created, with <i>nimages</i> records.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+
+<p>As input, we use <a href="examples/mCoverageCheck/images.tbl">this table</a> of 2MASS atlas images.  The images in this table are in two "clumps" on the sky: 3 overlapping images separated by several degrees from the other 12 overlapping images.  Here we will show several ways of isolating the group of 3 images.</p>
+
+<dl class="example">
+  <dt>$ mCoverageCheck images.tbl circle.tbl -circle 262.78208 -35.03049 1.0</dt>
+  <dd>[struct stat="OK", count="3"]</dd>
+  <dt>$ mCoverageCheck images.tbl box.tbl -box 262.84948 -34.81197 1.0</dt>
+  <dd>[struct stat="OK", count="3"]</dd>
+  <dt>$ mCoverageCheck images.tbl points.tbl -points 263.3796 -34.48881 262.15127 -34.51032 262.90267 -35.38753</dt>
+  <dd>[struct stat="OK", count="3"]</dd>
+  <dt>$ mCoverageCheck images.tbl point.tbl -point 262.78208 -35.03049</dt>
+  <dd>[struct stat="OK", count="3"]</dd>
+</dl>
+
+<p>Each of these methods results in <a href="examples/mCoverageCheck/circle.tbl">this output table</a> containing only 3 records out of the original 15.</p>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="OK", count=<i>n</i>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: mCoverageCheck [-s statusfile] in.tbl out.tbl -&lt;mode&gt; &lt;parameters&gt; [where mode can be 'points', 'box', 'circle', 'header', 'point' or 'cutout'"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Usage: Input table file (<i>filename</i>) does not exist"]</li>   
+  <li>[struct stat="ERROR", msg="Invalid region definition mode: <i>string</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Too few vertices for region (must be at least three)"]</li>   
+  <li>[struct stat="ERROR", msg="Longitude <i>n</i> (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Latitude <i>n</i> (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Failed to find bounding polygon for points"]</li>   
+  <li>[struct stat="ERROR", msg="Too few arguments for box or cutout (must at least have center and size)"]</li>   
+  <li>[struct stat="ERROR", msg="Center RA string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Center Dec string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="X box size string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="X box size (<i>string</i>) must be a positive number"]</li>   
+  <li>[struct stat="ERROR", msg="Y box size string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Y box size (<i>string</i>) must be a positive number"]</li>   
+  <li>[struct stat="ERROR", msg="Box rotation string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Must give header file name"]</li>   
+  <li>[struct stat="ERROR", msg="Failed to find bounding polygon for points"]</li>   
+  <li>[struct stat="ERROR", msg="Too few arguments for circle (must at least have center)"]</li>   
+  <li>[struct stat="ERROR", msg="Circle radius string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Too few arguments for point (must have coordinates)"]</li>   
+  <li>[struct stat="ERROR", msg="Point RA string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Point Dec string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Error opening table <i>filename</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot create output file <i>filename</i>"]</li>   
+  <li>[struct stat="ERROR", msg="Need either WCS or corner columns."]</li>   
+  <li>[struct stat="ERROR", msg="Failed to create wcs structure for record <i>n</i>"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

@@ -212,6 +212,7 @@ struct mHdrReturn *mHdr(char *locstr, double width, double height, char *outfile
    }
       
    fclose(fout);
+   close(sock);
 
    returnStruct->status = 0;
 

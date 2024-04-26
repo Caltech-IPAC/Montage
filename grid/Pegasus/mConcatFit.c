@@ -20,9 +20,9 @@ Version  Developer        Date     Change
 #include <svc.h>
 #include <mtbl.h>
 
-#include "montage.h"
-
 #define MAXSTR 4096
+
+FILE *fstatus;
 
 extern char *optarg;
 extern int optind, opterr;

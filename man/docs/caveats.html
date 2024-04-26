@@ -1,0 +1,97 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+			    <head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Caveats</h1>
+
+<ul>
+  <li><a href="#general">General Caveats</a>
+  <li><a href="#mimgtbl">mImgtbl</a>
+  <li><a href="#mprojectpp">mProjectPP and mTanHdr</a>
+  <li><a href="#madd">mAdd</a>
+  <li><a href="#moverlaps">mOverlaps</a>
+  <li><a href="#mmakehdr">mMakeHdr</a>
+  <li><a href="#ansi">ANSI Compliance</a>
+</ul>
+<p>&nbsp;</p>
+<a name="general"><h2>General Caveats:</h2></a>
+
+<ol>
+  <p><li>See the <a href="wcs.html">list of supported projections</a> for a list of projections that have been formally tested by Montage.  Other projection combinations are processed at user's risk.
+  <p><li>The drizzle algorithm has been implemented but has not been tested in this release.
+  <p><li>If a header template contains carriage returns (i.e., created/modified on a Windows machine), the cfitsio library will be unable to read it properly, resulting in the error:<br><span class="file">[struct stat="ERROR", status=207, msg="illegal character in keyword"]</span> </li>
+  <p><li>The copy of the WCS library included with the Montage code is from <a href="http://tdc-www.harvard.edu/software/wcstools/">WCSTools</a> v3.6.4.  We have not thoroughly tested (and do not support) any other version of the WCS library.  If you would prefer to use your own copy of the library, you should use the most recent version available, as versions prior to 3.3.4 will result in difficulties handling the ZPN projection and processing CCD distortion parameters.
+  <p><li>It is best for the background correction algorithms if the area described in the header template <i>completely encloses</i> all of the input images in their entirety.  If parts of input images are "chopped off" by the header template, the background correction will be affected. We recommend you use an expanded header for the reprojection and background modeling steps, returning to the originally desired header size for the final coaddition.  The default background matching assumes that there are no non-linear background variations in the individual images (and therefore in the overlap differences).  If there is any uncertainty in this regard, it is safer to turn on the "level only" background matching (the "-l" flag in <a href="mBgModel.html"><tt>mBgModel</tt></a>.</li>
+<p><li>A variable definition in some of the Montage modules can cause a segmentation fault under MacOS 10.2.x, because the default stacksize limit in this OS is quite low.  If you have this problem, you might want to change the stacksize limit in the shell in which you are running Montage, by either typing "limit stacksize 8M" into your shell, or adding this to your .cshrc file.  If you are using sh or bash, you would type "ulimit -s 8192" to do the same thing (increasing the stack size to 8MB), and this could be put in your .profile file.
+</ol>
+<p>&nbsp;</p>
+
+<a name="mimgtbl"><h2>mImgtbl:</h2></a>
+<ul>
+<p><li>We recommend use of the "-c" option when running mImgtbl to include the locations of the four corners of each image in the output metadata table.  Some other modules may require the corner locations to function correctly.</p>
+</ul>
+<p>&nbsp;</p>
+
+<a name="mprojectpp"><h2>mProjectPP and mTanHdr:</h2></a>
+<ul>
+<p><li><a href="mProjectPP.html"><tt>mProjectPP</tt></a> is only suitable for use on projections which can be approximated by tangent-plane projections (TAN, SIN, ZEA, STG, ARC), and is therefore not suited for images covering large portions of the sky.   Also note that it does not directly support changes in coordinate system (i.e. equatorial to galactic coordinates), though these changes can be facilitated by the use of an alternate header.</p>
+</ul>
+<p>&nbsp;</p>
+
+<a name="madd"><h2>mAdd:</h2></a>
+<ul>
+<p><li>Although the memory limitation for output images has been overcome in versions 2.x and above of Montage, it is still possible (though unlikely) to create an out-of-memory situation due to the size and number of input images. <a href="mAdd.html"><tt>mAdd</tt></a> builds the output image one row at a time, and stores every pixel from any input image that contributes to that row in memory. </li></p>
+<p><li>If you have a large enough mosaic, it is almost always more efficient (and often easier on the user) to tile it.  There are tools in Montage to help with this and these have been brought together under <a href="mAddExec.html"><span class="file">mAddExec</span></a>.  In fact, even if you want a single output image, it may be faster to do it in two steps: <a href="mAddExec.html"><span class="file">mAddExec</span></a> to create a set of tiles, and then <a href="mAdd.html"><span class="file">mAdd</a></span> to make a final mosaic from these tiles.  There is absolutely no loss of information in doing this.</li>
+</ul>
+<p>&nbsp;</p>
+
+
+<a name="moverlaps"><h2>mOverlaps:</h2></a>
+<ul>
+<p><li><a href="mOverlaps.html"><tt>mOverlaps</tt></a> generates a list of images whose outer boundaries overlap.  This does not guarantee that any image pixels within those images actually overlap; the overlap regions may only contain blank pixels, especially in images that have been rotated a significant amount.</p>
+
+<p>This eventually will result in a number of images showing up as "failed" when running subsequent programs like <a href="mDiffExec.html"><tt>mDiffExec</tt></a>, but this will not have any effect on the final mosaic.</p>
+
+</ul>
+
+
+<p>&nbsp;</p>
+
+<a name="mmakehdr"><h2>mMakeHdr:</h2></a>
+<ul>
+<p><li>Due to some numerical approximation, the "North Up" bounding box calculated when the -n switch is on can be skewed a fraction of a degree.</p>
+</ul>
+
+
+<p>&nbsp;</p>
+
+<a name="ansi"><h2>Note about ANSI Compliance:</h2></a>
+<p>Montage uses <span class="file">getopt</span> to parse command line arguments.  <span class="file">getopt</span> is a UNIX system utility compliant with IEEE Standard 1003.1-2001. If Montage modules are compiled with the "<span class="file">-ansi</span>" switch,  all but <span class="file">mCoverageCheck</span>, <span class="file">mHdrCheck</span>, and <span class="file">mSubimage</span> will return messages such as:</p>
+<pre><tt>
+mAdd:
+mAdd.c: In function `main':
+mAdd.c:144: `opterr' undeclared (first use in this function)
+mAdd.c:144: (Each undeclared identifier is reported only once
+mAdd.c:144: for each function it appears in.)
+mAdd.c:151: `optarg' undeclared (first use in this function)
+mAdd.c:165: `optind' undeclared (first use in this function)
+make: *** [mAdd.o] Error 1</tt></pre>
+
+<p>Montage still builds and runs correctly. The messages are returned because the header files for <span class="file">getopt</span> do not declare it as external. The solution is simply to add these lines to those modules that return the messages:</p>
+
+<blockquote><span class="file">extern char *optarg;<br>extern int optind, opterr;</span></blockquote>
+
+<p>They will be included in the next distribution of Montage.</p>
+<p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p>
+
+<div id="docnav">
+<p class="left"><a href="debug.html">&lt;-- Debug Levels</a></p>
+<p class="right"><a href="troubleshooting.html">Troubleshooting --&gt;</a></p>
+</div>
+
+
+
+<!--#include virtual="include/footer.html"-->

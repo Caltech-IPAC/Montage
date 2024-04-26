@@ -2,7 +2,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc
-CFLAGS =	-g -I. -I.. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 -fPIC -Wall
+CFLAGS =	-g -O2 -I. -I.. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 -fPIC -Wall
 LIBS   =	-L../../lib -lwcs -lmtbl -lcfitsio -lm
 
 .c.o:

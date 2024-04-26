@@ -1,0 +1,149 @@
+  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+		  <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+<h1>System Requirements</h1>
+
+<h2>Platform:</h2>
+<p>Montage v4.0 has been tested with Red Hat Enterprise Linux Server
+5.9 and Mac OS X 10.9.x, both with with gcc compiler Version 4.1.2.
+The Montage code is ANSI-compliant, and is expected to build on all
+*nix platforms and gcc compiler versions. Previous versions of Montage
+have indeed built successfully on a wide range of platforms. There
+have been occasional examples of platform-specific issues, usually
+relating to tighter tolerances on, e.g,  datatypes and function
+return types. Please contact us if you find such issues.</p>
+
+<h2>Disk Space:</h2>
+<p>The Montage distribution is 1.5 GByte in size (1.1 GByte GitHub ZIP file).
+Of this, 31 MByte is source code; 1.1 GByte is documentation and
+test data files The compiled binaries will occupy 201 MBytes. We are investigating
+whether to release a more compact version with source code only.</p>
+
+<h2>Compiler:</h2>
+<p>By default, the Makefiles used by Montage call the standard
+<span class="file">gcc</span> compiler (or whatever the command
+"gcc" is aliased to).  </p>
+
+
+
+<h2>Montage Memory Requirements</h2>
+
+<p><a href="mAdd.html"><tt>mAdd</tt></a> builds the output mosaic
+one row of pixels at a time.  Every input image that contributes
+pixels to the "current" output row is opened, and the values from the
+corresponding input row of pixels is read into memory.  Each pixel
+value is preserved in memory until all input pixels have been recorded
+and are ready to be averaged.  Although not as limited as previous
+versions of Montage (which also held the entire output image array
+in memory), this version therefore requires enough memory to store:
+
+<ul>
+  <li>One row of the output data image
+  <li>One row of the output area image
+  <li>One row of <i>each</i> input data image that overlaps the output row
+  <li>One row of <i>each</i> input area image that overlaps the output row
+</ul>
+
+
+
+<p>&nbsp;</p>
+<h2>Montage Disk Space Requirements</h2>
+
+
+<p>Montage  requires that all of the input images are on a local
+disk and writes the output mosaic to the local disk.  The <span
+class="file">mProject</span> module generates two intermediate
+files for each input image, one containing the image flux
+densities reprojected to the coordinate system and projection
+of the output mosaic and one containing the corresponding
+pixel area information.  Intermediate files are also created
+by <a href="mDiff.html"><tt>mDiff</tt></a>, which creates a
+difference image for each overlap region between neighboring
+pairs of input images.  The total size of these difference
+images is about equal to the total size of the intermediate
+images created by <a href="mProject.html"><tt>mProject</tt></a>.
+The <a href="mBackground.html"><tt>mBackground</tt></a> module
+also generates an image and area file for each input image and the
+<a href="mAdd.html"><tt>mAdd</tt></a> module generates the output
+mosaic and a corresponding area coverage file. </p>
+
+<p>To preserve astrometric and photometric accuracy, the intermediate
+images, the output mosaic, and all area files are written as double
+precision floating point -- 8 bytes per pixel -- regardless of
+the data type of the input image pixels.  The number of pixels in
+the intermediate images depends on both the input image and output
+mosaic parameters.  A coordinate system transformation from input
+space to output space is a rotation transformation.  For a square
+image, the area of the bounding box around a 45 degree rotated image
+is double the original image area (the area will be larger for a
+long, thin image).  Therefore, ignoring projection distortion, a
+"typical" intermediate reprojected image will have between <i>r</i>
+and <i>2r</i> times the number of pixels in its corresponding input
+image, where <i>r</i> is the ratio of the input image pixel size to
+the output mosaic pixel size.  To be conservative users should have
+total disk space, <i>D</i>, of:</p>
+
+<blockquote><font size="+1"><tt>D = D<sub>in</sub> + D<sub>tmp</sub> + D<sub>out</sub></tt>,</font></blockquote>
+
+<p>where <i>D<sub>in</sub></i> is the space in bytes required for the
+input images, <i>D<sub>tmp</sub></i> is the space for the intermediate
+images and area files, and <i>D<sub>out</sub></i> is the space for
+the output mosaic.</p>
+
+<blockquote><font size="+1"><tt>D<sub>in</sub> = N * P<sub>i</sub> * B<sub>i</sub></tt>, </font></blockquote>
+
+<p>where <i>N</i> is the number of input images, <i>P<sub>i</sub></i>
+is the number of pixels per image, and <i>B<sub>i</sub></i> is the
+number of bytes per pixel.</p>
+
+<blockquote><font size="+1"><tt>D<sub>tmp</sub> = 8 * (2 * r * N) * P<sub>i</sub> * B<sub>tmp</sub><br>
+D<sub>tmp</sub> = 16 * r * N * P<sub>i</sub> * B<sub>tmp</sub></tt>,</font></blockquote>
+
+<p>where <i>r</i> is the ratio of the input image pixel size to the
+output mosaic pixel size, and <i>B<sub>tmp</sub></i> is the number
+of bytes per pixel in the intermediate images (<i>B<sub>tmp</sub></i>
+= 8 in Montage release 1.x).</p>
+
+<blockquote><font size="+1"><tt>D<sub>out</sub> = P<sub>o</sub> * B<sub>o</sub></tt>,</font></blockquote>
+
+<p>where <i>P<sub>o</sub></i> is the number of pixels in the output
+mosaic and <i>B<sub>o</sub></i> is the number of bytes per pixel
+in the output mosaic (<i>B<sub>o</sub></i> = 8 in Montage release
+1.x).</p>
+
+<p>Combining the above equations yields:</p>
+
+<center>
+<table border="1" cellpadding="5" cellspacing="0">
+<tr>
+<td>
+  <font size="+1"><tt>D = N * P<sub>i</sub> * (B<sub>i</sub> + 128 * r) + 16 * P<sub>o</sub></tt></font>
+</td>
+</tr>
+</table>
+</center>
+
+
+
+<p>where <i>N</i> is the number of input images, <i>P<sub>i</sub></i>
+is the number of pixels per input image, <i>P<sub>o</sub></i> is
+the number of pixels in the output mosaic, <i>B<sub>i</sub></i>
+is the bytes per pixel in the input images, and <i>r</i> is the
+ratio of the input image pixel size to the output mosaic pixel size
+</blockquote></p>
+
+
+
+<div id="docnav">
+<p class="left"><a href="components.html">&lt;-- Montage Components</a></p>
+<p class="right"><a href="build.html">Building Montage --&gt;</a></p>
+</div>
+
+
+
+
+<!--#include virtual="include/footer.html"-->

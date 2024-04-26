@@ -2,6 +2,7 @@
 #include <math.h>
 #include <coord.h>
 
+
 /***************************************************************************/
 /*                                                                         */
 /* convertCoordinates  general coordinate conversion wrapper for other     */
@@ -20,6 +21,8 @@ convertCoordinates(int  insys, double  inepoch, double   inlon, double   inlat,
                    int outsys, double outepoch, double *outlon, double *outlat,
 		   double obstime)
 {
+   int coord_debug = 0;
+
    int    systemin, systemout, equinoxin, equinoxout;
    double lonout, latout, tobs;
    double lonin, latin, epochin, epochout;

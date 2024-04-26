@@ -105,12 +105,22 @@ int main(int argc, char **argv)
 
    if(returnStruct->status == 1)
    {
-       fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
-       exit(1);
+      fprintf(montage_status, "[struct stat=\"ERROR\", msg=\"%s\"]\n", returnStruct->msg);
+
+      free(returnStruct);
+
+      returnStruct = (struct mBgExecReturn *)NULL;
+
+      exit(1);
    }
    else
    {
-       fprintf(montage_status, "[struct stat=\"OK\", module=\"mBgExec\", %s]\n", returnStruct->msg);
-       exit(0);
+      fprintf(montage_status, "[struct stat=\"OK\", module=\"mBgExec\", %s]\n", returnStruct->msg);
+
+      free(returnStruct);
+
+      returnStruct = (struct mBgExecReturn *)NULL;
+
+      exit(0);
    }
 }

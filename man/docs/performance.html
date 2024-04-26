@@ -1,0 +1,343 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+			    <head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Montage Performance</h1>
+
+<ul>
+  <li><a href="#single">Execution on a Single Processor</a>
+  <li><a href="#pegasus">TeraGrid Performance (using Pegasus)</a>
+  <li><a href="#mpi">TeraGrid Performance (using MPI)</a>
+</ul>
+
+<h2><a name="single">Execution on a Single Processor:</a></h2>
+
+<p>The following is a list of typical times required by various modules on a single processor:</p>
+
+<p><b>System Information:</b></p>
+<ul>
+  <li>Pentium 4 CPU (2.26 GHz)
+  <li>1 GB RAM
+  <li>Linux RedHat 8.0
+</ul>
+<p>&nbsp;</p>
+<p><b>Dataset:</b></p>
+<ul>
+  <li>2mass atlas images, J band
+  <li>512 x 1024 pixels
+  <li>54 input images covering a 1x1 degree area
+  <li>Centered at 200.00 +40.00 eq J2000
+</ul>
+<p>&nbsp;</p>
+<p><b>Timing:</b></p>
+
+<div align="center">
+<table border="1" cellspacing="0" cellpadding="3">
+<tr>
+ <td valign="top"><b>Module</b></td>
+ <td valign="top"><b>Total Time</b></td>
+</tr>
+<tr>
+ <td valign="top">mImgtbl (54 input images)</td>
+ <td>0.2 s</td>
+</tr>
+<tr>
+ <td valign="top">mProjExec (using mProject) (1 x 1 degree, 54 images)</td>
+ <td valign="top">92 m, 35 s<br>(103 s per image)</td>
+</tr>
+<tr>
+ <td valign="top">mProjExec (using mProjectPP) (1 x 1 degree, 54 images)</td>
+ <td valign="top">4 m, 27 s<br>(5 s per image)</td>
+</tr>
+<tr>
+ <td valign="top">mOverlaps (54 images)</td>
+ <td valign="top">0.5 s</td>
+</tr>
+<tr>
+ <td valign="top">mDiffExec (124 difference images)</td>
+ <td valign="top">37 s</td>
+</tr>
+<tr>
+ <td valign="top">mFitExec (124 images)</td>
+ <td valign="top">32 s</td>
+</tr>
+<tr>
+ <td valign="top">mBgModel (124 difference images)
+ <td valign="top">1.2 s</td>
+<tr>
+<tr>
+ <td valign="top">mBgExec (54 images)</td>
+ <td valign="top">41 s</td>
+</tr>
+<tr>
+ <td valign="top">mAdd (54 images; 1x1 degree area)</td>
+ <td valign="top">35 s</td>
+</tr>
+</table>
+</div>
+
+<h2><a name="pegasus">TeraGrid Performance (using Pegasus):</a></h2>
+
+<p>We have run the Pegasus-enabled Montage on a variety of resources: Condor pools, LSF- and PBS-managed clusters, and the TeraGrid (through PBS).</p>
+
+<p>The following table summarizes the results of running a 2-degree M16 mosaic on the NCSA TeraGrid cluster. The total runtime of the workflow was 107 minutes. The workflow contained 1515 individual jobs. Below is a table that summarizes the runtimes of the individual workflow components. </p>
+
+<center><table border="1" cellspacing="0" cellpadding="2">
+<tr align="center">
+<td><b>number of jobs</b></td>
+<td><b>job name</b></td>
+<td><b>average runtime</b></td>
+</tr>
+<tr>
+  <td>1</td>
+  <td>mAdd</td>
+  <td>94.00 seconds</td>
+</tr>
+<tr>
+  <td>180</td>
+  <td>mBackground	</td>
+  <td>2.64 seconds</td>
+</tr>
+<tr>
+  <td>1</td>
+  <td>mBgModel	</td>
+  <td>11 seconds</td>
+</tr>
+<tr>
+  <td>1</td>
+  <td>mConcatFit	</td>
+  <td>9 seconds</td>
+</tr>
+<tr>
+  <td>482	</td>
+  <td>mDiff	</td>
+  <td>2.89 seconds</td>
+</tr>
+<tr>
+  <td>483	</td>
+  <td>mFitplane	</td>
+  <td>2.55 seconds</td>
+</tr>
+<tr>
+  <td>180	</td>
+  <td>mProject	</td>
+  <td>130.52 seconds</td>
+</tr>
+<tr>
+  <td>183	</td>
+  <td>transfer of data in	</td>
+  <td>In the range of 5-30 seconds each</td>
+</tr>
+<tr>
+  <td>1</td>
+  <td>transfer of mosaic out	</td>
+  <td>18: 03 minutes</td>
+</tr>
+</table>
+</center>
+
+<p>To this point, our main goal was to demonstrate feasibility of running the Montage workflow in an automated fashion on the TeraGrid with some amount of performance improvement over the sequential version.  Currently, Pegasus schedules the workflow as a set of small jobs (as seen in the table above, some of these jobs run only a few seconds.) Obviously scheduling too many little jobs suffers from large overheads.  In fact, if this processing was run on a single TeraGrid processor, it would have taken 445 minutes, so we are not taking very much advantage of the TeraGrid’s parallelism. However, initially structuring the workflow that way allows us to expose the highest degree of parallelism. </p>
+
+<p>For comparison, we previously (<a href="../yoursky.html">yourSky Baseline Performance document</a>) reported mosiacking a 1-square degree region of 2MASS data with yourSky on 4 194 MHz MIPS R10000 processors of an SGI PowerOnyx in 428.4 seconds.  As this machine has been retired, we can compare this to yourSky running on 4 600 MHz MIPS R14000 processors, where we have mosaicked a 4-square degree 2MASS image in 9 minutes.  This is reasonable, since the work involved is 4 times more, and the processors are about 3 times faster.  Computing the same 4-square degree mosaic using Montage 1.7 with handscripted parallelization takes 153 minutes, making this version of Montage roughly 17 times slower than yourSky.  </p>
+
+<p>There are two issues brought out in this performance discussion.  First, the current version of Montage is slow when compared with yourSky.  This is because we were more concerned with accuracy (preservation of calibration and astrometric fidelity) than performance in this version of Montage, and we will be optimizing future versions of Montage to increase the performance without reducing the accuracy.  That is, the performance figures reflect a computational burden that must be borne in delivering science grade products. Second, the use of our current Grid software with our current DAG causes the parallel performance on the TeraGrid to be sub-optimal. We plan to address this in three ways: making Pegasus aggregate nodes in the workflow in a way that would reduce the overheads for given target systems; encouraging the Condor developers to reduce the per-job overhead; and examining alternate methods for distributing the work on the Grid, such as something similar to the handscripting on the MIPS machines.  Each option has advantages and disadvantages that will be weighed as we go forward.</p>
+
+<p>&nbsp;</p>
+
+<h2><a name="mpi">TeraGrid Performance (using MPI):</a></h2>
+
+<p>The purpose of this section is to demonstrate that the Montage team has fulfilled the Milestone G speedup metric, stated as follows:</p>
+
+<blockquote><i>The improved yourSky code per milestone I) will run on the Teragrid. The achievable computational speed-up will depend on the performance of the Teragrid as deployed. We propose two performance metrics: A target computation speedup that ignores I/O time and a target overall speedup that includes both computation and I/O times. We will achieve a target performance that is equivalent to a computation speedup of 64 and an overall speedup, including I/O, of 32, for a 5 degree x 5 degree 2MASS mosaic (which will be the most computation intensive dataset) on a 128x1GHz (128 GFlops) target machine with a sustained bandwidth to disk of 160 MB/sec.</i></blockquote>
+
+<p>To demonstrate fulfillment of this milestone, we chose to use the "Phase 2" TeraGrid cluster at the National Center for Supercomputing Applications (NCSA), University of Illinois at Urbana-Champaign.  This cluster consists of 887 nodes, each with dual Itanium-2 processors and each having at least 4 GB of memory.  256 of the nodes have 1.3 GHz processors, and the other 631 nodes have 1.5 GHz processors.  All of the timing tests reported in this document used the faster 1.5 Ghz processors.  The network interconnect between nodes is Myricom’s Myrinet and SuSE Linux is the operating system.  Disk I/O is to a 24 TB General Parallel File System (GPFS).  In all cases, the job was scheduled on the system using Portable Batch System (PBS) and the queue wait time was not included in the execution times since that is heavily dependent on machine load from other users.</p>
+
+<p>The dataset used for these performance tests is a 6 x 6 degree 2MASS J-band mosaic of M16.  Construction of this mosaic requires 1,254 2MASS images as input, each having about 0.5 Megapixels, for a total of about 657 Megapixels input (or about 5 GB with 64 bits per pixel double precision floating point data).  The output is a 3.7 GB FITS file with a 21,600 x 21,600 pixel data segment, and 64 bits per pixel double precision floating point data.  Note that the output data size is a little smaller than the input data size because there is some overlap between neighboring input images.  For the timings reported here, we assumed that the input data had been pre-staged to a local disk on the compute cluster.</p>
+
+<p>The baseline for this speedup demonstration is the serial Montage_v1.7 software.  We accomplished the speedup using a combination of algorithmic improvements and parallel processing.  The primary algorithmic improvement was a fast plane-to-plane projection algorithm (mProjectPP), which replaces the old mProject algorithm that used a two-step approach of mapping input image coordinates to the sky, and then to the output image space.  For more information about mProjectPP and the rest of the Montage modules, refer to the Montage Software Detail Design Specification.  Parallel processing was implemented using Message Passing Interface (MPI) for the following 5 Montage modules: mProjExec, mDiffExec, mFitExec, mBgExec, and mAdd.</p>
+
+<p>The timing results are compiled in Table 1, which shows wall clock times in minutes for each Montage module run on the specified number of nodes (with one processor per node) on the NCSA TeraGrid cluster.  The end-to-end run of Montage_v2.1 required running the modules in the order shown in the table.  The modules that have been parallelized are labeled as MPI; all other modules are serial implementations.  Note that timings are shown for two versions of the mProjExec module, one that calls the slower mProject implementation and one that calls the improved mProjectPP implementation.  Total times are shown for both implementations, with only the one specified implemention (mProject or mProjectPP) called in each run.  For clarity, the execution times for the parallel modules on the different number of cluster nodes are plotted in Figure 1 for the mProject implementation and in Figure 2 for the mProjectPP implementation.  Figure 3 shows a plot of the speedup we were able to achieve for each size of cluster partition.</p>
+
+<p>Using just parallelization we were able to reduce the one processor time of 2546.6 minutes down to 52.0 minutes on 128 nodes, for a parallelization speedup of 49.0.  Note that with the exception of some small initialization and finalization code, all of the parallel code is non-sequential.  The main reason the parallel modules fail to scale linearly as the number of processors is increased is I/O.  On a machine with better parallel I/O performance, we would expect to get better speedups; i.e., we have not reached a situation where the amount of work is too small for the number of processors, nor have we reached an Amdahl’s law limit where our speedup is limited by the serial fraction of the program.</p>
+
+<p>With the algorithmic improvements of mProjectPP, we were able to reduce the 128-node time further down to 32.4 minutes, for an overall speedup (including parallelization and algorithmic improvements) of 78.6.  Since by definition the "speedup not including I/O" will only increase our speedup of 78.6, we have met both of our metrics for milestone G, which specified a speedup of at least 64 for computation only and overall speedup of at least 32.</p>
+
+<center>
+
+<b>Table 1.  Montage_v2.1 wall clock time in minutes on the NCSA TeraGrid cluster.</b>
+<table border="1" cellspacing="0" cellpadding="5">
+<tr>
+  <td rowspan="2" align="center" valign="bottom"><b>Module</b></td>
+  <td align="center" colspan="8"><b>Number of Nodes (1 processor per node)</b></td>
+</tr>
+<tr>
+  <td align="center"><b>1</b></td>
+  <td align="center"><b>2</b></td>
+  <td align="center"><b>4</b></td>
+  <td align="center"><b>8</b></td>
+  <td align="center"><b>16</b></td>
+  <td align="center"><b>32</b></td>
+  <td align="center"><b>64</b></td>
+  <td align="center"><b>128</b></td>
+</tr>
+<tr>
+  <td><b>mImgtbl</b>	</td>
+  <td align="right">0.7	</td>
+  <td align="right">1.05	</td>
+  <td align="right">1.05	</td>
+  <td align="right">1.2	</td>
+  <td align="right">1.4	</td>
+  <td align="right">1.3	</td>
+  <td align="right">1.2	</td>
+  <td align="right">0.7</td>
+</tr>
+<tr>
+  <td><b>mProjExec(MPI, mProject)</b></td>
+  <td align="right">2408.1	</td>
+  <td align="right">1228.1	</td>
+  <td align="right">620.0	</td>
+  <td align="right">302.4	</td>
+  <td align="right">153.6	</td>
+  <td align="right">75.8	</td>
+  <td align="right">39.6	</td>
+  <td align="right">21.9</td>
+</tr>
+<tr>
+  <td><b>mProjExec(MPI, mProjectPP)</b></td>
+  <td align="right">142.3	</td>
+  <td align="right">68.0	</td>
+  <td align="right">34.1	</td>
+  <td align="right">17.2	</td>
+  <td align="right">8.8	</td>
+  <td align="right">4.8	</td>
+  <td align="right">3.05	</td>
+  <td align="right">2.3</td>
+</tr>
+<tr>
+  <td><b>mImgtbl	</b></td>
+  <td align="right">1.1	</td>
+  <td align="right">1.0	</td>
+  <td align="right">0.9	</td>
+  <td align="right">1.3	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.2	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1</td>
+</tr>
+<tr>
+  <td><b>mOverlaps	</b></td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05	</td>
+  <td align="right">0.05</td>
+</tr>
+<tr>
+  <td><b>mDiffExec(MPI)</b></td>
+  <td align="right">30.0	</td>
+  <td align="right">16.9	</td>
+  <td align="right">9.5	</td>
+  <td align="right">9.5	</td>
+  <td align="right">9.2	</td>
+  <td align="right">9.4	</td>
+  <td align="right">9.5	</td>
+  <td align="right">8.8</td>
+</tr>
+<tr>
+  <td><b>mFitExec(MPI)	</b></td>
+  <td align="right">20.2	</td>
+  <td align="right">10.6	</td>
+  <td align="right">5.3	</td>
+  <td align="right">2.9	</td>
+  <td align="right">1.7	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.2</td>
+</tr>
+<tr>
+  <td><b>mBgModel	</b></td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1</td>
+</tr>
+<tr>
+  <td><b>mBgExec(MPI)	</b></td>
+  <td align="right">11.3	</td>
+  <td align="right">6.0	</td>
+  <td align="right">3.8	</td>
+  <td align="right">2.6	</td>
+  <td align="right">2.3	</td>
+  <td align="right">2.4	</td>
+  <td align="right">2.6	</td>
+  <td align="right">3.0</td>
+</tr>
+<tr>
+  <td><b>mImgtbl	</b></td>
+  <td align="right">1.05	</td>
+  <td align="right">0.9	</td>
+  <td align="right">0.9	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.2	</td>
+  <td align="right">1.1	</td>
+  <td align="right">1.4</td>
+</tr>
+<tr>
+  <td><b>mAdd(MPI)	</b></td>
+  <td align="right">73.0	</td>
+  <td align="right">44.6	</td>
+  <td align="right">36.4	</td>
+  <td align="right">28.7	</td>
+  <td align="right">17.2	</td>
+  <td align="right">14.8	</td>
+  <td align="right">15.8	</td>
+  <td align="right">12.8</td>
+</tr>
+<tr>
+  <td><b>Total (with mProject)	</b></td>
+  <td align="right">2546.6	</td>
+  <td align="right">1310.3	</td>
+  <td align="right">679.0	</td>
+  <td align="right">350.9	</td>
+  <td align="right">188.8	</td>
+  <td align="right">108.3	</td>
+  <td align="right">73.4	</td>
+  <td align="right">52.0</td>
+</tr>
+<tr>
+  <td><b>Total (with mProjectPP)	</b></td>
+  <td align="right">280.8	</td>
+  <td align="right">150.2	</td>
+  <td align="right">93.1	</td>
+  <td align="right">65.7	</td>
+  <td align="right">44.0	</td>
+  <td align="right">37.3	</td>
+  <td align="right">36.9	</td>
+  <td align="right">32.4</td>
+</tr>
+
+</table>
+<p>&nbsp;</p>
+
+<img src="images/performance_fig1.jpg">
+<br><b>Figure 1.  Plot of wall clock time versus number of nodes on the NCSA TeraGrid cluster for the parallel components of Montage_v2.1 with the baseline mProject algorithm.  The total time for the end-to-end run is shown as the thick black line. </b>
+
+<p>&nbsp;</p>
+<img src="images/performance_fig2.jpg">
+<br><b>Figure 2.  Plot of wall clock time versus number of nodes on the NCSA TeraGrid cluster for the parallel components of Montage_v2.1 with the new, improved mProjectPP algorithm.  The total time for the end-to-end run is shown as the thick black line.  </b>
+
+<p>&nbsp;</p>
+<img src="images/performance_fig3.jpg">
+<br><b>Figure 3. Speedup of Montage_v2.1 on the specified number of nodes of the NCSA TeraGrid cluster.  For each number of nodes, two speedup numbers are shown, one from just parallelizing parts of the Montage code, and one including the parallelization and algorithmic improvements.  The primary algorithmic improvement involved replacing the mProject code with a new, fast plane-to-plane implementation (mProjectPP).
+<!--#include virtual="include/footer.html"-->

@@ -15,8 +15,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <mtbl.h>
 
-#include "montage.h"
-
 #define MAXSTR 4096
 
 char *svc_value();
@@ -29,6 +27,8 @@ extern char *optarg;
 extern int optind, opterr;
 
 extern int getopt(int argc, char *const *argv, const char *options);
+
+FILE *fstatus;
 
 int debug;
 

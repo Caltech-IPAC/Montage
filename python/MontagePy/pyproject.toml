@@ -1,0 +1,16 @@
+[project]
+name             = 'MontagePy'
+version          = '2.2.0'
+authors          = [{name = 'John Good', email = 'jcg@ipac.caltech.edu'}]
+description      = 'Montage toolkit for reprojecting, mosaicking, and displaying astronomical images.'
+readme           = 'README.txt'
+license          = {file = 'LICENSE.txt'}
+keywords         = ['astronomy', 'astronomical', 'image', 'reprojection', 'mosaic', 'visualization']
+dependencies     = ['requests']
+
+[project.urls]
+'Homepage'       = 'https://github.com/Caltech-IPAC/Montage'
+
+[build-system]
+requires         = ['setuptools', 'cython']
+build-backend    = 'setuptools.build_meta'

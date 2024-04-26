@@ -42,8 +42,6 @@ Version  Developer        Date     Change
 #include "wcs.h"
 #include "mNaN.h"
 
-#include "montage.h"
-
 #define MAXSTR  256
 
 extern char *optarg;
@@ -115,6 +113,8 @@ struct
 static time_t currtime, start;
 
 static int hdu;
+
+FILE *fstatus;
 
 
 /*************************************************************************/

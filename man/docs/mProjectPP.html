@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+	    <title>Montage User Documentation</title>
+	    <!--#include virtual="include/header.html"-->
+	    <div id="wrapper">
+<h1>mProjectPP</h1>
+
+<div id="usage">
+
+<dl class="description">
+  <dt>Description:</dt>
+  <dd><span class="file">mProjectPP</span> reprojects a single image to the scale defined in an alternate FITS header template generated (usually) by <a href="mTANHdr.html"><span class="file">mTANhdr</span></a>. The program produces a pair of images: the reprojected image and an "area" image consisting of the fraction input pixel sky area that went into each output pixel.  This area image goes through all the subsequent processing that the reprojected image does, allowing it to be properly coadded at the end.</dd>
+  <dd><p><span class="file">mProjectPP</span> performs a plane-to-plane transform on the input image, and is an adaptation of the Mopex algorithm and developed in collaboration with the  <a href="http://ssc.spitzer.caltech.edu/">Spitzer Space Telescope</a>. It provides a speed increase of approximately a factor of 30 over the general-purpose <a href="mProject.html"><span class="file">mProject</span></a>. However, <span class="file">mProjectPP</span> is only suitable for projections which can be approximated by tangent-plane projections (TAN, SIN, ZEA, STG, ARC), and is therefore not suited for images covering large portions of the sky. Also note that it does not directly support changes in coordinate system (i.e. equatorial to galactic coordinates), though these changes can be facilitated by the use of an alternate header.</p>
+
+<p>One situation that has happened often enough to warrant special note:  It is possible to define a FITS header with the
+reference location off the image.  In particular, people often reference cylindrical projections (<i>e.g.,</i> CAR, CEA)
+to location (0.,0.) (<i>e.g.,</i> the Galactic center).  This is not wrong in itself but does lead to extremely large
+pixel offsets (<i>e.g.,</i> in the hundreds of thousands).  Related to this, if you extract a header from an image with 
+large offsets of this type, it is unlikely that you can simply change projection types without also adjusting the reference
+location/offsets.  Most likely, you will end up with the reproject data all being off-scale.</p>
+</dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>mProjectPP [-z <i>factor</i>] [-d <i>level</i>] [-b <i>border</i>] [-s <i>statusfile</i>] [-o <i>altout.hdr</i>] [-i <i>altin.hdr</i>] [-h <i>hdu</i>] [-x <i>scale</i>] [-w <i>weightfile</i>] [-t <i>threshold</i>] [-X] <b>in.fits out.fits template.hdr</b></dd>
+</dl>
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+  <dt>-z <i>factor</i></dt>
+  <dd>Processing is done utilizing the <a href="algorithms.html#drizzle">drizzle algorithm</a>. <i>factor</i> is a floating point number; recommended drizzle factors are from 0.5 to 1. </dd>
+  <dt>-d <i>level</i></dt>
+  <dd>Causes additional debugging information to be printed to stdout.  Valid levels are 1-5; for levels greater than 1, it's recommended to redirect the output into a text file.</dd>
+  <dt>-b <i>border</i></dt>
+  <dd>Ignores <i>border</i> pixels around the image edge when performing calculations.</dd>
+  <dt>-s <i>statusfile</i></dt>
+  <dd>Output and errors are written to <i>statusfile</i> instead of being written to stdout. </dd>
+  <dt>-[i|o] <i>alternate.hdr</i></dt>
+  <dd>Specifies an alternate FITS header for use in <span class="file">mProjectPP</span> calculations, allows substitution of psuedo-TAN headers created by <a href="mTANHdr.html">mTANHdr</a>.</dd>
+  <dt>-h <i>hdu</i></dt>
+  <dd>Specify the FITS extension to re-project if the FITS image is multi-extension.</dd>
+  <dt>-x <i>scale</i></dt>
+  <dd>Multiple the pixel values by <i>scale</i> when reprojecting.  For instance, each 2MASS image has a different scale factor (very near 1.0) to correct for varying magnitude-zero points.</dd>
+  <dt>-w <i>weightfile</i></dt>
+    <dd>Path to a weight map to be used when reading values from the input image.</dd>
+  <dt>-t <i>threshold</i></dt>
+  <dd>If using a weight image; only use those pixels where the weight value is above <i>threshold</i>.</dd>
+  <dt>-X</dt>
+  <dd>Reproject the whole image even if part of it is outside the region of interest (don't crop while re-projecting).</dd>
+</dl>
+
+<p class="dochead">Arguments:</p>
+<dl class="args">
+  <dt>in.fits</dt>
+  <dd>Input FITS file to be reprojected.</dd>
+  <dt>out.fits</dt>
+  <dd>Path to output FITS file to be created.</dd>
+  <dt>template.hdr</dt>
+  <dd>FITS <a href="headers.html">header template</a> to be used in generation of output FITS</dd>
+</dl>
+
+<dl class="description">
+  <dt>Results:</dt>
+  <dd>Two files are created as output: the reprojected FITS file (<i>out.fits</i>), and an "area" image (<i>out_area.fits</i>). See the <a href="algorithms.html#image">image reprojection algorithm</a> for more information.</dd>
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+  <dt>$ mProjectPP rawdir/real_orig.fits projdir/base_unity.fits templates/galactic_orig.txt</dt>
+  <dd>[struct stat="OK", time=14]
+</dl>
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="<i>OK</i>", time=<i>seconds</i>]</li>   
+  <li>[struct stat="ERROR", msg="Usage: %s [-z factor] [-d level] [-b border] [-s statusfile] [-o altout.hdr] [-i altin.hdr] [-h hdu] [-x scale] [-w weightfile] [-t threshold] [-X(expand)]  in.fits out.fits template.hdr"]</li>   
+  <li>[struct stat="ERROR", msg="Drizzle factor string (<i>string</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Cannot open status file: <i>statusfile</i>"] </li>   
+  <li>[struct stat="ERROR", msg="Weight threshold string (<i>threshold</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Flux scale string (<i>scale</i>) cannot be interpreted as a real number"]</li>   
+  <li>[struct stat="ERROR", msg="Border value string (<i>string</i>) cannot be interprted as an integer or a set of polygon vertices"]</li>   
+  <li>[struct stat="ERROR", msg="Border value (<i>value</i>) must be greater than or equal to zero"]</li>   
+  <li>[struct stat="ERROR", msg="HDU value (<i>hdu</i>) must be a non-negative integer"]</li>   
+  <li>[struct stat="ERROR", msg="Could not set up plane-to-plane transform.  Check for compliant headers."]</li>   
+  <li>[struct stat="ERROR", msg="No overlap"] <span class="explanation">(indicates that none of the output pixels are contained in the area defined by the header template)</span></li>   
+  <li>[struct stat="ERROR", msg="Not enough memory for output data image array"]</li>   
+  <li>[struct stat="ERROR", msg="Not enough memory for output area image array"]</li>   
+  <li>[struct stat="ERROR", msg="Output wcsinit() failed."]</li>   
+  <li>[struct stat="ERROR", msg="Input wcsinit() failed."]</li>   
+  <li>[struct stat="ERROR", msg="Input and output must be in the same coordinate system for fast reprojection"]</li>   
+  <li>[struct stat="ERROR", msg="All pixels are blank"]</li>   
+  <li>[struct stat="ERROR", msg="Input image projection (<i>projection</i>) must be TAN, SIN, ZEA, STG or ARC for fast reprojection"]</li>   
+  <li>[struct stat="ERROR", msg="Output image projection (<i>projection</i>) must be TAN, SIN, ZEA, STG or ARC for fast reprojection"]</li>   
+  <li>[struct stat="ERROR", msg="Template file [<i>template.hdr</i>] not found"]</li>   
+  <li>[struct stat="ERROR", msg="Image file <i>in.fits</i> is missing or invalid FITS"]</li>   
+  <li>[struct stat="ERROR", msg="Weight file <i>weightfile</i> is missing or invalid FITS"]</li>   
+  <li>[struct stat="ERROR", status=<i>n</i>, msg="FITS library error"]</li>   
+</ul>
+</div>
+</div>
+<!--#include virtual="include/footer.html"-->

@@ -8,6 +8,7 @@
    "arguments":
    [
       {"type":"string",                    "name":"input_file",    "desc":"FITS file for plane fitting."},
+      {"type":"boolean", "default":false,  "name":"nofit",         "desc":"Don't fit the plane; just the geometry of the non-null pixels."},
       {"type":"boolean", "default":false,  "name":"levelOnly",     "desc":"Only fit for level difference not a full plane with slopes."},
       {"type":"int",     "default":0,      "name":"border",        "desc":"Exclude a pixel border from the fitting."},
       {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 

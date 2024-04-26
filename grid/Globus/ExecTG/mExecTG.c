@@ -51,6 +51,7 @@ int debug;
 char msg    [MAXLEN];
 char logaddr[MAXLEN];
 
+FILE *fstatus;
 FILE  *fmsg;
 
 int FITSerror(char *fname, int status);

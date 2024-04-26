@@ -18,7 +18,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <fitshead.h>
 #include "mtbl.h"
-#include "montage.h"
 #include "hdr_rec.h"
 
 #define MAXLEN 4096
@@ -49,6 +48,8 @@ void get_hfiles  (char *pathname);
 char *mktemp(char *template);
 
 struct Hdr_rec hdr_rec;
+
+FILE *fstatus;
 
 
 /*************************************************************************/

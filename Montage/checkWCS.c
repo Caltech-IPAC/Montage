@@ -18,11 +18,12 @@ Version  Developer        Date     Change
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "montage.h"
 #include "wcs.h"
 
 #define  ERROR_OFF   0
 #define  RETURN_CODE 1
+
+extern FILE *fstatus;
 
 int wcs_debug = 0;
 

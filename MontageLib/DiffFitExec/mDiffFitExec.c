@@ -38,6 +38,7 @@ int main(int argc, char **argv)
    char   fitfile [MAXSTR];
    char   diffdir [MAXSTR];
    char   path    [MAXSTR];
+   char   archive [MAXSTR];
 
    struct mDiffFitExecReturn *returnStruct;
 
@@ -54,13 +55,14 @@ int main(int argc, char **argv)
 
    levelOnly = 0;
 
-   strcpy(path, ".");
+   strcpy(path,    ".");
+   strcpy(archive, "");
 
    opterr = 0;
 
    montage_status = stdout;
 
-   while ((ch = getopt(argc, argv, "klnp:ds:")) != EOF) 
+   while ((ch = getopt(argc, argv, "klnp:ds:a:")) != EOF) 
    {
       switch (ch) 
       {
@@ -93,8 +95,12 @@ int main(int argc, char **argv)
             }
             break;
 
+         case 'a':
+            strcpy(archive, optarg);
+            break;
+
          default:
-            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-l(evel-only)] [-n(o-areas)] [-p projdir] [-s statusfile] diffs.tbl template.hdr diffdir fits.tbl\"]\n", argv[0]);
+            printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-l(evel-only)] [-k(eep-all)] [-n(o-areas)] [-p projdir] [-s statusfile] [-a(rchive) bucket] diffs.tbl template.hdr diffdir fits.tbl\"]\n", argv[0]);
             exit(1);
             break;
       }
@@ -102,7 +108,7 @@ int main(int argc, char **argv)
 
    if (argc - optind < 4) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-l(evel-only)] [-n(o-areas)] [-p projdir] [-s statusfile] diffs.tbl template.hdr diffdir fits.tbl\"]\n", argv[0]);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d] [-l(evel-only)] [-k(eep-all)] [-n(o-areas)] [-p projdir] [-s statusfile] [-a(rchive) bucket] diffs.tbl template.hdr diffdir fits.tbl\"]\n", argv[0]);
       exit(1);
    }
 
@@ -116,7 +122,7 @@ int main(int argc, char **argv)
    /* Call the mDiffFitExec processing routine */
    /********************************************/
 
-   returnStruct = mDiffFitExec(path, tblfile, template, diffdir, fitfile, keepAll, levelOnly, noAreas, debug);
+   returnStruct = mDiffFitExec(path, tblfile, template, diffdir, fitfile, keepAll, levelOnly, noAreas, archive, debug);
 
    if(returnStruct->status == 1)
    {

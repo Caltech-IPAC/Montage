@@ -33,7 +33,6 @@ int allocError(char *);
 #include <wcs.h>
 #include <mtbl.h>
 
-#include "montage.h"
 #include "mNaN.h"
 
 #define MAXSTR     256
@@ -165,6 +164,8 @@ struct outfile
   double    crpix1, crpix2, crpix3, crpix4;
 }
 output, output_area;
+
+FILE *fstatus;
 
 
 

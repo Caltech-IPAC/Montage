@@ -34,6 +34,19 @@ struct mAddReturn *mAdd(char *path, char *tblfile, char *template_file, char *ou
 
 //-------------------
 
+struct mAddMemReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double time;          // Run time (sec)   
+};
+
+struct mAddMemReturn *mAddMem(char *path, char *table_file, char *output_file, 
+                              char *template_file, int noAreas, int debug);
+
+//-------------------
+
 struct mArchiveExecReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -67,8 +80,8 @@ struct mArchiveListReturn
    int    count;         // Number of lines in output file.
 };
 
-struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *locstr, double width, double height, 
-                                        char *outfile, int debug);
+struct mArchiveListReturn *mArchiveList(char *survey, char *band, char *locstr, 
+                                        double width, double height, char *outfile, int debug);
 
 //-------------------
 
@@ -119,11 +132,37 @@ struct mBgModelReturn
    int    status;        // Return status (0: OK, 1:ERROR)
    char   msg [1024];    // Return message (for error return)
    char   json[4096];    // Return parameters as JSON string
+   int    nnan;          // Number of fit parameters that are NaNs
+   int    sigmaDelete;   // Number of fits removed up front because of noise
+   int    fitDelete;     // Number of fits removed up front because of small fit area
+   int    imgDelete;     // Number of images removed up front because of small image size
+   int    nrestart;      // Number of times processing restarted because of NaNs
+   int    nbadFit;       // Number of NaN fit slopes causing restarts
+   int    nbadImg;       // Number of image NaN slopes causing restarts
 };
 
-struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, int noslope, int useall, 
+struct mBgModelReturn *mBgModel(char *imgfile, char *fitfile, char *corrtbl, char *gapdir, int noslope, int useall, 
                                 int niterations, int debug);
 
+//-------------------
+
+struct mCombineHistReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double minval;        // Data value associated with histogram minimum.
+   double minpercent;    // Percentile value of histogram minimum.
+   double minsigma;      // "Sigma" level of histogram minimum.
+   double maxval;        // Data value associated with histogram maximum.
+   double maxpercent;    // Percentile value of histogram maximum.
+   double maxsigma;      // "Sigma" level of histogram maximum.
+   double datamin;       // Minimum data value in file.
+   double datamax;       // Maximum data value in file.
+};
+
+struct mCombineHistReturn *mCombineHist(char **inhist, int nhist, char *minstr, char *maxstr, char *type,
+                                        char *betastr, int logpower, char *outhist, int debugin);
 //-------------------
 
 struct mCoverageCheckReturn
@@ -135,7 +174,8 @@ struct mCoverageCheckReturn
 };
 
 struct mCoverageCheckReturn *mCoverageCheck(char *infile, char *outfile, int mode, char *hdrfile, 
-                                            int narray, double *array, char *path, int debug);
+                                            int narray, double *array, char *path, 
+                                            double xoff, double yoff, int debug);
 
 //-------------------
 
@@ -153,6 +193,36 @@ struct mDiffExecReturn *mDiffExec(char *path, char *tblfile, char *template, cha
 
 //-------------------
 
+struct mDiffFitReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double a;             // Plane fit coefficient for X axis.
+   double b;             // Plane fit coefficient for Y axis.
+   double c;             // Plane fit constant offset.
+   double crpix1;        // X-axis pixel coordinate for center of region.
+   double crpix2;        // Y-axis pixel coordinate for center of region.
+   double xmin;          // Minimum X-axis value.
+   double xmax;          // Maximum X-axis value.
+   double ymin;          // Minimum Y-axis value.
+   double ymax;          // Maximum Y-axis value.
+   double xcenter;       // Center X location.
+   double ycenter;       // Center Y location.
+   int    npixel;        // Total number of pixels fit.
+   double rms;           // RMS of fit (pixels with large offset values were excluded in fit).
+   double boxx;          // Rectanguar bounding box X center.
+   double boxy;          // Rectanguar bounding box Y center.
+   double boxwidth;      // Rectanguar bounding box width.
+   double boxheight;     // Rectanguar bounding box height.
+   double boxang;        // Rectanguar bounding box rotation angle.
+};
+
+struct mDiffFitReturn *mDiffFit(char *fname1, char *fname2, char *diffname, char *template_file,
+                                int keep, int levelOnly, int noAreas, int border, int debug);
+
+//-------------------
+
 struct mDiffFitExecReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -165,7 +235,8 @@ struct mDiffFitExecReturn
 };
 
 struct mDiffFitExecReturn *mDiffFitExec(char *path, char *tblfile, char *template, char *diffdir,
-                                        char *fitfile, int keepAll, int levelOnly, int noAreas, int debug);
+                                        char *fitfile, int keepAll, int levelOnly, int noAreas, 
+                                        char *archive, int debug);
 
 //-------------------
 
@@ -253,6 +324,23 @@ struct mExamineReturn *mExamine(char *infile, int areaMode, int hdu, int plane3,
 
 //-------------------
 
+struct mExecReturn
+{
+   int    status;           // Return status (0: OK, 1:ERROR)
+   char   msg [1024];       // Return message (for error return)
+   char   json[4096];       // Return parameters as JSON string
+   double time;             // Run time (sec).
+   char   survey   [1024];  // Survey (for archive data).
+   char   band     [1024];  // Band (for archive data).
+   char   workspace[1024];  // Output mosaic file.
+};
+
+struct mExecReturn *mExec(char *hdrfile, char *rawDir, char *savefile, char *survey, char *band, char *workspace,
+                          int debug, char *debugfile, int quickmode, int infoMsg, double allowedError, int levelOnly, 
+                          int noSubset, double pixelScale, int pixelCount, int northUp, int keepAll, int deleteAll);
+
+//-------------------
+
 struct mFitExecReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -293,7 +381,7 @@ struct mFitplaneReturn
    double boxang;        // Rectanguar bounding box rotation angle.
 };
 
-struct mFitplaneReturn *mFitplane(char *input_file, int levelOnly, int border, int debug);
+struct mFitplaneReturn *mFitplane(char *input_file, int nofit, int levelOnly, int border, int debug);
 
 //-------------------
 
@@ -310,6 +398,19 @@ struct mFixNaNReturn
 struct mFixNaNReturn  *mFixNaN(char *input_file, char *output_file, int haveVal, double NaNvalue, int nMinMax,
                                double *minblank, int *ismin, double *maxblank, int *ismax, int boundaries, int debug);
 
+//-------------------
+
+struct mFlattenReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double a;             // Plane fit coefficient for X axis.
+   double b;             // Plane fit coefficient for Y axis.
+   double c;             // Plane fit constant offset.
+};
+
+struct mFlattenReturn *mFlatten(char *infile, char *outfile, int levelOnly, int border, int debug);
 //-------------------
 
 struct mGetHdrReturn
@@ -337,6 +438,21 @@ struct mHdrReturn *mHdr(char *locstr, double width, double height, char *outfile
 
 //-------------------
 
+struct mHistExecReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    count;         // Number of images reprojected
+   int    failed;        // Number of reprojections that failed
+   int    missing;       // Images in input table that were not found
+};
+
+struct mHistExecReturn *mHistExec(char *datadir, char *imgfile, char *histdir, char *minstr, char *maxstr, 
+                                  char *stretchtype, int logpower, char *betastr, int debug);
+
+//-------------------
+
 struct mHistogramReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -352,8 +468,32 @@ struct mHistogramReturn
    double datamax;       // Maximum data value in file.
 };
 
-struct mHistogramReturn *mHistogram(char *imgfile, char *histfile,
-                                    char *yminstr, char *maxstr, char *stretchtype, int logpower, char *betastr, int debug);
+struct mHistogramReturn *mHistogram(char *imgfile, char *histfile, int xmin, int xmax, int ymin, int ymax,
+                                    char *minstr, char *maxstr, char *stretchtype, int logpower, char *betastr, int debug);
+
+//-------------------
+
+struct mImgBoundsReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[1024];    // Return parameters as JSON string
+   char   csys[32];      // Requested coordinate system
+   char   imsys[32];     // 'Image' coordinate system
+   double epoch;         // Requested coordinate system equinox
+   double imepoch;       // 'Image' coordinate system equinox 
+   double clon;          // Center longitude
+   double clat;          // Center latitude
+   double width;         // Region width
+   double height;        // Region height
+   double posang;        // Region rotation
+   double radius;        // Bounding radius
+   double lon[4];        // Region corners longitude
+   double lat[4];        // Region corners latitude
+};
+
+struct mImgBoundsReturn *mImgBounds(char *filename, int havesys, char *csysStr, double epoch, 
+                                    int northUp, int debugin);
 
 //-------------------
 
@@ -419,6 +559,17 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
 
 //-------------------
 
+struct mMaskReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg    [1024]; // Return message (for error return)
+   char   json   [4096]; // Return parameters as JSON string
+};
+
+struct mMaskReturn *mMask(char *infile, char *outfile, char *boxfile, int hdu, int debug);
+
+//-------------------
+
 struct mOverlapsReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -428,6 +579,19 @@ struct mOverlapsReturn
 };
 
 struct mOverlapsReturn *mOverlaps(char *tblfile, char *difftbl, int quickmode, int debug);
+
+//-------------------
+
+struct mPNGBackgroundReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    width;         // Number of pixels horizontal
+   int    height;        // Number of pixels vertical
+};
+
+struct mPNGBackgroundReturn *mPNGBackground(char *infile, char *outfile, int debug);
 
 //-------------------
 
@@ -501,8 +665,8 @@ struct mProjExecReturn
 };
 
 struct mProjExecReturn *mProjExec(char *path, char *tblfile, char *template, char *projdir, int quickMode, 
-                                  int exact, int wholeImages, int energyMode, char *border, char *scaleCol, 
-                                  char *weightCol, int restart, char *stats, int debug);
+                                  int exact, int wholeImages, int energyMode, double drizzle, char *border,
+                                  char *scaleCol, char *weightCol, int restart, char *stats, int debug);
 
 //-------------------
 
@@ -525,7 +689,7 @@ struct mShrinkReturn
    double time;          // Run time (sec)   
 };
 
-struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, 
+struct mShrinkReturn *mShrink(char *input_file, char *output_file, double shrinkFactor, double cdelt,
                               int hdu, int fixedSize, int debug);
 
 //-------------------
@@ -543,6 +707,20 @@ struct mShrinkCubeReturn *mShrinkCube(char *input_file, char *output_file, doubl
 
 //-------------------
 
+struct mShrinkExecReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    count;         // Number of images
+   int    failed;        // Number of images where shrinking failed
+};
+
+struct mShrinkExecReturn *mShrinkExec(char *inpath, char *tblfile, char *shrunkdir, double factor,
+                                      double cdelt, int hdu, int fixedsize, int njob, int debug);
+
+//-------------------
+
 struct mSubCubeReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)
@@ -555,6 +733,19 @@ struct mSubCubeReturn
 struct mSubCubeReturn *mSubCube(int mode, char *infile, char *outfile, double xref, double yref, 
                                 double xsize, double ysize, int hdu, int nowcs, char *d3constraint, char *d4constraint, 
                                 int debug);
+
+//-------------------
+
+struct mSubHdrReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg    [1024]; // Return message (for error return)
+   char   json   [4096]; // Return parameters as JSON string
+   int    lines;         // The size of the header file.
+};
+
+struct mSubHdrReturn *mSubHdr(char *infile, char *outfile, double xref, double yref, 
+                              char *xsize, char *ysize, int mode, int nowcs, int shift, int debug);
 
 //-------------------
 
@@ -599,6 +790,22 @@ struct mTANHdrReturn
 
 struct mTANHdrReturn *mTANHdr(char *origtmpl, char *newtmpl, int order, int maxiter, double tolerance, 
                               int useOffscl, int debugin);
+
+//-------------------
+
+struct mTileImageReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   int    sizex;         // The nominal size, in X pixels, of a tile
+   int    sizey;         // The nominal size, in Y pixels, of a tile
+   int    ntile;         // The number of tiles that were generated
+   int    nfailed;       // The number of tiles that failed
+};
+
+struct mTileImageReturn *mTileImage(char *input_file, char *output_base, int hdu, int nx, int ny, 
+                                    int xpad, int ypad, int debug);
 
 //-------------------
 

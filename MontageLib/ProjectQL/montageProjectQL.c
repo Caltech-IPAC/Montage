@@ -42,7 +42,10 @@ Version  Developer        Date     Change
 static int     hdu;
 static int     haveWeights;
 
-static double offset;
+static double offset, radius, dist;
+
+static double xc, yc, zc;
+static double xp, yp, zp;
 
 static char   area_file[MAXSTR];
 
@@ -77,11 +80,21 @@ static struct
 }
 input, weight, output, output_area;
 
+static double *buffer   = (double *)NULL;
+static double *area     = (double *)NULL;
+
+static double **data    = (double **)NULL;
+static double **weights = (double **)NULL;
+
+static double **lanczos = (double **)NULL;
+
+static int    nfilter, noAreas;
 
 static double cnpix1, cnpix2;
 static double crpix1, crpix2;
 
 static int    isDSS = 0;
+static int    isHPX = 0;
 
 static double xcorrection;
 static double ycorrection;
@@ -129,7 +142,7 @@ static char montage_msgstr[1024];
 /*                                                                       */
 /*   int    hdu            Optional HDU offset for input file            */
 /*   int    interp         Interpolation scheme for value lookup.        */
-/*                         Currently NEAREST of LANCZOS.                 */
+/*                         Currently NEAREST or LANCZOS.                 */
 /*                                                                       */
 /*   char  *weight_file    Optional pixel weight FITS file (must match   */
 /*                         input)                                        */
@@ -159,18 +172,20 @@ static char montage_msgstr[1024];
 
 struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *template_file, int hduin, int interp,
                                     char *weight_file, double fixedWeight, double threshold, char *borderstr,
-                                    double fluxScale, int expand, int fullRegion, int noAreas, int debugin)
+                                    double fluxScale, int expand, int fullRegion, int noAreasin, int debugin)
 {
    int       i, j;
    int       imx, jmy;
    int       imgi, imgj, keri, kerj;
    int       ix, jy;
    int       nullcnt;
+   int       hpxPix, hpxLevel;
    long      fpixel[4], nelements;
    double    lon, lat;
+   double    clon, clat;
    double    ixpix, iypix;
    double    oxpix, oypix;
-   double    oxpixTest, oypixTest;
+   // double    oxpixTest, oypixTest;
    double    oxpixMin, oypixMin;
    double    oxpixMax, oypixMax;
    double    xoff, yoff;
@@ -180,11 +195,6 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    int       jstart, jlength;
    double    xpos, ypos;
    int       offscl, border, bordertype;
-   double    *buffer;
-   double    *area;
-
-   double  **data;
-   double  **weights;
 
    int       status;
 
@@ -197,11 +207,25 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    double    pi, x, a;
    int       ia;
 
-   double  **lanczos;
+   int       nsamp;
 
-   int       nfilter, nsamp;
+   Vec       corners[4];
+   Vec       normals[4];
+   Vec       point;
+   int       icorner, interior;
+
 
    struct mProjectQLReturn *returnStruct;
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   input.wcs  = (struct WorldCoor *)NULL;
+   output.wcs = (struct WorldCoor *)NULL;
+
+   hpxPix = 0;
 
    
    /*************************************************/
@@ -263,7 +287,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    lanczos = (double **) malloc(nfilter * sizeof(double *));
 
    for(i=0; i<nfilter; ++i)
+   {
       lanczos[i] = (double *) malloc(nfilter * sizeof(double));
+
+      for(j=0; j<nfilter; ++j)
+         lanczos[i][j] = 0.;
+   }
 
    lanczos[0][0] = 1.;
 
@@ -286,6 +315,8 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    mProjectQL_debug = debugin;
 
+   noAreas = noAreasin;
+   
    hdu = hduin;
 
    strcpy(output_file, ofile);
@@ -304,31 +335,36 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    border     = 0;
    bordertype = FIXEDBORDER;
 
-   border = strtol(borderstr, &end, 10);
-
-   if(end < borderstr + strlen(borderstr))
+   if(borderstr)
    {
-      if(mProjectQL_BorderSetup(borderstr) <= 3)
+      border = strtol(borderstr, &end, 10);
+
+      if(end < borderstr + strlen(borderstr))
       {
-         sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
-            borderstr);
-         return returnStruct;
-      }
-      else
-      {
-         border = 0;
-         bordertype = POLYBORDER;
+         if(mProjectQL_BorderSetup(borderstr) <= 3)
+         {
+            sprintf(returnStruct->msg, "Border value string (%s) cannot be interpreted as an integer or a set of polygon vertices",
+               borderstr);
+            mProjectQL_cleanup();
+            return returnStruct;
+         }
+         else
+         {
+            border = 0;
+            bordertype = POLYBORDER;
+         }
       }
    }
 
    if(border < 0)
    {
       sprintf(returnStruct->msg, "Border value (%d) must be greater than or equal to zero", border);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
    haveWeights = 0;
-   if(strlen(weight_file) > 0)
+   if(weight_file && strlen(weight_file) > 0)
       haveWeights = 1;
 
    checkHdr = montage_checkHdr(input_file, 0, hdu);
@@ -336,6 +372,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(checkHdr)
    {
       strcpy(returnStruct->msg, checkHdr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -344,6 +381,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(checkHdr)
    {
       strcpy(returnStruct->msg, checkHdr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -397,6 +435,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(mProjectQL_readFits(input_file, weight_file) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -412,13 +451,13 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
-   offset = 0.;
-
 
    /*************************************************/ 
    /* Process the output header template to get the */ 
    /* image size, coordinate system and projection  */ 
    /*************************************************/ 
+
+   offset = 0.;
 
    mProjectQL_readTemplate(template_file);
 
@@ -435,13 +474,30 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
+   radius = sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
+               + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc);
+
+   pix2wcs(input.wcs, input.naxes[0]/2., input.naxes[1]/2., &clon, &clat);
+
+   xc = cos(clon*dtr) * cos(clat*dtr);
+   yc = sin(clon*dtr) * cos(clat*dtr);
+   zc = sin(clat*dtr);
+
+
+   if(mProjectQL_debug >= 1)
+   {
+      printf("\nInput image radius: %-g degrees (needed for offscale check for some projections)\n\n", radius);
+      printf("Center lon: %-g, lat: %-g\n\n", clon, clat);
+      fflush(stdout);
+   }
+
    if(expand)
    {
       /* We need to expand the output area so we get all of the input image. */
       /* This implies rereading the template as well.                        */
 
-      offset = (sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
-                   + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc));
+      offset = sqrt(input.naxes[0]*input.naxes[0] * input.wcs->xinc*input.wcs->xinc
+                  + input.naxes[1]*input.naxes[1] * input.wcs->yinc*input.wcs->yinc);
 
       if(mProjectQL_debug >= 1)
       {
@@ -449,7 +505,10 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          fflush(stdout);
       }
 
+
       offset = offset / sqrt(output.wcs->xinc * output.wcs->xinc + output.wcs->yinc * output.wcs->yinc);
+
+      offset = (int)(offset + 0.5);
 
       if(mProjectQL_debug >= 1)
       {
@@ -457,6 +516,10 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          fflush(stdout);
       }
 
+
+
+      // Reread the template (the above offset pad will be added this time)
+      
       mProjectQL_readTemplate(template_file);
 
       if(mProjectQL_debug >= 1)
@@ -471,6 +534,92 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
          fflush(stdout);
       }
+   }
+
+
+   /*************************************************************************/ 
+   /* Get the 3-vector coordinates for the four corners of the input image. */
+   /* These will be used to determine if an output pixel location is inside */
+   /* the input image.                                                      */
+   /*************************************************************************/ 
+
+   pix2wcs(input.wcs, 0.5,                0.5,                &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[0].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[0].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[0].z = sin(lat*dtr);
+
+   // -----
+   
+   pix2wcs(input.wcs, input.naxes[0]+0.5, 0.5,                &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[1].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[1].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[1].z = sin(lat*dtr);
+
+   // -----
+   
+   pix2wcs(input.wcs, input.naxes[0]+0.5, input.naxes[1]+0.5, &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[2].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[2].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[2].z = sin(lat*dtr);
+
+   // -----
+
+   pix2wcs(input.wcs, 0.5,                input.naxes[1]+0.5, &xpos, &ypos);
+
+   convertCoordinates(input.sys, input.epoch, xpos, ypos,
+                      output.sys, output.epoch, &lon, &lat, 0.0);
+
+   corners[3].x = cos(lon*dtr) * cos(lat*dtr);
+   corners[3].y = sin(lon*dtr) * cos(lat*dtr);
+   corners[3].z = sin(lat*dtr);
+
+   // -----
+
+   if(!input.clockwise)
+   {
+      mProjectQL_swap(&corners[1].x, &corners[3].x);
+      mProjectQL_swap(&corners[1].y, &corners[3].y);
+      mProjectQL_swap(&corners[1].z, &corners[3].z);
+   }
+
+   for(i=0; i<4; ++i)
+   {
+      j = (i+1)%4;
+
+      mProjectQL_Cross(&corners[i], &corners[j], &normals[i]);
+      mProjectQL_Normalize(&normals[i]);
+   }
+
+
+   /**********************************************************/
+   /* Check the WCS header to see if we need to set up       */
+   /* special HPX handling.  The projection type tells us    */
+   /* if this is HPX and the pixel size tells us what order. */
+   /**********************************************************/
+
+   if(strcmp(output.wcs->ptype, "HPX") == 0)
+   {
+      isHPX = 1;
+
+      hpxPix = 90.0 / fabs(output.wcs->xinc) / sqrt(2.0) + 0.5;
+
+      hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+      hpxPix = pow(2., (double)hpxLevel) + 0.5;
+      
+      hpxPix = 4 * hpxPix;
    }
 
 
@@ -494,11 +643,24 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    oypixMin =  100000000;
    oypixMax = -100000000;
 
+   if(mProjectQL_debug >= 1)
+   {
+      printf("\nBefore input left/right check:\n");
+      printf("oxpixMin, oxpixMax: %10.2f, %10.2f\n", oxpixMin, oxpixMax);
+      printf("oypixMin, oypixMax: %10.2f, %10.2f\n", oypixMin, oypixMax);
+
+      fflush(stdout);
+   }
+
 
    /* Check input left and right */
 
    for (j=0; j<input.naxes[1]; ++j)
    {
+      // LEFT
+      
+      // Convert from input to sky
+      
       pix2wcs(input.wcs, 0.5, j+0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -507,17 +669,75 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       offscl = input.wcs->offscl;
 
       if(!offscl)
+      {
+         // Convert from sky to output
+
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProjectQL_fixxy(&oxpix, &oypix, &offscl);
 
-      if(!offscl)
-      {
-         if(oxpix < oxpixMin) oxpixMin = oxpix;
-         if(oxpix > oxpixMax) oxpixMax = oxpix;
-         if(oypix < oypixMin) oypixMin = oypix;
-         if(oypix > oypixMax) oypixMax = oypix;
+         // Special check for HPX.  Some input pixel locations on the sky, when transformed
+         // to HPX space end up at the wrong end of the projection because of the duplication
+         // of part of the sky near the -180/+180 location.  So it looks like it is "off-scale".
+         // This check detects this and shifts the pixel location so it is back inside the
+         // correct region.
+
+         if(offscl && isHPX)
+         {
+            if(oxpix < -(double)hpxPix/2.)
+            {
+               oxpix += (double)hpxPix;
+               offscl = 0;
+            }
+
+            if(oxpix >  (double)hpxPix/2.) 
+            {
+               oxpix -= (double)hpxPix;
+               offscl = 0;
+            }
+
+
+            if(oypix < -(double)hpxPix/2.) 
+            {
+               oypix += (double)hpxPix;
+               offscl = 0;
+            }
+
+            if(oypix >  (double)hpxPix/2.) 
+            {
+               oypix -= (double)hpxPix;
+               offscl = 0;
+            }
+         }
+
+         if(!offscl)
+         {
+            if(oxpix < 0.5)                   oxpix = 0.5;
+            if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+            if(oypix < 0.5)                   oypix = 0.5;
+            if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
+
+            mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("LEFT:   (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  0.5, j+0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
+
+
+      // RIGHT
+
+      // Convert from input to sky
 
       pix2wcs(input.wcs, input.naxes[0]+0.5, j+0.5, &xpos, &ypos);
 
@@ -527,17 +747,70 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       offscl = input.wcs->offscl;
 
       if(!offscl)
+      {
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+         if(offscl && isHPX)
+         {
+            if(oxpix < -(double)hpxPix/2.)
+            {
+               oxpix += (double)hpxPix;
+               offscl = 0;
+            }
 
-      if(!offscl)
-      {
-         if(oxpix < oxpixMin) oxpixMin = oxpix;
-         if(oxpix > oxpixMax) oxpixMax = oxpix;
-         if(oypix < oypixMin) oypixMin = oypix;
-         if(oypix > oypixMax) oypixMax = oypix;
+            if(oxpix >  (double)hpxPix/2.)
+            {
+               oxpix -= (double)hpxPix;
+               offscl = 0;
+            }
+
+
+            if(oypix < -(double)hpxPix/2.)
+            {
+               oypix += (double)hpxPix;
+               offscl = 0;
+            }
+
+            if(oypix >  (double)hpxPix/2.)
+            {
+               oypix -= (double)hpxPix;
+               offscl = 0;
+            }
+         }
+
+         if(!offscl)
+         {
+            if(oxpix < 0.5)                   oxpix = 0.5;
+            if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+            if(oypix < 0.5)                   oypix = 0.5;
+            if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
+
+            mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("RIGHT:  (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  input.naxes[0]+0.5, j+0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
+   }
+
+   if(mProjectQL_debug >= 1)
+   {
+      printf("\nAfter input left/right check:\n");
+      printf("oxpixMin, oxpixMax: %10.2f, %10.2f\n", oxpixMin, oxpixMax);
+      printf("oypixMin, oypixMax: %10.2f, %10.2f\n", oypixMin, oypixMax);
+
+      fflush(stdout);
    }
 
 
@@ -545,6 +818,10 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    for (i=0; i<input.naxes[0]; ++i)
    {
+      // BOTTOM
+
+      // Convert from input to sky
+
       pix2wcs(input.wcs, i+0.5, 0.5, &xpos, &ypos);
 
       convertCoordinates(input.sys, input.epoch, xpos, ypos,
@@ -553,17 +830,68 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       offscl = input.wcs->offscl;
 
       if(!offscl)
+      {
+         // Convert from sky to output
+
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+         if(offscl && isHPX)
+         {
+            if(oxpix < -(double)hpxPix/2.)
+            {
+               oxpix += (double)hpxPix;
+               offscl = 0;
+            }
 
-      if(!offscl)
-      {
-         if(oxpix < oxpixMin) oxpixMin = oxpix;
-         if(oxpix > oxpixMax) oxpixMax = oxpix;
-         if(oypix < oypixMin) oypixMin = oypix;
-         if(oypix > oypixMax) oypixMax = oypix;
+            if(oxpix >  (double)hpxPix/2.)
+            {
+               oxpix -= (double)hpxPix;
+               offscl = 0;
+            }
+
+
+            if(oypix < -(double)hpxPix/2.)
+            {
+               oypix += (double)hpxPix;
+               offscl = 0;
+            }
+
+            if(oypix >  (double)hpxPix/2.)
+            {
+               oypix -= (double)hpxPix;
+               offscl = 0;
+            }
+         }
+
+         if(!offscl)
+         {
+            if(oxpix < 0.5)                   oxpix = 0.5;
+            if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+            if(oypix < 0.5)                   oypix = 0.5;
+            if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
+
+            mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("BOTTOM: (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  i+0.5, 0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
+
+
+      // TOP
+
+      // Convert from input to sky
 
       pix2wcs(input.wcs, i+0.5, input.naxes[1]+0.5, &xpos, &ypos);
 
@@ -573,18 +901,74 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       offscl = input.wcs->offscl;
 
       if(!offscl)
+      {
+         // Convert from sky to output
+
          wcs2pix(output.wcs, lon, lat, &oxpix, &oypix, &offscl);
 
-      mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+         if(offscl && isHPX)
+         {
+            if(oxpix < -(double)hpxPix/2.)
+            {
+               oxpix += (double)hpxPix;
+               offscl = 0;
+            }
 
-      if(!offscl)
-      {
-         if(oxpix < oxpixMin) oxpixMin = oxpix;
-         if(oxpix > oxpixMax) oxpixMax = oxpix;
-         if(oypix < oypixMin) oypixMin = oypix;
-         if(oypix > oypixMax) oypixMax = oypix;
+            if(oxpix >  (double)hpxPix/2.)
+            {
+               oxpix -= (double)hpxPix;
+               offscl = 0;
+            }
+
+
+            if(oypix < -(double)hpxPix/2.)
+            {
+               oypix += (double)hpxPix;
+               offscl = 0;
+            }
+
+            if(oypix >  (double)hpxPix/2.)
+            {
+               oypix -= (double)hpxPix;
+               offscl = 0;
+            }
+         }
+
+         if(!offscl)
+         {
+            if(oxpix < 0.5)                   oxpix = 0.5;
+            if(oxpix > output.naxes[0] + 0.5) oxpix = output.naxes[0]+0.5;
+
+            if(oypix < 0.5)                   oypix = 0.5;
+            if(oypix > output.naxes[1] + 0.5) oypix = output.naxes[1]+0.5;
+
+            mProjectQL_fixxy(&oxpix, &oypix, &offscl);
+
+            if(oxpix < oxpixMin) oxpixMin = oxpix;
+            if(oxpix > oxpixMax) oxpixMax = oxpix;
+            if(oypix < oypixMin) oypixMin = oypix;
+            if(oypix > oypixMax) oypixMax = oypix;
+         }
+
+         if(mProjectQL_debug >= 2)
+         {
+            printf("TOP:    (%7.1f,%7.1f)  ->  (%7.3f,%7.3f)  ->  (%7.3f,%7.3f)  ->  (%7.1f,%7.1f)   [%7.1f - %7.1f   %7.1f - %7.1f](%d)\n", 
+                  i+0.5, input.naxes[1]+0.5, xpos, ypos, lon, lat, oxpix, oypix,
+                  oxpixMin, oxpixMax, oypixMin, oypixMax, offscl);
+            fflush(stdout);
+         }
       }
    }
+
+   if(mProjectQL_debug >= 1)
+   {
+      printf("\nAfter input top/bottom check:\n");
+      printf("oxpixMin, oxpixMax: %10.2f, %10.2f\n", oxpixMin, oxpixMax);
+      printf("oypixMin, oypixMax: %10.2f, %10.2f\n", oypixMin, oypixMax);
+
+      fflush(stdout);
+   }
+
 
    /************************************************/
    /* Go around the outside of the OUTPUT image,   */
@@ -615,6 +999,16 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
      mProjectQL_UpdateBounds (oxpix, oypix, &oxpixMin, &oxpixMax, &oypixMin, &oypixMax);
    }
 
+   if(mProjectQL_debug >= 1)
+   {
+      printf("\nAfter output perimeter check:\n");
+      printf("oxpixMin, oxpixMax: %10.2f, %10.2f\n", oxpixMin, oxpixMax);
+      printf("oypixMin, oypixMax: %10.2f, %10.2f\n", oypixMin, oypixMax);
+
+      fflush(stdout);
+   }
+
+
    /*
     * ASSERT: Output bounding box now specified by
     *   (oxpixMin, oxpixMax, oypixMin, oypixMax)
@@ -631,6 +1025,18 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    istart = oxpixMin - 1;
 
+   if(istart < 0) 
+      istart = 0;
+   
+   ilength = oxpixMax - oxpixMin + 2;
+
+   if(ilength > output.naxes[0])
+      ilength = output.naxes[0];
+
+
+   jstart = oypixMin - 1;
+
+   if(jstart < 0) 
    if(istart < 0) 
       istart = 0;
    
@@ -664,13 +1070,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       fflush(stdout);
    }
 
-   /*
    if(oxpixMin > oxpixMax || oypixMin > oypixMax)
    {
       sprintf(returnStruct->msg, "No overlap");
+      mProjectQL_cleanup();
       return returnStruct;
    }
-   */
 
 
    // In mProject/mProjectPP, we write the image out after having
@@ -686,6 +1091,16 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    jmin = oypixMin;
    jmax = oypixMax;
 
+   if(mProjectQL_debug >= 2)
+   {
+      printf("\nMin, max:\n");
+      printf(" imin     = %d\n", imin);
+      printf(" imax     = %d\n", imax);
+      printf(" jmin     = %d\n", jmin);
+      printf(" jmax     = %d\n", jmax);
+      fflush(stdout);
+   }
+
     
 
    /**********************************************/ 
@@ -697,6 +1112,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    if(data == (void *)NULL)
    {
       sprintf(returnStruct->msg, "Not enough memory for input data image array");
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -707,6 +1123,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(data[j] == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for input data image array");
+         mProjectQL_cleanup();
          return returnStruct;
       }
    }
@@ -729,6 +1146,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       if(weights == (void *)NULL)
       {
          sprintf(returnStruct->msg, "Not enough memory for input weights array");
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -739,6 +1157,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          if(weights[j] == (void *)NULL)
          {
             sprintf(returnStruct->msg, "Not enough memory for input weights array");
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -782,6 +1201,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -792,6 +1212,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -803,8 +1224,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
+
+   input.fptr = (fitsfile *)NULL;
 
    if(haveWeights)
    {
@@ -812,8 +1236,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
+
+      weight.fptr = (fitsfile *)NULL;
    }
 
 
@@ -861,6 +1288,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -870,7 +1298,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
-         return returnStruct;
+
       }
    }
 
@@ -884,6 +1312,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -899,6 +1328,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -918,6 +1348,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -933,6 +1364,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -953,6 +1385,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -962,6 +1395,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -976,6 +1410,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -984,6 +1419,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -992,6 +1428,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
 
@@ -1002,6 +1439,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1010,6 +1448,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
    }
@@ -1020,6 +1459,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1028,6 +1468,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
    }
@@ -1041,6 +1482,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1049,6 +1491,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1057,6 +1500,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1067,6 +1511,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
 
@@ -1075,6 +1520,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -1085,6 +1531,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
 
@@ -1093,6 +1540,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
       }
@@ -1116,9 +1564,20 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    nelements = imax - imin;
 
+   if(mProjectQL_debug)
+   {
+      printf("\nOutput pixel range:\n");
+      printf("jmin = %d, ", jmin);
+      printf("jmax = %d\n", jmax);
+      printf("imin = %d, ", imin);
+      printf("imax = %d\n", imax);
+      fflush(stdout);
+   }
+
+
    for(j=jmin; j<jmax; ++j)
    {
-      for(i=0; i<output.naxes[0]; ++i)
+      for(i=0; i<nelements; ++i)
       {
          buffer[i] = nan;
 
@@ -1134,29 +1593,25 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          pix2wcs(output.wcs, oxpix, oypix, &xpos, &ypos);
 
 
-         // Convert it back to make sure we weren't off scale
+         // Use the image bounding box normals to check whether this point
+         // is inside the input image
 
-         offscl = output.wcs->offscl;
+         point.x = cos(xpos*dtr) * cos(ypos*dtr);
+         point.y = sin(xpos*dtr) * cos(ypos*dtr);
+         point.z = sin(ypos*dtr);
 
-         oxpixTest = 999.;
-         oypixTest = 999.;
+         interior = 1;
 
-         if(!offscl)
-            wcs2pix(output.wcs, xpos, ypos, &oxpixTest, &oypixTest, &offscl);
+         for(icorner=0; icorner<4; ++icorner)
+         {
+            if(mProjectQL_Dot(&normals[icorner], &point) < 0)
+            {
+               interior = 0;
+               break;
+            }
+         }
 
-
-         // The offscl parameter seems to be too sensitive in some
-         // cases, so we will replace it with the following.
-
-         offscl = 0;
-
-         if(fabs(oxpixTest - oxpix) > 1.)
-            offscl = 1;
-
-         if(fabs(oypixTest - oypix) > 1.)
-            offscl = 1;
-
-         if(offscl)
+         if(!interior)
             continue;
 
 
@@ -1165,11 +1620,24 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          convertCoordinates(output.sys, output.epoch, xpos, ypos,
                             input.sys, input.epoch, &lon, &lat, 0.0);
          
+         
+         // Check whether we are near enough to the input image.  This came up when dealing with an image with
+         // distortion polynomial parameters.  There were pixels in the output that were far enough from the
+         // image center that they started to project as if they were on the image.
+
+         xp = cos(lon*dtr) * cos(lat*dtr);
+         yp = sin(lon*dtr) * cos(lat*dtr);
+         zp = sin(lat*dtr);
+
+         dist = acos((xp*xc) + (yp*yc) + (zc*zp)) / dtr;
+
+         if(dist > radius)
+            continue;
+
 
          // Convert to input pixel space
 
          offscl = 0;
-
          wcs2pix(input.wcs, lon, lat, &ixpix, &iypix, &offscl);
 
          if(offscl)
@@ -1181,15 +1649,29 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          ix = (int)(ixpix+0.5);  // The extra 0.5 here is to make it round
          jy = (int)(iypix+0.5);  // correctly to the nearest integer value
 
-
+         
          // If using nearest neighbor
 
          if(ix >= 0 && ix < input.naxes[0]
          && jy >= 0 && jy < input.naxes[1])
          {
+            if(mProjectQL_debug >= 4)
+            {
+               printf("opix: %.1f, %.1f  ->  gal: %.4f, %.4f    ==>    equ: %.4f, %.4f  ->  ipix: %.1f, %.1f (data: %-g)  get data\n", 
+                  oxpix, oypix, xpos, ypos, lon, lat, ixpix, iypix, data[jy][ix]); 
+               fflush(stdout);
+            }
+
             if(interp == NEAREST)
             {
                buffer[i-imin] = data[jy][ix];
+                  
+               if(mProjectQL_debug >= 4)
+               {
+                  printf("%d %d: %-g (NEAREST)\n", 
+                     jy, ix, data[jy][ix]);
+                  fflush(stdout);
+               }
 
                if(!noAreas)
                   area[i-imin] = 1.;
@@ -1199,6 +1681,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
             {
                if(mNaN(data[jy][ix]))
                   buffer[i-imin] = data[jy][ix];
+
                else
                {
                   xoff = ixpix - ix;
@@ -1224,22 +1707,12 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                         || kerj < 0 || kerj >= nfilter)
                            continue;
                            
-                        /*
-                        if(i == (imin+imax)/2 && j == (jmin+jmax)/2)
+                        if(mProjectQL_debug >= 4)
                         {
-                           printf("DEBUG> i = %d, j = %d (output image index)\n", i, j);
-                           printf("DEBUG> ixpix = %.3f, iypix = %.3f (input image location)\n", ixpix, iypix);
-                           printf("DEBUG> ix = %d, jy = %d (nearest input pixel)\n", ix, jy);
-                           printf("DEBUG> xoff = %.3f, yoff = %.3f (pixel space offset)\n", xoff, yoff);
-                           printf("DEBUG> imx = %d, jmy = %d (loop over filter offsets)\n", imx, jmy);
-                           printf("DEBUG> imgi = %d, imgj = %d (image pixel for filter sum)\n", imgi, imgj);
-                           printf("DEBUG> keri = %d, kerj = %d (Lanczos filter array index)\n", keri, kerj);
-                           printf("DEBUG> (data = %.3f) * (kernel = %.3f) (buffer update)\n", 
-                              data[imgj][imgi], lanczos[kerj][keri]);
-                           printf("\n");
+                           printf("  %d %d ->%d %d: %-g (%-g)\n", 
+                              jmy, imx, imgj, imgi, data[imgj][imgi], lanczos[kerj][keri]);
                            fflush(stdout);
                         }
-                        */
 
                         buffer[i-imin] += data[imgj][imgi] * lanczos[kerj][keri];
                      }
@@ -1247,6 +1720,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                }
             }
          }
+
+         else
+            buffer[i-imin] = nan;
       }
 
 
@@ -1259,6 +1735,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
 
@@ -1268,6 +1745,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
          {
             mProjectQL_printFitsError(status);
             strcpy(returnStruct->msg, montage_msgstr);
+            mProjectQL_cleanup();
             return returnStruct;
          }
 
@@ -1297,8 +1775,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    {
       mProjectQL_printFitsError(status);
       strcpy(returnStruct->msg, montage_msgstr);
+      mProjectQL_cleanup();
       return returnStruct;
    }
+
+   output.fptr = (fitsfile *)NULL;
 
    if(mProjectQL_debug >= 1)
    {
@@ -1312,8 +1793,11 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
       {
          mProjectQL_printFitsError(status);
          strcpy(returnStruct->msg, montage_msgstr);
+         mProjectQL_cleanup();
          return returnStruct;
       }
+
+      output_area.fptr = (fitsfile *)NULL;
 
       if(mProjectQL_debug >= 1)
       {
@@ -1331,6 +1815,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
    returnStruct->time = (double)(currtime - start);
 
+   mProjectQL_cleanup();
    return returnStruct;
 }
 
@@ -1343,6 +1828,9 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
 
 void mProjectQL_fixxy(double *x, double *y, int *offscl)
 {
+   if(isHPX)
+      return;
+
    *x = *x - xcorrection;
    *y = *y - ycorrection;
 
@@ -1664,6 +2152,7 @@ int mProjectQL_readFits(char *filename, char *weightfile)
 
    status = 0;
 
+   
    /*****************************************/
    /* Open the FITS file and get the header */
    /* for WCS setup                         */
@@ -1690,6 +2179,31 @@ int mProjectQL_readFits(char *filename, char *weightfile)
       mProjectQL_printFitsError(status);
       return 1;
    }
+
+
+   /*******************************************/
+   /* Check for EPOCH used instead of EQUINOX */
+   /*******************************************/
+
+   char   *ptr;
+   char    replace[80];
+   int     ir;
+
+   if(strstr(header, "EQUINOX = ") == (char *)NULL)
+   {
+      if((ptr = strstr(header, "EPOCH   =")) != (char *)NULL)
+      {
+         epoch = atof(ptr+9);
+
+         if(epoch == 1950.)
+         {
+            strcpy(replace, "EQUINOX");
+
+            for(ir=0; ir<strlen(replace); ++ir)
+               *(ptr + ir) = replace[ir];
+         }
+       }     
+    }     
 
 
    /************************/
@@ -1839,6 +2353,85 @@ int mProjectQL_readFits(char *filename, char *weightfile)
 }
 
 
+/************************************/
+/*                                  */
+/*  Make sure FITS files are closed */
+/*                                  */
+/************************************/
+
+void mProjectQL_cleanup()
+{
+   int     status, i;
+
+   if(input.fptr != (fitsfile *)NULL)
+      fits_close_file(input.fptr, &status);
+
+   if(weight.fptr != (fitsfile *)NULL)
+      fits_close_file(weight.fptr, &status);
+
+   if(output.fptr != (fitsfile *)NULL)
+      fits_close_file(output.fptr, &status);
+
+   if(output_area.fptr != (fitsfile *)NULL)
+      fits_close_file(output_area.fptr, &status);
+
+
+   input.fptr       = (fitsfile *)NULL;
+   weight.fptr      = (fitsfile *)NULL;
+   output.fptr      = (fitsfile *)NULL;
+   output_area.fptr = (fitsfile *)NULL;
+
+   if(input.wcs)
+   {
+      wcsfree(input.wcs);
+      input.wcs = (struct WorldCoor *)NULL;
+   }
+
+   if(output.wcs)
+   {
+      wcsfree(output.wcs);
+      output.wcs = (struct WorldCoor *)NULL;
+   }
+
+   if(lanczos)
+   {
+      for(i=0; i<nfilter; ++i)
+         free(lanczos[i]);
+
+      free(lanczos);
+   }
+
+
+   if(area)   free(area);
+   if(buffer) free(buffer);
+
+   if(data)
+   {
+      for(i=0; i<input.naxes[1]; ++i)
+         free(data[i]);
+
+      free(data);
+   }
+
+
+   if(weights)
+   {
+      for(i=0; i<input.naxes[1]; ++i)
+         free(weights[i]);
+
+      free(weights);
+   }
+
+   lanczos = (double **)NULL;
+   area    = (double  *)NULL;
+   buffer  = (double  *)NULL;
+   data    = (double **)NULL;
+   weights = (double **)NULL;
+
+   return;
+}
+
+
 
 /***********************************/
 /*                                 */
@@ -1939,7 +2532,8 @@ void mProjectQL_UpdateBounds (double oxpix, double oypix,
   /*
    * Update output bounding box if in bounds
    */
-  if (!offscl) {
+  if (!offscl)
+  {
     if (oxpix < *oxpixMin) *oxpixMin = oxpix;
     if (oxpix > *oxpixMax) *oxpixMax = oxpix;
     if (oypix < *oypixMin) *oypixMin = oypix;
@@ -1951,7 +2545,7 @@ void mProjectQL_UpdateBounds (double oxpix, double oypix,
 
 /* Boundary polygon handling */
 
-int mProjectQL_BorderSetup(char *strin)
+int mProjectQL_BorderSetup(char *strin) 
 {
    int   len;
    char  str[8192];
@@ -2086,4 +2680,95 @@ int mProjectQL_BorderRange(int jrow, int maxpix,
    }
 
    return found;
+}
+
+
+
+/***************************************************/
+/*                                                 */
+/* Cross()                                         */
+/*                                                 */
+/* Vector cross product.                           */
+/*                                                 */
+/***************************************************/
+
+int mProjectQL_Cross(Vec *v1, Vec *v2, Vec *v3)
+{
+   v3->x =  v1->y*v2->z - v2->y*v1->z;
+   v3->y = -v1->x*v2->z + v2->x*v1->z;
+   v3->z =  v1->x*v2->y - v2->x*v1->y;
+
+   if(v3->x == 0.
+   && v3->y == 0.
+   && v3->z == 0.)
+      return 0;
+
+   return 1;
+}
+
+
+/***************************************************/
+/*                                                 */
+/* Dot()                                           */
+/*                                                 */
+/* Vector dot product.                             */
+/*                                                 */
+/***************************************************/
+
+double mProjectQL_Dot(Vec *a, Vec *b)
+{
+   double sum = 0.0;
+
+   sum = a->x * b->x
+       + a->y * b->y
+       + a->z * b->z;
+
+   return sum;
+}
+
+
+/***************************************************/
+/*                                                 */
+/* Normalize()                                     */
+/*                                                 */
+/* Normalize the vector                            */
+/*                                                 */
+/***************************************************/
+
+double mProjectQL_Normalize(Vec *v)
+{
+   double len;
+
+   len = 0.;
+
+   len = sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+
+   if(len == 0.)
+      len = 1.;
+
+   v->x = v->x / len;
+   v->y = v->y / len;
+   v->z = v->z / len;
+
+   return len;
+}
+
+
+/***************************************************/
+/*                                                 */
+/* swap()                                          */
+/*                                                 */
+/* Switches the values of two memory locations     */
+/*                                                 */
+/***************************************************/
+
+int mProjectQL_swap(double *x, double *y)
+{
+   double tmp;
+
+   tmp = *x;
+   *x  = *y;
+   *y  = tmp;
+
+   return(0);
 }

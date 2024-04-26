@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+<!--#include virtual="include/header.html"-->
+
+<!-- BEGIN DOCUMENTATION TITLE -->
+<div id="wrapper">
+
+<h1>mHistogram</h1>
+
+<div id="usage">
+<dl class="description">
+  <dt>Description:</dt>
+  <dd>
+  <p>The mViewer application makes PNG/JPEG files using FITS images as input.  Part of that processing
+  involves analyzing the FITS files and creating a histogram that is used to inform the transformation
+  from pixel values to display colors/intensities.  This processing is done inside mViewer itself.</p>
+
+  <p>However, there are situations where it helps to have the histogram earlier.  For instance, you may
+  have several images to process into PNGs and wish to use the same histogram-based stretch for each one.
+  Or you may want to generate a set of pixel values that give the visual impression of a color bar (see
+  <a href="mPad.html">mPad</a>). Sometimes, you may just want the histogram itself for display or 
+  analysis purposes.</p>
+
+  <p>The mHistogram module contains the same histogram code as mViewer but writes the results out to an
+  ASCII file which can then be read in by mHistogram, mPad or user programs.</p>
+  </dd>
+</dl>
+
+<dl class="syntax">
+  <dt>Syntax:</dt>
+  <dd>
+  mHistogram [-d] -file <i>in.fits minrange maxrange [logpower/gaussian/gaussian-log]</i> -out <i>out.hist</i>
+  </dd>
+</dl>
+
+
+<p class="dochead">Switches:</p>
+<dl class="args">
+
+  <dt>-d</dt>
+  <dd>
+  Turn on debugging.
+  </dd>
+
+  <dt>-file <i>in.fits minrange maxrange [logpower/gaussian/gaussian-log]</i></dt>
+  <dd>
+  The FITS image file; stretch range; and (optionally) stretch mode.  See the
+  <a href="mViewer/">mViewer</a> documentation for more details.
+  </dd>
+
+  <dt>-out <i>out.hist</i></dt>
+  <dd>
+  Output histogram (ASCII) file.
+  </dd>
+
+</dl>
+
+<dl class="description">
+<dt>Results:</dt>
+  <dd>
+  If successful, the result is an ASCII file containing the histogram data, color table
+  lookup mapping, and some other information.
+  </dd>
+
+</dl>
+
+<p class="dochead">Examples:</p>
+<dl class="example">
+  <dt>mHistogram -file SDSS_r.fits -2s max gaussian-log -out SDSS_r.hist</dt>
+  <dd>[struct stat="OK"]</dd>
+</dl>
+
+
+<p class="dochead">Return Codes:</p>
+<ul class="returncodes">
+  <li>[struct stat="ERROR", msg="Too few arguments following -file flag"]</li>
+  <li>[struct stat="ERROR", msg="Image file <i>badfile</i> invalid FITS"]</li>
+  <li>[struct stat="ERROR", msg="Can't find HDU <i>badHDU</i>"]</li>
+  <li>[struct stat="ERROR", msg="Too few arguments following -out flag"]</li>
+  <li>[struct stat="ERROR", msg="No input FITS file name given"]</li>
+  <li>[struct stat="ERROR", msg="No output histogram file name given"]</li>
+  <li>[struct stat="ERROR", msg="Cannot open output histogram file."]</li>
+  <li>[struct stat="ERROR", msg="Grayscale/pseudocolor mode but no gray image given"]</li>
+  <li>[struct stat="ERROR", status=<i>stat</i>, msg="<i>FITS library error</i>"]</li>
+  <li>[struct stat="ERROR", msg="leading numeric term in <context> '<i>string</i>' cannot be converted to a finite floating point number"]</li>
+  <li>[struct stat="ERROR", msg="'<string>' is not a valid <i>datatype</i>"]</li>
+  <li>[struct stat="ERROR", msg="'<string>': negative percentile"]</li>
+  <li>[struct stat="ERROR", msg="'<string>': percentile <i>context</i> larger than 100"]</li>
+  <li>[struct stat="ERROR", msg="extra numeric term in <i>context</i> '<i>string</i>'  cannot be converted to a finite floating point number"]</li>
+  <li>[struct stat="ERROR", msg="<i>context</i> '<i>string</i>' contains trailing junk"]</li>
+</ul>
+
+</div>
+
+</div>
+<!--#include virtual="include/footer.html"-->

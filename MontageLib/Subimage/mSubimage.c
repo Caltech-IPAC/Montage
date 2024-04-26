@@ -14,13 +14,15 @@
 /*                                                                                    */
 /*  mSubimage    [-d][-h hdu] in.fit out.fit racent    deccent   xsize     ysize      */
 /*  mSubimage -p [-d][-h hdu] in.fit out.fit xstartpix ystartpix xsize     ysize      */
+/*  mSubimage -P [-d][-h hdu] in.fit out.fit xstartpix ystartpix xsize     ysize      */
 /*  mSubimage -a [-d] -h hdu  in.fit out.fit (ignored) (ignored) (ignored) (ignored)  */
 /*  mSubimage -c [-d][-h hdu] in.fit out.fit (ignored) (ignored) (ignored) (ignored)  */
 /*                                                                                    */
-/*  mode 0 (SKY):    (xref,yref) are (ra,dec) of center, sizes in degrees             */
-/*  mode 1 (PIX):    (xref,yref) are 'start' pixel coords, sizes in pixels            */
-/*  mode 2 (HDU):    All the pixels; essentially for picking out an HDU               */
-/*  mode 3 (SHRINK): All the pixels with blank edges trimmed off                      */
+/*       mode 0 (SKY):    (xref,yref) are (ra,dec) of center, sizes in degrees        */
+/*  -p   mode 1 (PIX):    (xref,yref) are 'start' pixel coords, sizes in pixels       */
+/*  -a   mode 2 (HDU):    All the pixels; essentially for picking out an HDU          */
+/*  -c   mode 3 (SHRINK): All the pixels with blank edges trimmed off                 */
+/*  -P   mode 4 (IMGPIX): Like PIX but relative to CRPIX refereence pixel             */
 /*                                                                                    */
 /*  HDU and SHRINK are special cases for convenience.  The 'nowcs' flag is a          */
 /*  special case, too, and only makes sense in PIX mode.                              */
@@ -60,17 +62,17 @@ int main(int argc, char **argv)
       
    if(argc < 4)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-h hdu][-s statusfile] in.fits out.fits ra dec xsize [ysize]  |  %s -p(ixel-mode) [-d][-h hdu][-n(o-wcs)][-s statusfile] in.fits out.fits xstartpix ystartpix xpixsize [ypixsize]  |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xend pix yendpix (relative to crpix)  |  %s -a(ll-pixels) [-d][-h hdu][-s statusfile] in.fits out.fits (to extract HDU)  |  %s -c(rop-nulls) [-d][-h hdu][-s statusfile] in.fits out.fits\"]\n", appname, appname, appname, appname, appname);
       exit(1);
    }
-
    
    for(i=1; i<argc; ++i)
    {
       if(strcmp(argv[i], "-d") == 0)
          debug = 1;
       
-      if(strcmp(argv[i], "-nowcs") == 0)
+      if(strcmp(argv[i], "-n")     == 0
+      || strcmp(argv[i], "-nowcs") == 0)
          nowcs = 1;
       
       if(strcmp(argv[i], "-a") == 0)
@@ -78,6 +80,9 @@ int main(int argc, char **argv)
       
       if(strcmp(argv[i], "-p") == 0)
          pixmode = 1;
+      
+      if(strcmp(argv[i], "-P") == 0)
+         pixmode = 2;
       
       if(strcmp(argv[i], "-c") == 0)
          shrinkWrap = 1;
@@ -167,15 +172,20 @@ int main(int argc, char **argv)
 
    if((shrinkWrap || allPixels) && argc < 3)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-h hdu][-s statusfile] in.fits out.fits ra dec xsize [ysize]  |  %s -p(ixel-mode) [-d][-h hdu][-n(o-wcs)][-s statusfile] in.fits out.fits xstartpix ystartpix xpixsize [ypixsize]  |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xend pix yendpix (relative to crpix)  |  %s -a(ll-pixels) [-d][-h hdu][-s statusfile] in.fits out.fits (to extract HDU)  |  %s -c(rop-nulls) [-d][-h hdu][-s statusfile] in.fits out.fits\"]\n", appname, appname, appname, appname, appname);
       exit(1);
    }
 
    if (!shrinkWrap && !allPixels && (argc < 6 || (pixmode && argc < 6))) 
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname);
+      printf("[struct stat=\"ERROR\", msg=\"Usage: %s [-d][-a(ll pixels)][-h hdu][-s statusfile] in.fit out.fit ra dec xsize [ysize] | %s -p [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xpixsize [ypixsize] |  %s -P [-d][-h hdu][-s statusfile] in.fit out.fit xstartpix ystartpix xendpix yendpix (relative to crpix) | %s -c [-d][-h hdu][-s statusfile] in.fit out.fit\"]\n", appname, appname, appname, appname);
       exit(1);
    }
+
+   ra    = 0;
+   dec   = 0;
+   xsize = 0;
+   ysize = 0;
 
    strcpy(infile,  argv[1]);
    strcpy(outfile, argv[2]);
@@ -188,8 +198,11 @@ int main(int argc, char **argv)
    if(shrinkWrap)
       mode = SHRINK;
 
-   if(pixmode)
+   if(pixmode == 1)
       mode = PIX;
+
+   if(pixmode == 2)
+      mode = IMGPIX;
 
    if(allPixels)
    {
@@ -253,7 +266,7 @@ int main(int argc, char **argv)
          exit(1);
       }
 
-      if(ysize < 0.)
+      if(ysize < 0. && pixmode != 2)
       {
          printf("[struct stat=\"ERROR\", msg=\"Invalid 'y' size\"]\n");
          exit(1);

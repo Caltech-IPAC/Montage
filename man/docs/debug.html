@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/x
+html1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Debug Levels</h1>
+
+<p>In most modules, the user can select to have additional "debugging" information printed to stdout by including the <span class="file">-d</span> switch.  This is often useful for developers, and can also provide extra information for any user who is experiencing some sort of problem they can't track down.  In debug mode, programs print out detailed information about their parameters and what commands they send to other programs, helping the user to isolate the problem.</p>
+
+<p>Some modes have multiple levels of debugging: a simple mode (-d 1) and more complex ones (-d 2, -d 3, etc) in which they print out increasingly detailed amounts of information.  For example, the lowest debug setting for mProject generates <a href="debug1.txt">this output</a>, while a setting of <span class="file">-d 2</span> generates <a href="debug2.txt">this longer output</a>.  The main different between these two examples is that the higher level of debugging causes mProject to print out which row it's working on as it goes, so if a problem is occurring at a specific location on the image, it would be easier to track down.</p>
+
+<p>See the <a href="index2.html">API</a> for more information on which levels are available for each module.</p>
+
+<p>All debugging output is sent to stdout, with no special formatting to separate debugging output from any other output.</p>
+
+
+
+
+
+<div id="docnav">
+<p class="left"><a href="headers.html">&lt;-- Header Templates</a></p>
+<p class="right"><a href="caveats.html">Caveats --&gt;</a></p>
+</div>
+
+
+
+
+<!--#include virtual="include/footer.html"-->

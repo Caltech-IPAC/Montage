@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 
    if(i > argc-1)
    {
-      printf("[struct stat=\"ERROR\", msg=\"Usage: mMakeHdr [-json <JSON> | -jfile <file>] template.hdr output.fits\"]\n");
+      printf("[struct stat=\"ERROR\", msg=\"Usage: mMakeImg [-d level] [-r(eplace)] [-n noise_level] [-b bg1 bg2 bg3 bg4] [-t tblfile col width csys epoch refval mag/flux flat/gaussian] [-i imagetbl refval] [-a array.txt] template.hdr out.fits (-t and -i args can be repeated)\"]\n");
       fflush(stdout);
       exit(0);
    }

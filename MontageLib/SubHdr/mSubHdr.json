@@ -1,0 +1,28 @@
+{
+   "module":"mSubHdr",
+
+   "function":"mSubHdr",
+
+   "desc" : "mSubHdr creates a header that is a cutout of the original header.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"infile",        "desc":"Input FITS file."},
+      {"type":"string",                    "name":"outfile",       "desc":"Subimage output FITS file."},
+      {"type":"double",                    "name":"ra",            "desc":"RA of cutout center (or start X pixel in PIX mode."},
+      {"type":"double",                    "name":"dec",           "desc":"Dec of cutout center (or start X pixel in PIX mode."},
+      {"type":"string",                    "name":"xsize",         "desc":"X size in degrees (SKY mode) or pixels (PIX mode)."},
+      {"type":"string",                    "name":"ysize",         "desc":"Y size in degrees (SKY mode) or pixels (PIX mode)."},
+      {"type":"int",     "default":0,      "name":"mode",          "desc":"Processing mode. The two main modes are 0 (SKY) and 1 (PIX), corresponding to cutouts are in sky coordinate or pixel space. The two other modes are 3 (HDU) and 4 (SHRINK), where the region parameters are ignored and you get back either a single HDU or an image that has had all the blank border pixels removed."},
+      {"type":"boolean", "default":false,  "name":"nowcs",         "desc":"Indicates that the image has no WCS info (only makes sense in PIX mode)."},
+      {"type":"boolean", "default":false,  "name":"shift",         "desc":"Try to shift the image if the window goes off an edge."},
+      {"type":"int",     "default":0,      "name":"debug",         "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"int",                       "name":"status",        "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                    "name":"msg",           "desc":"Return message (for errors)."},
+      {"type":"int",                       "name":"lines",         "desc":"Number of lines in the output header."}
+   ]
+}

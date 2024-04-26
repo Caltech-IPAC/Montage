@@ -21,13 +21,14 @@ struct tStackCell
    tStack                next;
 };
 
-int     cgeomInit            ( double *x, double *y, int n );
+tStack  cgeomInit            ( double *x, double *y, int n );
 double  cgeomGetXcen         ( );
 double  cgeomGetYcen         ( );
 double  cgeomGetWidth        ( );
 double  cgeomGetHeight       ( );
 double  cgeomGetAngle        ( );
 tStack  cgeomPop             ( tStack s );
+void    cgeomClear           ( tStack s );
 void    cgeomPrintStack      ( tStack t );
 tStack  cgeomPush            ( tPoint p, tStack top );
 tStack  cgeomGraham          ( void );

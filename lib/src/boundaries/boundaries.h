@@ -90,12 +90,7 @@ void                 bndCopy                (struct bndSkyLocation *v1,
 int                  bndEqual               (struct bndSkyLocation *v1, 
 				             struct bndSkyLocation *v2);
 
-void                 bndDrawOutline         (struct bndStackCell *t);
-void                 bndDrawSkyPoints       (void);
-void                 bndDrawBox             ();
-void                 bndDrawCircle          ();
 void                 bndPrintFitsInfo       ();
-void                 bndDrawImageBounds     ();
 
 void                 bndComputeBoundingBox         (struct bndStackCell *t);
 void                 bndComputeVerticalBoundingBox (struct bndStackCell *t);

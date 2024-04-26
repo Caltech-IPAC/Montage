@@ -123,7 +123,7 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -352,6 +352,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
                        buffer, &nullcnt, &status))
       {
          mBackground_printFitsError(status);
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
@@ -367,6 +389,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
                           abuffer, &nullcnt, &status))
          {
             mBackground_printFitsError(status);
+   
+            for(j=0; j<output.naxes[1]; ++j)
+            {
+               free(data[j]);
+               free(area[j]);
+
+               data[j] = (double *)NULL;
+               area[j] = (double *)NULL;
+            }
+
+            free(data);
+            free(area);
+
+            data = (double **)NULL;
+            area = (double **)NULL;
+
+            free(buffer);
+            free(abuffer);
+
+            buffer  = (double *)NULL;
+            abuffer = (double *)NULL;
+
             strcpy(returnStruct->msg, montage_msgstr);
             return returnStruct;
          }
@@ -409,9 +453,6 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
       }
    }
 
-   free(buffer);
-   free(abuffer);
-
    if(debug >= 1)
    {
       time(&currtime);
@@ -430,6 +471,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
    if(fits_create_file(&output.fptr, output_file, &status)) 
    {
       mBackground_printFitsError(status);           
+   
+      for(j=0; j<output.naxes[1]; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+
+         data[j] = (double *)NULL;
+         area[j] = (double *)NULL;
+      }
+
+      free(data);
+      free(area);
+
+      data = (double **)NULL;
+      area = (double **)NULL;
+
+      free(buffer);
+      free(abuffer);
+
+      buffer  = (double *)NULL;
+      abuffer = (double *)NULL;
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -441,6 +504,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
       if(fits_create_file(&output_area.fptr, output_area_file, &status)) 
       {
          mBackground_printFitsError(status);           
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
@@ -461,6 +546,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
    if(fits_copy_header(input.fptr, output.fptr, &status))
    {
       mBackground_printFitsError(status);           
+   
+      for(j=0; j<output.naxes[1]; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+
+         data[j] = (double *)NULL;
+         area[j] = (double *)NULL;
+      }
+
+      free(data);
+      free(area);
+
+      data = (double **)NULL;
+      area = (double **)NULL;
+
+      free(buffer);
+      free(abuffer);
+
+      buffer  = (double *)NULL;
+      abuffer = (double *)NULL;
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -470,6 +577,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
       if(fits_copy_header(input.fptr, output_area.fptr, &status))
       {
          mBackground_printFitsError(status);           
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
@@ -484,6 +613,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
    if(fits_close_file(input.fptr, &status))
    {
       mBackground_printFitsError(status);
+   
+      for(j=0; j<output.naxes[1]; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+
+         data[j] = (double *)NULL;
+         area[j] = (double *)NULL;
+      }
+
+      free(data);
+      free(area);
+
+      data = (double **)NULL;
+      area = (double **)NULL;
+
+      free(buffer);
+      free(abuffer);
+
+      buffer  = (double *)NULL;
+      abuffer = (double *)NULL;
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -492,6 +643,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
       if(fits_close_file(input_area.fptr, &status))
       {
          mBackground_printFitsError(status);
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
@@ -505,6 +678,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
                                   (char *)NULL, &status))
    {
       mBackground_printFitsError(status);
+   
+      for(j=0; j<output.naxes[1]; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+
+         data[j] = (double *)NULL;
+         area[j] = (double *)NULL;
+      }
+
+      free(data);
+      free(area);
+
+      data = (double **)NULL;
+      area = (double **)NULL;
+
+      free(buffer);
+      free(abuffer);
+
+      buffer  = (double *)NULL;
+      abuffer = (double *)NULL;
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -515,6 +710,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
                                      (char *)NULL, &status))
       {
          mBackground_printFitsError(status);
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
@@ -535,14 +752,34 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
                          (void *)(&data[j][0]), &status))
       {
          mBackground_printFitsError(status);
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
 
       ++fpixel[1];
    }
-
-   free(data[0]);
 
    if(debug >= 1)
    {
@@ -567,14 +804,34 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
                             (void *)(&area[j][0]), &status))
          {
             mBackground_printFitsError(status);
+   
+            for(j=0; j<output.naxes[1]; ++j)
+            {
+               free(data[j]);
+               free(area[j]);
+
+               data[j] = (double *)NULL;
+               area[j] = (double *)NULL;
+            }
+
+            free(data);
+            free(area);
+
+            data = (double **)NULL;
+            area = (double **)NULL;
+
+            free(buffer);
+            free(abuffer);
+
+            buffer  = (double *)NULL;
+            abuffer = (double *)NULL;
+
             strcpy(returnStruct->msg, montage_msgstr);
             return returnStruct;
          }
 
          ++fpixel[1];
       }
-
-      free(area[0]);
 
       if(debug >= 1)
       {
@@ -591,6 +848,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
    if(fits_close_file(output.fptr, &status))
    {
       mBackground_printFitsError(status);           
+   
+      for(j=0; j<output.naxes[1]; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+
+         data[j] = (double *)NULL;
+         area[j] = (double *)NULL;
+      }
+
+      free(data);
+      free(area);
+
+      data = (double **)NULL;
+      area = (double **)NULL;
+
+      free(buffer);
+      free(abuffer);
+
+      buffer  = (double *)NULL;
+      abuffer = (double *)NULL;
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -606,6 +885,28 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
       if(fits_close_file(output_area.fptr, &status))
       {
          mBackground_printFitsError(status);           
+   
+         for(j=0; j<output.naxes[1]; ++j)
+         {
+            free(data[j]);
+            free(area[j]);
+
+            data[j] = (double *)NULL;
+            area[j] = (double *)NULL;
+         }
+
+         free(data);
+         free(area);
+
+         data = (double **)NULL;
+         area = (double **)NULL;
+
+         free(buffer);
+         free(abuffer);
+
+         buffer  = (double *)NULL;
+         abuffer = (double *)NULL;
+
          strcpy(returnStruct->msg, montage_msgstr);
          return returnStruct;
       }
@@ -618,6 +919,27 @@ struct mBackgroundReturn *mBackground(char *input_file, char *ofile, double A, d
    }
 
    time(&currtime);
+
+   for(j=0; j<output.naxes[1]; ++j)
+   {
+      free(data[j]);
+      free(area[j]);
+
+      data[j] = (double *)NULL;
+      area[j] = (double *)NULL;
+   }
+
+   free(data);
+   free(area);
+
+   data = (double **)NULL;
+   area = (double **)NULL;
+
+   free(buffer);
+   free(abuffer);
+
+   buffer  = (double *)NULL;
+   abuffer = (double *)NULL;
 
    returnStruct->status = 0;
 

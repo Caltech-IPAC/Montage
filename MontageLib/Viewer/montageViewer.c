@@ -36,6 +36,7 @@ Version  Developer        Date     Change
 #define  MAXSTR    1024
 #define  MAXGRID     16
 #define  MAXCAT     128
+#define  MAXDRAW    128
 #define  MAXMARK   1024
 #define  MAXLABEL  1024
 #define  MAXDIM   65500
@@ -65,11 +66,22 @@ Version  Developer        Date     Change
 
 #define  PNG         0
 #define  JPEG        1
+#define  FITS        2
 
 #define FOURCORNERS  0
 #define WCS          1
+#define NBIN    200000
 
+int     nbin;
 
+int     hist    [NBIN];
+double  chist   [NBIN];
+double  datalev [NBIN];
+double  gausslev[NBIN];
+
+unsigned long npix;
+
+double  delta, rmin, rmax;
 
 static char fontfile[1024];
 
@@ -86,11 +98,11 @@ static int redPlanes[256];
 static int greenPlanes[256];
 static int bluePlanes[256];
 
-static int    naxis1, naxis2;
-static int    outType;
-static int    noflip;
-static int    flipX;
-static int    flipY;
+static int naxis1, naxis2;
+static int outType;
+static int noflip;
+static int flipX;
+static int flipY;
 
 static double crpix1, crpix2;
 static double crval1, crval2;
@@ -138,6 +150,8 @@ static unsigned int nx;
 static unsigned int ny;
 static unsigned int membytes;
 
+int hpx, hpxPix, hpxLevel;
+
 int isRGB;
 
 static double mynan;
@@ -175,7 +189,7 @@ static int mViewer_debug;
 /*                                                                           */
 /*   char  *fontFile       Font file (overrides default)                     */
 /*                                                                           */
-/*   char  *outFmt         'png' or 'jpeg'                                   */
+/*   char  *outFmt         'png', 'jpeg' or 'fits'                           */
 /*                                                                           */
 /*   int    debug          Debugging output level                            */
 /*                                                                           */
@@ -207,6 +221,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    double    x, y;
    double    ix, iy;
    double    xpos, ypos;
+   double    brightness, contrast, cfactor;
+   double    bbrightness, bcontrast, bcfactor;
+   double    gbrightness, gcontrast, gcfactor;
+   double    rbrightness, rcontrast, rcfactor;
 
    int       grayType;
    int       redType;
@@ -232,6 +250,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       int    csys;                    // Coordinate system (default EQUJ)
       double epoch;                   // Coordinate epoch (default 2000.)
       double red, green, blue;        // Grid color
+      double alpha;                   // Grid overlay alpha
    };
 
    struct gridInfo grid[MAXGRID];
@@ -252,6 +271,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
       double red, green, blue;        // Global symbol/outline/label color
       char   colorColumn[MAXSTR];     // Override color column (content e.g. 'red' or "ff00a0")
+      double alpha;                   // Global grid overlay alpha
 
       double symSize;                 // Symbol reference size (e.g. 2.5)
       int    symUnits;                // Size units (e.g. arcsec)
@@ -272,6 +292,21 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    };
 
    struct catInfo cat[MAXCAT];
+
+
+
+   // DRAWING LAYERS
+   
+   int ndrawing;
+
+   struct drawingInfo
+   {
+      char file[MAXSTR];
+
+      double alpha;
+   };
+
+   struct drawingInfo drawing[MAXDRAW];
    
 
    // INDIVIDUAL LABEL LAYERS
@@ -286,6 +321,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       double x, y;                    // Label location
       int    inpix;                   // Label location is pixel, not sky, coordinates
       double red, green, blue;        // Label color
+      double alpha;                   // Mark overlay alpha
    };
 
    struct labelInfo label[MAXLABEL];
@@ -311,6 +347,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       double linewidth;               // Line thickness for drawing    
 
       double red, green, blue;        // Mark color
+      double alpha;                   // Mark overlay alpha
    };
 
    struct markInfo mark[MAXMARK];
@@ -320,9 +357,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    // "Sticky" value; set in a command like -symbol, used when
    // needed thereafter until reset or unset.
 
-   int       csys, symUnits, symNPnt, symNMax, symType, scaleType;
+   int       csys, symUnits, symNPnt, symNMax, symType, scaleType, tzero;
    double    epoch, symSize, symRotAngle, scaleVal, fontScale, fontSize;
-   double    lineWidth;
+   double    lineWidth, alpha, imgalpha;
 
    char      symSizeColumn [MAXSTR];
    char      symShapeColumn[MAXSTR];
@@ -364,6 +401,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    struct WorldCoor *im_wcs;
 
    int       nimages;
+
+   long      naxisl;
 
    int       im_sys;
    int       im_equinox;
@@ -421,6 +460,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    char      bluefile     [1024];
    char      jpegfile     [1024];
    char      pngfile      [1024];
+   char      ofitsfile    [1024];
 
    char      grayhistfile [1024];
    char      redhistfile  [1024];
@@ -500,12 +540,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    fitsfile *redfptr;
    fitsfile *greenfptr;
    fitsfile *bluefptr;
+   fitsfile *fitsfptr;
 
    long      fpixelGray [4];
    long      fpixelRed  [4];
    long      fpixelGreen[4];
    long      fpixelBlue [4];
    long      nelements;
+   long      ofpixel[4];
 
    char      bunit[256];
 
@@ -515,8 +557,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    char     *ptr;
 
-   FILE     *jpegfp;
-   FILE     *fjson;
+   FILE     *jpegfp = (FILE *)NULL;
+   FILE     *fjson  = (FILE *)NULL;
 
    JSAMPARRAY  jpegptr;
 
@@ -550,6 +592,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    /********************************/
 
    returnStruct = &rtnStruct;
+
+   outType = PNG;
 
    grayType  = 0;
    redType   = 0;
@@ -602,6 +646,33 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    bluefptr  = (fitsfile *)NULL;
 
    header = (char *)NULL;
+
+   hpx    = 0;
+   hpxPix = 0;
+
+   brightness = 0.;
+   contrast   = 0.;
+   cfactor    = 1.;
+
+   bbrightness = 0.;
+   bcontrast   = 0.;
+   bcfactor    = 1.;
+
+   gbrightness = 0.;
+   gcontrast   = 0.;
+   gcfactor    = 1.;
+
+   rbrightness = 0.;
+   rcontrast   = 0.;
+   rcfactor    = 1.;
+
+   for(i=0; i<NBIN; ++i)
+   {
+      hist    [i] = 0;
+      chist   [i] = 0.;
+      datalev [i] = 0.;
+      gausslev[i] = 0.;
+   }
 
 
    /*******************************/
@@ -662,6 +733,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
    fontScale   = 1.;
    lineWidth   = 1.;
+   alpha       = 1.;
+   imgalpha    = 1.;
+
+   tzero = 0;
 
    strcpy(symSizeColumn,  "");
    strcpy(symShapeColumn, "");
@@ -685,6 +760,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    strcpy(bluefile,       "");
    strcpy(pngfile,        "");
    strcpy(jpegfile,       "");
+   strcpy(ofitsfile,      "");
    strcpy(grayhistfile,   "");
    strcpy(redhistfile,    "");
    strcpy(greenhistfile,  "");
@@ -694,20 +770,24 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    ovlygreen = 0.5;
    ovlyblue  = 0.5;
 
-   ngrid  = 0;
-   ncat   = 0;
-   nlabel = 0;
-   nmark  = 0;
+   ngrid    = 0;
+   ncat     = 0;
+   ndrawing = 0;
+   nlabel   = 0;
+   nmark    = 0;
 
-   noflip = 0;
-   flipX  = 0;
-   flipY  = 0;
+   noflip   = 0;
+   flipX    = 0;
+   flipY    = 0;
 
    if(strcmp(outFmt, "png") == 0)
       strcpy(pngfile, outFile);
 
    if(strcmp(outFmt, "jpeg") == 0)
       strcpy(jpegfile, outFile);
+
+   if(strcmp(outFmt, "fits") == 0)
+      strcpy(ofitsfile, outFile);
 
    if(mViewer_debug)
    {
@@ -819,15 +899,177 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       }
 
 
+      /* ALPHA */
+
+      if(json_val(layout, "alpha", valstr))
+      {
+         alpha = strtod(valstr, &end);
+
+         if(alpha < 0. || alpha > 1. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Alpha parameter must a number between zero and one.");
+            return returnStruct;
+         }
+      }
+
+
+      /* IMGALPHA */
+
+      if(json_val(layout, "imgalpha", valstr))
+      {
+         imgalpha = strtod(valstr, &end);
+
+         if(imgalpha < 0. || imgalpha > 1. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Alpha parameter must a number between zero and one.");
+            return returnStruct;
+         }
+      }
+
+
+      /* BRIGHTNESS */
+
+      if(json_val(layout, "brightness", valstr))
+      {
+         brightness = strtod(valstr, &end);
+
+         if(brightness < -255. || brightness > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Brightness parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+      }
+
+
+      /* BBRIGHTNESS */
+
+      if(json_val(layout, "bbrightness", valstr))
+      {
+         bbrightness = strtod(valstr, &end);
+
+         if(bbrightness < -255. || bbrightness > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Bbrightness parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+      }
+
+
+      /* GBRIGHTNESS */
+
+      if(json_val(layout, "gbrightness", valstr))
+      {
+         gbrightness = strtod(valstr, &end);
+
+         if(gbrightness < -255. || gbrightness > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Gbrightness parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+      }
+
+
+      /* RBRIGHTNESS */
+
+      if(json_val(layout, "rbrightness", valstr))
+      {
+         rbrightness = strtod(valstr, &end);
+
+         if(rbrightness < -255. || rbrightness > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Rbrightness parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+      }
+
+
+      /* CONTRAST */
+
+      if(json_val(layout, "contrast", valstr))
+      {
+         contrast = strtod(valstr, &end);
+
+         if(contrast < -255. || contrast > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Contrast parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+
+         cfactor = 259./255. * (255. + contrast) / (259.-contrast);
+      }
+
+
+      /* BCONTRAST */
+
+      if(json_val(layout, "bcontrast", valstr))
+      {
+         bcontrast = strtod(valstr, &end);
+
+         if(bcontrast < -255. || bcontrast > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Bcontrast parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+
+         bcfactor = 259./255. * (255. + bcontrast) / (259.-bcontrast);
+      }
+
+
+      /* GCONTRAST */
+
+      if(json_val(layout, "gcontrast", valstr))
+      {
+         gcontrast = strtod(valstr, &end);
+
+         if(gcontrast < -255. || gcontrast > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Gcontrast parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+
+         cfactor = 259./255. * (255. + gcontrast) / (259.-gcontrast);
+      }
+
+
+      /* RCONTRAST */
+
+      if(json_val(layout, "rcontrast", valstr))
+      {
+         rcontrast = strtod(valstr, &end);
+
+         if(rcontrast < -255. || rcontrast > 255. || end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Rcontrast parameter must a number between -255 and 255.");
+            return returnStruct;
+         }
+
+         cfactor = 259./255. * (255. + rcontrast) / (259.-rcontrast);
+      }
+
+
+      /* TZERO */
+
+      if(json_val(layout, "tzero", valstr))
+      {
+         tzero = strtol(valstr, &end, 0);
+
+         if(end < valstr+strlen(valstr))
+         {
+            strcpy(returnStruct->msg, "Tzero parameter must be an integer (nominally zero or one for false/true).");
+            return returnStruct;
+         }
+      }
+
+
       /* COLOR TABLE (for grayscale) */
 
       if(json_val(layout, "color_table", valstr))
       {
          colortable = strtol(valstr, &end, 10);
 
-         if(colortable < 0 || colortable > 11 || end < valstr+strlen(valstr))
+         if(colortable < 0 || colortable > 12 || end < valstr+strlen(valstr))
          {
-            strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+            strcpy(returnStruct->msg, "Color table index must be a number between 0 and 12");
             return returnStruct;
          }
       }
@@ -902,9 +1144,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             {
                colortable = strtol(valstr, &end, 10);
 
-               if(colortable < 0 || colortable > 11 || end < valstr+strlen(valstr))
+               if(colortable < 0 || colortable > 12 || end < valstr+strlen(valstr))
                {
-                  strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+                  strcpy(returnStruct->msg, "Color table index must be a number between 0 and 12");
                   return returnStruct;
                }
             }
@@ -1341,6 +1583,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                grid[ngrid].linewidth = lineWidth;
 
 
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                grid[ngrid].alpha = strtod(valstr, &end);
+
+               if(grid[ngrid].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               grid[ngrid].alpha = alpha;
+
+
             sprintf(keystr, "overlays[%d].coord_sys", noverlay);  // Require coordinate system (don't use default)
 
             if(json_val(layout, keystr, valstr) == (char *)NULL)
@@ -1484,7 +1742,39 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
 
 
-            // Columns can be used instead of the fixed values above, mixing both 
+            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].linewidth = strtod(valstr, &end);
+
+               if(cat[ncat].linewidth <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].linewidth = lineWidth;
+
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].alpha = strtod(valstr, &end);
+
+               if(cat[ncat].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].alpha = alpha;
+
+
+            // Columns can be used instead of some fixed values, mixing both 
             // for the same table would result in indeterminant behavior, so be careful
 
             sprintf(keystr, "overlays[%d].size_column", noverlay);  // Check for explicit size column
@@ -1514,21 +1804,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             if(json_val(layout, keystr, valstr))
                strcpy(cat[ncat].colorColumn, valstr);
 
-
-            sprintf(keystr, "overlays[%d].line_width", noverlay);  // Check for line width
-
-            if(json_val(layout, keystr, valstr))
-            {
-                cat[ncat].linewidth = strtod(valstr, &end);
-
-               if(cat[ncat].linewidth <= 0.  || end < valstr+strlen(valstr))
-               {
-                  sprintf(returnStruct->msg, "Line width (overlay %d) parameter must a number greater than zero.", noverlay);
-                  return returnStruct;
-               }
-            }
-            else
-               cat[ncat].linewidth = lineWidth;
 
             ++ncat;
          }
@@ -1595,6 +1870,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
             else
                cat[ncat].linewidth = lineWidth;
+
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                cat[ncat].alpha = strtod(valstr, &end);
+
+               if(cat[ncat].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               cat[ncat].alpha = alpha;
 
 
             ++ncat;
@@ -1735,6 +2026,23 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             else
                mark[nmark].linewidth = lineWidth;
 
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                mark[nmark].alpha = strtod(valstr, &end);
+
+               if(mark[nmark].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               mark[nmark].alpha = alpha;
+
+
             ++nmark;
          }
 
@@ -1776,6 +2084,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             {
                label[nlabel].fontscale = fontScale;
             }
+
+
+            sprintf(keystr, "overlays[%d].alpha", noverlay);  // Check for alpha
+
+            if(json_val(layout, keystr, valstr))
+            {
+                label[nlabel].alpha = strtod(valstr, &end);
+
+               if(label[nlabel].alpha <= 0.  || end < valstr+strlen(valstr))
+               {
+                  sprintf(returnStruct->msg, "Alpha (overlay %d) parameter must a number between zero and one.", noverlay);
+                  return returnStruct;
+               }
+            }
+            else
+               label[nlabel].alpha = alpha;
 
 
             sprintf(keystr, "overlays[%d].lon", noverlay);  // Require longitude
@@ -1885,6 +2209,188 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             }
 
             ++i;
+         }
+         
+
+         /* ALPHA  */
+
+         else if(strcmp(argv[i], "-alpha") == 0)
+         {
+            alpha = strtod(argv[i+1], &end);
+
+            if(alpha < 0. || alpha > 1. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Opacity (alpha) must a number between zero and one.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+         
+
+         /* IMGALPHA  */
+
+         else if(strcmp(argv[i], "-imgalpha") == 0)
+         {
+            imgalpha = strtod(argv[i+1], &end);
+
+            if(imgalpha < 0. || imgalpha > 1. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Image opacity (alpha) must a number between zero and one.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* BRIGHTNESS  */
+
+         else if(strcmp(argv[i], "-brightness") == 0)
+         {
+            brightness = strtod(argv[i+1], &end);
+
+            if(brightness < -255. || brightness > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Brightness parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* BBRIGHTNESS  */
+
+         else if(strcmp(argv[i], "-bbrightness") == 0)
+         {
+            bbrightness = strtod(argv[i+1], &end);
+
+            if(bbrightness < -255. || bbrightness > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Bbrightness parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* GBRIGHTNESS  */
+
+         else if(strcmp(argv[i], "-gbrightness") == 0)
+         {
+            gbrightness = strtod(argv[i+1], &end);
+
+            if(gbrightness < -255. || gbrightness > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Gbrightness parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* RBRIGHTNESS  */
+
+         else if(strcmp(argv[i], "-rbrightness") == 0)
+         {
+            rbrightness = strtod(argv[i+1], &end);
+
+            if(rbrightness < -255. || rbrightness > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Rbrightness parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            ++i;
+         }
+      
+         
+         /* CONTRAST  */
+
+         else if(strcmp(argv[i], "-contrast") == 0)
+         {
+            contrast = strtod(argv[i+1], &end);
+
+            if(contrast < -255. || contrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Contrast parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            cfactor = 259./255. * (255. + contrast) / (259.-contrast);
+
+            ++i;
+         }
+      
+         
+         /* BCONTRAST  */
+
+         else if(strcmp(argv[i], "-bcontrast") == 0)
+         {
+            bcontrast = strtod(argv[i+1], &end);
+
+            if(bcontrast < -255. || bcontrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Bcontrast parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            cfactor = 259./255. * (255. + bcontrast) / (259.-bcontrast);
+
+            ++i;
+         }
+      
+         
+         /* GCONTRAST  */
+
+         else if(strcmp(argv[i], "-gcontrast") == 0)
+         {
+            gcontrast = strtod(argv[i+1], &end);
+
+            if(gcontrast < -255. || gcontrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Gcontrast parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            cfactor = 259./255. * (255. + gcontrast) / (259.-gcontrast);
+
+            ++i;
+         }
+      
+         
+         /* RCONTRAST  */
+
+         else if(strcmp(argv[i], "-rcontrast") == 0)
+         {
+            rcontrast = strtod(argv[i+1], &end);
+
+            if(rcontrast < -255. || rcontrast > 255. || end < argv[i+1]+strlen(argv[i+1]))
+            {
+               strcpy(returnStruct->msg, "Rcontrast parameter must a number between -255 and 255.");
+               return returnStruct;
+            }
+
+            cfactor = 259./255. * (255. + rcontrast) / (259.-rcontrast);
+
+            ++i;
+         }
+      
+         
+         /* TZERO */
+         
+         else if(strcmp(argv[i], "-tzero") == 0)
+         {
+            tzero = strtol(argv[i+1], &end, 0);
+
+            if(end < valstr+strlen(valstr))
+            {
+               strcpy(returnStruct->msg, "Tzero parameter must be an integer (nominally zero or one for false/true).");
+               return returnStruct;
+            }
          }
          
 
@@ -2006,6 +2512,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             grid[ngrid].linewidth = lineWidth;
 
+            grid[ngrid].alpha = alpha;
+
             grid[ngrid].csys   = EQUJ;
             grid[ngrid].epoch  = -999.;
 
@@ -2065,6 +2573,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             label[nlabel].red   = ovlyred;
             label[nlabel].green = ovlygreen;
             label[nlabel].blue  = ovlyblue;
+
+            label[nlabel].alpha = alpha;
 
             if(i+3 >= argc)
             {
@@ -2305,7 +2815,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
                if(i+1 < argc && argv[i+1][0] != '-')
                {
-                  strcat(scaleColumn, argv[i+1]);
+                  strcpy(scaleColumn, argv[i+1]);
                   ++i;
 
                   if(i+1 < argc && argv[i+1][0] != '-')
@@ -2439,14 +2949,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].scaleVal  = scaleVal;
             cat[ncat].scaleType = scaleType;
 
-            strcat(cat[ncat].scaleColumn, scaleColumn);
+            strcpy(cat[ncat].scaleColumn, scaleColumn);
 
             strcpy(cat[ncat].file, argv[i+1]);
             ++i;
 
             if(i+1 < argc && argv[i+1][0] != '-')
             {
-               strcat(cat[ncat].scaleColumn, argv[i+1]);
+               strcpy(cat[ncat].scaleColumn, argv[i+1]);
                ++i;
 
                if(i+1 < argc && argv[i+1][0] != '-')
@@ -2488,6 +2998,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].fontscale = fontScale;
             cat[ncat].linewidth = lineWidth;
 
+            cat[ncat].alpha = alpha;
+
             ++ncat;
          }
 
@@ -2527,6 +3039,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             mark[nmark].linewidth = lineWidth;
 
+            mark[nmark].alpha = alpha;
+
             ++nmark;
 
             i += 2;
@@ -2546,7 +3060,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].isImgInfo = 1;
 
             strcpy(cat[ncat].file, argv[i+1]);
-            strcat(cat[ncat].scaleColumn , "");
+            strcpy(cat[ncat].scaleColumn , "");
 
             cat[ncat].scaleVal  = 0.;
             cat[ncat].scaleType = FLUX;
@@ -2566,6 +3080,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             cat[ncat].linewidth = lineWidth;
 
+            cat[ncat].alpha = alpha;
+
             strcpy(cat[ncat].colorColumn,    colorColumn);
             strcpy(cat[ncat].labelColumn,    "");
             strcpy(cat[ncat].symSizeColumn,  "");
@@ -2574,6 +3090,26 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             cat[ncat].fontscale = fontScale;
 
             ++ncat;
+
+            ++i;
+         }
+
+
+         /* IMAGE METADATA OVERLAY */
+
+         else if(strcmp(argv[i], "-draw") == 0)
+         {
+            if(i+1 >= argc)
+            {
+               strcpy(returnStruct->msg, "Too few arguments following -drawing flag");
+               return returnStruct;
+            }
+
+            strcpy(drawing[ndrawing].file, argv[i+1]);
+
+            drawing[ndrawing].alpha = alpha;
+
+            ++ndrawing;
 
             ++i;
          }
@@ -2591,9 +3127,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             colortable = strtol(argv[i+1], &end, 10);
 
-            if(colortable < 0  || colortable > 11 || end < argv[i+1]+strlen(argv[i+1]))
+            if(colortable < 0  || colortable > 12 || end < argv[i+1]+strlen(argv[i+1]))
             {
-               strcpy(returnStruct->msg, "Color table index must be a number between 0 and 11");
+               strcpy(returnStruct->msg, "Color table index must be a number between 0 and 12");
                return returnStruct;
             }
 
@@ -3145,6 +3681,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             strcpy(jpegfile, argv[i+1]);
 
+
             jpegfp = fopen(jpegfile, "w+");
 
             if(jpegfp == (FILE *)NULL)
@@ -3158,6 +3695,22 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             ++i;
          }
 
+         else if(strcmp(argv[i], "-fits") == 0)
+         {
+            if(i+1 >= argc)
+            {
+               strcpy(returnStruct->msg, "No output file given following -fits flag");
+               return returnStruct;
+            }
+
+            strcpy(ofitsfile, argv[i+1]);
+
+            outType = FITS;
+
+            ++i;
+         }
+
+
          else
          {
             if(argv[i][0] != '-')
@@ -3168,6 +3721,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          }
       }
    }
+
 
 
    /***************************************************/
@@ -3242,11 +3796,13 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       for(i=0; i<ngrid; ++i)
       {
          printf("DEBUG> grid[%d].fontscale   = [%-g]\n", i, grid[i].fontscale );
+         printf("DEBUG> grid[%d].linewidth   = [%-g]\n", i, grid[i].linewidth);
          printf("DEBUG> grid[%d].csys        = [%d]\n",  i, grid[i].csys );
          printf("DEBUG> grid[%d].epoch       = [%-g]\n", i, grid[i].epoch);
          printf("DEBUG> grid[%d].red         = [%-g]\n", i, grid[i].red  );
          printf("DEBUG> grid[%d].green       = [%-g]\n", i, grid[i].green);
          printf("DEBUG> grid[%d].blue        = [%-g]\n", i, grid[i].blue );
+         printf("DEBUG> grid[%d].alpha       = [%-g]\n", i, grid[i].alpha);
       }
 
       for(i=0; i<ncat; ++i)
@@ -3266,7 +3822,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("DEBUG> cat[%d].red          = [%-g]\n", i, cat[i].red  );
          printf("DEBUG> cat[%d].green        = [%-g]\n", i, cat[i].green);
          printf("DEBUG> cat[%d].blue         = [%-g]\n", i, cat[i].blue );
+         printf("DEBUG> cat[%d].alpha        = [%-g]\n", i, cat[i].alpha);
          printf("DEBUG> cat[%d].linewidth    = [%-g]\n", i, cat[i].linewidth );
+      }
+
+      for(i=0; i<ndrawing; ++i)
+      {
+         printf("DEBUG> drawing[%d].file     = [%s]\n",  i, drawing[i].file);
+         printf("DEBUG> drawing[%d].alpha    = [%-g]\n", i, drawing[i].alpha);
       }
 
       for(i=0; i<nmark; ++i)
@@ -3293,11 +3856,14 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          printf("DEBUG> label[%d].y          = [%-g]\n", i, label[i].y   );
          printf("DEBUG> label[%d].text       = [%s]\n",  i, label[i].text);
          printf("DEBUG> label[%d].fontscale  = [%-g]\n", i, label[i].fontscale );
+         printf("DEBUG> label[%d].alpha      = [%-g]\n", i, label[i].alpha);
       }
 
       printf("\n");
+      printf("DEBUG> outType                 = [%d]\n", outType);
       printf("DEBUG> pngfile                 = [%s]\n", pngfile);
       printf("DEBUG> jpegfile                = [%s]\n", jpegfile);
+      printf("DEBUG> ofitsfile               = [%s]\n", ofitsfile);
    }
 
 
@@ -3307,6 +3873,13 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    || strlen(greenfile) > 0
    || strlen(bluefile)  > 0)
       isRGB = 1;
+
+
+   if(strlen(ofitsfile) > 0 && isRGB)
+   {
+      strcpy(returnStruct->msg, "Must be in gray mode to output FITS file.");
+      return returnStruct;
+   }
    
 
    if(isRGB)
@@ -3339,8 +3912,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    }
 
       
-   if(strlen(pngfile)  == 0
-   && strlen(jpegfile) == 0)
+   if(strlen(pngfile)   == 0
+   && strlen(jpegfile)  == 0
+   && strlen(ofitsfile) == 0)
    {
       strcpy(returnStruct->msg, "No output PNG or JPEG file name given");
       return returnStruct;
@@ -3409,12 +3983,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(redfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(redfptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero (red image).");
+               return returnStruct;
+            }
+
             status = 0;
-            if(fits_read_key(redfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(redfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero (red image).");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -3423,6 +4021,19 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             sprintf(returnStruct->msg, "WCS init failed for [%s].", redfile);
             return returnStruct;
          }
+      }
+
+      if(strcmp(wcs->ptype, "HPX") == 0)
+      {
+         hpx = 1;
+
+         hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
+
+         hpxLevel = log10((double)hpxPix)/log10(2.) + 0.5;
+
+         hpxPix = pow(2., (double)hpxLevel) + 0.5;
+
+         hpxPix = 4 * hpxPix;
       }
 
       if(!nowcs)
@@ -3537,6 +4148,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       if(!offscl)
          wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &x, &y);
+
       xcorrection = x-ix;
       ycorrection = y-iy;
 
@@ -3568,12 +4181,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(greenfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(greenfptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero (green image).");
+               return returnStruct;
+            }
+
             status = 0;
-            if(fits_read_key(greenfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(greenfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero (green image).");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -3659,12 +4296,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(bluefptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(bluefptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero (blue image).");
+               return returnStruct;
+            }
+
             status = 0;
-            if(fits_read_key(bluefptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(bluefptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero (blue image).");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -4077,10 +4738,11 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             pngOvly[ii] = 0;
          }
       }
+      
 
       if(mViewer_debug)
       {
-         printf("Image (PNG/JPEG) space allocated: %u\n", membytes);
+         printf("Image (PNG/JPEG) space allocated: %u [COLOR]\n", membytes);
          fflush(stdout);
       }
 
@@ -4207,7 +4869,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
          for(i=0; i<nx; ++i)
          {
-
             /* RED */
 
             ipix = i + istart - redxoff;
@@ -4246,7 +4907,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
             else if(redType == ASINH)
             {
-               redImVal  = (redval - redminval)/(redmaxval - redminval);
+               redImVal = (redval - redminval)/(redmaxval - redminval);
 
                if(redImVal < 0.0)
                   redImVal = 0.;
@@ -4302,7 +4963,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                greenImVal = saturationValue;
 
 
-            /* Special case: blank pixel */
+            /* Special case: no green image */
 
             else if(greenOff)
                greenImVal = 0.;
@@ -4478,14 +5139,122 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   }
                }
             }
-            else
-            {
-               if(blueImVal  > 255.) blueImVal  = 255.;
-               if(greenImVal > 255.) greenImVal = 255.;
-               if(redImVal   > 255.) redImVal   = 255.;
-            }
 
             
+            /* Apply brightness/contrast tranforms */
+
+            if(rbrightness == 0.)
+               rbrightness = brightness;
+
+            if(rbrightness != 0.)
+            {
+               redImVal = redImVal + rbrightness;
+               redImVal = fmax(redImVal,     0.);
+               redImVal = fmin(redImVal,   255.);
+            }
+
+
+            if(gbrightness == 0.)
+               gbrightness = brightness;
+
+            if(gbrightness != 0.)
+            {
+               greenImVal = greenImVal + gbrightness;
+               greenImVal = fmax(greenImVal,     0.);
+               greenImVal = fmin(greenImVal,   255.);
+            }
+
+
+            if(bbrightness == 0.)
+               bbrightness = brightness;
+
+            if(bbrightness != 0.)
+            {
+               blueImVal   = blueImVal + bbrightness;
+               blueImVal   = fmax(blueImVal,     0.);
+               blueImVal   = fmin(blueImVal,   255.);
+            }
+
+            /*
+            if(brightness != 0.)
+            {
+               redImVal   = redImVal   + brightness;
+               greenImVal = greenImVal + brightness;
+               blueImVal  = blueImVal  + brightness;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+            */
+
+
+            if(rcfactor == 1.)
+               rcfactor = cfactor;
+
+            if(rcfactor != 1.)
+            {
+               redImVal = rcfactor * (redImVal - 128) + 128;
+
+               redImVal = fmax(redImVal,     0.);
+               redImVal = fmin(redImVal,   255.);
+            }
+
+
+            if(gcfactor == 1.)
+               gcfactor = cfactor;
+
+            if(gcfactor != 1.)
+            {
+               greenImVal = gcfactor * (greenImVal - 128) + 128;
+
+               greenImVal = fmax(greenImVal,     0.);
+               greenImVal = fmin(greenImVal,   255.);
+            }
+
+
+            if(bcfactor == 1.)
+               bcfactor = cfactor;
+
+            if(bcfactor != 1.)
+            {
+               blueImVal = bcfactor * (blueImVal - 128) + 128;
+
+               blueImVal = fmax(blueImVal,     0.);
+               blueImVal = fmin(blueImVal,   255.);
+            }
+
+            /*
+            if(cfactor != 1.)
+            {
+               redImVal   = cfactor * (redImVal   - 128) + 128;
+               greenImVal = cfactor * (greenImVal - 128) + 128;
+               blueImVal  = cfactor * (blueImVal  - 128) + 128;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+            */
+
+
+            if(blueImVal  <   0.) blueImVal  =   0.;
+            if(greenImVal <   0.) greenImVal =   0.;
+            if(redImVal   <   0.) redImVal   =   0.;
+
+            if(blueImVal  > 255.) blueImVal  = 255.;
+            if(greenImVal > 255.) greenImVal = 255.;
+            if(redImVal   > 255.) redImVal   = 255.;
+
+
             /* Populate the output JPEG array */
 
             if(outType == JPEG)
@@ -4513,7 +5282,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   pngData[ii + 0] = (int)redImVal;
                   pngData[ii + 1] = (int)greenImVal;
                   pngData[ii + 2] = (int)blueImVal;
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 3] = (int)(255*imgalpha);
+
+                  if(tzero && redImVal == 0. && greenImVal == 0. && blueImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
                else
                {
@@ -4522,7 +5294,10 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                   pngData[ii + 0] = (int)redImVal;
                   pngData[ii + 1] = (int)greenImVal;
                   pngData[ii + 2] = (int)blueImVal;
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 3] = (int)(255*imgalpha);
+
+                  if(tzero && redImVal == 0. && greenImVal == 0. && blueImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
             }
          }
@@ -4553,9 +5328,6 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          mViewer_printFitsError(status);
 
       status = 0;
-      if(fits_get_hdrpos(grayfptr, &keysexist, &keynum, &status))
-
-      status = 0;
       fits_read_key(grayfptr, TSTRING, "BUNIT", bunit, (char *)NULL, &status);
 
       if(status == KEY_NO_EXIST)
@@ -4574,12 +5346,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          if(nowcs)
          {
             status = 0;
-            if(fits_read_key(grayfptr, TLONG, "NAXIS1", &naxis1, (char *)NULL, &status))
+            if(fits_read_key(grayfptr, TLONG, "NAXIS1", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
 
+            naxis1 = naxisl;
+
+            if(naxis1 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS1 is zero.");
+               return returnStruct;
+            }
+
             status = 0;
-            if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxis2, (char *)NULL, &status))
+            if(fits_read_key(grayfptr, TLONG, "NAXIS2", &naxisl, (char *)NULL, &status))
                mViewer_printFitsError(status);
+
+            naxis2 = naxisl;
+
+            if(naxis2 <= 0)
+            {
+               mViewer_memCleanup();
+               strcpy(returnStruct->msg, "NAXIS2 is zero.");
+               return returnStruct;
+            }
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> No WCS, creating fake one.\n");
+               fflush(stdout);
+            }
 
             wcs = mViewer_wcsfake(naxis1, naxis2);
          }
@@ -4592,7 +5388,18 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       }
 
       if(!nowcs)
+      {
+         if(strcmp(wcs->ptype, "HPX") == 0)
+         {
+            hpx = 1;
+
+            hpxPix = 90.0 / fabs(wcs->xinc) / sqrt(2.0) + 0.5;
+
+            hpxPix = 4 * hpxPix;
+         }
+
          montage_checkWCS(wcs);
+      }
 
       naxis1 = wcs->nxpix;
       naxis2 = wcs->nypix;
@@ -4687,6 +5494,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       if(!offscl)
          wcs2pix(wcs, xpos, ypos, &x, &y, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &x, &y);
+
       xcorrection = x-ix;
       ycorrection = y-iy;
 
@@ -4753,6 +5562,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
       if(mViewer_debug)
          printf("\n GRAY RANGE:\n");
+
 
       if(strlen(grayhistfile) > 0)
       {
@@ -4834,6 +5644,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
       if(mViewer_debug)
       {
          printf("\n");
+         printf("Gray:\n\n");
+
          printf("DEBUG> nx               = %d\n", nx);
          printf("DEBUG> istart           = %d\n", istart);
          printf("DEBUG> iend             = %d\n", iend);
@@ -4908,13 +5720,38 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             pngOvly[ii] = 0;
          }
       }
-      
-      if(mViewer_debug)
+   
+      else if(outType == FITS)
       {
-         printf("Image (PNG/JPEG) space allocated\n");
-         fflush(stdout);
-      }
+         ofpixel[0] = 1;
+         ofpixel[1] = 1;
+         ofpixel[2] = 1;
+         ofpixel[3] = 1;
 
+         if(flipY)
+            ofpixel[1] = ny;
+         else
+            ofpixel[1] = 1;
+
+         unlink(ofitsfile);
+
+         status = 0;
+         if(fits_create_file(&fitsfptr, ofitsfile, &status))
+         {
+             mViewer_memCleanup();
+             sprintf(returnStruct->msg, "Can't open output FITS file [%s].", ofitsfile);
+             return returnStruct;
+         }
+
+         status = 0;
+         if(fits_copy_header(grayfptr, fitsfptr, &status))
+         {
+             mViewer_memCleanup();
+             sprintf(returnStruct->msg, "Error copying FITS header.");
+             return returnStruct;
+         }
+      }
+      
       ovlyweight = (double  **)malloc(ny * sizeof (double *));
       ovlylock   = (int     **)malloc(ny * sizeof (int    *));
 
@@ -4928,6 +5765,12 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
          ovlyweight[jj] = (double *)malloc(nelements * sizeof(double));
          ovlylock  [jj] = (int    *)malloc(nelements * sizeof(int));
+      }
+
+      if(mViewer_debug)
+      {
+         printf("Image (PNG/JPEG) space allocated [GRAY], reading data.\n");
+         fflush(stdout);
       }
 
       for(jj=0; jj<ny; ++jj)
@@ -4959,14 +5802,20 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                           fitsbuf, &nullcnt, &status))
             mViewer_printFitsError(status);
 
+
+         grayImVal = 0.;
+
+         index = 0;
+
          for(i=0; i<nx; ++i)
          {
-            /* Special case: blank pixel */
-
             grayval = fitsbuf[i-istart];
 
+
+            /* Special case: blank pixel */
+
             if(mNaN(grayval))
-               index = saturationValue;
+               grayImVal = saturationValue;
 
 
             /* Gaussian histogram equalization */
@@ -4982,6 +5831,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
                if(index <   0) index =   0;
                if(index > 255) index = 255;
+
+               grayImVal = index;
             }
 
 
@@ -5032,19 +5883,147 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                index = (int)(grayImVal+0.5);
             }
 
+            if(mNaN(grayval))
+            {
+               redImVal   = saturationValue;
+               greenImVal = saturationValue;
+               blueImVal  = saturationValue;
+            }
+            else
+            {
+               redImVal   = color_table[index][0];
+               greenImVal = color_table[index][1];
+               blueImVal  = color_table[index][2];
+            }
+
+            
+            /* Apply brightness/contrast tranforms */
+
+            if(rbrightness == 0.)
+               rbrightness = brightness;
+
+            if(rbrightness != 0.)
+            {
+               redImVal = redImVal + rbrightness;
+               redImVal = fmax(redImVal,     0.);
+               redImVal = fmin(redImVal,   255.);
+            }
+
+
+            if(gbrightness == 0.)
+               gbrightness = brightness;
+
+            if(gbrightness != 0.)
+            {
+               greenImVal = greenImVal + gbrightness;
+               greenImVal = fmax(greenImVal,     0.);
+               greenImVal = fmin(greenImVal,   255.);
+            }
+
+
+            if(bbrightness == 0.)
+               bbrightness = brightness;
+
+            if(bbrightness != 0.)
+            {
+               blueImVal   = blueImVal + bbrightness;
+               blueImVal   = fmax(blueImVal,     0.);
+               blueImVal   = fmin(blueImVal,   255.);
+            }
+
+            /*
+            if(brightness != 0.)
+            {
+               redImVal   = redImVal   + brightness;
+               greenImVal = greenImVal + brightness;
+               blueImVal  = blueImVal  + brightness;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+            */
+
+
+            if(rcfactor == 1.)
+               rcfactor = cfactor;
+
+            if(rcfactor != 1.)
+            {
+               redImVal = rcfactor * (redImVal - 128) + 128;
+
+               redImVal = fmax(redImVal,     0.);
+               redImVal = fmin(redImVal,   255.);
+            }
+
+
+            if(gcfactor == 1.)
+               gcfactor = cfactor;
+
+            if(gcfactor != 1.)
+            {
+               greenImVal = gcfactor * (greenImVal - 128) + 128;
+
+               greenImVal = fmax(greenImVal,     0.);
+               greenImVal = fmin(greenImVal,   255.);
+            }
+
+
+            if(bcfactor == 1.)
+               bcfactor = cfactor;
+
+            if(bcfactor != 1.)
+            {
+               blueImVal = bcfactor * (blueImVal - 128) + 128;
+
+               blueImVal = fmax(blueImVal,     0.);
+               blueImVal = fmin(blueImVal,   255.);
+            }
+
+            /*
+            if(cfactor != 1.)
+            {
+               redImVal   = cfactor * (redImVal   - 128) + 128;
+               greenImVal = cfactor * (greenImVal - 128) + 128;
+               blueImVal  = cfactor * (blueImVal  - 128) + 128;
+
+               redImVal   = fmax(redImVal,     0.);
+               greenImVal = fmax(greenImVal,   0.);
+               blueImVal  = fmax(blueImVal,    0.);
+
+               redImVal   = fmin(redImVal,   255.);
+               greenImVal = fmin(greenImVal, 255.);
+               blueImVal  = fmin(blueImVal,  255.);
+            }
+            */
+
+
+            if(blueImVal  <   0.) blueImVal  =   0.;
+            if(greenImVal <   0.) greenImVal =   0.;
+            if(redImVal   <   0.) redImVal   =   0.;
+
+            if(blueImVal  > 255.) blueImVal  = 255.;
+            if(greenImVal > 255.) greenImVal = 255.;
+            if(redImVal   > 255.) redImVal   = 255.;
+
+
             if(outType == JPEG)
             {
                if(flipX)
                {
-                  jpegData[jj][3*(nx-1-i)  ] = color_table[index][0];
-                  jpegData[jj][3*(nx-1-i)+1] = color_table[index][1];
-                  jpegData[jj][3*(nx-1-i)+2] = color_table[index][2];
+                  jpegData[jj][3*(nx-1-i)  ] = redImVal;
+                  jpegData[jj][3*(nx-1-i)+1] = greenImVal;
+                  jpegData[jj][3*(nx-1-i)+2] = blueImVal;
                }
                else
                {
-                  jpegData[jj][3*i  ] = color_table[index][0];
-                  jpegData[jj][3*i+1] = color_table[index][1];
-                  jpegData[jj][3*i+2] = color_table[index][2];
+                  jpegData[jj][3*i  ] = redImVal;
+                  jpegData[jj][3*i+1] = greenImVal;
+                  jpegData[jj][3*i+2] = blueImVal;
                }
             }
 
@@ -5054,748 +6033,827 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
                {
                   ii = 4 * nx * jj + 4 * (nx-1-i);
 
-                  pngData[ii + 0] = color_table[index][0];
-                  pngData[ii + 1] = color_table[index][1];
-                  pngData[ii + 2] = color_table[index][2];
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 0] = redImVal;
+                  pngData[ii + 1] = greenImVal;
+                  pngData[ii + 2] = blueImVal;
+                  pngData[ii + 3] = (int)(255 * imgalpha);
+
+                  if(tzero && grayImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
                else
                {
                   ii = 4 * nx * jj + 4 * i;
 
-                  pngData[ii + 0] = color_table[index][0];
-                  pngData[ii + 1] = color_table[index][1];
-                  pngData[ii + 2] = color_table[index][2];
-                  pngData[ii + 3] = 255;
+                  pngData[ii + 0] = redImVal;
+                  pngData[ii + 1] = greenImVal;
+                  pngData[ii + 2] = blueImVal;
+                  pngData[ii + 3] = (int)(255 * imgalpha);
+
+                  if(tzero && grayImVal == 0.)
+                     pngData[ii + 3] = 0;
                }
             }
-         }
-      }
-   }
 
-
-   /* Add graphics */
-
-   charHeight = 0.0025 * ny * fabs(cdelt2);
-   pixScale   = fabs(cdelt2);
-
-   if(nx * fabs(cdelt1) > ny * fabs(cdelt2))
-   {
-      charHeight = 0.0025 * nx * fabs(cdelt1);
-      pixScale   = fabs(cdelt1);
-   }
-
-   for(i=0; i<ngrid; ++i)
-   {
-      if(mViewer_debug)
-      {
-         printf("Grid %d of %d\n", i+1, ngrid);
-         fflush(stdout);
-      }
-
-      mViewer_makeGrid(wcs, csysimg, epochimg, 
-                       grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue,  
-                       fontfile, grid[i].fontscale, grid[i].linewidth);
-
-      mViewer_addOverlay();
-   }
-
-
-   for(i=0; i<ncat; ++i)
-   {
-      if(mViewer_debug)
-      {
-         printf("Catalog %d of %d\n", i+1, ncat);
-         fflush(stdout);
-      }
-
-      if(cat[i].isImgInfo == 0) /* CATALOG */
-      {
-         if(mViewer_debug)
-         {
-            printf("Source catalog %s\n", cat[i].file);
-            fflush(stdout);
-         }
-
-         ncol = topen(cat[i].file);
-
-         if(ncol <= 0)
-         {
-            mViewer_memCleanup();
-            sprintf(returnStruct->msg, "Invalid table file [%s].", cat[i].file);
-            return returnStruct;
-         }
-
-         ira  = tcol("ra");
-         idec = tcol("dec");
-
-         if(ira  < 0) ira  = tcol("lon");
-         if(idec < 0) idec = tcol("lat");
-
-         if(ira < 0 || idec < 0)
-         {
-            tclose();
-            mViewer_memCleanup();
-            sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat') in table [%s]", cat[i].file);
-            return returnStruct;
-         }
-
-
-         // Scaling 
-
-         iscale = -1;
-
-         if(strlen(cat[i].scaleColumn) > 0)
-         {
-            iscale = tcol(cat[i].scaleColumn);
-
-            if(iscale < 0)
+            else if(outType == FITS) 
             {
-               tclose();
-               mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find flux/mag column [%s] in table [%s]", cat[i].scaleColumn, cat[i].file);
-               return returnStruct;
+               // Since we are done using it for input, we will put the output in fitsbuf
+               
+               if(flipX)
+                  fitsbuf[nx-1-i] = redImVal;
+               else
+                  fitsbuf[i] = redImVal;
+
             }
          }
 
          
-         // Color
+         // If we are writing out a new FITS file, we have a new line here
 
-         icolor = -1;
-
-         if(strlen(cat[i].colorColumn) > 0)
+         if(outType == FITS)
          {
-            icolor = tcol(cat[i].colorColumn);
-
-            if(icolor < 0)
+            status = 0;
+            if(fits_write_pix(fitsfptr, TDOUBLE, ofpixel, nelements, (void *)fitsbuf, &status))
             {
-               tclose();
-               mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find color column [%s] in table [%s]", cat[i].colorColumn, cat[i].file);
-               return returnStruct;
+                mViewer_memCleanup();
+                sprintf(returnStruct->msg, "Error writing FITS data.");
+                return returnStruct;
             }
-         }
 
-
-         // Symbol size
-
-         isymsize = -1;
-
-         if(strlen(cat[i].symSizeColumn) > 0)
-         {
-            isymsize = tcol(cat[i].symSizeColumn);
-
-            if(isymsize < 0)
-            {
-               tclose();
-               mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find symbol size column [%s] in table [%s]", cat[i].symSizeColumn, cat[i].file);
-               return returnStruct;
-            }
-         }
-
-
-         // Symbol shape
-
-         isymshape = -1;
-
-         if(strlen(cat[i].symShapeColumn) > 0)
-         {
-            isymshape = tcol(cat[i].symShapeColumn);
-
-            if(isymshape < 0)
-            {
-               tclose();
-               mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find symbol shape column [%s] in table [%s]", cat[i].symShapeColumn, cat[i].file);
-               return returnStruct;
-            }
-         }
-
-
-         // Label
-
-         ilabel = -1;
-
-         if(strlen(cat[i].labelColumn) > 0)
-         {
-            ilabel = tcol(cat[i].labelColumn);
-
-            if(ilabel < 0)
-            {
-               tclose();
-               mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find label column [%s] in table [%s]", cat[i].labelColumn, cat[i].file);
-               return returnStruct;
-            }
-         }
-
-
-         // Read through the file
-
-         while(1)
-         {
-            stat = tread();
-
-            if(stat < 0)
-               break;
-
-            if(tnull(ira) || tnull(idec))
-               continue;
-
-
-            // Read location 
-
-            ra  = atof(tval(ira));
-            dec = atof(tval(idec));
-
-            if(iscale < 0)
-               flux = cat[i].symSize;
+            if(flipY)
+               --ofpixel[1];
             else
-            {
-               flux = atof(tval(iscale));
+               ++ofpixel[1];
+         }
+      }
 
-               if(tnull(iscale))
-                  continue;
-            }
+      if(mViewer_debug)
+      {
+         printf("Data read complete.\n");
+         fflush(stdout);
+      }
+   }
 
+   if(outType != FITS)
+   {
+      if(mViewer_debug)
+      {
+         printf("Add overlays (if any)\n");
+         fflush(stdout);
+      }
 
-            // Read color
+      /* Add graphics */
 
-            ovlyred   = cat[i].red;
-            ovlygreen = cat[i].green;
-            ovlyblue  = cat[i].blue;
+      charHeight = 0.0025 * ny * fabs(cdelt2);
+      pixScale   = fabs(cdelt2);
 
-            if(icolor >= 0)
-            {
-               if(!tnull(icolor))
-               {
-                  strcpy(colorstr, tval(icolor));
-
-                  if(mViewer_colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue))
-                  {
-                     mViewer_memCleanup();
-                     strcpy(returnStruct->msg, montage_msgstr);
-                     return returnStruct;
-                  }
-               }
-            }
-
-
-            // Read symbol size
-
-            symSize  = cat[i].symSize;
-            symUnits = cat[i].symUnits;
-
-            if(isymsize >= 0)
-            {
-               if(!tnull(isymsize))
-               {
-                  strcpy(symbolstr, tval(isymsize));
-
-                  ptr = symbolstr + strlen(symbolstr) - 1;
-
-                  symUnits = FRACTIONAL;
-
-                  if(*ptr == 's')
-                     symUnits = SECONDS;
-
-                  else if(*ptr == 'm')
-                     symUnits = MINUTES;
-
-                  else if(*ptr == 'd')
-                     symUnits = DEGREES;
-
-                  else if(*ptr == 'p')
-                     symUnits = PIXELS;
-
-                  if(symUnits != FRACTIONAL)
-                     *ptr = '\0';
-
-                  symSize = strtod(symbolstr, &end);
+      if(nx * fabs(cdelt1) > ny * fabs(cdelt2))
+      {
+         charHeight = 0.0025 * nx * fabs(cdelt1);
+         pixScale   = fabs(cdelt1);
+      }
 
 
-                  // If this fails, revert to default values
+      // GRIDS
+      
+      for(i=0; i<ngrid; ++i)
+      {
+         if(mViewer_debug)
+         {
+            printf("Grid %d of %d\n", i+1, ngrid);
+            fflush(stdout);
+         }
 
-                  if(end < (symbolstr + (int)strlen(symbolstr)) || symSize <= 0.)
-                  {
-                     symSize  = cat[i].symSize;
-                     symUnits = cat[i].symUnits;
-                  }
-               }
-            }
+         mViewer_makeGrid(wcs, csysimg, epochimg, 
+                          grid[i].csys, grid[i].epoch, grid[i].red, grid[i].green, grid[i].blue,  
+                          fontfile, grid[i].fontscale, grid[i].linewidth);
 
-
-            // Read symbol shape
-
-            symNPnt     = cat[i].symNPnt;
-            symType     = cat[i].symType;
-            symRotAngle = cat[i].symRotAngle;
-
-            if(isymshape >= 0)
-            {
-               if(!tnull(isymshape))
-               {
-                  strcpy(symbolstr, tval(isymshape));
-
-                  istatus = mViewer_parseSymbol(symbolstr, &symNPnt, &symNMax, &symType, &symRotAngle);
-
-                  if(istatus)
-                  {
-                     symNPnt     = cat[i].symNPnt;
-                     symNMax     = cat[i].symNMax;
-                     symType     = cat[i].symType;
-                     symRotAngle = cat[i].symRotAngle;
-                  }
-               }
-            }
+         mViewer_addOverlay(grid[i].alpha);
+      }
 
 
+      // CATALOGS / IMAGE INFO
+      
+      for(i=0; i<ncat; ++i)
+      {
+         if(mViewer_debug)
+         {
+            printf("Catalog %d of %d\n", i+1, ncat);
+            fflush(stdout);
+         }
 
-            if(mViewer_debug)
-               printf("Symbol: color=(%4.2f,%4.2f,%4.2f) shape=(%2d,%d,%6.2f) at (%6.2f,%6.2f) flux=%10.6f->", 
-                  ovlyred, ovlygreen, ovlyblue, symNPnt, symType, symRotAngle, ra, dec, flux);
-
-
-            // Process scaling information
-
-            if(iscale >= 0)
-            {
-               if(cat[i].scaleType == FLUX)
-                  flux = flux / cat[i].scaleVal * cat[i].symSize;
-               else if(cat[i].scaleType == MAG)
-                  flux = (cat[i].scaleVal - flux + 1) * cat[i].symSize;
-               else if(cat[i].scaleType == LOGFLUX)
-                  flux = log10(10. * flux / cat[i].scaleVal) * cat[i].symSize;
-            }
-
-
-            if(cat[i].symUnits == FRACTIONAL)
-                flux = flux * charHeight;
-
-             else if(cat[i].symUnits == SECONDS)
-                flux = flux / 3600.;
-        
-             else if(cat[i].symUnits == MINUTES)
-                flux = flux / 60.;
- 
-             else if(cat[i].symUnits == DEGREES)
-                flux = flux * 1.;
-
-            else if(cat[i].symUnits == PIXELS)
-               flux = flux * pixScale;
-
-
-            if(flux < 0.1*charHeight)
-               flux = 0.1*charHeight;
-
+         if(cat[i].isImgInfo == 0) /* CATALOG */
+         {
             if(mViewer_debug)
             {
-               printf("%10.6f\n", flux);
+               printf("Source catalog %s\n", cat[i].file);
                fflush(stdout);
             }
 
+            ncol = topen(cat[i].file);
 
-            // Draw symbol
-
-            if(symSize > 0)
+            if(ncol <= 0)
             {
-               mViewer_symbol(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch,
-                              ra, dec, 0, flux, symNPnt, symNMax, symType, symRotAngle, 
-                              ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
-
-               if(mViewer_debug)
-               {
-                  printf("Symbol drawn.\n");
-                  fflush(stdout);
-               }
-            }
-            else
-            {
-               if(mViewer_debug)
-               {
-                  printf("Symbol not drawn.\n");
-                  fflush(stdout);
-               }
+               mViewer_memCleanup();
+               sprintf(returnStruct->msg, "Invalid table file [%s].", cat[i].file);
+               return returnStruct;
             }
 
+            ira  = tcol("ra");
+            idec = tcol("dec");
 
-            // Write label
+            if(ira  < 0) ira  = tcol("lon");
+            if(idec < 0) idec = tcol("lat");
 
-            if(ilabel >= 0)
-            {
-               strcpy(labelstr, tval(ilabel));
+            if(ira  < 0) ira  = tcol("crval1");
+            if(idec < 0) idec = tcol("crval2");
 
-               if(strlen(labelstr) > 0)
-               {
-                  wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
-
-                  fontSize = (int)(14. * cat[i].fontscale);
-
-                  if(fontSize < 1)
-                     fontSize = 1;
-
-                  mViewer_draw_label(fontfile, fontSize, xpix, ypix, labelstr, ovlyred, ovlygreen, ovlyblue);
-               }
-
-               if(mViewer_debug)
-               {
-                  printf("Label [%s] at (%-g,%-g)\n", labelstr, xpix, ypix);
-                  fflush(stdout);
-               }
-            }
-         }
-
-         tclose();
-      }
-
-      else /* IMAGE INFO */
-      {
-         if(mViewer_debug)
-         {
-            printf("Image info %s\n", cat[i].file);
-            fflush(stdout);
-         }
-
-         ncol = topen(cat[i].file);
-
-         if(ncol <= 0)
-         {
-            tclose();
-            mViewer_memCleanup();
-            sprintf(returnStruct->msg, "Invalid table file [%s].\" ]\n", cat[i].file);
-            return returnStruct;
-         }
-         
-         // Color
-
-         icolor = -1;
-
-         len = strlen(cat[i].colorColumn);
-
-         if(len > 0)
-         {
-            icolor = tcol(cat[i].colorColumn);
-
-            if(icolor < 0)
+            if(ira < 0 || idec < 0)
             {
                tclose();
                mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find color column [%s] in table [%s]", cat[i].colorColumn, cat[i].file);
+               sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat' or 'crval1','crval2') in table [%s]", cat[i].file);
                return returnStruct;
             }
-         }
 
 
-         // Find corner-related information
+            // Scaling 
 
-         ira1  = tcol("ra1");
-         idec1 = tcol("dec1");
-         ira2  = tcol("ra2");
-         idec2 = tcol("dec2");
-         ira3  = tcol("ra3");
-         idec3 = tcol("dec3");
-         ira4  = tcol("ra4");
-         idec4 = tcol("dec4");
+            iscale = -1;
 
-         datatype = FOURCORNERS;
-
-         if(ira1 < 0 || idec1 < 0
-         || ira2 < 0 || idec2 < 0
-         || ira3 < 0 || idec3 < 0
-         || ira4 < 0 || idec4 < 0)
-         {
-            ictype1  = tcol("ctype1");
-            ictype2  = tcol("ctype2");
-            iequinox = tcol("equinox");
-            inl      = tcol("nl");
-            ins      = tcol("ns");
-            icrval1  = tcol("crval1");
-            icrval2  = tcol("crval2");
-            icrpix1  = tcol("crpix1");
-            icrpix2  = tcol("crpix2");
-            icdelt1  = tcol("cdelt1");
-            icdelt2  = tcol("cdelt2");
-            icrota2  = tcol("crota2");
-
-            if(ins < 0)
-               ins = tcol("naxis1");
-
-            if(inl < 0)
-               inl = tcol("naxis2");
-
-            if(ictype1 >= 0
-            && ictype2 >= 0
-            && inl     >= 0
-            && ins     >= 0
-            && icrval1 >= 0
-            && icrval2 >= 0
-            && icrpix1 >= 0
-            && icrpix2 >= 0
-            && icdelt1 >= 0
-            && icdelt2 >= 0
-            && icrota2 >= 0)
-
-               datatype = WCS;
-
-            else
+            if(strlen(cat[i].scaleColumn) > 0)
             {
-               tclose();
-               mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find 'ra1', 'dec1', etc. corners or WCS columns in table [%s]\n", cat[i].file);
-               return returnStruct;
-            }
-         }
+               iscale = tcol(cat[i].scaleColumn);
 
-         nimages = 0;
-
-         while(1)
-         {
-            stat = tread();
-
-            ++nimages;
-
-            if(stat < 0)
-               break;
-
-
-            ovlyred   = cat[i].red;
-            ovlygreen = cat[i].green;
-            ovlyblue  = cat[i].blue;
-
-            if(icolor >= 0)
-            {
-               if(!tnull(icolor))
-               {
-                  strcpy(colorstr, tval(icolor));
-
-                  if(mViewer_colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue))
-                  {
-                     mViewer_memCleanup();
-                     strcpy(returnStruct->msg, montage_msgstr);
-                     return returnStruct;
-                  }
-               }
-            }
-
-
-            if(datatype == FOURCORNERS)
-            {
-               if(tnull(ira1) || tnull(idec1)
-               || tnull(ira2) || tnull(idec2)
-               || tnull(ira3) || tnull(idec3)
-               || tnull(ira4) || tnull(idec4))
-                  continue;
-
-               ra1  = atof(tval(ira1));
-               dec1 = atof(tval(idec1));
-               ra2  = atof(tval(ira2));
-               dec2 = atof(tval(idec2));
-               ra3  = atof(tval(ira3));
-               dec3 = atof(tval(idec3));
-               ra4  = atof(tval(ira4));
-               dec4 = atof(tval(idec4));
-            }
-            else
-            {
-               strcpy(im_ctype1, tval(ictype1));
-               strcpy(im_ctype2, tval(ictype2));
-
-               im_naxis1    = atoi(tval(ins));
-               im_naxis2    = atoi(tval(inl));
-               im_crpix1    = atof(tval(icrpix1));
-               im_crpix2    = atof(tval(icrpix2));
-               im_crval1    = atof(tval(icrval1));
-               im_crval2    = atof(tval(icrval2));
-               im_cdelt1    = atof(tval(icdelt1));
-               im_cdelt2    = atof(tval(icdelt2));
-               im_crota2    = atof(tval(icrota2));
-               im_equinox   = 2000;
-
-               if(iequinox >= 0)
-                  im_equinox = atoi(tval(iequinox));
-
-               strcpy(im_header, "");
-               sprintf(temp, "SIMPLE  = T"                 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "BITPIX  = -64"               ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "NAXIS   = 2"                 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "NAXIS1  = %d",     im_naxis1 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "NAXIS2  = %d",     im_naxis2 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CTYPE1  = '%s'",   im_ctype1 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CTYPE2  = '%s'",   im_ctype2 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CRVAL1  = %11.6f", im_crval1 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CRVAL2  = %11.6f", im_crval2 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CRPIX1  = %11.6f", im_crpix1 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CRPIX2  = %11.6f", im_crpix2 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CDELT1  = %14.9f", im_cdelt1 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CDELT2  = %14.9f", im_cdelt2 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "CROTA2  = %11.6f", im_crota2 ); mViewer_stradd(im_header, temp);
-               sprintf(temp, "EQUINOX = %d",     im_equinox); mViewer_stradd(im_header, temp);
-               sprintf(temp, "END"                         ); mViewer_stradd(im_header, temp);
-
-               im_wcs = wcsinit(im_header);
-
-               if(im_wcs == (struct WorldCoor *)NULL)
+               if(iscale < 0)
                {
                   tclose();
                   mViewer_memCleanup();
-                  sprintf(returnStruct->msg, "Bad WCS for image %d", nimages);
+                  sprintf(returnStruct->msg, "Cannot find flux/mag column [%s] in table [%s]", cat[i].scaleColumn, cat[i].file);
                   return returnStruct;
                }
+            }
 
-               montage_checkWCS(im_wcs);
+            
+            // Color
 
+            icolor = -1;
 
-               /* Get the coordinate system and epoch in a     */
-               /* form compatible with the conversion library  */
+            if(strlen(cat[i].colorColumn) > 0)
+            {
+               icolor = tcol(cat[i].colorColumn);
 
-               if(im_wcs->syswcs == WCS_J2000)
+               if(icolor < 0)
                {
-                  im_sys   = EQUJ;
-                  im_epoch = 2000.;
-
-                  if(im_wcs->equinox == 1950)
-                     im_epoch = 1950.;
+                  tclose();
+                  mViewer_memCleanup();
+                  sprintf(returnStruct->msg, "Cannot find color column [%s] in table [%s]", cat[i].colorColumn, cat[i].file);
+                  return returnStruct;
                }
-               else if(im_wcs->syswcs == WCS_B1950)
-               {
-                  im_sys   = EQUB;
-                  im_epoch = 1950.;
+            }
 
-                  if(im_wcs->equinox == 2000)
-                     im_epoch = 2000;
-               }
-               else if(im_wcs->syswcs == WCS_GALACTIC)
-               {
-                  im_sys   = GAL;
-                  im_epoch = 2000.;
-               }
-               else if(im_wcs->syswcs == WCS_ECLIPTIC)
-               {
-                  im_sys   = ECLJ;
-                  im_epoch = 2000.;
 
-                  if(im_wcs->equinox == 1950)
+            // Symbol size
+
+            isymsize = -1;
+
+            if(strlen(cat[i].symSizeColumn) > 0)
+            {
+               isymsize = tcol(cat[i].symSizeColumn);
+
+               if(isymsize < 0)
+               {
+                  tclose();
+                  mViewer_memCleanup();
+                  sprintf(returnStruct->msg, "Cannot find symbol size column [%s] in table [%s]", cat[i].symSizeColumn, cat[i].file);
+                  return returnStruct;
+               }
+            }
+
+
+            // Symbol shape
+
+            isymshape = -1;
+
+            if(strlen(cat[i].symShapeColumn) > 0)
+            {
+               isymshape = tcol(cat[i].symShapeColumn);
+
+               if(isymshape < 0)
+               {
+                  tclose();
+                  mViewer_memCleanup();
+                  sprintf(returnStruct->msg, "Cannot find symbol shape column [%s] in table [%s]", cat[i].symShapeColumn, cat[i].file);
+                  return returnStruct;
+               }
+            }
+
+
+            // Label
+
+            ilabel = -1;
+
+            if(strlen(cat[i].labelColumn) > 0)
+            {
+               ilabel = tcol(cat[i].labelColumn);
+
+               if(ilabel < 0)
+               {
+                  tclose();
+                  mViewer_memCleanup();
+                  sprintf(returnStruct->msg, "Cannot find label column [%s] in table [%s]", cat[i].labelColumn, cat[i].file);
+                  return returnStruct;
+               }
+            }
+
+
+            // Read through the file
+
+            while(1)
+            {
+               stat = tread();
+
+               if(stat < 0)
+                  break;
+
+               if(tnull(ira) || tnull(idec))
+                  continue;
+
+
+               // Read location 
+
+               ra  = atof(tval(ira));
+               dec = atof(tval(idec));
+
+               if(iscale < 0)
+                  flux = cat[i].symSize;
+               else
+               {
+                  flux = atof(tval(iscale));
+
+                  if(tnull(iscale))
+                     continue;
+               }
+
+
+               // Read color
+
+               ovlyred   = cat[i].red;
+               ovlygreen = cat[i].green;
+               ovlyblue  = cat[i].blue;
+
+               if(icolor >= 0)
+               {
+                  if(!tnull(icolor))
                   {
-                     im_sys   = ECLB;
-                     im_epoch = 1950.;
+                     strcpy(colorstr, tval(icolor));
+
+                     if(mViewer_colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue))
+                     {
+                        mViewer_memCleanup();
+                        strcpy(returnStruct->msg, montage_msgstr);
+                        return returnStruct;
+                     }
+                  }
+               }
+
+
+               // Read symbol size
+
+               symSize  = cat[i].symSize;
+               symUnits = cat[i].symUnits;
+
+               if(isymsize >= 0)
+               {
+                  if(!tnull(isymsize))
+                  {
+                     strcpy(symbolstr, tval(isymsize));
+
+                     ptr = symbolstr + strlen(symbolstr) - 1;
+
+                     symUnits = FRACTIONAL;
+
+                     if(*ptr == 's')
+                        symUnits = SECONDS;
+
+                     else if(*ptr == 'm')
+                        symUnits = MINUTES;
+
+                     else if(*ptr == 'd')
+                        symUnits = DEGREES;
+
+                     else if(*ptr == 'p')
+                        symUnits = PIXELS;
+
+                     if(symUnits != FRACTIONAL)
+                        *ptr = '\0';
+
+                     symSize = strtod(symbolstr, &end);
+
+
+                     // If this fails, revert to default values
+
+                     if(end < (symbolstr + (int)strlen(symbolstr)) || symSize <= 0.)
+                     {
+                        symSize  = cat[i].symSize;
+                        symUnits = cat[i].symUnits;
+                     }
+                  }
+               }
+
+
+               // Read symbol shape
+
+               symNPnt     = cat[i].symNPnt;
+               symType     = cat[i].symType;
+               symRotAngle = cat[i].symRotAngle;
+
+               if(isymshape >= 0)
+               {
+                  if(!tnull(isymshape))
+                  {
+                     strcpy(symbolstr, tval(isymshape));
+
+                     istatus = mViewer_parseSymbol(symbolstr, &symNPnt, &symNMax, &symType, &symRotAngle);
+
+                     if(istatus)
+                     {
+                        symNPnt     = cat[i].symNPnt;
+                        symNMax     = cat[i].symNMax;
+                        symType     = cat[i].symType;
+                        symRotAngle = cat[i].symRotAngle;
+                     }
+                  }
+               }
+
+
+
+               if(mViewer_debug)
+                  printf("Symbol: color=(%4.2f,%4.2f,%4.2f) shape=(%2d,%d,%6.2f) at (%6.2f,%6.2f) flux=%10.6f->", 
+                     ovlyred, ovlygreen, ovlyblue, symNPnt, symType, symRotAngle, ra, dec, flux);
+
+
+               // Process scaling information
+
+               if(iscale >= 0)
+               {
+                  if(cat[i].scaleType == FLUX)
+                     flux = flux / cat[i].scaleVal * cat[i].symSize;
+                  else if(cat[i].scaleType == MAG)
+                     flux = (cat[i].scaleVal - flux + 1) * cat[i].symSize;
+                  else if(cat[i].scaleType == LOGFLUX)
+                     flux = log10(10. * flux / cat[i].scaleVal) * cat[i].symSize;
+               }
+
+
+               if(cat[i].symUnits == FRACTIONAL)
+                   flux = flux * charHeight;
+
+                else if(cat[i].symUnits == SECONDS)
+                   flux = flux / 3600.;
+           
+                else if(cat[i].symUnits == MINUTES)
+                   flux = flux / 60.;
+    
+                else if(cat[i].symUnits == DEGREES)
+                   flux = flux * 1.;
+
+               else if(cat[i].symUnits == PIXELS)
+                  flux = flux * pixScale;
+
+
+               if(flux < 0.1*charHeight)
+                  flux = 0.1*charHeight;
+
+               if(mViewer_debug)
+               {
+                  printf("%10.6f\n", flux);
+                  fflush(stdout);
+               }
+
+
+               // Draw symbol
+
+               if(symSize > 0)
+               {
+                  mViewer_symbol(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch,
+                                 ra, dec, 0, flux, symNPnt, symNMax, symType, symRotAngle, 
+                                 ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+
+                  if(mViewer_debug)
+                  {
+                     printf("Symbol drawn.\n");
+                     fflush(stdout);
                   }
                }
                else
                {
-                  im_sys   = EQUJ;
-                  im_epoch = 2000.;
+                  if(mViewer_debug)
+                  {
+                     printf("Symbol not drawn.\n");
+                     fflush(stdout);
+                  }
                }
 
 
-               /* Compute the locations of the corners of the images */
+               // Write label
 
-               pix2wcs(im_wcs, 0.5, 0.5, &xpos, &ypos);
+               if(ilabel >= 0)
+               {
+                  strcpy(labelstr, tval(ilabel));
 
-               convertCoordinates(im_sys, im_epoch, xpos, ypos,
-                                  EQUJ, 2000., &ra1, &dec1, 0.0);
+                  if(strlen(labelstr) > 0)
+                  {
+                     convertCoordinates(EQUJ, 2000.,  ra, dec,
+                                         csysimg,  epochimg, &xpos, &ypos, 0.0);
 
-               pix2wcs(im_wcs, im_naxis1+0.5, 0.5, &xpos, &ypos);
+                     wcs2pix(wcs, xpos, ypos, &xpix, &ypix, &offscl);
 
-               convertCoordinates(im_sys, im_epoch, xpos, ypos,
-                                  EQUJ, 2000., &ra2, &dec2, 0.0);
+                     if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
 
-               pix2wcs(im_wcs, im_naxis1+0.5, im_naxis2+0.5, &xpos, &ypos);
+                     fontSize = (int)(14. * cat[i].fontscale);
 
-               convertCoordinates(im_sys, im_epoch, xpos, ypos,
-                                  EQUJ, 2000., &ra3, &dec3, 0.0);
+                     if(fontSize < 1)
+                        fontSize = 1;
 
-               pix2wcs(im_wcs, 0.5, im_naxis2+0.5, &xpos, &ypos);
+                     mViewer_draw_label(fontfile, fontSize, xpix, ypix, labelstr, ovlyred, ovlygreen, ovlyblue);
+                  }
 
-               convertCoordinates(im_sys, im_epoch, xpos, ypos,
-                                  EQUJ, 2000., &ra4, &dec4, 0.0);
-               
-               wcsfree(im_wcs);
+                  if(mViewer_debug)
+                  {
+                     printf("Label [%s] at (%-g,%-g)\n", labelstr, xpix, ypix);
+                     fflush(stdout);
+                  }
+               }
             }
 
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra1, dec1, ra2, dec2, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra2, dec2, ra3, dec3, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra3, dec3, ra4, dec4, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
-            mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra4, dec4, ra1, dec1, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+            tclose();
          }
 
-         tclose();
+         else /* IMAGE INFO */
+         {
+            if(mViewer_debug)
+            {
+               printf("Image info %s\n", cat[i].file);
+               fflush(stdout);
+            }
+
+            ncol = topen(cat[i].file);
+
+            if(ncol <= 0)
+            {
+               tclose();
+               mViewer_memCleanup();
+               sprintf(returnStruct->msg, "Invalid table file [%s].\" ]\n", cat[i].file);
+               return returnStruct;
+            }
+            
+            // Color
+
+            icolor = -1;
+
+            len = strlen(cat[i].colorColumn);
+
+            if(len > 0)
+            {
+               icolor = tcol(cat[i].colorColumn);
+
+               if(icolor < 0)
+               {
+                  tclose();
+                  mViewer_memCleanup();
+                  sprintf(returnStruct->msg, "Cannot find color column [%s] in table [%s]", cat[i].colorColumn, cat[i].file);
+                  return returnStruct;
+               }
+            }
+
+
+            // Find corner-related information
+
+            ira1  = tcol("ra1");
+            idec1 = tcol("dec1");
+            ira2  = tcol("ra2");
+            idec2 = tcol("dec2");
+            ira3  = tcol("ra3");
+            idec3 = tcol("dec3");
+            ira4  = tcol("ra4");
+            idec4 = tcol("dec4");
+
+            datatype = FOURCORNERS;
+
+            if(ira1 < 0 || idec1 < 0
+            || ira2 < 0 || idec2 < 0
+            || ira3 < 0 || idec3 < 0
+            || ira4 < 0 || idec4 < 0)
+            {
+               ictype1  = tcol("ctype1");
+               ictype2  = tcol("ctype2");
+               iequinox = tcol("equinox");
+               inl      = tcol("nl");
+               ins      = tcol("ns");
+               icrval1  = tcol("crval1");
+               icrval2  = tcol("crval2");
+               icrpix1  = tcol("crpix1");
+               icrpix2  = tcol("crpix2");
+               icdelt1  = tcol("cdelt1");
+               icdelt2  = tcol("cdelt2");
+               icrota2  = tcol("crota2");
+
+               if(ins < 0)
+                  ins = tcol("naxis1");
+
+               if(inl < 0)
+                  inl = tcol("naxis2");
+
+               if(ictype1 >= 0
+               && ictype2 >= 0
+               && inl     >= 0
+               && ins     >= 0
+               && icrval1 >= 0
+               && icrval2 >= 0
+               && icrpix1 >= 0
+               && icrpix2 >= 0
+               && icdelt1 >= 0
+               && icdelt2 >= 0
+               && icrota2 >= 0)
+
+                  datatype = WCS;
+
+               else
+               {
+                  tclose();
+                  mViewer_memCleanup();
+                  sprintf(returnStruct->msg, "Cannot find 'ra1', 'dec1', etc. corners or WCS columns in table [%s]\n", cat[i].file);
+                  return returnStruct;
+               }
+            }
+
+            nimages = 0;
+
+            while(1)
+            {
+               stat = tread();
+
+               ++nimages;
+
+               if(stat < 0)
+                  break;
+
+
+               ovlyred   = cat[i].red;
+               ovlygreen = cat[i].green;
+               ovlyblue  = cat[i].blue;
+
+               if(icolor >= 0)
+               {
+                  if(!tnull(icolor))
+                  {
+                     strcpy(colorstr, tval(icolor));
+
+                     if(mViewer_colorLookup(colorstr, &ovlyred, &ovlygreen, &ovlyblue))
+                     {
+                        mViewer_memCleanup();
+                        strcpy(returnStruct->msg, montage_msgstr);
+                        return returnStruct;
+                     }
+                  }
+               }
+
+
+               if(datatype == FOURCORNERS)
+               {
+                  if(tnull(ira1) || tnull(idec1)
+                  || tnull(ira2) || tnull(idec2)
+                  || tnull(ira3) || tnull(idec3)
+                  || tnull(ira4) || tnull(idec4))
+                     continue;
+
+                  ra1  = atof(tval(ira1));
+                  dec1 = atof(tval(idec1));
+                  ra2  = atof(tval(ira2));
+                  dec2 = atof(tval(idec2));
+                  ra3  = atof(tval(ira3));
+                  dec3 = atof(tval(idec3));
+                  ra4  = atof(tval(ira4));
+                  dec4 = atof(tval(idec4));
+               }
+               else
+               {
+                  strcpy(im_ctype1, tval(ictype1));
+                  strcpy(im_ctype2, tval(ictype2));
+
+                  im_naxis1    = atoi(tval(ins));
+                  im_naxis2    = atoi(tval(inl));
+                  im_crpix1    = atof(tval(icrpix1));
+                  im_crpix2    = atof(tval(icrpix2));
+                  im_crval1    = atof(tval(icrval1));
+                  im_crval2    = atof(tval(icrval2));
+                  im_cdelt1    = atof(tval(icdelt1));
+                  im_cdelt2    = atof(tval(icdelt2));
+                  im_crota2    = atof(tval(icrota2));
+                  im_equinox   = 2000;
+
+                  if(iequinox >= 0)
+                     im_equinox = atoi(tval(iequinox));
+
+                  strcpy(im_header, "");
+                  sprintf(temp, "SIMPLE  = T"                 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "BITPIX  = -64"               ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "NAXIS   = 2"                 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "NAXIS1  = %d",     im_naxis1 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "NAXIS2  = %d",     im_naxis2 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CTYPE1  = '%s'",   im_ctype1 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CTYPE2  = '%s'",   im_ctype2 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CRVAL1  = %11.6f", im_crval1 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CRVAL2  = %11.6f", im_crval2 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CRPIX1  = %11.6f", im_crpix1 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CRPIX2  = %11.6f", im_crpix2 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CDELT1  = %14.9f", im_cdelt1 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CDELT2  = %14.9f", im_cdelt2 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "CROTA2  = %11.6f", im_crota2 ); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "EQUINOX = %d",     im_equinox); mViewer_stradd(im_header, temp);
+                  sprintf(temp, "END"                         ); mViewer_stradd(im_header, temp);
+
+                  im_wcs = wcsinit(im_header);
+
+                  if(im_wcs == (struct WorldCoor *)NULL)
+                  {
+                     tclose();
+                     mViewer_memCleanup();
+                     sprintf(returnStruct->msg, "Bad WCS for image %d", nimages);
+                     return returnStruct;
+                  }
+
+                  montage_checkWCS(im_wcs);
+
+
+                  /* Get the coordinate system and epoch in a     */
+                  /* form compatible with the conversion library  */
+
+                  if(im_wcs->syswcs == WCS_J2000)
+                  {
+                     im_sys   = EQUJ;
+                     im_epoch = 2000.;
+
+                     if(im_wcs->equinox == 1950)
+                        im_epoch = 1950.;
+                  }
+                  else if(im_wcs->syswcs == WCS_B1950)
+                  {
+                     im_sys   = EQUB;
+                     im_epoch = 1950.;
+
+                     if(im_wcs->equinox == 2000)
+                        im_epoch = 2000;
+                  }
+                  else if(im_wcs->syswcs == WCS_GALACTIC)
+                  {
+                     im_sys   = GAL;
+                     im_epoch = 2000.;
+                  }
+                  else if(im_wcs->syswcs == WCS_ECLIPTIC)
+                  {
+                     im_sys   = ECLJ;
+                     im_epoch = 2000.;
+
+                     if(im_wcs->equinox == 1950)
+                     {
+                        im_sys   = ECLB;
+                        im_epoch = 1950.;
+                     }
+                  }
+                  else
+                  {
+                     im_sys   = EQUJ;
+                     im_epoch = 2000.;
+                  }
+
+
+                  /* Compute the locations of the corners of the images */
+
+                  pix2wcs(im_wcs, 0.5, 0.5, &xpos, &ypos);
+
+                  convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                     EQUJ, 2000., &ra1, &dec1, 0.0);
+
+                  pix2wcs(im_wcs, im_naxis1+0.5, 0.5, &xpos, &ypos);
+
+                  convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                     EQUJ, 2000., &ra2, &dec2, 0.0);
+
+                  pix2wcs(im_wcs, im_naxis1+0.5, im_naxis2+0.5, &xpos, &ypos);
+
+                  convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                     EQUJ, 2000., &ra3, &dec3, 0.0);
+
+                  pix2wcs(im_wcs, 0.5, im_naxis2+0.5, &xpos, &ypos);
+
+                  convertCoordinates(im_sys, im_epoch, xpos, ypos,
+                                     EQUJ, 2000., &ra4, &dec4, 0.0);
+                  
+                  wcsfree(im_wcs);
+               }
+
+               mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra1, dec1, ra2, dec2, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+               mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra2, dec2, ra3, dec3, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+               mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra3, dec3, ra4, dec4, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+               mViewer_great_circle(wcs, flipY, csysimg, epochimg, cat[i].csys, cat[i].epoch, ra4, dec4, ra1, dec1, ovlyred, ovlygreen, ovlyblue, cat[i].linewidth);
+            }
+
+            tclose();
+         }
+
+         mViewer_addOverlay(cat[i].alpha);
       }
 
-      mViewer_addOverlay();
-   }
 
-
-   for(i=0; i<nmark; ++i)
-   {
-      if(mViewer_debug)
+      // MARKS
+      
+      for(i=0; i<nmark; ++i)
       {
-         printf("Marker %d of %d\n", i+1, nmark);
-         fflush(stdout);
-      }
-
-      flux = mark[i].symSize;
-
-      if(mark[i].symUnits == FRACTIONAL)
-         flux = flux * charHeight;
-
-      else if(mark[i].symUnits == SECONDS)
-         flux = flux / 3600.;
- 
-      else if(mark[i].symUnits == MINUTES)
-         flux = flux / 60.;
- 
-      else if(mark[i].symUnits == DEGREES)
-         flux = flux * 1.;
- 
-      else if(mark[i].symUnits == PIXELS)
-         flux = flux * pixScale;
- 
-      mViewer_symbol(wcs, flipY, csysimg, epochimg, mark[i].csys, mark[i].epoch,
-                     mark[i].ra, mark[i].dec, mark[i].inpix, flux, 
-                     mark[i].symNPnt, mark[i].symNMax, mark[i].symType, mark[i].symRotAngle, 
-                     mark[i].red, mark[i].green, mark[i].blue, mark[i].linewidth);
-
-      mViewer_addOverlay();
-   }
-
-
-   for(i=0; i<nlabel; ++i)
-   {
-      if(mViewer_debug)
-      {
-         printf("Label %d of %d\n", i+1, nlabel);
-         fflush(stdout);
-      }
-
-      if(label[i].inpix == 0)
-      {
-         ra  = label[i].x;
-         dec = label[i].y;
-
-         wcs2pix(wcs, ra, dec, &xpix, &ypix, &offscl);
-
-         label[i].x = xpix;
-         label[i].y = ypix;
-
          if(mViewer_debug)
          {
-            printf("DEBUG> label [%s]: (%-g,%-g) -> (%-g,%-g)\n", label[i].text, ra, dec, label[i].x, label[i].y);
+            printf("Marker %d of %d\n", i+1, nmark);
             fflush(stdout);
          }
+
+         flux = mark[i].symSize;
+
+         if(mark[i].symUnits == FRACTIONAL)
+            flux = flux * charHeight;
+
+         else if(mark[i].symUnits == SECONDS)
+            flux = flux / 3600.;
+    
+         else if(mark[i].symUnits == MINUTES)
+            flux = flux / 60.;
+    
+         else if(mark[i].symUnits == DEGREES)
+            flux = flux * 1.;
+    
+         else if(mark[i].symUnits == PIXELS)
+            flux = flux * pixScale;
+    
+         mViewer_symbol(wcs, flipY, csysimg, epochimg, mark[i].csys, mark[i].epoch,
+                        mark[i].ra, mark[i].dec, mark[i].inpix, flux, 
+                        mark[i].symNPnt, mark[i].symNMax, mark[i].symType, mark[i].symRotAngle, 
+                        mark[i].red, mark[i].green, mark[i].blue, mark[i].linewidth);
+
+         mViewer_addOverlay(mark[i].alpha);
       }
 
-      ix = label[i].x;
-      iy = label[i].y;
 
-      fontSize = (int)(14. * label[i].fontscale);
+      // LABELS
+      
+      for(i=0; i<nlabel; ++i)
+      {
+         if(mViewer_debug)
+         {
+            printf("Label %d of %d\n", i+1, nlabel);
+            fflush(stdout);
+         }
 
-      if(fontSize < 1)
-         fontSize = 1;
+         if(label[i].inpix == 0)
+         {
+            ra  = label[i].x;
+            dec = label[i].y;
 
-      mViewer_draw_label(fontfile, fontSize, ix, iy, label[i].text, label[i].red, label[i].green, label[i].blue);
-      mViewer_addOverlay();
+            convertCoordinates(EQUJ, 2000.,  ra, dec,
+                                csysimg,  epochimg, &xpos, &ypos, 0.0);
+
+            wcs2pix(wcs, xpos, ypos, &xpix, &ypix, &offscl);
+
+            if(hpx) mViewer_hpxCheck(&offscl, &xpix, &ypix);
+
+            label[i].x = xpix;
+            label[i].y = ypix;
+
+            if(mViewer_debug)
+            {
+               printf("DEBUG> label [%s]: (%-g,%-g) -> (%-g,%-g)\n", label[i].text, ra, dec, label[i].x, label[i].y);
+               fflush(stdout);
+            }
+         }
+
+         ix = label[i].x;
+         iy = label[i].y;
+
+         fontSize = (int)(14. * label[i].fontscale);
+
+         if(fontSize < 1)
+            fontSize = 1;
+
+         mViewer_draw_label(fontfile, fontSize, ix, iy, label[i].text, label[i].red, label[i].green, label[i].blue);
+         mViewer_addOverlay(label[i].alpha);
+      }
+
+
+      // DRAWINGS
+      
+      for(i=0; i<ndrawing; ++i)
+         mViewer_drawing(drawing[i].file, flipY, wcs, csysimg, epochimg, fontfile);
    }
+
 
    if(mViewer_debug)
    {
@@ -5805,6 +6863,8 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
 
 
    /* Write data to JPEG file */
+
+   fflush(stdout);
       
    if(outType == JPEG)
    {
@@ -5844,6 +6904,16 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
          return(returnStruct);
       }
    }
+   else if(outType == FITS)
+   {
+      if(fits_close_file(fitsfptr, &status))
+      {
+          mViewer_memCleanup();
+          sprintf(returnStruct->msg, "Can't open output FITS file [%s].", ofitsfile);
+          return returnStruct;
+      }
+   }
+
 
    if(grayfptr ) fits_close_file( grayfptr, &status);
    if(bluefptr ) fits_close_file( bluefptr, &status);
@@ -6495,6 +7565,9 @@ void mViewer_createColorTable(int itable)
     int dn4[] = {  0,  23,  46,  70,  93, 116, 
                  139, 162, 185, 209, 232, 255};
     
+    int dn5[] = {  0,  20,  39,  59,  78,  98,
+                 118, 137, 156, 177, 196, 255};
+    
     int red_tbl0[]   = {  0, 255};
     int grn_tbl0[]   = {  0, 255};
     int blue_tbl0[]  = {  0, 255};
@@ -6584,6 +7657,16 @@ void mViewer_createColorTable(int itable)
 
     int blue_tbl11[] = {  255, 175,  90,  30,   0,   0,   
                             0,   0,   0,  85, 170, 255}; 
+
+
+    int red_tbl12[]  = {  255, 255, 191, 160, 128, 122, 
+                          255, 255, 255, 255, 200, 128}; 
+
+    int grn_tbl12[]  = {  255, 255, 204, 230, 255, 255, 
+                          255, 200, 145,   0,   0,   0}; 
+
+    int blue_tbl12[] = {  255, 255, 255, 255, 255, 147,   
+                            0,   0,   0,   0,   0,   0}; 
 
 
    switch(itable)
@@ -6682,6 +7765,14 @@ void mViewer_createColorTable(int itable)
          red_tbl  = red_tbl11;
          grn_tbl  = grn_tbl11;
          blue_tbl = blue_tbl11;
+         break;
+      
+      case 12:
+         dn       = dn5;
+         nseg     = 12;
+         red_tbl  = red_tbl12;
+         grn_tbl  = grn_tbl12;
+         blue_tbl = blue_tbl12;
          break;
       
       default:
@@ -6840,19 +7931,6 @@ int mViewer_parseRange(char const *str, char const *kind, double *val, double *e
 /*                                 */
 /***********************************/
 
-#define NBIN 200000
-
-int     nbin;
-
-int     hist    [NBIN];
-double  chist   [NBIN];
-double  datalev [NBIN];
-double  gausslev[NBIN];
-
-unsigned long npix;
-
-double  delta, rmin, rmax;
- 
 int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
                      double *rangemin, double *rangemax, 
                      int type, char *betastr, double *rangebeta, double *dataval,
@@ -6869,7 +7947,8 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
 
    double  glow, ghigh, gaussval, gaussstep;
    double  dlow, dhigh;
-   double  gaussmin, gaussmax;
+
+   double  gaussmin=0., gaussmax=0.;
 
 
    nbin = NBIN - 1;
@@ -7073,7 +8152,13 @@ int mViewer_getRange(fitsfile *fptr, char *minstr, char *maxstr,
       {
          datalev [i] = rmin+delta*i;
          gausslev[i] = mViewer_snpinv(chist[i+1]/npix);
+
+         if(gausslev[i] < -1000.) gausslev[i] = -1000.;
+         if(gausslev[i] >  1000.) gausslev[i] =  1000.;
       }
+
+      datalev [NBIN-1] = datalev [NBIN-2] + 1;
+      gausslev[NBIN-1] = gausslev[NBIN-2] + 1;
 
 
       /* Find the guassian levels associated */
@@ -7209,6 +8294,7 @@ int mViewer_readHist(char *histfile,  double *minval,  double *maxval, double *d
    fgets(line, 1024, fhist);
    sscanf(line, "%s %lu", label, &npix);
 
+   fgets(line, 1024, fhist);
    fgets(line, 1024, fhist);
 
    for(i=0; i<256; ++i)
@@ -7723,7 +8809,11 @@ int mViewer_setPixel(int i, int j, double brightness, double red, double green, 
 {
    int offset;
    int rval, gval, bval;
-   int rref, gref, bref;
+
+   int rref = 0;
+   int gref = 0;
+   int bref = 0;
+
    int valmag, refmag;
 
    if(i < 0 || i >= nx)
@@ -7836,16 +8926,19 @@ int mViewer_getPixel(int i, int j, int color)
 /*                           */
 /*****************************/
 
-void mViewer_addOverlay()
+void mViewer_addOverlay(double alpha)
 {
    int    i, j, offset;
    double brightness;
+
+   if(alpha < 0.) alpha = 0.;
+   if(alpha > 1.) alpha = 1.;
 
    for(j=0; j<ny; ++j)
    {
       for(i=0; i<nx; ++i)
       {
-         brightness = ovlyweight[j][i];
+         brightness = ovlyweight[j][i] * alpha;
 
          if(outType == JPEG)
          {
@@ -7863,6 +8956,8 @@ void mViewer_addOverlay()
                pngData[offset + 0] = brightness * pngOvly[offset + 0] + (1. - brightness) * pngData[offset + 0];
                pngData[offset + 1] = brightness * pngOvly[offset + 1] + (1. - brightness) * pngData[offset + 1];
                pngData[offset + 2] = brightness * pngOvly[offset + 2] + (1. - brightness) * pngData[offset + 2];
+
+               pngData[offset + 3] = (brightness + (1. - brightness) * pngData[offset + 3]/255.) * 255.;
             }
          }
 
@@ -7934,6 +9029,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xprev, &yprev, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xprev, &yprev);
+
    if(offscl || mNaN(xprev) || mNaN(yprev))
       return;
 
@@ -7954,6 +9051,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+   if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
    if(offscl || mNaN(xval) || mNaN(yval))
       return;
@@ -7993,6 +9092,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8045,6 +9146,8 @@ void mViewer_coord_label(char *face_path, int fontsize,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8141,6 +9244,8 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
+
    if(!flipY || wcs->imflip)
       yval = wcs->nypix - yval;
 
@@ -8171,6 +9276,8 @@ void mViewer_longitude_line(double lon, double latmin, double latmax,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8276,6 +9383,8 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
    offscl = 0;
    wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
 
+   if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
+
    if(!flipY || wcs->imflip)
       yval = wcs->nypix - yval;
 
@@ -8303,6 +9412,8 @@ void mViewer_latitude_line(double lat, double lonmin, double lonmax,
 
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
@@ -8407,6 +9518,8 @@ void mViewer_draw_boundary(double red, double green, double blue, double linewid
       offscl = 0;
       wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
 
+      if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
+
       if(!flipY || wcs->imflip)
          yval = wcs->nypix - yval;
 
@@ -8433,6 +9546,8 @@ void mViewer_draw_boundary(double red, double green, double blue, double linewid
 
          offscl = 0;
          wcs2pix(wcs, reflon, reflat, &xval, &yval, &offscl);
+
+         if(hpx) mViewer_hpxCheck(&offscl, &xval, &yval);
 
          if(!flipY || wcs->imflip)
             yval = wcs->nypix - yval;
@@ -8598,4 +9713,16 @@ void mViewer_parseCoordStr(char *coordStr, int *csys, double *epoch)
       *epoch = 2000.;
 
    return;
+}
+
+
+void mViewer_hpxCheck(int *offscl, double *x, double *y)
+{
+   *offscl = 0;
+
+   if(*x < -(double)hpxPix/2.) *x += (double)hpxPix;
+   if(*x >  (double)hpxPix/2.) *x -= (double)hpxPix;
+
+   if(*y < -(double)hpxPix/2.) *y += (double)hpxPix;
+   if(*y >  (double)hpxPix/2.) *y -= (double)hpxPix;
 }

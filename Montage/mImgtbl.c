@@ -36,7 +36,6 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <fitshead.h>
 #include "mtbl.h"
-#include "montage.h"
 #include "hdr_rec.h"
 
 #define MAXLEN 100000
@@ -92,6 +91,8 @@ void print_rec   (struct Hdr_rec*);
 int  update_table(char *tblname);
 
 struct Hdr_rec hdr_rec;
+
+FILE *fstatus;
 
 
 /*************************************************************************/

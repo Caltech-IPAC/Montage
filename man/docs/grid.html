@@ -1,0 +1,72 @@
+  <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+	  <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	  <head>
+  <title>Montage User Documentation</title>
+
+<!--#include virtual="include/header.html"-->
+
+<h1>Parallelization and Performance</h1>
+
+<p>The generality inherent in the general re-projection algorithm comes at the expense of speed.  For example, serial re-projection of 54 2MASS images, covering 1 square degree of sky, on a 2.3 GHz Linux processor with 1 GB memory takes 5500 seconds. Since background rectification and co-addition together take less than 100 seconds, a mosaic can be built in a total of 5600 seconds.</p>
+
+<p>Montage provides two ways to speed-up the re-projection.  The first is to use the fast re-projection algorithm, <a href="mProjectPP.html"><tt>mProjectPP</tt></a>, whenever feasible.   The second way is to exploit the parallelization inherent in the design of Montage.   Figure 1 presents a workflow for generating a mosaic of three images denoted '1', '2' and '3'.   The only step in the workflow that cannot be parallelized is the computation of the background model: the module <a href="mBgModel.html"><tt>mBgModel</tt></a> only runs after the image re-projections, image differencing and plane fitting have completed.   </p>
+
+<p>Montage is highly scaleable, and the parallelization illustrated in Figure 1 can be extended to any number of files.  Montage uses <i>the same set of modules</i> to support <a href="gridtools.html">two instances of parallelization</a>: </p>
+<ul>
+  <li><a href="http://www-unix.mcs.anl.gov/mpi"><i>Message Passing Interface</i></a> (MPI), a library specification for message passing, and</li>
+  <li><a href="http://pegasus.isi.edu"><i>Planning for Execution in Grids</i></a> (Pegasus), a framework for mapping scientific workflows onto the grid</li>
+</ul>
+
+<p>What follows summarizes the performance of Montage, intended as a guide for parties intending to incorporate Montage into a cluster or grid environment. The figures report the performance of the general and fast re-projection algorithms, the relative performance of MPI and Pegasus, and the scalability of Montage with the image size and number of jobs. Unless stated, the performance figures include the effects of scheduling jobs and staging data as well as the computing time needed to re-project images, rectify backgrounds and co-add the processed images.  More thorough discussions of the performance of Montage are given in <a href="/publications/2005HPSEC/montage-hpsec05.pdf">Katz et al. (2005)</a> and <a href="/publications/Pegasus_Portal.pdf">Deelman et al. (2005)</a>.  While derived for version2.1, the same performance figures are also applicable to version 3.x.</p>
+
+<div class="inset">
+<p class="caption" style="text-align:center;">Figure 1: A Directed Acyclical Graph (DAG) showing the parallelization in the Montage design.</p>
+<img src="images/grid_fig1.jpg" />
+</div>
+
+<h2>Performance of Montage on the TeraGrid: MPI vs. Pegasus</h2>
+
+<p><i>Performance Benchmarks.</i>  The performance of Montage was measured by benchmark computations that generate mosaics of 2MASS data centered on M16 or M17. The processing was performed on the "Phase 2"  cluster of the <a href="http://www.teragrid.org"><i>Distributed Terascale Facility</i></a> (hereafter, TeraGrid) at the <i>National Center for Supercomputing Applications</i> (NCSA). The processing runs used 631 nodes with dual Itanium 2 1.5 GHz processors with at least 4 GB of memory. The network between nodes was <i>Myrinet</i> and the operating system was <i>SuSE Linux</i>. Disk I/O was to a 24 TB <i>General Parallel File System</i> (GPFS).  Jobs were scheduled on the system using the <i>Portable Batch System</i> (PBS). The queue wait time was not included in the execution times, since that is heavily dependent on machine load from other users.</p>
+
+<p><i>Performance of the General and Fast Re-projection Algorithms.</i>  Figures 2 and 3 show the performance of the general algorithm (<a href="/docs/mProject.html"><tt>mProject</tt></a>) and the fast algorithm (<a href="/docs/mProjectPP.html"><tt>mProjectPP</tt></a>) in returning a mosaic of 1,254 input 2MASS images, each about 0.5 megapixels in size and overlapping at the edges, for a total of 657 megapixels (about 5 GB with 64 bits/pixel double precision floating point data). The output is a 3.7 GB FITS file, with a 21,600 x 21,600 pixel data segment, and 64 bits/pixel double precision floating-point data.   The figures clearly show that <a href="mProjectPP.html"><tt>mProjectPP</tt></a> is between 20 and 30 times faster than <a href="mProject.html"><tt>mProject</tt></a>. This performance improvement does not, however, carry over to the total times to generate the mosaics because the co-addition and background rectification modules do not scale with the number of nodes.</p>
+
+
+<div class="inset">
+<p class="caption">Figure 2: Plot of wall clock time versus number of nodes on the NCSA TeraGrid cluster for the parallel components of version 2.1 of Montage with the general mProject algorithm.  The total time for the end-to-end run is shown as the thick black line.</p>
+<img src="images/grid_fig2.jpg" />
+</div>
+<div class="inset">
+<p class="caption">Figure 3: Plot of wall clock time versus number of nodes on the NCSA TeraGrid cluster for the parallel components of version 2.1 of Montage with the fast algorithm, mProjectPP.   The total time for the end-to-end run is shown as the thick black line.</p>
+<img src="images/grid_fig3.jpg" />
+</div>
+
+
+<p><i>Performance of Pegasus and MPI.</i>  Figure 4 shows the relative performance of MPI and Pegasus for the mosaic described in the previous section (Figures 2 and 3).  MPI shows slightly better performance, but the difference between the two becomes less pronounced as the number of nodes increases.</p>
+
+<div class="inset">
+<p class="caption">Figure 4: Comparison of the performance of Montage under MPI and Pegasus for building a 6&deg; by 6&deg; mosaic of 2MASS data.</p>
+<img src="images/grid_fig4.jpg" />
+</div>
+
+<p><i>Scaleability with Mosaic Size.</i>  Figure 5 shows how the total execution time scales as the mosaic size increases. It reports the total execution time of the workflow (total time) including the time taken to transfer the input image files from the <i>Information Sciences Institute</i> (ISI) to the storage system at NCSA (input data transfer time), the time taken to execute the workflow (compute time), and the time taken to transfer the created mosaic from NCSA to ISI (output data transfer time). The increase in the total time taken to create the workflow scaled linearly with the area of the mosaic.  But, as the mosaic size increases, the time to transfer the input and output data begins to dominate the compute time of the workflow. In particular, the time taken to transfer the output data contributes significantly to the increase in the total time.</p>
+
+<div class="inset">
+<p style="text-align:center" class="caption">Figure 5: Total execution time as a function of mosaic size</p>
+<img src="images/grid_fig5.jpg" />
+</div>
+
+<p><i>System Throughput.</i>  The system throughput was measured by submitting a sets of 1, 2, 4, 8, 10, 16, and 20 simultaneous requests to a Condor pool of 50 nodes. Each request was to process a one square degree mosaic 2MASS J-band mosaic centered on M17. Figure 6 shows the maximum, average and the minimum completion time of requests in each set. The average completion time increases from 18 minutes to 85 minutes as the number of simultaneous requests increase from 1 to 20. The maximum variation between the earliest completing request and the last completing request is 14 minutes in case of 20 simultaneous requests. The resulting throughput of the cluster is one square degree mosaic per 4.5 minutes. </p>
+
+<div class="inset">
+<p style="text-align:center" class="caption">Figure 6:</p>
+<img src="images/grid_fig6.jpg" />
+</div>
+
+<div id="docnav">
+<p class="left"><a href="algorithms.html">&lt;-- Algorithms</a></p>
+<p class="right"><a href="gridtools.html">Grid Tools --&gt;</a></p>
+</div>
+
+
+<!--#include virtual="include/footer.html"-->
