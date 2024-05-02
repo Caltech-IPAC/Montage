@@ -9,6 +9,11 @@ rm -rf dist
 rm -rf MontagePy.egg-info
 
 mkdir -p src/MontagePy
+mkdir -p src/MontagePy/archive
+
+cp __init__.py src/MontagePy
+cp __archive__.py src/MontagePy/archive/__init__.py
+cp mArchiveList.py mArchiveDownload.py src/MontagePy/archive/
 cp ../../data/fonts/FreeSans.ttf src/MontagePy
 
 python parse.py

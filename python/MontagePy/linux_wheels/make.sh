@@ -1,5 +1,8 @@
 #!/bin/sh
 
+export SED='sed'
+
+
 # Up-front cleanup (should be unnecessary inside container)
 
 rm -rf src
@@ -13,23 +16,27 @@ rm -rf main.pyx
 rm -rf Montage lib/*
 
 mkdir -p src/MontagePy
+mkdir -p src/MontagePy/archive
 
 
-# Get and build Montage and copy the files from there
-# we need to build the wheels
+# Get and build Montage and copy the files from the Montage build
+# that we need to build the wheels
 
 git clone https://github.com/Caltech-IPAC/Montage.git 
 
-(cd Montage && git checkout develop && make)
+(cd Montage && make)
 
 cp -r Montage/python/MontagePy/lib lib 
 
-cp Montage/python/MontagePy/pyproject.toml .
-cp Montage/python/MontagePy/README.txt .
-cp Montage/python/MontagePy/LICENSE.txt .
-cp -r Montage/python/MontagePy/templates .
-cp Montage/python/MontagePy/MontagePy/archive.py src/Montage
-cp Montage/python/MontagePy/MontagePy/FreeSans.ttf .
+cp    Montage/python/MontagePy/pyproject.toml .
+cp    Montage/python/MontagePy/LICENSE.txt    .
+cp -r Montage/python/MontagePy/templates      .
+
+cp    Montage/python/MontagePy/__init__.py          src/MontagePy
+cp    Montage/python/MontagePy/mArchiveList.py      src/MontagePy/archive
+cp    Montage/python/MontagePy/__archive__.py       src/MontagePy/archive/__init__.py
+cp    Montage/python/MontagePy/mArchiveDownload.py  src/MontagePy/archive
+cp    Montage/python/MontagePy/FreeSans.ttf         src/MontagePy
 
 
 # Build Cython input files for our project

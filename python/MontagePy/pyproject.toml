@@ -8,6 +8,10 @@ license          = {file = 'LICENSE.txt'}
 keywords         = ['astronomy', 'astronomical', 'image', 'reprojection', 'mosaic', 'visualization']
 dependencies     = ['requests']
 
+[tool.setuptools]
+package-dir      = {"" = "src"}
+packages         = ["MontagePy", "MontagePy.archive"]
+
 [project.urls]
 'Homepage'       = 'https://github.com/Caltech-IPAC/Montage'
 
