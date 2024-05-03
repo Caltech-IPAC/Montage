@@ -8,7 +8,6 @@ from Cython.Build import cythonize
 machine = platform.machine()
 
 TOP        = os.path.abspath(os.path.join(os.getcwd(), '../..'))
-
 LIB        = os.path.join(TOP, 'lib')
 MONTAGELIB = os.path.join(TOP, 'MontageLib')
 
@@ -34,5 +33,5 @@ setup(
     package_data     = {'MontagePy': ['FreeSans.ttf']},
 
     ext_modules      = cythonize(extensions, 
-                                 compiler_directives={'language_level' : '3str'}),
+                                 compiler_directives={'language_level' : '3str'})
 )

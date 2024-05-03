@@ -33,8 +33,8 @@ cp    Montage/python/MontagePy/LICENSE.txt    .
 cp -r Montage/python/MontagePy/templates      .
 
 cp    Montage/python/MontagePy/__init__.py          src/MontagePy
-cp    Montage/python/MontagePy/mArchiveList.py      src/MontagePy/archive
 cp    Montage/python/MontagePy/__archive__.py       src/MontagePy/archive/__init__.py
+cp    Montage/python/MontagePy/mArchiveList.py      src/MontagePy/archive
 cp    Montage/python/MontagePy/mArchiveDownload.py  src/MontagePy/archive
 cp    Montage/python/MontagePy/FreeSans.ttf         src/MontagePy
 
@@ -45,7 +45,7 @@ pip install jinja2
 
 python parse.py
 
-$SED '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import importlib_resources\n\n    if fontFile == "":\n        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")' _wrappers.pyx > tmpfile
+$SED '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import importlib_resources\n\n    if fontFile == "":\n        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")' src/MontagePy/_wrappers.pyx > tmpfile
 
-mv tmpfile _wrappers.pyx
+mv tmpfile src/MontagePy/_wrappers.pyx
 
