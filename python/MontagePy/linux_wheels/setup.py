@@ -20,7 +20,7 @@ os.environ['CFLAGS'   ] = ''
 os.environ['ARCHFLAGS'] = '-arch ' + machine
 
 extensions = [
-    Extension('MontagePy._wrappers', ['src/MontagePy/_wrappers.pyx'])
+    Extension('MontagePy._wrappers', ['src/MontagePy/_wrappers.pyx'],
         include_dirs = [os.path.join(LIB, 'include'), MONTAGELIB],
         extra_objects = objs),
 
