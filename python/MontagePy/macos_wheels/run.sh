@@ -69,10 +69,11 @@ cp    Montage/python/MontagePy/LICENSE.txt    .
 cp    Montage/python/MontagePy/cleanup.py     .
 cp -r Montage/python/MontagePy/templates      .
 
-cp    Montage/python/MontagePy/MontagePy/__archive__.py   src/Montage/archive/__init__.py
-cp    Montage/python/MontagePy/MontagePy/mArchiveList.py  src/Montage/archive
-cp    Montage/python/MontagePy/MontagePy/mArchiveDownload src/Montage/archive
-cp    Montage/python/MontagePy/MontagePy/FreeSans.ttf     src/MontagePy
+cp    Montage/python/MontagePy/__init__.py      src/MontagePy
+cp    Montage/python/MontagePy/__archive__.py   src/MontagePy/archive/__init__.py
+cp    Montage/python/MontagePy/mArchiveList.py  src/MontagePy/archive
+cp    Montage/python/MontagePy/mArchiveDownload src/MontagePy/archive
+cp    Montage/data/fonts/FreeSans.ttf           src/MontagePy
 
 
 # Build Cython input files for our project
