@@ -1,8 +1,5 @@
 #!/bin/sh
 
-export SED='sed'
-
-
 # Up-front cleanup (should be unnecessary inside container)
 
 rm -rf src
@@ -30,6 +27,7 @@ cp -r Montage/python/MontagePy/lib lib
 
 cp    Montage/python/MontagePy/pyproject.toml .
 cp    Montage/python/MontagePy/LICENSE.txt    .
+cp    Montage/python/MontagePy/cleanup.py     .
 cp -r Montage/python/MontagePy/templates      .
 
 cp    Montage/python/MontagePy/__init__.py          src/MontagePy
@@ -45,7 +43,7 @@ pip install jinja2
 
 python parse.py
 
-$SED '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import importlib_resources\n\n    if fontFile == "":\n        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")' src/MontagePy/_wrappers.pyx > tmpfile
+python cleanup.py src/MontagePy/_wrappers.pyx > tmpfile
 
 mv tmpfile src/MontagePy/_wrappers.pyx
 

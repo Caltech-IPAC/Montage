@@ -32,10 +32,8 @@ export CIBW_BUILD='*'
 export CIBW_BUILD_FRONTEND='build'
 export CIBW_ARCHS='universal2'
 export MACOSX_DEPLOYMENT_TARGET='11.1'
-export SED='gsed'
 
 echo "OS>                 " "$OS"
-echo "SED>                " "$SED"
 echo "CIBW_ARCHS>         " "$CIBW_ARCHS"
 echo "CIBW_BUILD>         " "$CIBW_BUILD"
 echo "CIBW_BUILD_FRONTEND>" "$CIBW_BUILD_FRONTEND"
@@ -66,14 +64,16 @@ git clone https://github.com/Caltech-IPAC/Montage.git
 
 cp -r Montage/python/MontagePy/lib lib 
 
-cp Montage/python/MontagePy/pyproject.toml .
-cp Montage/python/MontagePy/README.txt .
-cp Montage/python/MontagePy/LICENSE.txt .
-cp -r Montage/python/MontagePy/templates .
-cp Montage/python/MontagePy/MontagePy/__archive__.py src/Montage/archive/__init__.py
-cp Montage/python/MontagePy/MontagePy/mArchiveList.py src/Montage/archive
-cp Montage/python/MontagePy/MontagePy/mArchiveDownload src/Montage/archive
-cp Montage/python/MontagePy/MontagePy/FreeSans.ttf .
+cp    Montage/python/MontagePy/pyproject.toml .
+cp    Montage/python/MontagePy/README.txt     .
+cp    Montage/python/MontagePy/LICENSE.txt    .
+cp    Montage/python/MontagePy/cleanup.py     .
+cp -r Montage/python/MontagePy/templates      .
+
+cp    Montage/python/MontagePy/MontagePy/__archive__.py   src/Montage/archive/__init__.py
+cp    Montage/python/MontagePy/MontagePy/mArchiveList.py  src/Montage/archive
+cp    Montage/python/MontagePy/MontagePy/mArchiveDownload src/Montage/archive
+cp    Montage/python/MontagePy/MontagePy/FreeSans.ttf     src/MontagePy
 
 
 # Build Cython input files for our project
@@ -82,7 +82,7 @@ pip install jinja2
 
 python parse.py
 
-$SED '/^def mViewer/a \ \ \ \ # Next four lines added by sed script\n    import importlib_resources\n\n    if fontFile == "":\n        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")' _wrappers.pyx > tmpfile
+python cleanup.py src/MontagePy/_wrappers.pyx > src/MontagePy/tmpfile
 
 mv tmpfile _wrappers.pyx
 
