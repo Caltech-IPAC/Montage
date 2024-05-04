@@ -14,7 +14,7 @@ wheel (zip) file in the "dist" subdirectory which you can then "pip
 install" into Python (if you already have Montage install using the same
 version number, you might have to run "pip uninstall MontagePy" first).
 
-The packages needed are "jinja2" and "build".
+The packages needed are "jinja2", "importlib-resources" and "build".
 
 For MacOSX, there are few additional things that have to be done.
 The most important has to do with the way OSX deals with building code
