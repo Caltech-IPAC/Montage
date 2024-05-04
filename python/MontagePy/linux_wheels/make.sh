@@ -47,3 +47,4 @@ python cleanup.py src/MontagePy/_wrappers.pyx > tmpfile
 
 mv tmpfile src/MontagePy/_wrappers.pyx
 
+cp src/MontagePy/wrappers.pxd .
