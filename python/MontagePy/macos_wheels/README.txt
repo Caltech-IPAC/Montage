@@ -15,7 +15,9 @@ prior to building.
 Even though the same tools are used, building Python binary extension wheels
 for MacOSX and Linux are actually quite different.  These files and this
 description is just for MacOSX.  See the "linux_wheels" directory for the
-Linux write-up.
+Linux write-up.  Both of these directories are, in fact, standalone in that
+they don't need the Montage directory structure above them to be built. They
+are kept here for convenience.
 
 ---
 

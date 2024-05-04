@@ -13,11 +13,10 @@
 # and don't interfer with any other copy you might have so you can delete them when you
 # are sure you are done using them.
 
-
-# Also, in this script we run the GNU sed command.  This is not the version installed
-# default on the Mac.  You can either try to modify the command here to work with
-# the Mac sed or just install the GNU sed and use 'gsed' in the command, as we have.
-
+# We might be able to use the local copy of our Montage (outside the container) as the
+# basis of the build but we instead pull a new copy into the container and compile it there. 
+# If we used the local copy, we would need to compile it with the right OSX deployment
+# target and that could get overly confusing.
 
 # The cibuildwheel utility uses environment variables to control what it actually 
 # builds.  In addition, on MacOS, the compiler (clang) also checks an environment
