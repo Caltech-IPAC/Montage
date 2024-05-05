@@ -86,6 +86,8 @@ python cleanup.py src/MontagePy/_wrappers.pyx > src/MontagePy/tmpfile
 
 mv tmpfile _wrappers.pyx
 
+cp src/MontagePy/wrappers.pxd .
+
 
 # Build all the MacOS-related wheels
 
