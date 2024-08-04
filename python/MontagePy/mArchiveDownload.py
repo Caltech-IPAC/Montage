@@ -3,11 +3,12 @@
 import os
 import sys
 import requests
-import urllib.parse
-import urllib.request
 import ssl
 import json
 import bz2
+import urllib.parse
+from urllib.request import urlopen
+
 
 def mArchiveDownload(survey, location, size, path):
 
@@ -39,7 +40,7 @@ def mArchiveDownload(survey, location, size, path):
         Directory for output files.
     """
 
-    debug = 0
+    debug = False
 
     
     # Build the URL to get image metadata
@@ -58,13 +59,9 @@ def mArchiveDownload(survey, location, size, path):
     # Retrieve the image metadata and convert
     # the JSON to a Python dictionary
     
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    fjson = urllib.request.urlopen(url, context=ctx)
-    
-    data = json.load(fjson)
+    response = urlopen(url) 
+  
+    data = json.loads(response.read()) 
     
     if debug:
         print("DEBUG> data: ")
@@ -136,3 +133,4 @@ def mArchiveDownload(survey, location, size, path):
     # Success
     
     return("{'status': '0', 'count': " + str(nimages) + "}")
+
