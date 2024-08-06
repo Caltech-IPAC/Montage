@@ -2,7 +2,6 @@
 
 import os
 import sys
-import requests
 import ssl
 import json
 import bz2
@@ -61,7 +60,13 @@ def mArchiveDownload(survey, location, size, path):
     
     response = urlopen(url) 
   
-    data = json.loads(response.read()) 
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    fjson = urlopen(url, context=ctx)
+
+    data = json.load(fjson)
     
     if debug:
         print("DEBUG> data: ")
@@ -103,14 +108,21 @@ def mArchiveDownload(survey, location, size, path):
             if len(datafile) > 4 and datafile[-4:] == '.bz2':
                 datafile = datafile[:-4]
                 bzfile = True
-    
-            r = requests.get(url, stream=True, verify=False)
+
+            ##### r = requests.get(url, stream=True, verify=False)
+
+            r = urlopen(url, context=ctx)
 
             decompressor = bz2.BZ2Decompressor()
 
             with open(datafile, 'wb') as fd:
 
-                for chunk in r.iter_content(chunk_size):
+                while True:
+
+                    chunk = r.read(chunk_size)
+
+                    if not chunk:
+                        break
 
                     if bzfile:
                         decompressed = decompressor.decompress(chunk)
