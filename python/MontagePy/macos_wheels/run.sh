@@ -29,7 +29,7 @@
 export OS='macos'
 export CIBW_BUILD='*'
 export CIBW_BUILD_FRONTEND='build'
-export CIBW_ARCHS='universal2'
+export CIBW_ARCHS='x86_64 universal2 arm64'
 export MACOSX_DEPLOYMENT_TARGET='11.1'
 
 echo "OS>                 " "$OS"
