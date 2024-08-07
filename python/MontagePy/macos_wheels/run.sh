@@ -28,6 +28,7 @@
 
 export OS='macos'
 export CIBW_BUILD='*'
+export CIBW_SKIP='cp36-* cp37-*'
 export CIBW_BUILD_FRONTEND='build'
 export CIBW_ARCHS='x86_64 universal2 arm64'
 export MACOSX_DEPLOYMENT_TARGET='11.1'
