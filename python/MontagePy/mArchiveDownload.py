@@ -2,12 +2,12 @@
 
 import os
 import sys
-import requests
-import urllib.parse
-import urllib.request
 import ssl
 import json
 import bz2
+import urllib.parse
+from urllib.request import urlopen
+
 
 def mArchiveDownload(survey, location, size, path):
 
@@ -39,7 +39,7 @@ def mArchiveDownload(survey, location, size, path):
         Directory for output files.
     """
 
-    debug = 0
+    debug = False
 
     
     # Build the URL to get image metadata
@@ -58,12 +58,14 @@ def mArchiveDownload(survey, location, size, path):
     # Retrieve the image metadata and convert
     # the JSON to a Python dictionary
     
+    response = urlopen(url) 
+  
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    fjson = urllib.request.urlopen(url, context=ctx)
-    
+    fjson = urlopen(url, context=ctx)
+
     data = json.load(fjson)
     
     if debug:
@@ -106,14 +108,21 @@ def mArchiveDownload(survey, location, size, path):
             if len(datafile) > 4 and datafile[-4:] == '.bz2':
                 datafile = datafile[:-4]
                 bzfile = True
-    
-            r = requests.get(url, stream=True, verify=False)
+
+            ##### r = requests.get(url, stream=True, verify=False)
+
+            r = urlopen(url, context=ctx)
 
             decompressor = bz2.BZ2Decompressor()
 
             with open(datafile, 'wb') as fd:
 
-                for chunk in r.iter_content(chunk_size):
+                while True:
+
+                    chunk = r.read(chunk_size)
+
+                    if not chunk:
+                        break
 
                     if bzfile:
                         decompressed = decompressor.decompress(chunk)
@@ -136,3 +145,4 @@ def mArchiveDownload(survey, location, size, path):
     # Success
     
     return("{'status': '0', 'count': " + str(nimages) + "}")
+

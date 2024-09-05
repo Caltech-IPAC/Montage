@@ -1,83 +1,44 @@
 
+Building a Montage Python Binary Extension
+------------------------------------------
 
-Building a Full Set of Montage Python Wheels for MacOSX
--------------------------------------------------------
+If you want to build a complete set of Montage Python binary extension wheels
+for all current versions of Python, Linux and Mac OSX, things get complicated.
+This is covered for Linux and MacOS in two subdirectories (linux_wheels
+and macos_wheels).  However building a wheel just for the local machine and
+your current Python is quite straightforward and that is what is covered here.
 
-Summary:  Install all the Python versions you want to support (the Mac
-has a particular location it wants them to be).  Then execute "run.sh"
-in this directory.  The bulk of this write-up consists of technical
-notes to help up remember why the scripts are structured the way they
-are and what else you need to do.  This includes things you need to do
-prior to building.  
+For Linux, all you need to do is install a few packages in Python and run the
+"make_local.sh" script included here.  The result is a wheel (zip) file in
+the "dist" subdirectory which you can then "pip install" into Python (if
+you already have Montage install using the same version number, you might
+have to run "pip uninstall MontagePy" first).
 
----
+The packages needed are "jinja2", "importlib-resources" and "build".
 
-Even though the same tools are used, building Python binary extension wheels
-for MacOSX and Linux are actually quite different.  These files and this
-description is just for MacOSX.  See the "linux_wheels" directory for the
-Linux write-up.  Both of these directories are, in fact, standalone in that
-they don't need the Montage directory structure above them to be built. They
-are kept here for convenience.
+For MacOSX, there are a couple of additional things that have to be done.
+The most important has to do with the way OSX builds code that needs to
+run on multiple OS versions.  Mac executables are generally forward version
+compatible.  That is, if you build it for an older version it will also run
+on anything newer.  Their compiler can be told to build for a previous
+OS version (the "deployment target").  So people building distributable code
+usually target a version a few years old.
 
----
+It gets more complicated when you need to link with libraries built by
+someone else (as we have to do with Python).  Then your choice of target
+version has to match theirs.  Right now, the current MacOSX version is 14.4
+but the Python version we can install are all built with a target of 11.1
+(for Anaconda; the version of the build from python.org is 10.9).
 
-MacOSX compiled code has to be targetted at a specific OSX release.
-By default, that is the release under which you are running but the almost
-invariably they will also work on newer versions.  So if you are building for
-distribution, you are usually advised to target your build a few releases back.
-
-This is compounded by the fact that here we need to link our code together
-with a libraries distributed with Python, so we in fact need to match the
-version used there.  At the time of this writing, the current OSX release
-is 14.1 (Sonoma) and the version used for the Anaconda Python distribution
-is 11.1 (Big Sur).  So all our compilation is done with 11.1, using an
-environment variable that controls the CLANG compiler:
-
+Therefore we have to make sure all our code is compiled to the same target.
+This is done with an environment variable:
 
    MACOSX_DEPLOYMENT_TARGET='11.1'
 
-This may be different if you are using the python.org release.
+Also, the Mac comes in two hardware flavors, x86_64 chips and ARM64.
+Their recommended approach is to construct "universal2" object code, where
+both versions are generated and kept in a single file (executable, .o
+ or .so).  Since here we are just building for the local hardware, we
+can let the compiler default that.
 
-Note: Even though there is an explicit /usr/bin/gcc (and our Makefiles use
-it),  it is actually the same binary as /usr/bin/clang.  You can install
-the real gcc but this us usually not recommended.  What all this means is
-that we only need to compile our code (and support libraries) once for all
-the OS versions we want to support.
-
-But there is yet another wrinkle.  Mac has been transitioning to a different
-chipset.  Older Macs use the X86_64 instruction set and the newer ones
-the ARM64.  CLANG can build to either one or you can specify "universal2",
-which actually builds both and saves them together in a single file.  At the
-moment we are doing this but if there are any complaints about the larger
-files we can switch to building them separately.
-
----
-
-Next, we have to decide which Python versions we want to support and install
-those on our build Mac.  At the moment the supported versions are 3.8 through
-3.12, though both this and the MacOSX versions tend to change every year.
-Python versions for MacOSX come as standard .pkg files and install to
-/Library/Frameworks/Python.framework/Versions.  There is a Mac program called
-"installer" that you can use, but just doing it manually through the GUI is
-good enough.
-
----
-
-All of Montage (and support libraries) are written in C for speed.  We use
-Cython to create the linkage from Python to these binaries, essentially
-just Python functions that form wrappers around the C functions.  We don't
-even create this Cython manually.  Instead, we create JSON files for each
-C module that documents the calling and return structure syntax and use a
-custom built parser the generates the Cython code.
-
----
-
-Finally, with all the compiled C and Cython code in place, we use standard
-pyproject.toml to describe the package and setup.py to control the binary
-build process.  In a case like this, there is standard Python utility called
-"cibuildwheel" which loops over all the wheels we have defined and calls
-the "build" process for each one.  Right now, with five Python versions and
-just the one "universal2" version, that means five wheels.  All of this is
-captured in the "run.sh" script and the results are put in the "wheelhouse"
-subdirectory.
-
+After that the process described in the second paragraph above is the same.

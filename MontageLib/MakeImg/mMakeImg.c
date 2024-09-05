@@ -42,6 +42,7 @@ int main(int argc, char **argv)
 
    strcpy(outFile,  "");
    strcpy(jsonStr,  "");
+   strcpy(jsonFile, "");
    strcpy(line,     "");
 
    debug = 0;
