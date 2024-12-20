@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mSubimage: mSubimage.o montageSubimage.o
-	$(CC) $(LDFLAGS) -o mSubimage mSubimage.o montageSubimage.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mSubimage: mSubimage.o montageSubimage.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mSubimage ../../bin

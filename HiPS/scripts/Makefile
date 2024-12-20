@@ -15,52 +15,52 @@ all:      mHPXMosaicScripts mHPXProjectScripts mHPXDiffScripts mHPXBgCorrectScri
 	  mHPXFlattenScripts mHPX8BitScripts mHPXColorQuicklookScripts
 
 mHPXMosaicScripts: mHPXMosaicScripts.o
-			$(CC) $(LDFLAGS) -o mHPXMosaicScripts mHPXMosaicScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXProjectScripts: mHPXProjectScripts.o
-			$(CC) $(LDFLAGS) -o mHPXProjectScripts mHPXProjectScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXDiffScripts: mHPXDiffScripts.o
-			$(CC) $(LDFLAGS) -o mHPXDiffScripts mHPXDiffScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXBgCorrectScripts: mHPXBgCorrectScripts.o
-			$(CC) $(LDFLAGS) -o mHPXBgCorrectScripts mHPXBgCorrectScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXCoaddScripts: mHPXCoaddScripts.o
-			$(CC) $(LDFLAGS) -o mHPXCoaddScripts mHPXCoaddScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXShrinkScripts: mHPXShrinkScripts.o
-			$(CC) $(LDFLAGS) -o mHPXShrinkScripts mHPXShrinkScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXQuicklookScripts: mHPXQuicklookScripts.o
-			$(CC) $(LDFLAGS) -o mHPXQuicklookScripts mHPXQuicklookScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHiPSTileScripts: mHiPSTileScripts.o
-			$(CC) $(LDFLAGS) -o mHiPSTileScripts mHiPSTileScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHiPSPNGScripts: mHiPSPNGScripts.o
-			$(CC) $(LDFLAGS) -o mHiPSPNGScripts mHiPSPNGScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXBlendScripts: mHPXBlendScripts.o
-			$(CC) $(LDFLAGS) -o mHPXBlendScripts mHPXBlendScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXHistogramScripts: mHPXHistogramScripts.o
-			$(CC) $(LDFLAGS) -o mHPXHistogramScripts mHPXHistogramScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPX8BitScripts: mHPX8BitScripts.o
-			$(CC) $(LDFLAGS) -o mHPX8BitScripts mHPX8BitScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXCombineHistScripts: mHPXCombineHistScripts.o
-			$(CC) $(LDFLAGS) -o mHPXCombineHistScripts mHPXCombineHistScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXPlatePNGScripts: mHPXPlatePNGScripts.o
-			$(CC) $(LDFLAGS) -o mHPXPlatePNGScripts mHPXPlatePNGScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXColorQuicklookScripts: mHPXColorQuicklookScripts.o
-			$(CC) $(LDFLAGS) -o mHPXColorQuicklookScripts mHPXColorQuicklookScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHPXFlattenScripts: mHPXFlattenScripts.o
-			$(CC) $(LDFLAGS) -o mHPXFlattenScripts mHPXFlattenScripts.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 			cp mHPXMosaicScripts mHPXProjectScripts mHPXDiffScripts mHPXBgCorrectScripts mHPXCoaddScripts \

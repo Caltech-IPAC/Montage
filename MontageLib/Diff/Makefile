@@ -9,11 +9,9 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mDiff:	mDiff.o montageDiff.o
-	$(CC) $(LDFLAGS) -o mDiff mDiff.o montageDiff.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o \
-	../util/checkWCS.o \
-	$(LIBS)
+mDiff:	mDiff.o montageDiff.o \
+ ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mDiff ../../bin

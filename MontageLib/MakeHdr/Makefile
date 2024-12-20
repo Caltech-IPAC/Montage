@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lwcs -lboundaries -lmtbl -lcoord -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mMakeHdr: mMakeHdr.o montageMakeHdr.o
-	$(CC) $(LDFLAGS) -o mMakeHdr mMakeHdr.o montageMakeHdr.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mMakeHdr: mMakeHdr.o montageMakeHdr.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mMakeHdr ../../bin

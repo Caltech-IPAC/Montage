@@ -9,16 +9,16 @@ LIBS   =	-L../../lib -lpixbounds -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-all:		mHPXGap mHPXGapDiff mHPXGapCombine
+all:		mHPXGapScripts mHPXGapDiff mHPXGapCombine
 
-mHPXGap:	mHPXGapScripts.o
-		$(CC) $(LDFLAGS) -o mHPXGapScripts mHPXGapScripts.o ../../MontageLib/util/debugCheck.o $(LIBS)
+mHPXGapScripts: mHPXGapScripts.o ../../MontageLib/util/debugCheck.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-mHPXGapDiff:	mHPXGapDiff.o montageHPXGapDiff.o
-		$(CC) $(LDFLAGS) -o mHPXGapDiff mHPXGapDiff.o montageHPXGapDiff.o ../../MontageLib/util/debugCheck.o $(LIBS)
+mHPXGapDiff: mHPXGapDiff.o montageHPXGapDiff.o ../../MontageLib/util/debugCheck.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-mHPXGapCombine:	mHPXGapCombine.o
-		$(CC) $(LDFLAGS) -o mHPXGapCombine mHPXGapCombine.o ../../MontageLib/util/debugCheck.o $(LIBS)
+mHPXGapCombine: mHPXGapCombine.o ../../MontageLib/util/debugCheck.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mHPXGapScripts mHPXGapDiff mHPXGapCombine ../../bin

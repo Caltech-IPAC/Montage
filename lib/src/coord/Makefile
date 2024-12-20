@@ -1,7 +1,6 @@
 CC      =	gcc
 CPPFLAGS  +=	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I. -I../../include
 CFLAGS    +=	-fPIC
-LIBNAME =	libcoord.a
 
 SRCS    =	ccalc.c                    \
 		parseCoordinateString.c    \
@@ -20,8 +19,7 @@ OBJS    =	${SRCS:.c=.o}
 
 
 libcoord.a:	${OBJS}
-		rm -f ${LIBNAME}
-		ar q ${LIBNAME} ${OBJS}
+		ar rv $@ $^
 
 ${OBJS}:	coord.h
 

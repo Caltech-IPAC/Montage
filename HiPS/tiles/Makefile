@@ -11,10 +11,10 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lpixbounds -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-all:		mHiPSTiles
+all: mHiPSTiles
 
-mHiPSTiles:	mHiPSTiles.o
-		$(CC) $(LDFLAGS) -o mHiPSTiles mHiPSTiles.o $(LIBS)
+mHiPSTiles: mHiPSTiles.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mHiPSTiles ../../bin

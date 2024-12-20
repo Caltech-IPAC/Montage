@@ -9,10 +9,8 @@ LIBS   =	-L../../lib -lwcs -lcoord -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mImgtbl: mImgtbl.o montageImgtbl.o
-	$(CC) $(LDFLAGS) -o mImgtbl mImgtbl.o montageImgtbl.o \
-	../util/checkWCS.o \
-	$(LIBS)
+mImgtbl: mImgtbl.o montageImgtbl.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mImgtbl ../../bin

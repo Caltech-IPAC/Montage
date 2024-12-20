@@ -9,11 +9,10 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mDiffExec: mDiffExec.o montageDiffExec.o
-	$(CC) $(LDFLAGS) -o mDiffExec mDiffExec.o montageDiffExec.o \
-	../Diff/montageDiff.o \
-	../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o \
-	$(LIBS)
+mDiffExec: mDiffExec.o montageDiffExec.o \
+ ../Diff/montageDiff.o \
+ ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mDiffExec ../../bin

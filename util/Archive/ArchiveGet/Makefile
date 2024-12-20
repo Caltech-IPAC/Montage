@@ -14,10 +14,9 @@ LIBS   =	-L../../../lib -lwcs -lcfitsio -lmcurl -lcurl -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mArchiveGet:	mArchiveGet.o
-		$(CC) $(LDFLAGS) -o mArchiveGet mArchiveGet.o  \
-		../../../Montage/checkHdr.o         \
-		../../../Montage/checkWCS.o $(LIBS)
+mArchiveGet: mArchiveGet.o \
+  ../../../Montage/checkHdr.o ../../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mArchiveGet ../../../bin

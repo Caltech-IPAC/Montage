@@ -15,8 +15,8 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mHdr:	mHdr.o
-		$(CC) $(LDFLAGS) -o mHdr mHdr.o $(LIBS)
+mHdr: mHdr.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mHdr ../../bin

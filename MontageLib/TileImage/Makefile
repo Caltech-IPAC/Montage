@@ -9,11 +9,10 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mTileImage: mTileImage.o montageTileImage.o
-	$(CC) $(LDFLAGS) -o mTileImage mTileImage.o montageTileImage.o \
-	../util/checkHdr.o ../util/checkWCS.o \
-	../Subimage/montageSubimage.o \
-	$(LIBS)
+mTileImage: mTileImage.o montageTileImage.o \
+  ../Subimage/montageSubimage.o \
+  ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mTileImage ../../bin

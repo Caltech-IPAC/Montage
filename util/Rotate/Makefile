@@ -15,11 +15,8 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mRotate:	mRotate.o
-		$(CC) $(LDFLAGS) -o mRotate mRotate.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mRotate: mRotate.o ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mRotate ../../bin

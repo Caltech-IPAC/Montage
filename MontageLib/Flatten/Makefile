@@ -9,12 +9,11 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lpixbounds -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mFlatten: mFlatten.o montageFlatten.o
-	$(CC) $(LDFLAGS) -o mFlatten mFlatten.o montageFlatten.o \
-	../Fitplane/montageFitplane.o \
-	../Background/montageBackground.o \
-	../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o \
-	$(LIBS)
+mFlatten: mFlatten.o montageFlatten.o \
+  ../Fitplane/montageFitplane.o \
+  ../Background/montageBackground.o \
+  ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mFlatten ../../bin

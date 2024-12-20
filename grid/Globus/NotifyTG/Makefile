@@ -14,9 +14,8 @@ LIBS   =	-L../../../lib -lsvc -lmtbl -lwcs -lcfitsio -lcoord -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mNotifyTG:	mNotifyTG.o
-		$(CC) $(LDFLAGS) -o mNotifyTG mNotifyTG.o \
-		$(LIBS)
+mNotifyTG: mNotifyTG.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mNotifyTG ../../../bin

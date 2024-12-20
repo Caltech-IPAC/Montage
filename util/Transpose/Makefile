@@ -14,11 +14,8 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mTranspose:	mTranspose.o
-		$(CC) $(LDFLAGS) -o mTranspose mTranspose.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mTranspose: mTranspose.o ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mTranspose ../../bin

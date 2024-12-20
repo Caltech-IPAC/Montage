@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lpixbounds -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mFitplane: mFitplane.o montageFitplane.o
-	$(CC) $(LDFLAGS) -o mFitplane mFitplane.o montageFitplane.o \
-	../util/debugCheck.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mFitplane: mFitplane.o montageFitplane.o \
+  ../util/debugCheck.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mFitplane ../../bin

@@ -16,11 +16,8 @@ LIBS   =	-L../../lib -lsvc -lmtbl -lcmd -lwcs -lcfitsio -lcoord -lboundaries -lm
 
 all:		mExec
 
-mExec:		mExec.o
-		$(CC) $(LDFLAGS) -o mExec mExec.o \
-		../../Montage/debugCheck.o   \
-		../../Montage/filePath.o   \
-		$(LIBS)
+mExec: mExec.o ../../Montage/debugCheck.o ../../Montage/filePath.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mExec ../../bin

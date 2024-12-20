@@ -15,8 +15,8 @@ LIBS   =	-L../../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mArchiveList:	mArchiveList.o
-		$(CC) $(LDFLAGS) -o mArchiveList mArchiveList.o $(LIBS)
+mArchiveList: mArchiveList.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mArchiveList ../../../bin

@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mProject: mProject.o montageProject.o
-	$(CC) $(LDFLAGS) -o mProject mProject.o montageProject.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mProject: mProject.o montageProject.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mProject ../../bin

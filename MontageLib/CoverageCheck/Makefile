@@ -9,11 +9,9 @@ LIBS   =	-L../../lib -lboundaries -lmtbl -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mCoverageCheck:	mCoverageCheck.o montageCoverageCheck.o
-	$(CC)  $(LDFLAGS) -o mCoverageCheck mCoverageCheck.o montageCoverageCheck.o \
-	../util/debugCheck.o ../util/checkFile.o \
-	../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mCoverageCheck:	mCoverageCheck.o montageCoverageCheck.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mCoverageCheck ../../bin

@@ -1,7 +1,6 @@
 CC      =		gcc
 CPPFLAGS  +=	-I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS    +=	-fPIC
-LIBNAME =		libwww.a
 
 SRCS    =		www.c
 
@@ -9,8 +8,7 @@ OBJS    =		${SRCS:.c=.o}
 
 
 libwww.a:	${OBJS}
-			rm -f ${LIBNAME}
-			ar q ${LIBNAME} ${OBJS}
+		ar rv $@ $^
 
 ${OBJS}:		www.h
 

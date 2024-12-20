@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mMask: mMask.o montageMask.o
-	$(CC) $(LDFLAGS) -o mMask mMask.o montageMask.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mMask: mMask.o montageMask.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mMask ../../bin

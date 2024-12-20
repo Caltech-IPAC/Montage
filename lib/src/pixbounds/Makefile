@@ -1,15 +1,13 @@
 CC      =               gcc 
 CPPFLAGS +=	-I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS   +=	-fPIC
-LIBNAME =               libpixbounds.a
 
 SRCS    =               pixbounds.c
 
 OBJS    =               ${SRCS:.c=.o}
 
 libpixbounds.a:		pixbounds.o
-			rm -f ${LIBNAME}
-			ar q ${LIBNAME} pixbounds.o
+			ar rv $@ $^
 
 install:
 			cp libpixbounds.a ../..

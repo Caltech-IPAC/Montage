@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mTANHdr: mTANHdr.o montageTANHdr.o
-	$(CC) $(LDFLAGS) -o mTANHdr mTANHdr.o montageTANHdr.o \
-	../util/checkHdr.o ../util/checkWCS.o ../util/checkFile.o \
-	$(LIBS)
+mTANHdr: mTANHdr.o montageTANHdr.o \
+  ../util/checkHdr.o ../util/checkWCS.o ../util/checkFile.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mTANHdr ../../bin

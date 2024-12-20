@@ -14,8 +14,8 @@ LIBS   =	-L../../lib -lsvc -lmtbl -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mTblExec:	mTblExec.o
-		$(CC) $(LDFLAGS) -o mTblExec mTblExec.o $(LIBS)
+mTblExec: mTblExec.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mTblExec ../../bin

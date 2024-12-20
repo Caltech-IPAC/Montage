@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -ltwoplane -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mProjectPP: mProjectPP.o montageProjectPP.o
-	$(CC) $(LDFLAGS) -o mProjectPP mProjectPP.o montageProjectPP.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mProjectPP: mProjectPP.o montageProjectPP.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mProjectPP ../../bin

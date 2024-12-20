@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mAddCube: mAddCube.o montageAddCube.o
-	$(CC)  $(LDFLAGS)-o mAddCube mAddCube.o montageAddCube.o \
-	../util/filePath.o ../util/debugCheck.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mAddCube: mAddCube.o montageAddCube.o \
+  ../util/filePath.o ../util/debugCheck.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mAddCube ../../bin

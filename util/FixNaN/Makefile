@@ -14,11 +14,8 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mFixNaN:	mFixNaN.o
-		$(CC) $(LDFLAGS) -o mFixNaN mFixNaN.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mFixNaN: mFixNaN.o ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mFixNaN ../../bin

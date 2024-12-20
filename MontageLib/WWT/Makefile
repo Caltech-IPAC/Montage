@@ -12,16 +12,16 @@ LIBS   = -L../../lib -lsvc -lm
 all: mHdrWWT mHdrWWTExec mProjWWTExec mPNGWWTExec
 
 mHdrWWT: mHdrWWT.o
-	$(CC) $(LDFLAGS) -o mHdrWWT mHdrWWT.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHdrWWTExec: mHdrWWTExec.o
-	$(CC) $(LDFLAGS) -o mHdrWWTExec mHdrWWTExec.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mProjWWTExec: mProjWWTExec.o
-	$(CC) $(LDFLAGS) -o mProjWWTExec mProjWWTExec.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mPNGWWTExec: mPNGWWTExec.o
-	$(CC) $(LDFLAGS) -o mPNGWWTExec mPNGWWTExec.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mHdrWWT mHdrWWTExec mProjWWTExec mPNGWWTExec ../../bin

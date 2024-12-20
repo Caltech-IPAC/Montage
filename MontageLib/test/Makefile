@@ -10,7 +10,7 @@ LIBS   =	-L../../lib -lcmd -lsvc -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mTest: mTest.o
-	$(CC) $(LDFLAGS) -o mTest mTest.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mTest ../../bin

@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mProjectQL: mProjectQL.o montageProjectQL.o
-	$(CC) $(LDFLAGS) -o mProjectQL mProjectQL.o montageProjectQL.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mProjectQL: mProjectQL.o montageProjectQL.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mProjectQL ../../bin

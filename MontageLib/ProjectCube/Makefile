@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mProjectCube: mProjectCube.o montageProjectCube.o
-	$(CC) $(LDFLAGS) -o mProjectCube mProjectCube.o montageProjectCube.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mProjectCube: mProjectCube.o montageProjectCube.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mProjectCube ../../bin

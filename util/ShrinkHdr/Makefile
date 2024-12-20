@@ -14,11 +14,8 @@ LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mShrinkHdr:	mShrinkHdr.o
-		$(CC) $(LDFLAGS) -o mShrinkHdr mShrinkHdr.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mShrinkHdr: mShrinkHdr.o ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mShrinkHdr ../../bin

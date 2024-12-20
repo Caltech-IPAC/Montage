@@ -3,7 +3,7 @@ CPPFLAGS +=	-I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS   +=	-fPIC
 
 libsvc.a:	svclib.o structlib.o
-		ar rv libsvc.a svclib.o structlib.o
+		ar rv $@ $^
 
 svclib.o:	svclib.c svc.h
 structlib.o:	structlib.c svc.h

@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mShrinkCube: mShrinkCube.o montageShrinkCube.o
-	$(CC) $(LDFLAGS) -o mShrinkCube mShrinkCube.o montageShrinkCube.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mShrinkCube: mShrinkCube.o montageShrinkCube.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mShrinkCube ../../bin

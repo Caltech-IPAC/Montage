@@ -15,11 +15,9 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mExamine:	mExamine.o
-		$(CC) $(LDFLAGS) -o mExamine mExamine.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mExamine: mExamine.o \
+  ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mExamine ../../bin

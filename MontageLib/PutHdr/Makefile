@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mPutHdr: mPutHdr.o montagePutHdr.o
-	$(CC) $(LDFLAGS) -o mPutHdr mPutHdr.o montagePutHdr.o \
-	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
-	$(LIBS)
+mPutHdr: mPutHdr.o montagePutHdr.o \
+  ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mPutHdr ../../bin

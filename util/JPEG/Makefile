@@ -16,11 +16,8 @@ LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mJPEG:		mJPEG.o
-		$(CC) $(LDFLAGS) -o mJPEG mJPEG.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mJPEG: mJPEG.o ../../Montage/checkHdr.o	../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mJPEG ../../bin

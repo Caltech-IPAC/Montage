@@ -14,15 +14,9 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lsvc -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mBestImage:	mBestImage.o \
-		../../Montage/checkWCS.o \
-		../../Montage/filePath.o \
-		../../Montage/debugCheck.o
-		$(CC) $(LDFLAGS) -o mBestImage \
-		mBestImage.o \
-		../../Montage/checkWCS.o \
-		../../Montage/filePath.o \
-		../../Montage/debugCheck.o $(LIBS)
+mBestImage: mBestImage.o \
+  ../../Montage/checkWCS.o ../../Montage/filePath.o ../../Montage/debugCheck.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mBestImage ../../bin

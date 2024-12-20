@@ -14,17 +14,14 @@ LIBS   =	-Lrtree -lrtree -L../../lib -lcmd -lwcs -lcoord -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mMovingTarget:	mMovingTarget.o
-		(cd rtree; make)
-		$(CC) $(LDFLAGS) -o mMovingTarget mMovingTarget.o \
-		../../Montage/debugCheck.o   \
-		../../Montage/checkFile.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mMovingTarget:	mMovingTarget.o \
+  ../../Montage/debugCheck.o ../../Montage/checkFile.o ../../Montage/checkWCS.o
+	$(MAKE) -C rtree
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mMovingTarget ../../bin
 
 clean:
-		(cd rtree; make clean)
+		$(MAKE) -C rtree clean
 		rm -f mMovingTarget *.o

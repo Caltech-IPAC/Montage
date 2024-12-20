@@ -16,14 +16,11 @@ LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 
 all:		mPix2Coord mFixHdr
 
-mPix2Coord:	mPix2Coord.o
-		$(CC) $(LDFLAGS) -o mPix2Coord mPix2Coord.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mPix2Coord: mPix2Coord.o ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-mFixHdr:	mFixHdr.o
-		$(CC) $(LDFLAGS) -o mFixHdr mFixHdr.o
+mFixHdr: mFixHdr.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mPix2Coord mFixHdr ../../bin

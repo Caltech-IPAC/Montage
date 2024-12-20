@@ -10,8 +10,7 @@ LIBS   =	 -L../../lib -lbz2
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mArchiveGet: mArchiveGet.o montageArchiveGet.o
-	$(CC)  $(LDFLAGS) -o mArchiveGet mArchiveGet.o montageArchiveGet.o \
-	$(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mArchiveGet ../../bin

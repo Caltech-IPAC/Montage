@@ -9,17 +9,16 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lwww -lcoord -ltwoplane -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mProjExec: mProjExec.o montageProjExec.o
-	$(CC) $(LDFLAGS) -o mProjExec mProjExec.o montageProjExec.o \
-	../TANHdr/montageTANHdr.o \
-	../GetHdr/montageGetHdr.o \
-	../ProjectCube/montageProjectCube.o \
-	../Project/montageProject.o \
-	../ProjectQL/montageProjectQL.o \
-	../ProjectPP/montageProjectPP.o \
-	../util/checkFile.o ../util/filePath.o ../util/debugCheck.o ../util/checkHdr.o \
-	../util/checkWCS.o \
-	$(LIBS)
+mProjExec: mProjExec.o montageProjExec.o \
+  ../TANHdr/montageTANHdr.o \
+  ../GetHdr/montageGetHdr.o \
+  ../ProjectCube/montageProjectCube.o \
+  ../Project/montageProject.o \
+  ../ProjectQL/montageProjectQL.o \
+  ../ProjectPP/montageProjectPP.o \
+  ../util/checkFile.o ../util/filePath.o ../util/debugCheck.o \
+  ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mProjExec ../../bin

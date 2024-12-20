@@ -10,8 +10,7 @@ LIBS   =	-L../../lib -lcmd -lmtbl -ljson -lcoord -lwcs -lcfitsio -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mMakeImg: mMakeImg.o montageMakeImg.o
-	$(CC) $(LDFLAGS) -o mMakeImg mMakeImg.o montageMakeImg.o \
-	$(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mMakeImg ../../bin

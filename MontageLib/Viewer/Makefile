@@ -21,10 +21,9 @@ LIBS   =        -L../../lib -lwcs -lcoord -lcfitsio -ljpeg -llodepng -lmtbl -ljs
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mViewer: mViewer.o montageViewer.o mViewer_graphics.o mViewer_grid.o mViewer_boundingbox.o
-	$(CC) $(LDFLAGS) -o mViewer mViewer.o montageViewer.o mViewer_graphics.o mViewer_grid.o mViewer_boundingbox.o \
-	../util/checkHdr.o ../util/checkWCS.o   \
-	$(LIBS)
+mViewer: mViewer.o montageViewer.o mViewer_graphics.o mViewer_grid.o mViewer_boundingbox.o \
+  ../util/checkHdr.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mViewer ../../bin

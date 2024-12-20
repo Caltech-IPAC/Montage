@@ -9,10 +9,9 @@ LIBS   =	-L../../lib -lcoord -lwcs -lmtbl -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mOverlaps: mOverlaps.o montageOverlaps.o
-	$(CC) $(LDFLAGS) -o mOverlaps mOverlaps.o montageOverlaps.o \
-	../util/debugCheck.o ../util/checkWCS.o \
-	$(LIBS)
+mOverlaps: mOverlaps.o montageOverlaps.o \
+  ../util/debugCheck.o ../util/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mOverlaps ../../bin
