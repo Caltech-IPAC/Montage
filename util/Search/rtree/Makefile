@@ -1,5 +1,4 @@
 CC = gcc
-CFLAGS = 
 
 OBJECTS = card.o \
 	index.o \
@@ -18,7 +17,7 @@ test: test.c librtree.a
 	$(CC) $(LDFLAGS) -o $@ test.c librtree.a -lm
 
 .c.o:
-	$(CC) $(CFLAGS) -Wall -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
 clean:
 	rm -rf ./*.o ./*.a

@@ -1,7 +1,8 @@
-CC = gcc -g -fPIC -I . -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CC = gcc
+CPPFLAGS +=	-I . -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   +=	-fPIC
 
-libmtbl.a:	mtbl.c
-		$(CC) -c mtbl.c
+libmtbl.a:	mtbl.o
 		ar rv libmtbl.a mtbl.o
 
 install:

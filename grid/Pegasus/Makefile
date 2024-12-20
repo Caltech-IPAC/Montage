@@ -14,13 +14,13 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../Montage -I../../lib/include
+CC     =	gcc
+CPPFLAGS +=	-I. -I../../Montage -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		-lboundaries -lm
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 all:		mConcatFit mDAG mDAGFiles mDAGGalacticPlane mDAGTbls \
 		mDiffFit mGridExec mNotify mPresentation

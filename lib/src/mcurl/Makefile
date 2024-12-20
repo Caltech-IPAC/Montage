@@ -1,5 +1,5 @@
 CC      =		gcc
-CFLAGS  =		-c -g -I. -I../../include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CPPFLAGS +=		-I. -I../../include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBNAME =		libmcurl.a
 
 SRCS    =		mcurl.c

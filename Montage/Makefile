@@ -48,7 +48,8 @@
 
 CC     =	gcc
 MPICC  =
-CFLAGS =	-g -O2 -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
+CPPFLAGS +=	-I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   +=	-std=c99
 LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		   -lwww -lboundaries -lpixbounds -ltwoplane -lm
 
@@ -64,7 +65,7 @@ BINS   = 	$(SBINS)
 
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 all:		$(BINS)
 

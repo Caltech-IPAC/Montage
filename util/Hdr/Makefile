@@ -7,13 +7,13 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC     =	cc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../lib/include
+CC     =	cc
+CPPFLAGS +=	-I. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		-lboundaries -lm
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mHdr:	mHdr.o
 		$(CC) -o mHdr mHdr.o $(LIBS)

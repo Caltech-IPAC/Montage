@@ -7,12 +7,12 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I../../../Montage -I../../../lib/include
+CC     =	gcc
+CPPFLAGS +=	-I../../../Montage -I../../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   =	-L../../../lib -lwcs -lcfitsio -lmcurl -lcurl -lm
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mArchiveGet:	mArchiveGet.o
 		$(CC) -o mArchiveGet mArchiveGet.o  \

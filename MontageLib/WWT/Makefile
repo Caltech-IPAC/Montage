@@ -1,12 +1,13 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC     = gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 -fPIC
-CFLAGS = -g -O2 -I. -I.. -I../../lib/include -Wall
+CC     = gcc
+CPPFLAGS += -I. -I.. -I../../lib/include -Wall -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   += -std=c99 -fPIC
 LIBS   = -L../../lib -lsvc -lm
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 all: mHdrWWT mHdrWWTExec mProjWWTExec mPNGWWTExec
 

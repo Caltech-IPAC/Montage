@@ -1,5 +1,4 @@
 CC = gcc
-CFLAGS = 
 
 OBJECTS = card.o \
 	index.o \
@@ -15,7 +14,7 @@ librtree.a: $(OBJECTS)
 	ranlib librtree.a
 
 .c.o:
-	$(CC) $(CFLAGS) -Wall -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
 clean:
 	rm -rf ./*.o ./*.a

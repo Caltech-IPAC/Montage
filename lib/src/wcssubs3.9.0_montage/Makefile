@@ -1,4 +1,5 @@
-CC = gcc -fPIC
+CC = gcc
+CFLAGS += -fPIC
 
 OBJS =	wcsinit.o wcs.o wcscon.o fitsfile.o imhfile.o \
 			hget.o hput.o iget.o imio.o worldpos.o platepos.o \

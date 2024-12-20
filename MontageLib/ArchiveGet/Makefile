@@ -2,11 +2,12 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc
-CFLAGS =	-g -O2 -I. -I.. -I../../lib/include -fPIC
+CPPFLAGS +=	-I. -I.. -I../../lib/include
+CFLAGS   +=	-fPIC
 LIBS   =	 -L../../lib -lbz2
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mArchiveGet:	mArchiveGet.o montageArchiveGet.o
 		$(CC) -o mArchiveGet mArchiveGet.o montageArchiveGet.o $(LIBS)

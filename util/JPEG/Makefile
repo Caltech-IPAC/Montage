@@ -8,12 +8,13 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
-CFLAGS =	-g -O2 -I. -I../../lib/include -I../../Montage
+CC     =	gcc
+CPPFLAGS +=	-I. -I../../lib/include -I../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   +=	-std=c99
 LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mJPEG:		mJPEG.o
 		$(CC) -o mJPEG mJPEG.o \

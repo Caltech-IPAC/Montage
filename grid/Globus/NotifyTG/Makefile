@@ -7,12 +7,12 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../../lib/include -I../../../Montage
+CC     =	gcc
+CPPFLAGS +=	-I. -I../../../lib/include -I../../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   =	-L../../../lib -lsvc -lmtbl -lwcs -lcfitsio -lcoord -lm
 
 .c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mNotifyTG:	mNotifyTG.o
 		$(CC) -o mNotifyTG mNotifyTG.o \

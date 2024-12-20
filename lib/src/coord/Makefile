@@ -1,10 +1,10 @@
 CC      =	gcc
-CFLAGS  =	-g -c -fPIC -D_LARGEFILE_SOURCE \
-		-D_FILE_OFFSET_BITS=64 -I. -I../../include
+CPPFLAGS  +=	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I. -I../../include
+CFLAGS    +=	-fPIC
 LIBNAME =	libcoord.a
 
 SRCS    =	ccalc.c                    \
-   		parseCoordinateString.c    \
+		parseCoordinateString.c    \
 		sexToDecimalDegree.c       \
 		decimalDegreeToSex.c       \
 		convertCoordinates.c       \
