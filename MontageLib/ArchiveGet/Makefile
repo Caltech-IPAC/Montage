@@ -1,13 +1,6 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc
 CPPFLAGS +=	-I. -I.. -I../../lib/include
 CFLAGS   +=	-fPIC
-LIBS   =	 -L../../lib -lbz2
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
+LIBS      =	 -L../../lib -lbz2
 
 mArchiveGet: mArchiveGet.o montageArchiveGet.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)

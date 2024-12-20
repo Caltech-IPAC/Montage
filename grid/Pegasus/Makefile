@@ -11,16 +11,9 @@
 # 1.1      John Good        02Jun04  Added 64-bit addressing flag
 # 1.0      John Good        16Oct03  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc
 CPPFLAGS +=	-I. -I../../Montage -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
+LIBS      =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		-lboundaries -lm
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 all:		mConcatFit mDAG mDAGFiles mDAGGalacticPlane mDAGTbls \
 		mDiffFit mGridExec mNotify mPresentation

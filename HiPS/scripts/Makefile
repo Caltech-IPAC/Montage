@@ -1,13 +1,5 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     = gcc
 CPPFLAGS += -I. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   = -L../../lib -lwcs -lboundaries -lmtbl -lsvc -lcfitsio -lm
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
-
 
 all:      mHPXMosaicScripts mHPXProjectScripts mHPXDiffScripts mHPXBgCorrectScripts mHPXCoaddScripts \
           mHPXShrinkScripts mHiPSTileScripts mHiPSPNGScripts mHPXQuicklookScripts \

@@ -4,15 +4,8 @@
 # -------  ---------------  -------  -----------------------
 # 1.0      John Good        25Sep04  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc
 CPPFLAGS +=	-I. -I../../lib/include -I../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
+LIBS      =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 
 all:		mPix2Coord mFixHdr
 

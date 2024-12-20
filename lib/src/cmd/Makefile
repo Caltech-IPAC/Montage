@@ -1,4 +1,3 @@
-CC      =		gcc
 CPPFLAGS  +=		-I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS    +=		-fPIC
 

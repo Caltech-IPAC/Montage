@@ -4,15 +4,8 @@
 # -------  ---------------  -------  -----------------
 # 1.0      John Good        14Feb05  Original Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc
 CPPFLAGS +=	-I. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-LIBS   =	-L../../lib -lwcs -lmtbl -lsvc -lm
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
+LIBS      =	-L../../lib -lwcs -lmtbl -lsvc -lm
 
 mBestImage: mBestImage.o \
   ../../Montage/checkWCS.o ../../Montage/filePath.o ../../Montage/debugCheck.o

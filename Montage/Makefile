@@ -43,14 +43,9 @@
 #                                    as well as several checking functions
 # 1.0      John Good        29Jan03  Original LINUX Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc
-MPICC  =
 CPPFLAGS +=	-I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CFLAGS   +=	-std=c99
-LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
+LIBS      =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		   -lwww -lboundaries -lpixbounds -ltwoplane -lm
 
 SBINS  =  mConvert mFlattenExec mHdrCheck mHdrtbl mTblSort mTileHdr mTileImage
@@ -63,9 +58,6 @@ BINS   = 	$(SBINS)
 # MPICC  =	mpicc
 # BINS = 		$(SBINS) $(MBINS)
 
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 all:		$(BINS)
 

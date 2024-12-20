@@ -1,13 +1,5 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     = gcc
 CPPFLAGS += -I. -I../../lib/include -I../../MontageLib -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   = -L../../lib -lcfitsio -lcoord -lwcs -lboundaries -lpixbounds -lmtbl -lsvc -lm
-
-.c.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
-
 
 all:   mHPXPlateList mHiPSSetup mHiPSID mHiPSAllSky mHPXPlateCombine \
        mHPXBgCombine mHPXBgSplit mHPXSplitCorrections mHPXRawHistogram \
