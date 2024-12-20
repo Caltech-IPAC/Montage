@@ -15,7 +15,7 @@ LIBS   =	-L../../../lib -lsvc -lmtbl -lwcs -lcfitsio -lcoord -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mExecTG:	mExecTG.o
-		$(CC) -o mExecTG mExecTG.o \
+		$(CC) $(LDFLAGS) -o mExecTG mExecTG.o \
 		../../../Montage/debugCheck.o   \
 		$(LIBS)
 

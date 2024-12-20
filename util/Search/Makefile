@@ -16,7 +16,7 @@ LIBS   =	-Lrtree -lrtree -L../../lib -lcmd -lwcs -lcoord -lmtbl -lcfitsio -lm
 
 mSearch:	mSearch.o
 		(cd rtree; make)
-		$(CC) -o mSearch mSearch.o \
+		$(CC) $(LDFLAGS) -o mSearch mSearch.o \
 		../../Montage/debugCheck.o   \
 		../../Montage/checkFile.o   \
 		../../Montage/checkWCS.o   \

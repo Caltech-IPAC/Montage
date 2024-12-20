@@ -26,35 +26,35 @@ all:		mConcatFit mDAG mDAGFiles mDAGGalacticPlane mDAGTbls \
 		mDiffFit mGridExec mNotify mPresentation
 
 mConcatFit:	mConcatFit.o
-		$(CC) -o mConcatFit mConcatFit.o \
+		$(CC) $(LDFLAGS) -o mConcatFit mConcatFit.o \
 		../../Montage/checkFile.o $(LIBS)
 
 mDAG:		mDAG.o hashtable.o
-		$(CC) -o mDAG mDAG.o hashtable.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mDAG mDAG.o hashtable.o $(LIBS)
 
 mDAGFiles:	mDAGFiles.o
-		$(CC) -o mDAGFiles mDAGFiles.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mDAGFiles mDAGFiles.o $(LIBS)
 
 mDAGGalacticPlane:		mDAGGalacticPlane.o hashtable.o
-		$(CC) -o mDAGGalacticPlane mDAGGalacticPlane.o hashtable.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mDAGGalacticPlane mDAGGalacticPlane.o hashtable.o $(LIBS)
 
 mDAGTbls:	mDAGTbls.o
-		$(CC) -o mDAGTbls mDAGTbls.o  \
+		$(CC) $(LDFLAGS) -o mDAGTbls mDAGTbls.o  \
 		../../Montage/filePath.o  \
 		../../Montage/checkHdr.o  \
 		../../Montage/checkWCS.o $(LIBS)
 
 mDiffFit:	mDiffFit.o
-		$(CC) -o mDiffFit mDiffFit.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mDiffFit mDiffFit.o $(LIBS)
 
 mGridExec:	mGridExec.o
-		$(CC) -o mGridExec mGridExec.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mGridExec mGridExec.o $(LIBS)
 
 mNotify:	mNotify.o
-		$(CC) -o mNotify mNotify.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mNotify mNotify.o $(LIBS)
 
 mPresentation:	mPresentation.o
-		$(CC) -o mPresentation mPresentation.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mPresentation mPresentation.o $(LIBS)
 
 install:
 		cp mConcatFit mDAG mDAGFiles mDAGGalacticPlane mDAGTbls \

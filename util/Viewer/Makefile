@@ -24,13 +24,13 @@ LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -llodepng -lmtbl -lcmd \
 all: mViewer mHistogram
 
 mViewer:	mViewer.o graphics.o grid.o
-		$(CC) -o mViewer mViewer.o graphics.o grid.o \
+		$(CC) $(LDFLAGS) -o mViewer mViewer.o graphics.o grid.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)
 
 mHistogram:	mHistogram.o
-		$(CC) -o mHistogram mHistogram.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mHistogram mHistogram.o $(LIBS)
 
 install:
 		cp mViewer mHistogram ../../bin

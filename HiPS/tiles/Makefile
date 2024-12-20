@@ -14,7 +14,7 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lpixbounds -lm
 all:		mHiPSTiles
 
 mHiPSTiles:	mHiPSTiles.o
-		$(CC) -o mHiPSTiles mHiPSTiles.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mHiPSTiles mHiPSTiles.o $(LIBS)
 
 install:
 		cp mHiPSTiles ../../bin

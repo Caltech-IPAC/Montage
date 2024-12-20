@@ -15,7 +15,7 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mFixNaN:	mFixNaN.o
-		$(CC) -o mFixNaN mFixNaN.o \
+		$(CC) $(LDFLAGS) -o mFixNaN mFixNaN.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)

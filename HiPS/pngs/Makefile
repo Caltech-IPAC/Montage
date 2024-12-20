@@ -13,16 +13,16 @@ LIBS   =	-L../../lib -lmtbl -lwcs -lsvc -lcfitsio -lm
 all:		mHPXPlateHist mHPXPlateComboHist mHPXPlatePNG mHiPSPNGs
 
 mHPXPlateHist:	mHPXPlateHist.o
-		$(CC) -o mHPXPlateHist mHPXPlateHist.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mHPXPlateHist mHPXPlateHist.o $(LIBS)
 
 mHPXPlateComboHist:	mHPXPlateComboHist.o
-		$(CC) -o mHPXPlateComboHist mHPXPlateComboHist.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mHPXPlateComboHist mHPXPlateComboHist.o $(LIBS)
 
 mHPXPlatePNG:	mHPXPlatePNG.o
-		$(CC) -o mHPXPlatePNG mHPXPlatePNG.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mHPXPlatePNG mHPXPlatePNG.o $(LIBS)
 
 mHiPSPNGs:	mHiPSPNGs.o
-		$(CC) -o mHiPSPNGs mHiPSPNGs.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mHiPSPNGs mHiPSPNGs.o $(LIBS)
 
 install:
 		cp mHPXPlateHist mHPXPlateComboHist mHPXPlatePNG mHiPSPNGs ../../bin

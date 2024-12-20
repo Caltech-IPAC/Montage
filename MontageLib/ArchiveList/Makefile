@@ -15,8 +15,9 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord  -lboundaries -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mArchiveList:	mArchiveList.o montageArchiveList.o
-		$(CC) -o mArchiveList mArchiveList.o montageArchiveList.o $(LIBS)
+mArchiveList: mArchiveList.o montageArchiveList.o
+	$(CC) $(LDFLAGS) -o mArchiveList mArchiveList.o montageArchiveList.o \
+	$(LIBS)
 
 install:
 		cp mArchiveList ../../bin

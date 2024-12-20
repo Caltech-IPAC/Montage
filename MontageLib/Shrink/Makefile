@@ -9,8 +9,10 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mShrink:	mShrink.o montageShrink.o
-			$(CC) -o mShrink mShrink.o montageShrink.o ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o $(LIBS)
+mShrink: mShrink.o montageShrink.o
+	$(CC) $(LDFLAGS) -o mShrink mShrink.o montageShrink.o \
+	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mShrink ../../bin

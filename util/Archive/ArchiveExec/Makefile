@@ -15,7 +15,7 @@ LIBS   =	-L../../../lib -lwcs -lmtbl -lsvc
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mArchiveExec:	mArchiveExec.o
-		$(CC) -o mArchiveExec mArchiveExec.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mArchiveExec mArchiveExec.o $(LIBS)
 
 install:
 		cp mArchiveExec ../../../bin

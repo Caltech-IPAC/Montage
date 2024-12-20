@@ -15,7 +15,7 @@ LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mShrinkHdr:	mShrinkHdr.o
-		$(CC) -o mShrinkHdr mShrinkHdr.o \
+		$(CC) $(LDFLAGS) -o mShrinkHdr mShrinkHdr.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)

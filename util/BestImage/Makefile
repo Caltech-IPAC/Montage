@@ -18,7 +18,7 @@ mBestImage:	mBestImage.o \
 		../../Montage/checkWCS.o \
 		../../Montage/filePath.o \
 		../../Montage/debugCheck.o
-		$(CC) -o mBestImage \
+		$(CC) $(LDFLAGS) -o mBestImage \
 		mBestImage.o \
 		../../Montage/checkWCS.o \
 		../../Montage/filePath.o \

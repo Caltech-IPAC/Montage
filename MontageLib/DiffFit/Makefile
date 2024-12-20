@@ -9,10 +9,11 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lpixbounds -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mDiffFit:		mDiffFit.o montageDiffFit.o
-		$(CC) -o mDiffFit mDiffFit.o montageDiffFit.o \
-                            ../Diff/montageDiff.o ../Fitplane/montageFitplane.o \
-                            ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o $(LIBS)
+mDiffFit: mDiffFit.o montageDiffFit.o
+	$(CC) $(LDFLAGS) -o mDiffFit mDiffFit.o montageDiffFit.o \
+	../Diff/montageDiff.o ../Fitplane/montageFitplane.o \
+	../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o \
+	$(LIBS)
 
 install:
 		cp mDiffFit ../../bin

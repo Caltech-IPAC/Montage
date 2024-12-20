@@ -1,8 +1,9 @@
 CPPFLAGS +=	-I../lib/include
 CFLAGS   +=	-std=gnu99
+LIBS      =	-L../lib -lcfitsio -lm
 
-HPXcvt:		HPXcvt.o
-				gcc -std=gnu99 -o HPXcvt HPXcvt.o -L../lib -lcfitsio -lm
+HPXcvt:	HPXcvt.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 HPXcvt.o: HPXcvt.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ -c $^

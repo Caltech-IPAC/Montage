@@ -16,7 +16,7 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mExamine:	mExamine.o
-		$(CC) -o mExamine mExamine.o \
+		$(CC) $(LDFLAGS) -o mExamine mExamine.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)

@@ -70,176 +70,176 @@ BINS   = 	$(SBINS)
 all:		$(BINS)
 
 mAdd:		mAdd.o filePath.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mAdd mAdd.o filePath.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mAdd mAdd.o filePath.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mAddCube:	mAddCube.o filePath.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mAddCube mAddCube.o filePath.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mAddCube mAddCube.o filePath.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mAddMPI:	mAddMPI.o filePath.o debugCheck.o checkHdr.o checkWCS.o
-		$(MPICC) -o mAddMPI mAddMPI.o filePath.o debugCheck.o \
+		$(MPICC) $(LDFLAGS) -o mAddMPI mAddMPI.o filePath.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mAddMPI.o:	mAdd.c
-		$(MPICC) -o mAddMPI.o -DMPI $(CFLAGS) -c mAdd.c
+		$(MPICC) $(LDFLAGS) -o mAddMPI.o -DMPI $(CFLAGS) -c mAdd.c
 
 mAddExec:	mAddExec.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mAddExec mAddExec.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mAddExec mAddExec.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mAddExecMPI:	mAddExecMPI.o debugCheck.o checkHdr.o checkWCS.o
-		$(MPICC) -o mAddExecMPI mAddExecMPI.o debugCheck.o checkHdr.o \
+		$(MPICC) $(LDFLAGS) -o mAddExecMPI mAddExecMPI.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mAddExecMPI.o:	mAddExec.c
-		$(MPICC) -o mAddExecMPI.o -DMPI $(CFLAGS) -c mAddExec.c
+		$(MPICC) $(LDFLAGS) -o mAddExecMPI.o -DMPI $(CFLAGS) -c mAddExec.c
 
 mBackground:	mBackground.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mBackground mBackground.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mBackground mBackground.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mBgExec:	mBgExec.o filePath.o
-		$(CC) -o mBgExec mBgExec.o filePath.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mBgExec mBgExec.o filePath.o $(LIBS)
 
 mBgExecMPI:	mBgExecMPI.o filePath.o
-		$(MPICC) -o mBgExecMPI mBgExecMPI.o filePath.o $(LIBS)
+		$(MPICC) $(LDFLAGS) -o mBgExecMPI mBgExecMPI.o filePath.o $(LIBS)
 
 mBgExecMPI.o:	mBgExec.c
-		$(MPICC) -o mBgExecMPI.o -DMPI $(CFLAGS) -c mBgExec.c
+		$(MPICC) $(LDFLAGS) -o mBgExecMPI.o -DMPI $(CFLAGS) -c mBgExec.c
 
 mBgModel:	mBgModel.o debugCheck.o 
-		$(CC) -o mBgModel mBgModel.o debugCheck.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mBgModel mBgModel.o debugCheck.o $(LIBS)
 
 mConvert:	mConvert.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mConvert mConvert.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mConvert mConvert.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mCoverageCheck:	mCoverageCheck.o checkHdr.o checkWCS.o checkFile.o
-		$(CC) -o mCoverageCheck mCoverageCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mCoverageCheck mCoverageCheck.o checkHdr.o \
 		checkWCS.o checkFile.o                              \
 		$(LIBS)
 
 mDiff:		mDiff.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mDiff mDiff.o debugCheck.o checkHdr.o checkWCS.o \
+		$(CC) $(LDFLAGS) -o mDiff mDiff.o debugCheck.o checkHdr.o checkWCS.o \
 		$(LIBS)
 
 mDiffExec:	mDiffExec.o filePath.o checkHdr.o checkWCS.o
-		$(CC) -o mDiffExec mDiffExec.o filePath.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mDiffExec mDiffExec.o filePath.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mDiffExecMPI:	mDiffExecMPI.o filePath.o checkHdr.o checkWCS.o
-		$(MPICC) -o mDiffExecMPI mDiffExecMPI.o filePath.o checkHdr.o \
+		$(MPICC) $(LDFLAGS) -o mDiffExecMPI mDiffExecMPI.o filePath.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mDiffExecMPI.o:	mDiffExec.c
-		$(MPICC) -o mDiffExecMPI.o -DMPI $(CFLAGS) -c mDiffExec.c
+		$(MPICC) $(LDFLAGS) -o mDiffExecMPI.o -DMPI $(CFLAGS) -c mDiffExec.c
 
 mDiffFitExec:	mDiffFitExec.o filePath.o checkHdr.o checkWCS.o
-		$(CC) -o mDiffFitExec mDiffFitExec.o filePath.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mDiffFitExec mDiffFitExec.o filePath.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mFitExec:	mFitExec.o filePath.o checkFile.o
-		$(CC) -o mFitExec mFitExec.o filePath.o checkFile.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mFitExec mFitExec.o filePath.o checkFile.o $(LIBS)
 
 mFitExecMPI:	mFitExecMPI.o filePath.o checkFile.o
-		$(MPICC) -o mFitExecMPI mFitExecMPI.o filePath.o \
+		$(MPICC) $(LDFLAGS) -o mFitExecMPI mFitExecMPI.o filePath.o \
 		checkFile.o $(LIBS)
 
 mFitExecMPI.o:	mFitExec.c
-		$(MPICC) -o mFitExecMPI.o -DMPI $(CFLAGS) -c mFitExec.c
+		$(MPICC) $(LDFLAGS) -o mFitExecMPI.o -DMPI $(CFLAGS) -c mFitExec.c
 
 mFitplane:	mFitplane.o debugCheck.o
-		$(CC) -o mFitplane mFitplane.o debugCheck.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mFitplane mFitplane.o debugCheck.o $(LIBS)
 
 mFlattenExec:	mFlattenExec.o filePath.o
-		$(CC) -o mFlattenExec mFlattenExec.o filePath.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mFlattenExec mFlattenExec.o filePath.o $(LIBS)
 
 mGetHdr:	mGetHdr.o checkFile.o checkHdr.o checkWCS.o
-		$(CC) -o mGetHdr checkFile.o mGetHdr.o checkHdr.o checkWCS.o \
+		$(CC) $(LDFLAGS) -o mGetHdr checkFile.o mGetHdr.o checkHdr.o checkWCS.o \
 		$(LIBS)
 
 mHdrCheck:	mHdrCheck.o checkHdr.o checkWCS.o checkFile.o
-		$(CC) -o mHdrCheck mHdrCheck.o checkHdr.o checkWCS.o \
+		$(CC) $(LDFLAGS) -o mHdrCheck mHdrCheck.o checkHdr.o checkWCS.o \
 		checkFile.o $(LIBS)
 
 mHdrtbl:	mHdrtbl.o get_hfiles.o get_hhdr.o print_hrec.o checkWCS.o
-		$(CC) -g -O2 -o mHdrtbl mHdrtbl.o get_hfiles.o \
+		$(CC) $(LDFLAGS) -g -O2 -o mHdrtbl mHdrtbl.o get_hfiles.o \
 		get_hhdr.o print_hrec.o checkWCS.o $(LIBS)
 
 mImgtbl:	mImgtbl.o get_files.o get_hdr.o print_rec.o checkWCS.o
-		$(CC) -g -O2 -o mImgtbl mImgtbl.o get_files.o \
+		$(CC) $(LDFLAGS) -g -O2 -o mImgtbl mImgtbl.o get_files.o \
 		get_hdr.o print_rec.o checkWCS.o $(LIBS)
 
 mMakeHdr:	mMakeHdr.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mMakeHdr mMakeHdr.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mMakeHdr mMakeHdr.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mMakeImg:	mMakeImg.o ltqnorm.o
-		$(CC) -o mMakeImg mMakeImg.o ltqnorm.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mMakeImg mMakeImg.o ltqnorm.o $(LIBS)
 
 mOverlaps:	mOverlaps.o checkWCS.o filePath.o debugCheck.o
-		$(CC) -o mOverlaps mOverlaps.o checkWCS.o filePath.o \
+		$(CC) $(LDFLAGS) -o mOverlaps mOverlaps.o checkWCS.o filePath.o \
 		debugCheck.o $(LIBS)
 
 mProjExec:	mProjExec.o filePath.o checkHdr.o checkWCS.o checkFile.o
-		$(CC) -o mProjExec mProjExec.o filePath.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mProjExec mProjExec.o filePath.o checkHdr.o \
 		checkWCS.o checkFile.o $(LIBS)
 
 mProjExecMPI:	mProjExecMPI.o filePath.o checkHdr.o checkWCS.o checkFile.o
-		$(MPICC) -o mProjExecMPI mProjExecMPI.o filePath.o checkHdr.o \
+		$(MPICC) $(LDFLAGS) -o mProjExecMPI mProjExecMPI.o filePath.o checkHdr.o \
 		checkWCS.o checkFile.o $(LIBS)
 
 mProjExecMPI.o:	mProjExec.c
-		$(MPICC) -o mProjExecMPI.o -DMPI $(CFLAGS) -c mProjExec.c
+		$(MPICC) $(LDFLAGS) -o mProjExecMPI.o -DMPI $(CFLAGS) -c mProjExec.c
 
 mProject:	mProject.o overlapArea.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mProject mProject.o overlapArea.o debugCheck.o \
+		$(CC) $(LDFLAGS) -o mProject mProject.o overlapArea.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mProjectCube:	mProjectCube.o overlapArea.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mProjectCube mProjectCube.o overlapArea.o debugCheck.o \
+		$(CC) $(LDFLAGS) -o mProjectCube mProjectCube.o overlapArea.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mProjectPP:	mProjectPP.o overlapAreaPP.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mProjectPP mProjectPP.o overlapAreaPP.o debugCheck.o \
+		$(CC) $(LDFLAGS) -o mProjectPP mProjectPP.o overlapAreaPP.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mPutHdr:	mPutHdr.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mPutHdr mPutHdr.o debugCheck.o \
+		$(CC) $(LDFLAGS) -o mPutHdr mPutHdr.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mShrink:	mShrink.o debugCheck.o checkHdr.o checkWCS.o 
-		$(CC) -o mShrink mShrink.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mShrink mShrink.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
 
 mShrinkCube:	mShrinkCube.o debugCheck.o checkHdr.o checkWCS.o 
-		$(CC) -o mShrinkCube mShrinkCube.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mShrinkCube mShrinkCube.o debugCheck.o checkHdr.o checkWCS.o $(LIBS)
 
 mSubCube:	mSubCube.o checkHdr.o checkWCS.o subCube.o
-		$(CC) -o mSubCube mSubCube.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mSubCube mSubCube.o checkHdr.o \
 		checkWCS.o subCube.o $(LIBS)
 
 mSubimage:	mSubimage.o checkHdr.o checkWCS.o subImage.o
-		$(CC) -o mSubimage mSubimage.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mSubimage mSubimage.o checkHdr.o \
 		checkWCS.o subImage.o $(LIBS)
 
 mSubset:	mSubset.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mSubset mSubset.o debugCheck.o checkHdr.o \
+		$(CC) $(LDFLAGS) -o mSubset mSubset.o debugCheck.o checkHdr.o \
 		checkWCS.o $(LIBS)
 
 mTANHdr:	mTANHdr.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mTANHdr mTANHdr.o debugCheck.o \
+		$(CC) $(LDFLAGS) -o mTANHdr mTANHdr.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mTblSort:	mTblSort.o 
-		$(CC) -o mTblSort mTblSort.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mTblSort mTblSort.o $(LIBS)
 
 mTileHdr:	mTileHdr.o debugCheck.o checkHdr.o checkWCS.o
-		$(CC) -o mTileHdr mTileHdr.o debugCheck.o \
+		$(CC) $(LDFLAGS) -o mTileHdr mTileHdr.o debugCheck.o \
 		checkHdr.o checkWCS.o $(LIBS)
 
 mTileImage:	mTileImage.o checkHdr.o checkWCS.o subImage.o
-		$(CC) -o mTileImage mTileImage.o \
+		$(CC) $(LDFLAGS) -o mTileImage mTileImage.o \
 		checkHdr.o checkWCS.o subImage.o $(LIBS)
 
 install:

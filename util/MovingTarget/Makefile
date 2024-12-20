@@ -16,7 +16,7 @@ LIBS   =	-Lrtree -lrtree -L../../lib -lcmd -lwcs -lcoord -lmtbl -lcfitsio -lm
 
 mMovingTarget:	mMovingTarget.o
 		(cd rtree; make)
-		$(CC) -o mMovingTarget mMovingTarget.o \
+		$(CC) $(LDFLAGS) -o mMovingTarget mMovingTarget.o \
 		../../Montage/debugCheck.o   \
 		../../Montage/checkFile.o   \
 		../../Montage/checkWCS.o   \

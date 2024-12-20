@@ -9,9 +9,11 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mBgExec:		mBgExec.o montageBgExec.o
-		$(CC) -o mBgExec mBgExec.o montageBgExec.o ../Background/montageBackground.o \
-                       ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o $(LIBS)
+mBgExec: mBgExec.o montageBgExec.o
+	$(CC) $(LDFLAGS) -o mBgExec mBgExec.o montageBgExec.o \
+	../Background/montageBackground.o \
+	../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o \
+	$(LIBS)
 
 install:
 		cp mBgExec ../../bin

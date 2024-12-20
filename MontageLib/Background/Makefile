@@ -9,8 +9,10 @@ LIBS   =	-L../../lib -lmtbl -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mBackground:	mBackground.o montageBackground.o
-			$(CC) -o mBackground mBackground.o montageBackground.o ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o $(LIBS)
+mBackground: mBackground.o montageBackground.o
+	$(CC) $(LDFLAGS) -o mBackground mBackground.o montageBackground.o \
+	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mBackground ../../bin

@@ -15,7 +15,7 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mTranspose:	mTranspose.o
-		$(CC) -o mTranspose mTranspose.o \
+		$(CC) $(LDFLAGS) -o mTranspose mTranspose.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)

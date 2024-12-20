@@ -15,7 +15,7 @@ LIBS   =	-L../../../lib -lwcs -lcfitsio -lmcurl -lcurl -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mArchiveGet:	mArchiveGet.o
-		$(CC) -o mArchiveGet mArchiveGet.o  \
+		$(CC) $(LDFLAGS) -o mArchiveGet mArchiveGet.o  \
 		../../../Montage/checkHdr.o         \
 		../../../Montage/checkWCS.o $(LIBS)
 

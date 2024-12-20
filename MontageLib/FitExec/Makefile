@@ -9,9 +9,11 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lpixbounds -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mFitExec:		mFitExec.o montageFitExec.o
-		$(CC) -o mFitExec mFitExec.o montageFitExec.o ../Fitplane/montageFitplane.o \
-                        ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o ../util/checkFile.o $(LIBS)
+mFitExec: mFitExec.o montageFitExec.o
+	$(CC) $(LDFLAGS) -o mFitExec mFitExec.o montageFitExec.o \
+	../Fitplane/montageFitplane.o \
+	../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o ../util/checkFile.o \
+	$(LIBS)
 
 install:
 		cp mFitExec ../../bin

@@ -16,7 +16,7 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mPad:		mPad.o
-		$(CC) -o mPad mPad.o \
+		$(CC) $(LDFLAGS) -o mPad mPad.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)

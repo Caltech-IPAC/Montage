@@ -9,8 +9,10 @@ LIBS   =	-L../../lib -lcoord -lmtbl -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mSubset:	mSubset.o montageSubset.o
-			$(CC) -o mSubset mSubset.o montageSubset.o ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o $(LIBS)
+mSubset: mSubset.o montageSubset.o
+	$(CC) $(LDFLAGS) -o mSubset mSubset.o montageSubset.o \
+	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mSubset ../../bin

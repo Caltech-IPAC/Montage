@@ -9,9 +9,10 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mAdd:		mAdd.o montageAdd.o
-		$(CC) -o mAdd mAdd.o montageAdd.o ../util/filePath.o ../util/debugCheck.o ../util/checkHdr.o \
-		../util/checkWCS.o $(LIBS)
+mAdd: mAdd.o montageAdd.o
+	$(CC) $(LDFLAGS) -o mAdd mAdd.o montageAdd.o \
+	../util/filePath.o ../util/debugCheck.o ../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mAdd ../../bin

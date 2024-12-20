@@ -15,8 +15,10 @@ LIBS   =	-L../../lib -lwcs -lmtbl -lbz2
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mArchiveExec:	mArchiveExec.o montageArchiveExec.o ../ArchiveGet/montageArchiveGet.o
-		$(CC) -o mArchiveExec mArchiveExec.o montageArchiveExec.o ../ArchiveGet/montageArchiveGet.o $(LIBS)
+mArchiveExec: mArchiveExec.o montageArchiveExec.o ../ArchiveGet/montageArchiveGet.o
+	$(CC) $(LDFLAGS) -o mArchiveExec mArchiveExec.o montageArchiveExec.o \
+	../ArchiveGet/montageArchiveGet.o \
+	$(LIBS)
 
 install:
 		cp mArchiveExec ../../bin

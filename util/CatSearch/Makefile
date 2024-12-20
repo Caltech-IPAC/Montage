@@ -16,7 +16,7 @@ LIBS   =	-L../../lib -lsvc -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mCatSearch:		mCatSearch.o
-		$(CC) -o mCatSearch mCatSearch.o $(LIBS)
+		$(CC) $(LDFLAGS) -o mCatSearch mCatSearch.o $(LIBS)
 
 install:
 		cp mCatSearch ../../bin

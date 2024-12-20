@@ -9,8 +9,11 @@ LIBS   =	-L../../lib -lmtbl -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mAddMem:	mAddMem.o montageAddMem.o
-			$(CC) -o mAddMem mAddMem.o montageAddMem.o ../util/debugCheck.o ../util/filePath.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o $(LIBS)
+mAddMem: mAddMem.o montageAddMem.o
+	$(CC) $(LDFLAGS) -o mAddMem mAddMem.o montageAddMem.o \
+	../util/debugCheck.o ../util/filePath.o ../util/checkFile.o \
+	../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mAddMem ../../bin

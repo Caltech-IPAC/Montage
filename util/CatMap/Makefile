@@ -15,7 +15,7 @@ LIBS   =	-L../../lib -lmtbl -lcoord -lwcs -lcfitsio -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mCatMap:	mCatMap.o
-		$(CC) -o mCatMap mCatMap.o \
+		$(CC) $(LDFLAGS) -o mCatMap mCatMap.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		../../Montage/debugCheck.o \

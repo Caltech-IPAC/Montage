@@ -9,8 +9,10 @@ LIBS   =	-L../../lib -lcoord -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mSubHdr:	mSubHdr.o montageSubHdr.o
-			$(CC) -o mSubHdr mSubHdr.o montageSubHdr.o ../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o $(LIBS)
+mSubHdr: mSubHdr.o montageSubHdr.o
+	$(CC) $(LDFLAGS) -o mSubHdr mSubHdr.o montageSubHdr.o \
+	../util/debugCheck.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mSubHdr ../../bin

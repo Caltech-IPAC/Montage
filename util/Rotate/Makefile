@@ -16,7 +16,7 @@ LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lm
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
 mRotate:	mRotate.o
-		$(CC) -o mRotate mRotate.o \
+		$(CC) $(LDFLAGS) -o mRotate mRotate.o \
 		../../Montage/checkHdr.o   \
 		../../Montage/checkWCS.o   \
 		$(LIBS)

@@ -9,8 +9,10 @@ LIBS   =	-L../../lib -lwww -lwcs -lcfitsio -lm
 .c.o:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c  $*.c
 
-mGetHdr:		mGetHdr.o montageGetHdr.o
-		$(CC) -o mGetHdr mGetHdr.o montageGetHdr.o ../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o $(LIBS)
+mGetHdr: mGetHdr.o montageGetHdr.o
+	$(CC) $(LDFLAGS) -o mGetHdr mGetHdr.o montageGetHdr.o \
+	../util/checkFile.o ../util/checkHdr.o ../util/checkWCS.o \
+	$(LIBS)
 
 install:
 		cp mGetHdr ../../bin

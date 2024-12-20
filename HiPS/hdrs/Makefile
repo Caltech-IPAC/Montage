@@ -12,10 +12,10 @@ LIBS   = -L../../lib -lwcs -lboundaries -lmtbl -lsvc -lm
 all:      mHPXHdr mHiPSHdr 
 
 mHPXHdr: mHPXHdr.o
-			gcc -o mHPXHdr mHPXHdr.c $(LIBS)
+			$(CC) $(LDFLAGS) -o mHPXHdr mHPXHdr.c $(LIBS)
 
 mHiPSHdr: mHiPSHdr.o
-			gcc -o mHiPSHdr mHiPSHdr.o $(LIBS)
+			$(CC) $(LDFLAGS) -o mHiPSHdr mHiPSHdr.o $(LIBS)
 
 install:
 			cp mHPXHdr mHiPSHdr ../../bin
