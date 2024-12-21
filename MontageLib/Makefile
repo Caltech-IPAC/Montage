@@ -108,7 +108,7 @@ lib:
 			FitExec/montageFitExec.o \
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o 
-		gcc -shared $(SO_FLAG) -o libmontage.so \
+		$(CC) -shared $(SO_FLAG) -o libmontage.so \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
 			util/debugCheck.o util/filePath.o \
 			Add/montageAdd.o \
@@ -247,7 +247,7 @@ pythonlibs:
 		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o
 
 doc:
-			gcc -o mLibDoc mLibDoc.c
+			$(CC) -o mLibDoc mLibDoc.c
 			mLibDoc Add
 			mLibDoc AddCube
 			mLibDoc AddMem
@@ -294,7 +294,7 @@ doc:
 			mLibDoc ProjExec
 
 jupyter:
-			gcc -o mJupyter mJupyter.c -I../lib/include -L ../lib -lsvc
+			$(CC) -o mJupyter mJupyter.c -I../lib/include -L ../lib -lsvc
 			mJupyter Add
 			mJupyter AddCube
 			mJupyter AddMem
