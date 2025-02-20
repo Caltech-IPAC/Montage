@@ -2,7 +2,7 @@
 #include <math.h>
 #include <coord.h>
 
-double computeEquPole();
+double computeEquPole(double date, int besselian);
 
 
 /***************************************************************************/

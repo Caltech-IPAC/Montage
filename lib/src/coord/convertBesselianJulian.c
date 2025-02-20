@@ -4,13 +4,15 @@
 
 extern int japply;
 
-void correctCoordinateRange();
-void getEquETermCorrection();
-void getEclETermCorrection();
-void refinedEquETermCorrection();
-void refinedEclETermCorrection();
-void correctForEquatorialETerms();
-void correctForEclipticETerms();
+void correctCoordinateRange(double *ra, double *dec);
+void getEquETermCorrection(double ra, double dec, double *dra, double *ddec);
+void getEclETermCorrection(double epoch, double elon, double elat, 
+                           double *dra, double *ddec);
+void refinedEquETermCorrection(double ra, double dec, double *dra, double *ddec);
+void refinedEclETermCorrection(double obsdatej, double elon, double elat, 
+                               double *delon, double *delat);
+void correctForEquatorialETerms(double date, double *ra, double *dec);
+void correctForEclipticETerms(double date, double *ra, double *dec);
 
 int coord_debug = 0;
 

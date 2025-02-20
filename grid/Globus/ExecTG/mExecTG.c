@@ -42,7 +42,6 @@ int   debugCheck (char *debugStr);
 char *mktemp     (char *template);
 int   strncasecmp(const char *s1, const char *s2, size_t n);
 char *url_encode ();
-char *svc_value  ();
 
 static time_t currtime, start;
 
