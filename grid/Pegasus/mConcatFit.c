@@ -29,8 +29,6 @@ extern int optind, opterr;
 
 extern int getopt(int argc, char *const *argv, const char *options);
 
-char *svc_val();
-
 int checkFile(char *filename);
 
 int   debug;

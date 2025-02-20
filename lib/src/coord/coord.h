@@ -90,31 +90,57 @@ typedef enum {A = 0 ,      /* 0 */
 
 /* Prototypes of callable functions */
 
-void convertCoordinates();
-void convertEclToEqu();
-void convertEquToEcl();
-void convertEquToGal();
-void convertGalToEqu();
-void convertGalToSgal();
-void convertSgalToGal();
+void
+convertCoordinates(int  insys, double  inepoch, double   inlon, double   inlat,
+                   int outsys, double outepoch, double *outlon, double *outlat,
+		   double obstime);
+void convertEclToEqu(double elon, double elat, double *ra, double *dec, 
+		     double date, int besselian);
+void convertEquToEcl(double ra, double dec, double *elon, double *elat, 
+		     double date, int besselian);
+void convertEquToGal(double ra, double dec, double *glon, double *glat);
+void convertGalToEqu(double glon, double glat, double *ra, double *dec);
+void convertGalToSgal(double glon, double glat, double *sglon, double *sglat);
+void convertSgalToGal(double sglon, double sglat, double *glon, double *glat);
 
-void convertBesselianToJulian();
-void convertJulianToBesselian();
-void precessBesselian();
-void precessBesselianWithProperMotion();
-void precessJulian();
-void precessJulianWithProperMotion();
-void julianToBesselianFKCorrection();
-void besselianToJulianFKCorrection();
+void convertBesselianToJulian(double equinoxin, double ra, double dec, 
+                              double obsdatein, int ieflg, 
+                              double *raout, double *decout);
+void convertJulianToBesselian(double ra, double dec, 
+                              double obsdatein, int ieflg, double equinoxout, 
+                              double *raout, double *decout);
+void precessBesselian(double epochin,  double  rain,  double  decin, 
+                      double epochout, double *raout, double *decout);
+void precessBesselianWithProperMotion
+   (double epochin,  double  rain,  double  decin, 
+    double epochout, double *raout, double *decout, 
+    double pmain, double pmdin, double pin, double vin, 
+    double *rapm, double *decpm);
+void precessJulian(double epochin,  double  rain,  double  decin, 
+                   double epochout, double *raout, double *decout);
+void precessJulianWithProperMotion
+   (double epochin,  double  rain,  double  decin, 
+    double epochout, double *raout, double *decout, 
+    double pmain, double pmdin, double pin, double vin, 
+    double *rapm, double *decpm);
+void
+julianToBesselianFKCorrection(double ra, double dec, double xmag, double tobs, 
+                              double *corra, double *corrd, double *corrpa, 
+                              double *corrpd);
+void
+besselianToJulianFKCorrection(double ain, double d, double dmag, double epoch, 
+                              double *corra, double *corrd, double *corrpa, 
+                              double *corrpd);
 
-int  ccalc();
-int  degreeToDMS();
-int  degreeToHMS();
-int  degreeToSex();
-int  sexToDegree();
-int  parseCoordinateString();
+int ccalc(struct COORD *from, struct COORD *to, char *longprec, char *latprec);
+int degreeToDMS(double deg, int prec, int *neg, int *d, int *m, double *s);
+int degreeToHMS(double deg, int prec, int *neg, int *h, int *m, double *s);
+int degreeToSex(double lon, double lat, char *lonstr, char *latstr);
+int sexToDegree(char *cra, char *cdec, double *ra, double *dec);
+int parseCoordinateString(char *cmd, char *lonstr, char *latstr, 
+	                  char *csys, char *cfmt, char *epoch);
 
-double roundValue();
+double roundValue(double value, int precision);
 
 
 #define ISIS_COORD_LIB
