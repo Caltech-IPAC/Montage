@@ -649,6 +649,10 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
    nlab_lon = nlon;
 
    ispace_lon = 1;
+   if(nlab_lon > 4)
+      ispace_lon = 2;
+   if(nlab_lon > 6)
+      ispace_lon = 3;
 
    if(gdebug)
    {
@@ -657,7 +661,7 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
       fflush(stdout);
    }
 
-   ilon_label = (nlat+1)/2;
+   ilon_label = (nlon+1)/2;
 
    if ((ilon_label % 2 == 1) && (ilon_label > 1)) 
    {
@@ -668,7 +672,7 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
    }
 
    if (ilon_label <      0) ilon_label = 0;
-   if (ilon_label > nlat-1) ilon_label = nlat-1;
+   if (ilon_label > nlon-1) ilon_label = nlon-1;
 
    if(gdebug)
    {
@@ -682,6 +686,10 @@ void mViewer_makeGrid(struct WorldCoor *wcs,
    nlab_lat = nlat;
 
    ispace_lat = 1;
+   if(nlab_lat > 4)
+      ispace_lat = 2;
+   if(nlab_lat > 6)
+      ispace_lat = 3;
 
    if(gdebug)
    {
