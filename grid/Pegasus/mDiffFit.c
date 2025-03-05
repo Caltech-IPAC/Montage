@@ -20,6 +20,7 @@ Version  Developer        Date     Change
 #include <sys/stat.h>
 
 #include <svc.h>
+#include "filePath.h"
 
 #define MAXSTR 4096
 
@@ -33,9 +34,6 @@ char template_file[MAXSTR];
 char cmd          [MAXSTR];
 char msg          [MAXSTR];
 char status       [MAXSTR];
-
-char *svc_value();
-char *filePath ();
 
 extern char *optarg;
 extern int optind, opterr;
