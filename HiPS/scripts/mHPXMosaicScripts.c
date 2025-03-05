@@ -646,7 +646,7 @@ int main(int argc, char **argv)
 
    if(processing == CLUSTER)
    {
-      fprintf(fdriver, "sbatch --array=1-%d%20 --mem=16384 --mincpus=1 %smosaicTask.bash\n",
+      fprintf(fdriver, "sbatch --array=1-%d --mem=16384 --mincpus=1 %smosaicTask.bash\n",
          nimages, scriptdir);
 
       fflush(fdriver);

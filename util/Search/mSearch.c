@@ -1798,6 +1798,33 @@ int main(int argc, char **argv)
                   
                ra  = atof(tval(ira));
                dec = atof(tval(idec));
+
+               while(ra <    0.) ra += 360.;
+               while(ra >= 360.) ra -= 360.;
+
+               if(dec < -90.)
+               {
+                  ra = ra + 180;
+                  while(ra <    0.) ra += 360.;
+                  while(ra >= 360.) ra -= 360.;
+
+                  dec = -180. - dec;
+               }
+
+               if(dec > 90.)
+               {
+                  ra = ra + 180;
+                  while(ra <    0.) ra += 360.;
+                  while(ra >= 360.) ra -= 360.;
+
+                  dec = 180. - dec;
+               }
+
+               if(!(ra >= 0. && ra < 360. && dec >= -90. && dec <= 90.))
+               {
+                  printf("STILL BAD: %20s %10ld   %9.4f %9.4f   %d\n", tblfile, nrec, ra, dec, blankRec);
+                  fflush(stdout);
+               }
             }
 
             if(blankRec)

@@ -1055,11 +1055,14 @@ of applying the right tranforms to the planes associated with each iteration.
 
          strcpy(fname, tval(ifname));
 
-         if(fname[0] != '/');
-
-         strcpy(tmpstr, gapdir);
-         strcat(tmpstr, "/");
-         strcat(tmpstr, fname);
+         if(fname[0] != '/')
+         {
+            strcpy(tmpstr, gapdir);
+            strcat(tmpstr, "/");
+            strcat(tmpstr, fname);
+         }
+         else
+            strcpy(tmpstr, fname);
 
          fgap = fopen(tmpstr, "r");
 

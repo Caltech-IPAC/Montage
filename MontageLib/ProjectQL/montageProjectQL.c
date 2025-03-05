@@ -251,7 +251,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
    double nan;
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    nan = value.d;
 
@@ -1692,7 +1692,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                   for(imx=-ia; imx<=ia; ++imx)
                   {
                      imgi = ix + imx;
-                     keri = abs((imx+xoff)*nsamp);
+                     keri = fabs((imx+xoff)*nsamp);
 
                      if(imgi < 0 || imgi > input.naxes[0]
                      || keri < 0 || keri > nfilter)
@@ -1701,7 +1701,7 @@ struct mProjectQLReturn *mProjectQL(char *input_file, char *ofile, char *templat
                      for(jmy=-ia; jmy<=ia; ++jmy)
                      {
                         imgj = jy + jmy;
-                        kerj = abs((jmy+yoff)*nsamp);
+                        kerj = fabs((jmy+yoff)*nsamp);
 
                         if(imgj < 0 || imgj >= input.naxes[1]
                         || kerj < 0 || kerj >= nfilter)

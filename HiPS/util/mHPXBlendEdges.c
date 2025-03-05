@@ -297,8 +297,8 @@ int main(int argc, char **argv)
 
          printf("DEBUG> file:   [%s]\n\n", info[i].infile);
 
-         printf("DEBUG> NAXES: %d x %d\n",      info[i].naxes[0], info[i].naxes[1]);
-         printf("DEBUG> CRPIX: %.1f, %.1f\n\n", info[i].crpix[0], info[i].crpix[1]);
+         printf("DEBUG> NAXES: %ld x %ld\n",      info[i].naxes[0], info[i].naxes[1]);
+         printf("DEBUG> CRPIX: %.1f, %.1f\n\n",   info[i].crpix[0], info[i].crpix[1]);
 
          printf("DEBUG> X offset:       %d\n",    info[i].inxoffset);
          printf("DEBUG> Y offset:       %d\n\n",  info[i].inyoffset);
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
 
                if(debug >= 2)
                {
-                  printf("UR:  CENTER[%d][%d] (%-g), UR[%d][%d] (%-g), RIGHT[%d][%d] (%-g) and TOP[%d][%d] (%-g)\n",
+                  printf("UR:  CENTER[%d][%d] (%-g), UR[%d][%d] (%-g), RIGHT[%d][%d] (%-g) and TOP[%d][%d] (%-g) -> %-g\n",
                         j                                   , i                                       , data[CENTER][j                                   ][i                                       ],
                         j-info[UR ].outystart+info[UR ].ylen, i-info[UR   ].outxstart+info[UR   ].xlen, data[UR    ][j-info[UR ].outystart+info[UR ].ylen][i-info[UR   ].outxstart+info[UR   ].xlen], 
                         j                                   , i-info[RIGHT].outxstart+info[RIGHT].xlen, data[RIGHT ][j                                   ][i-info[RIGHT].outxstart+info[RIGHT].xlen], 

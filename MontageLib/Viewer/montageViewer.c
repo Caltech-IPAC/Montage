@@ -3882,32 +3882,36 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
    }
    
 
-   if(isRGB)
+   if(mode != JSONMODE   // We were passed a JSON string rather than a set of arguments
+   && mode != JSONFILE)  // so don't check for file names.
    {
-      if(strlen(redfile) == 0)
+      if(isRGB)
       {
-         strcpy(returnStruct->msg, "No input 'red' FITS file name given");
-         return returnStruct;
-      }
+         if(strlen(redfile) == 0)
+         {
+            strcpy(returnStruct->msg, "No input 'red' FITS file name given");
+            return returnStruct;
+         }
 
-      if(strlen(greenfile) == 0)
-      {
-         strcpy(returnStruct->msg, "No input 'green' FITS file name given");
-         return returnStruct;
-      }
+         if(strlen(greenfile) == 0)
+         {
+            strcpy(returnStruct->msg, "No input 'green' FITS file name given");
+            return returnStruct;
+         }
 
-      if(strlen(bluefile) == 0)
-      {
-         strcpy(returnStruct->msg, "No input 'blue' FITS file name given");
-         return returnStruct;
+         if(strlen(bluefile) == 0)
+         {
+            strcpy(returnStruct->msg, "No input 'blue' FITS file name given");
+            return returnStruct;
+         }
       }
-   }
-   else
-   {
-      if(strlen(grayfile) == 0)
+      else
       {
-         strcpy(returnStruct->msg, "No input FITS file name given");
-         return returnStruct;
+         if(strlen(grayfile) == 0)
+         {
+            strcpy(returnStruct->msg, "No input FITS file name given");
+            return returnStruct;
+         }
       }
    }
 
@@ -6165,6 +6169,9 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             if(ira  < 0) ira  = tcol("lon");
             if(idec < 0) idec = tcol("lat");
 
+            if(ira  < 0) ira  = tcol("ra2000");
+            if(idec < 0) idec = tcol("dec2000");
+
             if(ira  < 0) ira  = tcol("crval1");
             if(idec < 0) idec = tcol("crval2");
 
@@ -6172,7 +6179,7 @@ struct mViewerReturn *mViewer(char *params, char *outFile, int mode, char *outFm
             {
                tclose();
                mViewer_memCleanup();
-               sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat' or 'crval1','crval2') in table [%s]", cat[i].file);
+               sprintf(returnStruct->msg, "Cannot find 'ra' and 'dec (or 'lon','lat' or 'ra2000','dec2000' or 'crval1','crval2') in table [%s]", cat[i].file);
                return returnStruct;
             }
 
@@ -7335,6 +7342,13 @@ int mViewer_colorLookup(char *colorin, double *ovlyred, double *ovlygreen, doubl
       *ovlyred   =   0;
       *ovlygreen = 255;
       *ovlyblue  = 255;
+   }
+
+   else if(strcasecmp(colorstr, "orange") == 0)
+   {
+      *ovlyred   = 255;
+      *ovlygreen = 155;
+      *ovlyblue  =   0;
    }
 
    else if(strcasecmp(colorstr, "yellow") == 0)

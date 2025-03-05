@@ -254,7 +254,7 @@ int main(int argc, char **argv)
 
       fprintf(fscript, "echo jobs/coadd_%04d.sh\n", ijob);
 
-      fprintf(fscript, "mImgtbl $1/corrected $1/cimages.tbl\n", ijob);
+      fprintf(fscript, "mImgtbl $1/corrected $1/cimages.tbl\n");
 
       if(noAreas) 
          fprintf(fscript, "mAdd -n -p $1/corrected $1/cimages.tbl $1/region.hdr $2order$3/$4.fits\n");

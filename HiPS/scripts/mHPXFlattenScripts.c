@@ -302,8 +302,8 @@ int main(int argc, char **argv)
 
    if(!single_threaded)
    {
-      fprintf(fdriver, "sbatch --array=1-%d%20 --mem=8192 --mincpus=1 %sflattenTask.bash\n", 
-         count, scriptdir, scriptdir);
+      fprintf(fdriver, "sbatch --array=1-%d --mem=8192 --mincpus=1 %sflattenTask.bash\n", 
+         count, scriptdir);
       fflush(fdriver);
    }
 

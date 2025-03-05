@@ -998,4 +998,6 @@ int mHiPSPNGScripts_processFiles(char *pathname)
 
       fclose(fjob);
    }
+
+   return 0;
 }

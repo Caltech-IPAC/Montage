@@ -769,8 +769,8 @@ void mHiPSPNGs_transform(int order, int tile, int *xtile, int *ytile)
 
    if(debug)
    {
-      printf("\nDEBUG TILE> tile order   = %ld\n", order);
-      printf("DEBUG TILE> tile         = %ld (input)\n", tile);
+      printf("\nDEBUG TILE> tile order   = %d\n", order);
+      printf("DEBUG TILE> tile         = %d (input)\n", tile);
       fflush(stdout);
    }
 
@@ -779,7 +779,7 @@ void mHiPSPNGs_transform(int order, int tile, int *xtile, int *ytile)
 
    if(debug)
    {
-      printf("\nDEBUG TILE> nside(tile)  = %ld\n", nside);
+      printf("\nDEBUG TILE> nside(tile)  = %d\n", nside);
       fflush(stdout);
    }
 
@@ -819,7 +819,7 @@ void mHiPSPNGs_transform(int order, int tile, int *xtile, int *ytile)
 
    if(debug)
    {
-      printf("DEBUG TILE> Absolute:      X = %7d, Y = %7d (order %ld)\n\n", x, y, order);
+      printf("DEBUG TILE> Absolute:      X = %7d, Y = %7d (order %d)\n\n", x, y, order);
       fflush(stdout);
    }
 

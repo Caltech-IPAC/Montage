@@ -16,6 +16,7 @@ pgm:
 		(cd Background    && $(MAKE) && $(MAKE) install)
 		(cd BestImage     && $(MAKE) && $(MAKE) install)
 		(cd BgModel       && $(MAKE) && $(MAKE) install)
+		(cd Coord         && $(MAKE) && $(MAKE) install)
 		(cd CoverageCheck && $(MAKE) && $(MAKE) install)
 		(cd Diff          && $(MAKE) && $(MAKE) install)
 		(cd Examine       && $(MAKE) && $(MAKE) install)
@@ -70,6 +71,7 @@ lib:
 			Background/montageBackground.o \
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
+			Coord/montageCoord.o \
 			CoverageCheck/montageCoverageCheck.o \
 			DiffFit/montageDiffFit.o \
 			Diff/montageDiff.o \
@@ -120,6 +122,7 @@ lib:
 			Background/montageBackground.o \
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
+			Coord/montageCoord.o \
 			CoverageCheck/montageCoverageCheck.o \
 			DiffFit/montageDiffFit.o \
 			Diff/montageDiff.o \
@@ -173,6 +176,7 @@ pythonlibs:
 			Background/montageBackground.o \
 			BestImage/montageBestImage.o \
 			BgModel/montageBgModel.o \
+			Coord/montageCoord.o \
 			CoverageCheck/montageCoverageCheck.o \
 			DiffFit/montageDiffFit.o \
 			Diff/montageDiff.o \
@@ -257,6 +261,7 @@ doc:
 			mLibDoc Background
 			mLibDoc BestImage
 			mLibDoc BgModel
+			mLibDoc Coord
 			mLibDoc CoverageCheck
 			mLibDoc Diff
 			mLibDoc DiffFit
@@ -304,6 +309,7 @@ jupyter:
 			mJupyter Background
 			mJupyter BestImage
 			mJupyter BgModel
+			mJupyter Coord
 			mJupyter CoverageCheck
 			mJupyter Diff
 			mJupyter DiffFit
@@ -351,6 +357,7 @@ clean:
 		(cd Background    && test ! -e Makefile || $(MAKE) clean)
 		(cd BestImage     && test ! -e Makefile || $(MAKE) clean)
 		(cd BgModel       && test ! -e Makefile || $(MAKE) clean)
+		(cd Coord         && test ! -e Makefile || $(MAKE) clean)
 		(cd CoverageCheck && test ! -e Makefile || $(MAKE) clean)
 		(cd Diff          && test ! -e Makefile || $(MAKE) clean)
 		(cd DiffFit       && test ! -e Makefile || $(MAKE) clean)

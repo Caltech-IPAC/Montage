@@ -1,0 +1,29 @@
+{
+   "module":"mCoord",
+
+   "function":"mCoord",
+
+   "desc" : "This little utility converts back and forth between pixel coordinates and sky.",
+
+   "arguments":
+   [
+      {"type":"string",                    "name":"imgfile",  "desc":"FITS file to examine."},
+      {"type":"int",     "default":0,      "name":"hdu",      "desc":"Optional HDU offset for input file."},
+      {"type":"int",     "default":1,      "name":"plane3",   "desc":"If datacube, the plane index for dimension 3."},
+      {"type":"int",     "default":1,      "name":"plane4",   "desc":"If datacube, the plane index for dimension 4."},
+      {"type":"double",  "default":0,      "name":"ra",       "desc":"RA or pixel X."},
+      {"type":"double",  "default":0,      "name":"dec",      "desc":"Dec or pixel Y."},
+      {"type":"boolean", "default":false,  "name":"locinpix", "desc":"The coordinates are actually in pixels."},
+      {"type":"int",     "default":0,      "name":"debug",    "desc":"Debugging output level."} 
+   ],
+
+   "return":
+   [
+      {"type":"int",                        "name":"status",  "desc":"Return status (0: OK, 1:ERROR)."},
+      {"type":"string",                     "name":"msg",     "desc":"Return message (for errors)."},
+      {"type":"double",                     "name":"ra",      "desc":"RA of point."},
+      {"type":"double",                     "name":"dec",     "desc":"Dec of point."},
+      {"type":"double",                     "name":"xpix",    "desc":"Pixel X of point."},
+      {"type":"double",                     "name":"ypix",    "desc":"Pixel Y of point."}
+   ]
+}

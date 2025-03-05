@@ -165,6 +165,22 @@ struct mCombineHistReturn *mCombineHist(char **inhist, int nhist, char *minstr, 
                                         char *betastr, int logpower, char *outhist, int debugin);
 //-------------------
 
+struct mCoordReturn
+{
+   int    status;        // Return status (0: OK, 1:ERROR)
+   char   msg [1024];    // Return message (for error return)
+   char   json[4096];    // Return parameters as JSON string
+   double ra;            // RA sky coordinate
+   double dec;           // Dec sky coordinate
+   double xpix;          // X pixel coordinate
+   double ypix;          // Y pixel coordinate
+};
+
+struct mCoordReturn *mCoord(char *fitsfile, int hdu, int plane3, int plane4,
+                                double xlon, double ylat, int locinpix, int debug);
+
+//-------------------
+
 struct mCoverageCheckReturn
 {
    int    status;        // Return status (0: OK, 1:ERROR)

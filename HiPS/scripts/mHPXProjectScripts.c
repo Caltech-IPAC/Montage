@@ -448,7 +448,7 @@ int main(int argc, char **argv)
          fprintf(fscript, "rm $1/plate_%02d_%02d/hpx%d.hdr\n", i, j, level);
          fprintf(fscript, "rm $1/plate_%02d_%02d/remote.tbl $1/plate_%02d_%02d/diffs.tbl\n", i, j, i, j);
          fprintf(fscript, "rm $1/plate_%02d_%02d/rimages.tbl\n", i, j);
-         fprintf(fscript, "rm $1/plate_%02d_%02d/stats.tbl\n", i, j, i, j);
+         fprintf(fscript, "rm $1/plate_%02d_%02d/stats.tbl\n", i, j);
          fprintf(fscript, "rm -rf $1/plate_%02d_%02d/diffs $1/plate_%02d_%02d/raw\n", i, j, i, j);
          fprintf(fscript, "rm $1/plate_%02d_%02d/projected/*_area.fits\n", i, j);
 
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
 
          fprintf(fscript, "rm $1/plate_%02d_%02d/hpx%d.hdr $1/plate_%02d_%02d/region.hdr\n", i, j, level, i, j);
          fprintf(fscript, "rm $1/plate_%02d_%02d/diffs.tbl\n", i, j);
-         fprintf(fscript, "rm $1/plate_%02d_%02d/rimages.tbl\n", i, j, i, j);
+         fprintf(fscript, "rm $1/plate_%02d_%02d/rimages.tbl\n", i, j);
          fprintf(fscript, "rm $1/plate_%02d_%02d/stats.tbl $1/plate_%02d_%02d/hpx9.hdr\n", i, j, i, j);
          fprintf(fscript, "rm -rf $1/plate_%02d_%02d/diffs $1/plate_%02d_%02d/raw\n", i, j, i, j);
          fprintf(fscript, "rm $1/plate_%02d_%02d/projected/*_area.fits\n", i, j);

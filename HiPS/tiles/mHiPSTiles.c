@@ -180,7 +180,7 @@ int main(int argc, char **argv)
    /*************************************************/
 
    for(i=0; i<8; ++i)
-      value.c[i] = 255;
+      value.c[i] = (char)255;
 
    dnan = value.d;
 
@@ -616,7 +616,7 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
    if(debug > 1)
    {
       printf("\nDEBUG> (HiPSID)> nside     = %lld\n", nside);
-      printf("DEBUG> (HiPSID)> Pixel coord:   X = %9.1f, Y = %9.1f (order %ld)\n", x, y, order); 
+      printf("DEBUG> (HiPSID)> Pixel coord:   X = %9.1f, Y = %9.1f (order %d)\n", x, y, order); 
       fflush(stdout);
    }
 
@@ -664,7 +664,7 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Base tile = %d\n\n", baseTile);
+      printf("DEBUG> (HiPSID)> Base tile = %lld\n\n", baseTile);
       fflush(stdout);
    }
 
@@ -679,7 +679,7 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (order %ld)\n", xintile, yintile, order); 
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (order %d)\n", xintile, yintile, order); 
       fflush(stdout);
    }
 
@@ -691,7 +691,7 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 
    if(debug > 1)
    {
-      printf("\nDEBUG> (HiPSID)> Tile starting index = %lld (order %ld)\n\n", index, order);
+      printf("\nDEBUG> (HiPSID)> Tile starting index = %lld (order %d)\n\n", index, order);
       fflush(stdout);
    }
 
@@ -708,7 +708,7 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (of %d)\n", xintile, yintile, nside);
+      printf("DEBUG> (HiPSID)> Relative tile: X = %9.5f, Y = %9.5f (of %lld)\n", xintile, yintile, nside);
       fflush(stdout);
    }
 
@@ -719,7 +719,7 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSID)> Integer tile:  X = %9d, Y = %9d (of %d)\n", xi, yi, nside);
+      printf("DEBUG> (HiPSID)> Integer tile:  X = %9lld, Y = %9lld (of %lld)\n", xi, yi, nside);
       fflush(stdout);
    }
 
@@ -733,8 +733,8 @@ int mHiPSTiles_HiPSID(int order, int fullscale, double x, double y)
 
    if(debug > 1)
    {
-      printf("\nDEBUG> (HiPSID)> Tile index   = %ld (i.e., index inside base tile)\n", id);
-      printf("DEBUG> (HiPSID)> Tile index   = %o (octal)\n\n", id);
+      printf("\nDEBUG> (HiPSID)> Tile index   = %lld (i.e., index inside base tile)\n", id);
+      printf("DEBUG> (HiPSID)> Tile index   = %llo (octal)\n\n", id);
       fflush(stdout);
    }
 
@@ -777,9 +777,9 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG> (HiPSHdr)> pixel level  = %ld (input)\n", pixlev);
+      printf("\nDEBUG> (HiPSHdr)> pixel level  = %d (input)\n", pixlev);
       printf("\nDEBUG> (HiPSHdr)> tile level   = %ld\n", level);
-      printf("DEBUG> (HiPSHdr)> tile         = %ld (input)\n", tile);
+      printf("DEBUG> (HiPSHdr)> tile         = %d (input)\n", tile);
       fflush(stdout);
    }
 
@@ -808,7 +808,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG> (HiPSHdr)> Base tile    = %d (offset %d %d)\n", 
+      printf("\nDEBUG> (HiPSHdr)> Base tile    = %ld (offset %d %d)\n", 
          baseTile, xoffset[baseTile], yoffset[baseTile]);
       fflush(stdout);
    }
@@ -842,7 +842,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("\nDEBUG> (HiPSHdr)> Relative tile: X = %7d, Y = %7d (of %d) [X was originally %d]\n", x, y, nside, nside - 1 - x);
+      printf("\nDEBUG> (HiPSHdr)> Relative tile: X = %7d, Y = %7d (of %ld) [X was originally %ld]\n", x, y, nside, nside - 1 - x);
       fflush(stdout);
    }
 
@@ -866,7 +866,7 @@ void mHiPSTiles_HiPSHdr(int pixlev, int tile, fitsfile *fitshdr)
 
    if(debug > 1)
    {
-      printf("DEBUG> (HiPSHdr)> Pixels:        X = %7d, Y = %7d (level %ld)\n", x, y, pixlev);
+      printf("DEBUG> (HiPSHdr)> Pixels:        X = %7d, Y = %7d (level %d)\n", x, y, pixlev);
       fflush(stdout);
    }
 

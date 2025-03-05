@@ -1011,7 +1011,7 @@ char *mViewer_longitude_label(double lon, int ishr)
 
    if(strcmp(mstr, "60") == 0)
    {
-      strcpy(sstr, "00");
+      strcpy(mstr, "00");
       ++ihr;
       sprintf(hstr, "%d", ihr);
    }

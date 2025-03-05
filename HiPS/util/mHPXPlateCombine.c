@@ -178,7 +178,7 @@ int main(int argc, char **argv)
          }
 
          sprintf(filename, "%sorder%d/plate_%02d_%02d_area.fits",
-            platedir, order, i, j, platedir, order, i, j);
+            platedir, order, i, j);
 
          if(debug)
          {

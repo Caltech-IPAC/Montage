@@ -674,6 +674,8 @@ int makePlateList(int nplate)
          }
       }
    }
+
+   return 0;
 }
       
 
@@ -766,4 +768,6 @@ int makePlatePairs()
          }
       }
    }
+
+   return 0;
 }
