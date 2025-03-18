@@ -57,7 +57,7 @@ pgm:
 		(cd FitExec       && $(MAKE) && $(MAKE) install)
 		(cd ProjExec      && $(MAKE) && $(MAKE) install)
 
-lib:
+lib: pgm
 		rm -f libmontage.a libmontage.so libmontagepy.so
 		ar q  libmontage.a \
 			util/checkFile.o util/checkHdr.o util/checkWCS.o \
@@ -162,7 +162,7 @@ lib:
 			DiffFitExec/montageDiffFitExec.o \
 			ProjExec/montageProjExec.o 
 
-pythonlibs:
+pythonlibs: pgm
 		rm -f ../python/MontagePy/lib/*.o
 		mkdir -p ../python/MontagePy/lib
 		cp util/checkFile.o util/checkHdr.o util/checkWCS.o \
