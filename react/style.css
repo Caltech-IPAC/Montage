@@ -1,0 +1,71 @@
+.btn-group button {
+  background-color: #708090; /* Green background */
+  border: 1px solid green; /* Green border */
+  color: white; /* White text */
+  padding: 5px 10px; /* Some padding */
+  margin: 1px;
+  cursor: pointer; /* Pointer/hand icon */
+  float: left; /* Float the buttons side by side */
+}
+
+/* Clear floats (clearfix hack) */
+.btn-group:after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.btn-group button:not(:last-child) {
+  border-right: none; /* Prevent double borders */
+}
+
+/* Button bar */
+.imgBtn {
+  padding: 0px;
+}
+
+/* Add a background color on hover */
+.cmdBtn {
+  background-color: #ffffff;
+  font-size: 12px;
+}
+
+.cmdBtn:hover {
+  background-color: #ffc0c0;
+}
+
+
+/* Make sure the image and overlay canvas overlap */
+.mainBox{
+   display: grid;
+}
+ 
+.mainImg{
+   z-index: 1;
+   grid-column: 1;
+   grid-row: 1;
+}
+ 
+.mainCanvas{
+   z-index: 2;
+   grid-column: 1;
+   grid-row: 1;
+}
+
+/* Ditto for the small image / canvas */
+.insetBox{
+   display: grid;
+}
+ 
+.insetImg{
+   z-index: 1;
+   grid-column: 1;
+   grid-row: 1;
+}
+ 
+.insetCanvas{
+   z-index: 2;
+   grid-column: 1;
+   grid-row: 1;
+}
+
