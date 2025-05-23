@@ -4,20 +4,11 @@
 # -------  ---------------  -------  -----------------------
 # 1.0      John Good        14Dec04  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I../../../Montage -I../../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+LIBS      =	-L../../../lib -lwcs -lcfitsio -lmcurl -lcurl -lm
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I../../../Montage -I../../../lib/include
-LIBS   =	-L../../../lib -lwcs -lcfitsio -lmcurl -lcurl -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mArchiveGet:	mArchiveGet.o
-		$(CC) -o mArchiveGet mArchiveGet.o  \
-		../../../Montage/checkHdr.o         \
-		../../../Montage/checkWCS.o $(LIBS)
+mArchiveGet: mArchiveGet.o ../../../Montage/checkHdr.o ../../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mArchiveGet ../../../bin

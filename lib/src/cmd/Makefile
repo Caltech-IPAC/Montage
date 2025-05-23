@@ -1,6 +1,5 @@
-CC      =		gcc
-CFLAGS  =		-c -g -fPIC -I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-LIBNAME =		libcmd.a
+CPPFLAGS  +=		-I. -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS    +=		-fPIC
 
 SRCS    =		cmd.c
 
@@ -8,8 +7,7 @@ OBJS    =		${SRCS:.c=.o}
 
 
 libcmd.a:		${OBJS}
-			rm -f ${LIBNAME}
-			ar q ${LIBNAME} ${OBJS}
+			ar rv $@ $^
 
 ${OBJS}:		cmd.h
 
