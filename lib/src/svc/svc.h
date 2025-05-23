@@ -47,7 +47,7 @@ int svc_command(int svc, char *cmdstr);
 char *svc_value(char *ref);
 int svc_getargs (char *cmd, char **cmdv);
 void svc_sigset();
-void svc_sighandler();
+void svc_sighandler(int sig);
 SVC *svc_struct(char *instr);
 char *svc_stripblanks(char *ptr, int len, int quotes);
 int svc_free(SVC *svc);
