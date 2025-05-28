@@ -41,6 +41,7 @@ echo "CIBW_BUILD_FRONTEND>" "$CIBW_BUILD_FRONTEND"
 
 # Up-front cleanup
 
+rm -rf wheelhouse
 rm -rf src
 rm -rf build
 rm -rf lib
