@@ -1,0 +1,30 @@
+[project]
+name             = "MontagePy"
+version          = "2.3.0"
+authors          = [{name = "John Good", email = "jcg@ipac.caltech.edu"}]
+description      = "Montage toolkit for reprojecting, mosaicking, and displaying astronomical images."
+readme           = "README.md"
+license          = "BSD"
+license-files    = ["LICENSE"]
+keywords         = ["astronomy", "astronomical", "image", "reprojection", "mosaic", "visualization"]
+dependencies     = ["requests"]
+
+[tool.setuptools]
+package-dir      = {"" = "src"}
+packages         = ["MontagePy", "MontagePy.archive"]
+
+[project.urls]
+"Homepage"       = "https://github.com/Caltech-IPAC/Montage"
+
+[build-system]
+requires         = ["setuptools", "cython"]
+build-backend    = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+repair-wheel-command = ""
+
+[tool.cibuildwheel.linux]
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+
+[tool.cibuildwheel.macos]
+repair-wheel-command = ""
