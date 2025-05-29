@@ -4,7 +4,7 @@ version          = "2.3.0"
 authors          = [{name = "John Good", email = "jcg@ipac.caltech.edu"}]
 description      = "Montage toolkit for reprojecting, mosaicking, and displaying astronomical images."
 readme           = "README.md"
-license          = "BSD-3-Clause"
+license          = {file = "LICENSE"}
 keywords         = ["astronomy", "astronomical", "image", "reprojection", "mosaic", "visualization"]
 dependencies     = ["requests"]
 
