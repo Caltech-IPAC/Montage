@@ -41,6 +41,7 @@ cp -r Montage/python/MontagePy/templates      .
 cp    Montage/python/MontagePy/pyproject.toml .
 cp    Montage/python/MontagePy/README.md      .   
 cp    Montage/python/MontagePy/LICENSE        .   
+cp    Montage/python/MontagePy/parse.py       .   
 
 cp    Montage/python/MontagePy/__init__.py          src/MontagePy
 cp    Montage/python/MontagePy/__archive__.py       src/MontagePy/archive/__init__.py
