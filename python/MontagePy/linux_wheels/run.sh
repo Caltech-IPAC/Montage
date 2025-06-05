@@ -1,5 +1,6 @@
 #!/bin/sh
 
+export OS='linux'
 export CIBW_BUILD='*'
 export CIBW_ARCHS='x86_64'
 export CIBW_BEFORE_ALL='sh make.sh'
@@ -12,5 +13,4 @@ echo "CIBW_BUILD_FRONTEND>" "$CIBW_BUILD_FRONTEND"
 
 pip install pipx
 
-pipx run cibuildwheel --platform linux 
-
+pipx run cibuildwheel --platform $OS 

@@ -29,66 +29,16 @@
 export OS='macos'
 export CIBW_BUILD='*'
 export CIBW_SKIP='cp36-* cp37-*'
-export CIBW_BUILD_FRONTEND='build'
 export CIBW_ARCHS='x86_64 universal2 arm64'
+export CIBW_BEFORE_ALL='sh make.sh'
 export MACOSX_DEPLOYMENT_TARGET='11.1'
+export CIBW_BUILD_FRONTEND='build'
 
 echo "OS>                 " "$OS"
 echo "CIBW_ARCHS>         " "$CIBW_ARCHS"
 echo "CIBW_BUILD>         " "$CIBW_BUILD"
+echo "CIBW_BEFORE_ALL>    " "$CIBW_BEFORE_ALL"
 echo "CIBW_BUILD_FRONTEND>" "$CIBW_BUILD_FRONTEND"
-
-
-# Up-front cleanup
-
-rm -rf wheelhouse
-rm -rf src
-rm -rf build
-rm -rf lib
-rm -rf dist
-rm -rf MontagePy.egg-info
-rm -rf wrappers.pxd
-rm -rf _wrappers.pyx
-rm -rf main.pyx
-rm -rf Montage lib/*
-
-mkdir -p src/MontagePy
-mkdir -p src/MontagePy/archive
-
-
-# Get and build Montage and copy the files from there
-# we need to build the wheels
-
-git clone https://github.com/Caltech-IPAC/Montage.git 
-
-(cd Montage && make)
-
-cp -r Montage/python/MontagePy/lib lib 
-
-cp    Montage/python/MontagePy/pyproject.toml .
-cp    Montage/python/MontagePy/README.txt     .
-cp    Montage/python/MontagePy/LICENSE.txt    .
-cp    Montage/python/MontagePy/cleanup.py     .
-cp -r Montage/python/MontagePy/templates      .
-
-cp    Montage/python/MontagePy/__init__.py         src/MontagePy
-cp    Montage/python/MontagePy/__archive__.py      src/MontagePy/archive/__init__.py
-cp    Montage/python/MontagePy/mArchiveList.py     src/MontagePy/archive
-cp    Montage/python/MontagePy/mArchiveDownload.py src/MontagePy/archive
-cp    Montage/data/fonts/FreeSans.ttf              src/MontagePy
-
-
-# Build Cython input files for our project
-
-pip install jinja2
-
-python parse.py
-
-python cleanup.py src/MontagePy/_wrappers.pyx > src/MontagePy/tmpfile
-
-mv tmpfile _wrappers.pyx
-
-cp src/MontagePy/wrappers.pxd .
 
 
 # Build all the MacOS-related wheels
