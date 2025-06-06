@@ -27,7 +27,7 @@
 
 
 export OS='macos'
-export CIBW_BUILD='cp38-*'
+export CIBW_BUILD='*'
 export CIBW_SKIP='cp36-* cp37-*'
 export CIBW_ARCHS='x86_64 universal2 arm64'
 export CIBW_BEFORE_ALL='sh make.sh'
