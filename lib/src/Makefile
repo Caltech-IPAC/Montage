@@ -13,7 +13,7 @@ all:
 	(cd two_plane_v1.1 && $(MAKE) && $(MAKE) install)
 	(cd lodepng_20140823 && $(MAKE) && $(MAKE) install)
 	(cd jpeg-8b && ./configure --with-pic && $(MAKE) && cp .libs/libjpeg.a ../.. && cp jpeglib.h jconfig.h jmorecfg.h ../../include)
-	(cd freetype-2.9.1 && ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib --without-bzip2 --without-harfbuzz && $(MAKE) && $(MAKE) install)
+	(cd freetype-2.13.3 && ./configure --prefix=`pwd`/../../freetype --without-png --without-zlib --without-bzip2 --without-harfbuzz && $(MAKE) && $(MAKE) install)
 	(cd .. && ranlib *.a)
 	chmod 644 ../include/*.h
 
@@ -34,4 +34,4 @@ clean:
 	(cd two_plane_v1.1 && $(MAKE) clean)
 	(cd lodepng_20140823 && $(MAKE) clean)
 	test ! -e jpeg-8b/Makefile || (cd jpeg-8b && $(MAKE) clean)
-	(cd freetype-2.9.1 && $(MAKE) distclean && rm -rf objs/libfreetype.la  objs/.libs)
+	(cd freetype-2.13.3 && $(MAKE) distclean && rm -rf objs/libfreetype.la  objs/.libs)

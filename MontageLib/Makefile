@@ -222,21 +222,21 @@ pythonlibs:
 		# The last two are special; the .libs subdirectory contain versions of the
 		# .o files compiled with -fPIC.
 
-		find ../lib/src/bzip2-1.0.6                -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/cfitsio-3.49               -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/cmd                        -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/coord                      -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/mtbl                       -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/svc                        -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/json                       -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/boundaries                 -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/pixbounds                  -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/www                        -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/wcssubs3.9.0_montage       -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/two_plane_v1.1             -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/lodepng_20140823           -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/jpeg-8b/.libs              -name \*.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/freetype-2.9.1/objs/.libs  -name \*.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/bzip2-1.0.6                -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/cfitsio-3.49               -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/cmd                        -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/coord                      -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/mtbl                       -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/svc                        -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/json                       -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/boundaries                 -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/pixbounds                  -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/www                        -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/wcssubs3.9.0_montage       -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/two_plane_v1.1             -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/lodepng_20140823           -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/jpeg-8b/.libs              -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		find ../lib/src/freetype-2.13.3/objs/.libs -name \*\.o -exec cp {} ../python/MontagePy/lib \;
 		
 
                 # These .o files were for executables and contain main()

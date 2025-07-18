@@ -1,0 +1,14 @@
+prefix=/Users/johncgood/OldMontage/lib/src/freetype-2.13.3/../../freetype
+exec_prefix=/Users/johncgood/OldMontage/lib/src/freetype-2.13.3/../../freetype
+libdir=/Users/johncgood/OldMontage/lib/src/freetype-2.13.3/../../freetype/lib
+includedir=/Users/johncgood/OldMontage/lib/src/freetype-2.13.3/../../freetype/include
+
+Name: FreeType 2
+URL: https://freetype.org
+Description: A free, high-quality, and portable font engine.
+Version: 26.2.20
+Requires: 
+Requires.private: 
+Libs: -L/Users/johncgood/OldMontage/lib/src/freetype-2.13.3/../../freetype/lib -lfreetype
+Libs.private: 
+Cflags: -I${includedir}/freetype2
