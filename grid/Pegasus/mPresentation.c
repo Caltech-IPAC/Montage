@@ -13,6 +13,7 @@ Version  Developer        Date     Change
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <strings.h>
 
 #define MAXLEN 20000

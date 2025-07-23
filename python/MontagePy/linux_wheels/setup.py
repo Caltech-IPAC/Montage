@@ -8,12 +8,24 @@ from Cython.Build import cythonize
 machine = platform.machine()
 
 TOP        = os.path.abspath(os.path.join(os.getcwd(), 'Montage'))
-LIB        = os.path.join(TOP, 'lib')
+INCLUDEDIR = os.path.join(TOP, 'lib/include')
 MONTAGELIB = os.path.join(TOP, 'MontageLib')
+OBJDIR     = os.path.join(TOP, 'python/MontagePy/lib')
 
 objs = []
-for obj in os.listdir('lib'):
-    objs.append('lib/' + obj)
+for obj in os.listdir(OBJDIR):
+    objs.append(os.path.join(OBJDIR, obj))
+
+print('')
+print('TOP:       ', TOP)
+print('INCLUDEDIR:', INCLUDEDIR)
+print('MONTAGELIB:', MONTAGELIB)
+print('OBJDIR:    ', OBJDIR)
+
+print('')
+print('OBJECTS:')
+print(objs)
+print('')
 
 os.environ['CC'       ] = 'gcc'
 os.environ['CFLAGS'   ] = ''
@@ -21,7 +33,7 @@ os.environ['ARCHFLAGS'] = '-arch ' + machine
 
 extensions = [
     Extension('MontagePy._wrappers', ['src/MontagePy/_wrappers.pyx'],
-        include_dirs = [os.path.join(LIB, 'include'), MONTAGELIB],
+        include_dirs = [INCLUDEDIR, MONTAGELIB],
         extra_objects = objs),
 
     Extension('MontagePy.main', ['src/MontagePy/main.pyx'])
