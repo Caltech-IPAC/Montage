@@ -179,3 +179,7 @@ lib/src/jpeg-8b/rdjpgcom
 lib/src/jpeg-8b/wrjpgcom
 lib/src/mtbl/test
 ancillary/HPXcvt
+python/MontagePy/build/
+python/MontagePy/dist/
+python/MontagePy/src/
+python/MontagePy/wrappers.pxd
