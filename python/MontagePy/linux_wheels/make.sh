@@ -1,23 +1,30 @@
 #!/bin/sh
 
+echo ''
+echo 'CURRENT DIRECTORY'
+pwd
+ls
+
 mkdir -p src/MontagePy
 mkdir -p src/MontagePy/archive
 mkdir -p lib
 
+rm -rf /project/Montage
+
 
 # Get and build Montage
 
+echo ''
+echo 'CLONE MONTAGE'
 git clone https://github.com/Caltech-IPAC/Montage.git 
 
 echo ''
 echo 'MAKE MONTAGE'
-(cd Montage && make)
+(cd Montage && make > make.out)
 
 
 # Copy the files from the Montage build that we need to build the wheel
 
-echo ''
-echo 'COPY FILES'
 cp -r Montage/python/MontagePy/lib/* lib 
 
 cp -r Montage/python/MontagePy/templates      .   
@@ -31,12 +38,6 @@ cp    Montage/python/MontagePy/__archive__.py       src/MontagePy/archive/__init
 cp    Montage/python/MontagePy/mArchiveList.py      src/MontagePy/archive
 cp    Montage/python/MontagePy/mArchiveDownload.py  src/MontagePy/archive
 cp    Montage/data/fonts/FreeSans.ttf               src/MontagePy
-
-echo ''
-echo 'FIND'
-find /project -name \* -print
-echo ''
-echo 'MAKE WHEEL'
 
 
 # Build Cython input files for our project
