@@ -155,6 +155,7 @@ lib/src/cfitsio-3.49/libcfitsio.so.9.3.49
 lib/src/cfitsio-3.49/libcfitsio.9.3.49.dylib
 lib/src/cfitsio-3.49/libcfitsio.9.dylib
 lib/src/cfitsio-3.49/libcfitsio.dylib
+lib/src/freetype-2.13.3/config.mk
 lib/src/freetype-2.13.3/objs/.libs/libfreetype-symbols.expsym
 lib/src/freetype-2.13.3/objs/.libs/libfreetype.6.dylib
 lib/src/freetype-2.13.3/objs/.libs/libfreetype.dylib
@@ -166,6 +167,10 @@ lib/src/freetype-2.13.3/objs/.libs/libfreetype.so
 lib/src/freetype-2.13.3/objs/.libs/libfreetype.so.6
 lib/src/freetype-2.13.3/objs/.libs/libfreetype.so.6.20.2
 lib/src/freetype-2.13.3/objs/.libs/libfreetype.ver
+lib/src/freetype-2.13.3/objs/.libs/libfreetype-symbols.expsym
+lib/src/freetype-2.13.3/objs/.libs/libfreetype.6.dylib
+lib/src/freetype-2.13.3/objs/.libs/libfreetype.dylib
+lib/src/freetype-2.13.3/objs/.libs/libfreetype.lai
 lib/src/jpeg-8b/.deps/
 lib/src/jpeg-8b/.libs/
 lib/src/jpeg-8b/Makefile
