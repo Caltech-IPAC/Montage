@@ -27,16 +27,14 @@
 
 
 export OS='macos'
-export CIBW_BUILD='*'
-export CIBW_SKIP='cp36-* cp37-*'
-export CIBW_ARCHS='x86_64 universal2 arm64'
+export CIBW_BUILD='cp39-* cp310-* cp311-* cp312-* cp313-*'
+export CIBW_ARCHS='x86_64'
 export CIBW_BEFORE_ALL='sh make.sh'
 export CIBW_BUILD_FRONTEND='build'
 export MACOSX_DEPLOYMENT_TARGET='11.1'
 
 echo "OS>                      " "$OS"
 echo "CIBW_BUILD>              " "$CIBW_BUILD"
-echo "CIBW_SKIP>               " "$CIBW_SKIP"
 echo "CIBW_ARCHS>              " "$CIBW_ARCHS"
 echo "CIBW_BEFORE_ALL>         " "$CIBW_BEFORE_ALL"
 echo "CIBW_BUILD_FRONTEND>     " "$CIBW_BUILD_FRONTEND"
