@@ -592,6 +592,15 @@ int mImgtbl_get_list (char *pathname, int ifname)
                   return 1;
                }
 
+               /* FIX: close the file descriptor before any further processing.
+                  The original code called unlink() while this fd was still open.
+                  On Unix, unlink() only removes the directory entry -- the kernel
+                  keeps the data blocks on disk until the last open fd is closed.
+                  Since the fd was never closed, every .gz file processed left a
+                  nameless temp file consuming space in /tmp (visible in lsof as
+                  "(deleted)"). On large datasets this filled /tmp entirely. */
+               close(fd);
+
                sprintf(cmd, "gunzip -c %s > %s", dirname, tempfile);
                system(cmd);
 
@@ -732,6 +741,15 @@ int mImgtbl_get_files (char *pathname)
                      sprintf(montage_msgstr, "Can't create temporary input table.");
                      return 1;
                   }
+
+                  /* FIX: close the file descriptor before any further processing.
+                     The original code called unlink() while this fd was still open.
+                     On Unix, unlink() only removes the directory entry -- the kernel
+                     keeps the data blocks on disk until the last open fd is closed.
+                     Since the fd was never closed, every .gz file processed left a
+                     nameless temp file consuming space in /tmp (visible in lsof as
+                     "(deleted)"). On large datasets this filled /tmp entirely. */
+                  close(fd);
 
                   sprintf(cmd, "gunzip -c %s > %s", dirname, tempfile);
                   system(cmd);
