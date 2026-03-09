@@ -621,7 +621,11 @@ int mImgtbl_get_list (char *pathname, int ifname)
                   Since the fd was never closed, every .gz file processed left a
                   nameless temp file consuming space in /tmp (visible in lsof as
                   "(deleted)"). On large datasets this filled /tmp entirely. */
-               close(fd);
+               if(close(fd) == -1)
+               {
+                  sprintf(montage_msgstr, "Can't close temporary file descriptor for gunzip output.");
+                  return 1;
+               }
 
                sprintf(cmd, "gunzip -c %s > %s", dirname, tempfile);
                system(cmd);
@@ -776,7 +780,11 @@ int mImgtbl_get_files (char *pathname)
                      Since the fd was never closed, every .gz file processed left a
                      nameless temp file consuming space in /tmp (visible in lsof as
                      "(deleted)"). On large datasets this filled /tmp entirely. */
-                  close(fd);
+                  if(close(fd) == -1)
+                  {
+                     sprintf(montage_msgstr, "Can't close temporary file descriptor for gunzip output.");
+                     return 1;
+                  }
 
                   sprintf(cmd, "gunzip -c %s > %s", dirname, tempfile);
                   system(cmd);
