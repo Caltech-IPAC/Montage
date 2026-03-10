@@ -2,6 +2,10 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+1.11     R. Moseley       09Mar26  Fixed /tmp fd leak for gzipped FITS;
+                                   close mkstemp fd before unlink in
+                                   mImgtbl_get_list and mImgtbl_get_files.
+                                   Improved inline documentation throughout.
 1.10     John Good        29Sep04  Added file size in MByte to table
 1.9      John Good        12Aug04  Made tmp file for unzip unique
 1.8      John Good        18Mar04  Added mode to read the candidate
@@ -222,6 +226,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    strcpy(returnStruct->msg, "");
 
 
+   /* Set global control variables from input parameters */
    mImgtbl_debug    = debugin;
    info             = showinfo;
    recursiveMode    = recursiveModein;
@@ -231,8 +236,8 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    showbad          = showbadin;
 
 #ifdef WINDOWS
-   // Special processing for Windows, turn off GZIP check always
-
+   /* Special processing for Windows: CFITSIO/gunzip integration may vary, 
+      so we disable GZIP processing by default. */
    noGZIP = 1;
 #endif
 
@@ -240,16 +245,15 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    failed = 0;
 
 
-   // Check for null pathname (default to current directory)
-   
+   /* Check for null pathname; default to current directory if not provided */
    if(pathnamein == (char *)NULL)
       strcpy(pathname, "./");
    else
       strcpy(pathname, pathnamein);
 
 
-   // Look for any additional FITS header fields to process
-
+   /* Handle additional FITS header fields requested by the user. 
+      These will be added as extra columns in the output table. */
    if(nfields > 0)
       free(fields);
 
@@ -266,6 +270,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
          return returnStruct;
       }
 
+      /* Parse the field list file (comma or whitespace separated) */
       while(fgets(line, 1024, ffields) != (char *)NULL)
       {
          while(line[strlen(line)-1] == '\r'
@@ -276,6 +281,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
          end = line + strlen(line);
 
+         /* Skip leading whitespace/delimiters */
          while(ptr < end &&
               (*ptr == ' ' || *ptr == '\t' || *ptr == ','))
             ++ptr;
@@ -285,6 +291,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
          pname = ptr;
 
+         /* Extract field name */
          while(ptr < end &&
               *ptr != ' ' && *ptr != '\t' && *ptr != ',')
             ++ptr;
@@ -298,6 +305,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
          ptype = ptr;
    
+         /* Extract field type */
          while(ptr < end && 
               *ptr != ' ' && *ptr != '\t' && *ptr != ',')
             ++ptr;
@@ -311,6 +319,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
  
          pwidth = ptr;
 
+         /* Extract field width */
          while(ptr < end && 
               *ptr != ' ' && *ptr != '\t' && *ptr != ',')
             ++ptr;
@@ -322,6 +331,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
          fields[nfields].width = atoi(pwidth);
 
+         /* Ensure width is at least as long as the column name */
          if(strlen(fields[nfields].name) > fields[nfields].width)
             fields[nfields].width = strlen(fields[nfields].name);
 
@@ -351,6 +361,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
          ++nfields;
 
+         /* Expand the fields array if needed */
          if(nfields >= maxfields)
          {
             maxfields += 32;
@@ -362,9 +373,8 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    }
 
 
-   /* If we haven't turned them off, add the third */
-   /* and fourth dimension parameter checking      */
-
+   /* If cube processing is enabled, add 3rd and 4th dimension keywords
+      to the fields list so they are extracted and written as output columns */
    if(haveCubes)
    {
       for(i=0; i<ncube; ++i)
@@ -394,8 +404,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    }
 
 
-   /* Check to see if directory exists */
-
+   /* Verify that the target directory exists and is actually a directory */
    istat = stat(pathname, &type);
 
    if(istat < 0)
@@ -411,6 +420,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    }
 
 
+   /* Determine how much of the file path to strip for the table output */
    hdrlen = 0;
    if(pathname[0] != '/')
       hdrlen = strlen(pathname);
@@ -424,6 +434,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
       fflush(stdout);
    }
 
+   /* Open the output table file */
    tblf = fopen(tblname, "w+");
 
    if(tblf == (FILE *)NULL)
@@ -433,9 +444,9 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    }
 
 
-   // Get the input image info, with the list of files either
-   // from an input table or by reading through a directory
-   // or directories
+   /* Two modes for finding files: 
+      1) From an explicit image list table (imgListFile)
+      2) By scanning the directory (default) */
 
    if(imgListFile != (char *)NULL && strlen(imgListFile) > 0)
    {
@@ -447,6 +458,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
          return returnStruct;
       }
 
+      /* The list table must have a column named 'fname' or 'file' */
       ifname = tcol( "fname");
 
       if(ifname < 0)
@@ -466,6 +478,7 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    }
    else
    {
+      /* Scan the directory for FITS files */
       if(mImgtbl_get_files(pathname) > 0)
       {
          strcpy(returnStruct->msg, montage_msgstr);
@@ -476,12 +489,14 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
    fclose(tblf);
 
 
+   /* Final pass to format the table (padding columns for fixed-width output) */
    if(mImgtbl_update_table(tblname) > 0)
    {
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
 
+   /* Populate return structure with summary statistics */
    returnStruct->status = 0;
 
    sprintf(returnStruct->msg,  "count=%d, nfile=%d, nhdu=%d, badfits=%d, badwcs=%d",
@@ -501,8 +516,8 @@ struct mImgtblReturn *mImgtbl(char *pathnamein, char *tblname,
 
 
 
-/* Recursively finds all FITS files     */
-/* and passes them to the header reader */
+/* mImgtbl_get_list reads the image filenames from a provided list table
+   and processes each one. */
 
 int mImgtbl_get_list (char *pathname, int ifname)
 {
@@ -517,6 +532,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
 
    while (1)
    {
+      /* Read next record from the image list table */
       istatus = tread();
 
       if(istatus < 0)
@@ -530,6 +546,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
          fflush(stdout);
       }
 
+      /* Construct full path to the image file */
       sprintf (dirname, "%s/%s", pathname, fname);
 
       strcpy (hdr_rec.fname, fname);
@@ -540,6 +557,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
          fflush(stdout);
       }
 
+      /* Check if the file exists and is accessible */
       if (stat(dirname, &type) == 0) 
       {
          len = strlen(dirname);
@@ -550,9 +568,11 @@ int mImgtbl_get_list (char *pathname, int ifname)
             fflush(stdout);
          }
 
+         /* Skip compressed files if noGZIP is set */
          if(noGZIP && strncmp(dirname+len-3,  ".gz", 3) == 0)
             continue;
 
+         /* Optionally skip Montage area files */
          if(!processAreaFiles)
          {
             if ((strncmp(dirname+len-9,  "_area.fit",     9 ) == 0) ||
@@ -566,6 +586,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
                continue;
          }
 
+         /* Process FITS files (including compressed ones) */
          if ((strncmp(dirname+len-4, ".fit",     4) == 0) ||
              (strncmp(dirname+len-4, ".FIT",     4) == 0) || 
              (strncmp(dirname+len-5, ".fits",    5) == 0) || 
@@ -577,6 +598,7 @@ int mImgtbl_get_list (char *pathname, int ifname)
          { 
             msg[0] = '\0';
 
+            /* If it's a gzipped FITS file, gunzip it to a temporary file first */
             if((strncmp(dirname+len-7, ".fit.gz",  7) == 0) ||
                (strncmp(dirname+len-7, ".FIT.gz",  7) == 0) || 
                (strncmp(dirname+len-8, ".fits.gz", 8) == 0) || 
@@ -592,18 +614,32 @@ int mImgtbl_get_list (char *pathname, int ifname)
                   return 1;
                }
 
+               /* FIX: close the file descriptor before any further processing.
+                  The original code called unlink() while this fd was still open.
+                  On Unix, unlink() only removes the directory entry -- the kernel
+                  keeps the data blocks on disk until the last open fd is closed.
+                  Since the fd was never closed, every .gz file processed left a
+                  nameless temp file consuming space in /tmp (visible in lsof as
+                  "(deleted)"). On large datasets this filled /tmp entirely. */
+               if(close(fd) == -1)
+               {
+                  sprintf(montage_msgstr, "Can't close temporary file descriptor for gunzip output.");
+                  return 1;
+               }
+
                sprintf(cmd, "gunzip -c %s > %s", dirname, tempfile);
                system(cmd);
 
                istatus = mImgtbl_get_hdr (tempfile, &hdr_rec, msg);
 
-               if (istatus != 0) 
+               if (istatus != 0)
                   failed += istatus;
 
                unlink(tempfile);
             }
             else
             {
+               /* Process regular FITS file */
                istatus = mImgtbl_get_hdr (dirname, &hdr_rec, msg);
 
                if (istatus != 0) 
@@ -618,8 +654,8 @@ int mImgtbl_get_list (char *pathname, int ifname)
 
 
 
-/* Recursively finds all FITS files     */
-/* and passes them to the header reader */
+/* mImgtbl_get_files recursively scans a directory tree for FITS files 
+   and calls mImgtbl_get_hdr for each one found. */
 
 int mImgtbl_get_files (char *pathname)
 {
@@ -650,6 +686,7 @@ int mImgtbl_get_files (char *pathname)
          fflush(stdout);
       }
 
+      /* Construct the full path and the relative filename for the table */
       sprintf (dirname, "%s/%s", pathname, entry->d_name);
 
       if(strncmp(dirname, "./", 2) == 0)
@@ -665,6 +702,7 @@ int mImgtbl_get_files (char *pathname)
 
       if (stat(dirname, &type) == 0) 
       {
+         /* If it's a directory, descend recursively if recursiveMode is set */
          if (S_ISDIR(type.st_mode) == 1)
          {
             if (recursiveMode
@@ -683,6 +721,7 @@ int mImgtbl_get_files (char *pathname)
          }
          else
          {
+            /* Check if the file is a FITS file based on its extension */
             len = strlen(dirname);
 
             if(mImgtbl_debug)
@@ -718,6 +757,7 @@ int mImgtbl_get_files (char *pathname)
             { 
                msg[0] = '\0';
 
+               /* If gzipped, decompress to a temporary file before processing */
                if((strncmp(dirname+len-7, ".fit.gz",  7) == 0) ||
                   (strncmp(dirname+len-7, ".FIT.gz",  7) == 0) || 
                   (strncmp(dirname+len-8, ".fits.gz", 8) == 0) || 
@@ -733,6 +773,19 @@ int mImgtbl_get_files (char *pathname)
                      return 1;
                   }
 
+                  /* FIX: close the file descriptor before any further processing.
+                     The original code called unlink() while this fd was still open.
+                     On Unix, unlink() only removes the directory entry -- the kernel
+                     keeps the data blocks on disk until the last open fd is closed.
+                     Since the fd was never closed, every .gz file processed left a
+                     nameless temp file consuming space in /tmp (visible in lsof as
+                     "(deleted)"). On large datasets this filled /tmp entirely. */
+                  if(close(fd) == -1)
+                  {
+                     sprintf(montage_msgstr, "Can't close temporary file descriptor for gunzip output.");
+                     return 1;
+                  }
+
                   sprintf(cmd, "gunzip -c %s > %s", dirname, tempfile);
                   system(cmd);
 
@@ -740,11 +793,12 @@ int mImgtbl_get_files (char *pathname)
 
                   unlink(tempfile);
 
-                  if (istatus != 0) 
+                  if (istatus != 0)
                      failed += istatus;
                }
                else
                {
+                  /* Process the FITS file */
                   istatus = mImgtbl_get_hdr (dirname, &hdr_rec, msg);
 
                   if (istatus != 0) 
@@ -760,9 +814,9 @@ int mImgtbl_get_files (char *pathname)
 }
 
 
-/* mImgtbl_get_hdr reads the FITS headers from a file and parses */
-/* the values into a structure more easily handled by Montage    */
-/* modules (Hdr_rec)                                             */
+/* mImgtbl_get_hdr reads the FITS headers from a file (potentially multiple HDUs)
+   and parses the WCS values into a structure (Hdr_rec). It also handles
+   validation to prevent library crashes and extracts user-specified keywords. */
 
 int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 {
@@ -796,6 +850,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       fflush(stdout);
    }
 
+   /* Open the FITS file using CFITSIO */
    status = 0;
    if(fits_open_file(&fptr, fname, READONLY, &status)) 
    {
@@ -811,6 +866,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       return (1);
    }
 
+   /* Get file size */
    stat(fname, &buf);
 
    hdr_rec->size = buf.st_size;
@@ -823,6 +879,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
    hdr_rec->hdu = 0;
 
+   /* Iterate through all HDUs in the file */
    while(1)
    {
       ++hdr_rec->hdu;
@@ -843,14 +900,10 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       ++nhdu;
 
 
-      /* Missing or invalid values for */
-      /* some keywords will cause the  */
-      /* WCS library initialization    */
-      /* to segfault.  Check these.    */
+      /* Missing or invalid values for some keywords will cause the WCS library 
+         initialization to segfault. We perform a series of manual checks here. */
 
-      /* The one exception to this is if we have a DSS plate projection.  If this is */
-      /* is indicated, don't bother.                                                 */
-
+      /* DSS plate projections are an exception and handle keywords differently. */
       isDSS = 1;
       status = 0;
       if(fits_read_keyword(fptr, "PLTRAH", value, comment, &status))
@@ -858,8 +911,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
       if(!isDSS)
       {
-         /* CTYPE1 Existence */
-
+         /* Check for CTYPE1 existence */
          status = 0;
          if(fits_read_keyword(fptr, "CTYPE1", value, comment, &status))
          {
@@ -898,8 +950,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
 
 
-         /* CTYPE1 Value */
-
+         /* Validate CTYPE1 value format */
          if(!badhdr)
          {
             ptr = value;
@@ -957,8 +1008,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
 
 
-         /* CTYPE2 Existence */
-
+         /* Check for CTYPE2 existence */
          if(!badhdr)
          {
             status = 0;
@@ -1001,8 +1051,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
 
 
-         /* CTYPE2 Value */
-
+         /* Validate CTYPE2 value format */
          if(!badhdr)
          {
             ptr = value;
@@ -1059,12 +1108,8 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       }
 
 
-      /* Now try to get the values of the */
-      /* extra required keywords. We look */
-      /* in HDU 1 in case there are some  */
-      /* that are there and meant to be   */
-      /* global (i.e. not in the others)  */
-
+      /* Extract additional keywords. If we are in HDU 1, we also save these as 
+         defaults for subsequent HDUs in case they are global to the file. */
       if(hdr_rec->hdu == 1)
       {
          for(i=0; i<nfields; ++i)
@@ -1093,6 +1138,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
       nowcs = 1;
 
+      /* Read the full WCS header from the HDU */
       if(!badhdr)
       {
          status = 0;
@@ -1109,6 +1155,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             nowcs = 0;
       }
 
+      /* Initialize the WCS library structure */
       if(!nowcs)
       {
          wcs = wcsinit(header);
@@ -1154,6 +1201,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
                continue;
          } 
 
+         /* Further validation of the WCS structure */
          checkWCS = montage_checkWCS(wcs); 
 
          if(checkWCS)
@@ -1188,6 +1236,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
       }
 
+      /* If the header is bad, try to at least get basic image dimensions */
       if(badhdr)
       {
          status=0;
@@ -1203,8 +1252,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
             hdr_rec->nl = atoi(value);
 
 
-         // Special check for ZNAXIS1, ZNAXIS2: Image compressed and stored in binary FITS table
-
+         /* Check for compressed image dimensions if stored in a binary table (ZNAXIS) */
          status=0;
          if(!fits_read_keyword(fptr, "ZNAXIS1", value, comment, &status))
             hdr_rec->ns = atoi(value);
@@ -1243,6 +1291,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
       else
       {
+         /* Successfully initialized WCS; extract all relevant parameters */
          hdr_rec->ns = (int) wcs->nxpix;
          hdr_rec->nl = (int) wcs->nypix;
 
@@ -1258,6 +1307,8 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          hdr_rec->cdelt2  = wcs->yinc;
          hdr_rec->crota2  = wcs->rot;
 
+         /* Standardize orientation: if image is flipped/rotated, adjust cdelt/crota 
+            to a conventional representation. */
          if(hdr_rec->cdelt1 > 0.
          && hdr_rec->cdelt2 > 0.
          && (hdr_rec->crota2 < -90. || hdr_rec->crota2 > 90.))
@@ -1275,8 +1326,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
 
 
-         /* Convert center of image to sky coordinates */
-
+         /* Identify the native coordinate system from CTYPE1 (equatorial, galactic, or ecliptic) */
          csys = EQUJ;
 
          if(strncmp(hdr_rec->ctype1, "RA",   2) == 0)
@@ -1291,14 +1341,14 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          pix2wcs (wcs, hdr_rec->ns/2., hdr_rec->nl/2., &lon, &lat);
 
 
-         /* Convert lon, lat to EQU J2000 */
-
+         /* Final conversion to Equatorial J2000 decimal degrees */
          convertCoordinates (csys, equinox, lon, lat,
                              EQUJ, 2000., &ra2000, &dec2000, 0.);
 
          hdr_rec->ra2000  = ra2000;
          hdr_rec->dec2000 = dec2000;
 
+         /* Calculate corner coordinates (RA/Dec J2000) */
          clockwise = 0;
 
          if((hdr_rec->cdelt1 < 0 && hdr_rec->cdelt2 < 0)
@@ -1372,6 +1422,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
          }
 
 
+         /* Calculate an approximate radius for the image footprint */
          x1 = cos(hdr_rec->ra2000*dtr) * cos(hdr_rec->dec2000*dtr);
          y1 = sin(hdr_rec->ra2000*dtr) * cos(hdr_rec->dec2000*dtr);
          z1 = sin(hdr_rec->dec2000*dtr);
@@ -1386,9 +1437,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
       }
 
 
-      /* Now try to get the values of the */
-      /* extra required keywords          */
-
+      /* Extract any extra keywords requested via fieldListFile */
       for(i=0; i<nfields; ++i)
       {
          status=0;
@@ -1414,6 +1463,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
       hdr_rec->cntr = cntr;
 
+      /* Write this HDU's metadata record to the table */
       mImgtbl_print_rec (hdr_rec);
 
       ++nwrite;
@@ -1424,6 +1474,7 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 
    status = 0;
 
+   /* Close FITS file */
    fits_close_file(fptr, &status);
 
    return(nfailed);
@@ -1435,6 +1486,10 @@ int mImgtbl_get_hdr (char *fname, struct Hdr_rec *hdr_rec, char *msg)
 /* for an image, incrementally write a record to  */
 /* an output image metadata (ASCII) table         */
 
+/* mImgtbl_print_rec writes a single image metadata record to the output table. 
+   If this is the first record (cntr == 0), it also writes the table header 
+   including all dynamic columns for extra FITS keywords. */
+
 void mImgtbl_print_rec (struct Hdr_rec *hdr_rec) 
 {
     int  i, j;
@@ -1443,6 +1498,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
 
     struct COORD in, out;
 
+    /* Setup coordinate transformation for sexagesimal output */
     strcpy(in.sys,   "EQ");
     strcpy(in.fmt,   "DDR");
     strcpy(in.epoch, "J2000");
@@ -1453,10 +1509,12 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
 
     if(cntr == 0)
     {
+       /* Write the IPAC table header */
        if(showCorners)
        {
          fprintf(tblf, "\\datatype = fitshdr\n");
 
+         /* Column names */
          fprintf(tblf, "| cntr |      ra     |     dec     |      cra     |     cdec     |naxis1|naxis2| ctype1 | ctype2 |     crpix1    |     crpix2    |");
          fprintf(tblf, "    crval1   |    crval2   |       cdelt1      |       cdelt2      |   crota2    |equinox |");
 
@@ -1473,6 +1531,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
          fprintf(tblf, "      ra1    |     dec1    |      ra2    |     dec2    |      ra3    |     dec3    |      ra4    |     dec4    |");
          fprintf(tblf, "    size    | hdu  | fname\n");
 
+         /* Column types */
          fprintf(tblf, "| int  |     double  |     double  |      char    |     char     | int  | int  |  char  |  char  |     double    |     double    |");
          fprintf(tblf, "    double   |    double   |      double       |      double       |   double    | double |");
 
@@ -1517,11 +1576,13 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
       }
     }
 
+    /* Convert decimal RA/Dec to sexagesimal strings */
     in.lon = hdr_rec->ra2000;
     in.lat = hdr_rec->dec2000;
 
     ccalc(&in, &out, "t", "t");
 
+    /* Print the metadata values */
     fprintf(tblf, " %6d",     hdr_rec->cntr);
     fprintf(tblf, " %13.7f",  hdr_rec->ra2000);
     fprintf(tblf, " %13.7f",  hdr_rec->dec2000);
@@ -1540,6 +1601,7 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
     fprintf(tblf, " %13.7f",  hdr_rec->crota2);
     fprintf(tblf, " %8.2f",   hdr_rec->equinox);
 
+    /* Print extra keyword values */
     for(i=0; i<nfields; ++i)
     {
        sprintf(fmt, " %%%ds", fields[i].width);
@@ -1568,7 +1630,9 @@ void mImgtbl_print_rec (struct Hdr_rec *hdr_rec)
 
 
 
-/* Clean up output file */
+/* mImgtbl_update_table performs a second pass on the generated table to ensure 
+   it is correctly formatted as a fixed-width ASCII (IPAC format) table. 
+   It pads all records to the same maximum length. */
 
 int mImgtbl_update_table(char *tblname)
 {
@@ -1597,6 +1661,7 @@ int mImgtbl_update_table(char *tblname)
    }
 
 
+   /* Find the maximum line length in the table */
    maxlen = 0;
 
    while(1)
@@ -1635,6 +1700,7 @@ int mImgtbl_update_table(char *tblname)
    }
 
 
+   /* Rewrite the table with padded lines for fixed-width alignment */
    while(1)
    {
       if(fgets(str, MAXLEN, ftmp) == (char *)NULL)
@@ -1643,6 +1709,7 @@ int mImgtbl_update_table(char *tblname)
       if(str[strlen(str) - 1] == '\n')
          str[strlen(str) - 1]  = '\0';
 
+      /* Comments/header metadata starting with '\' are not padded */
       if(str[0] == '\\')
       {
          strcat(str, "\n");
@@ -1652,11 +1719,13 @@ int mImgtbl_update_table(char *tblname)
 
       len = strlen(str);
 
+      /* Pad the line with spaces */
       for(i=len; i<MAXLEN; ++i)
          str[i] =  ' ';
       
       str[maxlen] = '\0';
 
+      /* Add the closing bar or newline */
       if(str[0] == '|')
          strcat(str, "|\n");
       else
