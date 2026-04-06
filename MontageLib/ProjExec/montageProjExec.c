@@ -2,6 +2,7 @@
 
 Version  Developer        Date     Change
 -------  ---------------  -------  -----------------------
+3.11     R. Moseley       06Apr26  Remove energyMode=0 reset; value wasn't reaching mProject
 3.10     John Good        11Sep15  Incorrectly using column 0 as scale sometimes.
 3.9      T. P. Robitaille 19Aug10  fixed gap issue in MPI version
 3.8      Daniel S. Katz   16Jul10  fixes for MPI version
@@ -222,7 +223,6 @@ struct mProjExecReturn *mProjExec(char *inpath, char *tblfile, char *template, c
 
    strcpy(weightFile, "");
 
-   energyMode = 0;
    fullRegion = 0;
    noAreas    = 0;
    interp     = NEAREST;
