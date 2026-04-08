@@ -15,6 +15,7 @@ Version  Developer        Date     Change
 #include <unistd.h>
 #include <string.h>
 #include <strings.h>
+#include <string.h>
 
 #define MAXLEN 20000
 
