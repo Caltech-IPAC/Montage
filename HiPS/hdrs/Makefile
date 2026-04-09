@@ -1,21 +1,13 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     = gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS = -g -O2 -I. -I../../lib/include
+CPPFLAGS +=	-I. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 LIBS   = -L../../lib -lwcs -lboundaries -lmtbl -lsvc -lm
-
-.c.o:
-			$(CC) $(CFLAGS)  -c  $*.c
-
 
 all:      mHPXHdr mHiPSHdr 
 
 mHPXHdr: mHPXHdr.o
-			gcc -o mHPXHdr mHPXHdr.c $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 mHiPSHdr: mHiPSHdr.o
-			gcc -o mHiPSHdr mHiPSHdr.o $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 			cp mHPXHdr mHiPSHdr ../../bin

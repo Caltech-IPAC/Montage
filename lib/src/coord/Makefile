@@ -1,10 +1,8 @@
-CC      =	gcc
-CFLAGS  =	-g -c -fPIC -D_LARGEFILE_SOURCE \
-		-D_FILE_OFFSET_BITS=64 -I. -I../../include
-LIBNAME =	libcoord.a
+CPPFLAGS  +=	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I. -I../../include
+CFLAGS    +=	-fPIC
 
 SRCS    =	ccalc.c                    \
-   		parseCoordinateString.c    \
+		parseCoordinateString.c    \
 		sexToDecimalDegree.c       \
 		decimalDegreeToSex.c       \
 		convertCoordinates.c       \
@@ -20,8 +18,7 @@ OBJS    =	${SRCS:.c=.o}
 
 
 libcoord.a:	${OBJS}
-		rm -f ${LIBNAME}
-		ar q ${LIBNAME} ${OBJS}
+		ar rv $@ $^
 
 ${OBJS}:	coord.h
 

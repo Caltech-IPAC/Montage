@@ -5,21 +5,12 @@
 # 1.1      John Good        01Mar05  Added coord library ref
 # 1.0      John Good        25Sep04  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I../../lib/include -I../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   +=	-std=c99
+LIBS      =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
-CFLAGS =	-g -O2 -I. -I../../lib/include -I../../Montage
-LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mJPEG:		mJPEG.o
-		$(CC) -o mJPEG mJPEG.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mJPEG: mJPEG.o ../../Montage/checkHdr.o	../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mJPEG ../../bin

@@ -4,18 +4,11 @@
 # -------  ---------------  -------  -----------------
 # 1.0      John Good        15Dec04  Original Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I../../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+LIBS      =	-L../../../lib -lwcs -lmtbl -lsvc
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../../lib/include
-LIBS   =	-L../../../lib -lwcs -lmtbl -lsvc
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mArchiveExec:	mArchiveExec.o
-		$(CC) -o mArchiveExec mArchiveExec.o $(LIBS)
+mArchiveExec: mArchiveExec.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mArchiveExec ../../../bin

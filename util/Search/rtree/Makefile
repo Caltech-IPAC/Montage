@@ -1,6 +1,3 @@
-CC = gcc
-CFLAGS = 
-
 OBJECTS = card.o \
 	index.o \
 	mfmalloc.o \
@@ -15,10 +12,7 @@ librtree.a: $(OBJECTS)
 	ranlib librtree.a
 
 test: test.c librtree.a
-	$(CC) $(LDFLAGS) -o $@ test.c librtree.a -lm
-
-.c.o:
-	$(CC) $(CFLAGS) -Wall -c $<
+	$(CC) $(LDFLAGS) -o $@ $^ librtree.a -lm
 
 clean:
 	rm -rf ./*.o ./*.a

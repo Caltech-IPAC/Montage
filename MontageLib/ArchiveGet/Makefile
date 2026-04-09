@@ -1,15 +1,9 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I.. -I../../lib/include
+CFLAGS   +=	-fPIC
+LIBS      =	 -L../../lib -lbz2
 
-CC     =	gcc
-CFLAGS =	-g -O2 -I. -I.. -I../../lib/include -fPIC
-LIBS   =	 -L../../lib -lbz2
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mArchiveGet:	mArchiveGet.o montageArchiveGet.o
-		$(CC) -o mArchiveGet mArchiveGet.o montageArchiveGet.o $(LIBS)
+mArchiveGet: mArchiveGet.o montageArchiveGet.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mArchiveGet ../../bin
