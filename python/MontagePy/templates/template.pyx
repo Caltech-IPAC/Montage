@@ -1,6 +1,6 @@
 # http://stackoverflow.com/questions/17014379/cython-cant-convert-python-object-to-double
 
-cimport wrappers
+from . cimport wrappers
 
 cimport cpython.array as _array
 
