@@ -567,6 +567,15 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 
    if(mDiff_readFits(infile[ifile], inarea[ifile]) > 0)
    {
+      for(j=0; j<jlength; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+      }
+
+      free(data);
+      free(area);
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -789,6 +798,18 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 
    if(mDiff_readFits(infile[ifile], inarea[ifile]) > 0)
    {
+      free(buffer);
+      free(abuffer);
+
+      for(j=0; j<jlength; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+      }
+
+      free(data);
+      free(area);
+
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
    }
@@ -1117,6 +1138,15 @@ struct mDiffReturn *mDiff(char *input_file1, char *input_file2, char *ofile, cha
 
    if(jmin > jmax || imin > imax)
    {
+      for(j=0; j<jlength; ++j)
+      {
+         free(data[j]);
+         free(area[j]);
+      }
+
+      free(data);
+      free(area);
+
       mDiff_printError("All pixels are blank.");
       strcpy(returnStruct->msg, montage_msgstr);
       return returnStruct;
