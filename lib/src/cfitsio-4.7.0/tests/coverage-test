@@ -1,0 +1,103 @@
+#!/bin/sh
+
+# Check coverage of various source files.  If configured without --coverage in CFLAGS,
+# this will likely just get skipped.
+# (eg, configure with CFLAGS='--coverage -g -O0' to run this test)
+
+
+RV=0
+
+skip_test() { printf '%s\n' "$*" >&2; test "$RV" = 0 && RV=77; }
+fail_test() { test -n "$*" && printf '%s\n' "$*" >&2; RV=1; }
+
+while read file threshold reentrant_threshold; do
+	if test "$BUILD_REENTRANT" = yes && test -n "$reentrant_threshold"; then
+		threshold=$reentrant_threshold
+	fi
+	for prefix in ./ .libs/libcfitsio_la-; do
+		note_file=$prefix$file.gcno
+		test -f "$note_file" && break
+	done
+
+	if ! test -f "$note_file"; then
+		skip_test "Cannot find gcno file for $file"
+		continue
+	fi
+
+	# Expected output of gcov looks like:
+	# File '../cfileio.c'
+	# Lines executed:13.83% of 3609
+	# Creating 'cfileio.c.gcov'
+
+	if ! output=$(gcov "$note_file"); then
+		skip_test "gcov failed for $file"
+		continue
+	fi
+	printf '%s\n' "$output" |
+		awk -F '[: %]' '/Lines executed/ {
+			rv=($3 < t)
+			if(rv) {
+				print "Coverage of " f " is " $3 "%; expected " t "%" > "/dev/stderr"
+			}
+		} END {exit rv}' rv=77 t="$threshold" f="$file" >&2
+	case $? in
+	1) fail_test;;
+	77) skip_test "Cannot determine coverage of $file";;
+	esac
+done << EOF
+	buffers 90.93
+	cfileio 45.80 45.73
+	checksum 90.43
+	drvrfile 43.03
+	drvrsmem 78.98
+	editcol 58.73
+	edithdu 90.65
+	eval_f 46.06
+	fits_hcompress 92.70 92.74
+	fits_hdecompress 84.01 84.07
+	fitscore 55.64 55.67
+	getcol 60.28
+	getcolb 45.49
+	getcold 83.76
+	getcole 58.59
+	getcoli 47.33
+	getcolj 48.97
+	getcolk 48.07
+	getcoll 90.33
+	getcols 51.76
+	getcolsb 44.17
+	getcolui 44.46
+	getcoluj 44.09
+	getcoluk 45.80
+	getkey 60.78
+	group 41.70
+	grparser 88.15
+	histo 46.55
+	imcompress 23.17 23.19
+	iraffits 71.31
+	modkey 90.47
+	pliocomp 98.92
+	putcol 57.73
+	putcolb 90.26
+	putcold 90.28
+	putcole 90.28
+	putcoli 90.35
+	putcolj 90.23
+	putcolk 90.80
+	putcoll 90.80
+	putcols 91.78
+	putcolsb 90.21
+	putcolu 90.73
+	putcolui 90.58
+	putcoluj 89.76
+	putcoluk 90.24
+	putkey 80.14
+	quantize 83.00
+	region 69.40
+	ricecomp 87.40
+	scalnull 91.46
+	simplerng 97.95
+	wcssub 60.55
+	wcsutil 92.22
+EOF
+exit $RV
