@@ -913,6 +913,16 @@ int ffgcls2 ( fitsfile *fptr,   /* I - FITS file pointer                       *
 
       readptr = startpos + ((LONGLONG)rownum * rowlen) + (elemnum * incre);
       ffmbyt(fptr, readptr, REPORT_EOF, status);  /* move to read position */
+      if (twidth < 1 || ntodo < 1 ||
+          (size_t) ntodo > sizeof(cbuff) / (size_t) twidth)
+      {
+         snprintf(message, FLEN_ERRMSG,
+                "Out-of-bounds string read: %ld strings of width %ld (ffgcls2)",
+                ntodo, twidth);
+         ffpmsg(message);
+         return(*status = READ_ERROR);
+      }
+
 
       /* read the array of strings from the FITS file into the buffer */
 

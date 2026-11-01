@@ -122,6 +122,43 @@ test_read_variable_length_string(void)
 }
 
 static void
+test_read_oversized_variable_length_string(void)
+{
+	fitsfile *f;
+	int status = 0;
+	char *ttype[] = { "VARSTR" };
+	char *tform[] = { "1PA" };
+	unsigned char *data;
+	char *result;
+	char *results[1];
+	int anynull;
+	size_t ii;
+
+	data = malloc(28801);
+	result = malloc(28802);
+	fail_if(data == NULL || result == NULL);
+	for (ii = 0; ii < 28801; ii++)
+		data[ii] = 'A';
+	results[0] = result;
+
+	call_02(ffinit, &f, "!" test_path);
+	call_04(ffphps, f, BYTE_IMG, 0, NULL);
+	call_08(ffcrtb, f, BINARY_TBL, 1, 1, ttype, tform, NULL, NULL);
+	call_06(ffpclb, f, 1, 1, 1, 28801, data);
+	call_01(ffclos, f);
+
+	call_03(ffopen, &f, test_path, READONLY);
+	call_03(ffmahd, f, 2, NULL);
+	ffgcvs(f, 1, 1, 1, 1, NULL, results, &anynull, &status);
+	fail_if(status == 0);
+	status = 0;
+	call_01(ffclos, f);
+
+	free(data);
+	free(result);
+}
+
+static void
 test_read_numeric_as_string(void)
 {
 	fitsfile *f;
@@ -451,6 +488,7 @@ main(void)
 	test_read_short_as_string();
 	test_read_string_column_with_null_flags();
 	test_read_longlong_as_string();
+	test_read_oversized_variable_length_string();
 	test_get_column_display_width();
 	test_get_column_display_width_with_tdisp();
 	test_get_column_display_width_bad_col();
