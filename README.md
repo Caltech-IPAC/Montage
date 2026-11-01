@@ -71,6 +71,34 @@ science community in developing next-generation cyberinfrastructure,
 especially workflow frameworks on distributed platforms, including
 multiple clouds.
 
+Building against a system CFITSIO
+---------------------------------
+
+By default "make" builds and links the bundled CFITSIO (lib/src). To use
+an installed CFITSIO instead, build with USE_SYSTEM_CFITSIO=1 and one of
+(checked in this order):
+
+    make USE_SYSTEM_CFITSIO=1 CFITSIO_CFLAGS=-I/opt/include CFITSIO_LIBS="-L/opt/lib -lcfitsio -lm"
+    make USE_SYSTEM_CFITSIO=1 CFITSIO_DIR=/opt/cfitsio   # <dir>/include, <dir>/lib
+    make USE_SYSTEM_CFITSIO=1                            # pkg-config cfitsio
+
+With pkg-config, CFITSIO_STATIC=1 uses "pkg-config --libs --static" for a
+static libcfitsio.a. The selection lives in cfitsio.make; ./configure only
+sets the install prefix.
+
+Before building, "make check-system-cfitsio" (run automatically) compiles,
+links and runs test programs against the selected library, including the
+CVE-2026-115504 regression test (tests/cve_vlen_regression.c). A CFITSIO
+without that fix is rejected; CFITSIO_ALLOW_UNPATCHED=1 builds anyway with
+a warning.
+
+A tree built in one mode must be cleaned before building in the other:
+switching without "make clean" stops with an error. The mode of the last
+successful build is recorded in .cfitsio-build-mode.
+
+The MontagePy wheel objects (MontageLib "pythonlibs") embed the bundled
+CFITSIO, so a system-CFITSIO build skips them; wheels are bundled-only.
+
 Montage provides multiple reprojection algorithms optimized for 
 different needs, maximizing alternately flux conservation, range of
 projections, and speed.
