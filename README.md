@@ -145,7 +145,6 @@ Each call returns a status dictionary. Check `status` (and failure counts such a
 | `lib/` | Bundled third-party sources and their build rules. |
 | `Windows/` | Windows cross-build scripts, makefiles, and supporting libraries. |
 | `build/` | Release-packaging scripts and maintainer notes. |
-| `tests/` | Stored JUnit-format results published by Jenkins. |
 
 ## Documentation & support
 
@@ -161,7 +160,7 @@ The project contact address is montage@ipac.caltech.edu.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is organized and where contributions are welcome. Recent pull requests target `main`, the default branch. [Jenkins](Jenkinsfile) runs `make` and publishes stored results; it has no Montage-specific automated regression-test stage.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is organized and where contributions are welcome. Recent pull requests target `main`, the default branch. [Jenkins](Jenkinsfile) runs `make`; there is no automated test stage yet.
 
 ## Citing
 
