@@ -17,6 +17,9 @@ all:
 install:
 	cp bin/* $(montage_prefix)/bin
 
+check:
+	cd test && $(MAKE) check
+
 clean:
 	mkdir -p bin
 	mkdir -p lib/include
@@ -28,3 +31,4 @@ clean:
 	test ! -d MontageLib       || (cd MontageLib && $(MAKE) clean)
 	test ! -d ancillary        || (cd ancillary  && $(MAKE) clean)
 	test ! -d HiPS             || (cd HiPS       && $(MAKE) clean)
+	test ! -d test             || (cd test       && $(MAKE) clean)
