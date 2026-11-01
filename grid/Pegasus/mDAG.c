@@ -31,8 +31,6 @@ Version  Developer        Date     Change
 
 #define MAXSTR   1024
 
-char *svc_value();
-
 int   readTemplate(char *template);
 int   printError  (char *msg);
 int   stradd      (char *header, char *card);

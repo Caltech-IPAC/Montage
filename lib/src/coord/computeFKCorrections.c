@@ -14,6 +14,13 @@ static double  dad[181],     dpmad[181],     dd[181],      dpmdd[181],
 
 void initializeFK5CorrectionData();
 void loadFK5Constants();
+static double interpolateLinear(double y1, double y2, 
+                         double x1, double x2, double x0);
+static double interpolateBilinear(double za1d1, double za2d1, 
+                           double za1d2, double za2d2, 
+                           double a1,    double a2, 
+                           double d1,    double d2, 
+                           double a,     double d);
 
 
 /****************************************************************************/
@@ -49,8 +56,6 @@ besselianToJulianFKCorrection(double ain, double d, double dmag, double epoch,
 
       int loc, loc1, loc2, locx1, locx2;
       int n1, n3;
-
-      double interpolateLinear(), interpolateBilinear();
 
       double dec1, dec2, dtest, fkpdec= 89.999;
       double xmag1, xmag2, a;
