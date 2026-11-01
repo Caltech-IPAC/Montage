@@ -18,11 +18,4 @@ pipeline {
       }
     }
   }
-    
-  post {
-    always {
-      sh 'echo "Posting fake results"'
-      junit 'tests/*.xml'
-    }
-  }
 }  
