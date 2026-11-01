@@ -26,6 +26,12 @@ for t in \
     cfitsio_bundled.sh \
     fits_pipeline.sh \
     wheel_objects.sh \
+    system_cfitsio.sh \
+    system_cve_check.sh \
+    mode_transition.sh \
+    configure_keeps_selection.sh \
+    standalone_subdir.sh \
+    system_mode_build.sh \
     ; do
     printf '%-32s ' "$t"
     sh "tests/$t" > "$logs/$t.log" 2>&1
