@@ -28,3 +28,7 @@ clean:
 	test ! -d MontageLib       || (cd MontageLib && $(MAKE) clean)
 	test ! -d ancillary        || (cd ancillary  && $(MAKE) clean)
 	test ! -d HiPS             || (cd HiPS       && $(MAKE) clean)
+
+.PHONY: test
+test:
+	sh tests/run_tests.sh
