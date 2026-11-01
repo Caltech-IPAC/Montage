@@ -1,5 +1,17 @@
 # AGENTS.md
 
+## This Fork
+
+- `larock22/Montage` is a personal hobby fork of
+  [Caltech-IPAC/Montage](https://github.com/Caltech-IPAC/Montage).
+- Open branches and pull requests against this fork's `main` only. Do not open
+  pull requests, issues, or comments on the upstream repository, and do not push
+  to branches that back open upstream pull requests, unless the maintainer
+  explicitly asks for that specific action.
+- Before creating a pull request, confirm its base repository is
+  `larock22/Montage`; GitHub and some tools default a fork's pull requests to
+  the upstream repository.
+
 ## Project Overview
 
 - Montage is a C toolkit for FITS image reprojection, background matching,
