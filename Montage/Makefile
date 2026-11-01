@@ -46,10 +46,11 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
+CFITSIO_LIBS ?= -lcfitsio
 CC     =	gcc
 MPICC  =
-CFLAGS =	-g -O2 -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99
-LIBS   =	-L../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
+CFLAGS =	-g -O2 -I. -I../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 $(CFITSIO_CFLAGS)
+LIBS   =	-L../lib -lwcs $(CFITSIO_LIBS) -lcoord -lmtbl -lsvc \
 		   -lwww -lboundaries -lpixbounds -ltwoplane -lm
 
 SBINS  =  mConvert mFlattenExec mHdrCheck mHdrtbl mTblSort mTileHdr mTileImage

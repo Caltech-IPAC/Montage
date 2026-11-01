@@ -14,9 +14,10 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
+CFITSIO_LIBS ?= -lcfitsio
 CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../Montage -I../../lib/include
-LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
+CFLAGS =	-g -O2 -I. -I../../Montage -I../../lib/include $(CFITSIO_CFLAGS)
+LIBS   =	-L../../lib -lwcs $(CFITSIO_LIBS) -lcoord -lmtbl -lsvc \
 		-lboundaries -lm
 
 .c.o:

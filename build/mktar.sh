@@ -6,6 +6,7 @@ tar cvf Montage_`date "+%d%b%y"`.tar \
    Montage/README.md \
    Montage/ChangeHistory \
    Montage/Makefile \
+   Montage/cfitsio.make \
    Montage/lib \
    Montage/data \
    Montage/Montage \

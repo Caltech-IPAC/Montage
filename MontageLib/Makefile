@@ -6,7 +6,15 @@ ifeq ($(UNAME_S),Darwin)
    SO_FLAG := -undefined dynamic_lookup
 endif
 
+# The MontagePy wheel objects (pythonlibs) embed the bundled CFITSIO, so a
+# build against a system CFITSIO (USE_SYSTEM_CFITSIO=1) skips them.
+USE_SYSTEM_CFITSIO ?= 0
+
+ifeq ($(USE_SYSTEM_CFITSIO),1)
+all: pgm lib
+else
 all: pgm lib pythonlibs
+endif
 
 pgm: 
 		(cd util          && $(MAKE))
@@ -163,6 +171,10 @@ lib:
 			ProjExec/montageProjExec.o 
 
 pythonlibs:
+ifeq ($(USE_SYSTEM_CFITSIO),1)
+		@echo "ERROR: pythonlibs (the MontagePy wheel objects) needs the bundled CFITSIO; rebuild with USE_SYSTEM_CFITSIO=0 after 'make clean'." >&2
+		@exit 1
+endif
 		rm -f ../python/MontagePy/lib/*.o
 		mkdir -p ../python/MontagePy/lib
 		cp util/checkFile.o util/checkHdr.o util/checkWCS.o \

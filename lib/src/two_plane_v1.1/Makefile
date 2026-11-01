@@ -1,5 +1,5 @@
 CC      =       gcc
-CFLAGS  =       -c -ansi -Wall -fPIC -g -I. -I../../include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS  =       -c -ansi -Wall -fPIC -g -I. -I../../include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 $(CFITSIO_CFLAGS)
 
 libtwoplane.a:	two_plane.o distort.o initdistdata.o \
 		undistort.o redefine_pointing.o
