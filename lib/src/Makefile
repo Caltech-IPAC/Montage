@@ -1,10 +1,23 @@
 all:
 	(cd bzip2-1.0.6 && $(MAKE) && cp libbz2.a ../.. && cp bzlib.h ../../include)
-	# WORKAROUND (issue #96): C23 (GCC 15 default) made `nullptr` a keyword;
-	# cfitsio 3.49 uses it as a variable in putcol.c. Pin to gnu17 and
-	# restore -g -O2 (CFLAGS to configure overrides autoconf defaults).
-	# Remove when bundled cfitsio is upgraded upstream.
-	(cd cfitsio-3.49 && CFLAGS='-g -O2 -std=gnu17' ./configure --disable-curl && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
+	# CFITSIO 4.7.0 with the CVE-2026-115504 fix (see cfitsio-4.7.0/MONTAGE_PROVENANCE)
+	# and the zlib 1.3.2 it requires. Built out of tree so the vendored sources
+	# stay unmodified; static and position-independent because MontagePy links
+	# the objects. The two archives are combined into one lib/libcfitsio.a, so
+	# consumers keep linking with -lcfitsio alone.
+	# zlib-build comes first in CPPFLAGS so CFITSIO sees the zconf.h zlib was
+	# configured with. Only the library is built, without Fortran wrappers, so
+	# the archive is the same whether or not a Fortran compiler is installed.
+	rm -rf zlib-build cfitsio-build && mkdir zlib-build cfitsio-build
+	(cd zlib-build && CFLAGS='-g -O2 -fPIC' ../zlib-1.3.2/configure --static && $(MAKE) libz.a)
+	(cd cfitsio-build && CFLAGS='-g -O2 -fPIC' \
+	    CPPFLAGS='-I$(CURDIR)/zlib-build -I$(CURDIR)/zlib-1.3.2' LDFLAGS='-L$(CURDIR)/zlib-build' \
+	    ../cfitsio-4.7.0/configure --disable-curl --disable-shared --enable-static \
+	    --without-fortran && $(MAKE) libcfitsio.la)
+	cp cfitsio-4.7.0/*.h ../include
+	rm -f ../libcfitsio.a && mkdir cfitsio-build/combined
+	(cd cfitsio-build/combined && $(AR) x ../.libs/libcfitsio.a && \
+	    $(AR) x ../../zlib-build/libz.a && $(AR) crs ../../../libcfitsio.a *.o)
 	(cd cmd && $(MAKE) && $(MAKE) install)
 	(cd coord && $(MAKE) && $(MAKE) install)
 	(cd mtbl && $(MAKE) && $(MAKE) install)
@@ -24,7 +37,7 @@ all:
 clean:
 	rm -rf ../include/* ../freetype ../*.a
 	(cd bzip2-1.0.6 && $(MAKE) clean)
-	test ! -e cfitsio-3.49/Makefile || (cd cfitsio-3.49 && $(MAKE) clean && rm -rf config.log config.cache config.status lib)
+	rm -rf zlib-build cfitsio-build
 	(cd cmd && $(MAKE) clean)
 	(cd coord && $(MAKE) clean)
 	(cd mtbl && $(MAKE) clean)

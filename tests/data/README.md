@@ -25,7 +25,8 @@ Real archives deliver scaled integer data, BLANK values and tile compressed
 images. This fixture exercises those read paths without a network request.
 
 Run these commands from the repository root after `make` has built the bundled
-CFITSIO 3.49. The leading `!` replaces the existing fixture.
+CFITSIO. CFITSIO 4.7.0 produces the same 23040 bytes. The leading `!` replaces
+the existing fixture.
 
 ```sh
 cc -std=c99 -Wall -Wextra -Ilib/include \
