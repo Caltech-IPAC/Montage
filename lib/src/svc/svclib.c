@@ -612,9 +612,7 @@ int svc_closeall()
 /* Run non-interactive (command-line only) service */
 /***************************************************/
 
-int svc_run(svcstr)
-
-char *svcstr;
+int svc_run(char *svcstr)
 {
    int  index;
    SVC *sv;
@@ -693,10 +691,7 @@ char *svcstr;
 /* Send a command string to a service */
 /**************************************/
 
-int svc_send(index, cmd)
-
-int   index;
-char *cmd;
+int svc_send(int index, char *cmd)
 {
    if(svc_debug_stream)
    {
@@ -733,9 +728,7 @@ char *cmd;
 /* Receive a response from a service */
 /*************************************/
 
-char *svc_receive(index)
-
-int index;
+char *svc_receive(int index)
 {
    char *str;
 
@@ -1296,4 +1289,3 @@ void svc_sighandler(int sig)
       exit(0);
    }
 }
-
