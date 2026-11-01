@@ -4,19 +4,11 @@
 # -------  ---------------  -------  -----------------------
 # 1.0      John Good        04Oct05  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I../../../lib/include -I../../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+LIBS      =	-L../../../lib -lsvc -lmtbl -lwcs -lcfitsio -lcoord -lm
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../../lib/include -I../../../Montage
-LIBS   =	-L../../../lib -lsvc -lmtbl -lwcs -lcfitsio -lcoord -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mNotifyTG:	mNotifyTG.o
-		$(CC) -o mNotifyTG mNotifyTG.o \
-		$(LIBS)
+mNotifyTG: mNotifyTG.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mNotifyTG ../../../bin
