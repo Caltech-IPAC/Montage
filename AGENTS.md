@@ -9,7 +9,8 @@
 ## Where To Start
 
 - Read [README.md](README.md) for scope and [CONTRIBUTING.md](CONTRIBUTING.md)
-  for contribution guidance; most contributions target the `develop` branch.
+  for contribution guidance. `CONTRIBUTING.md` still names `develop`, but that
+  branch is stale; branch from and open pull requests against `main`.
 - Start with [man/docs/index.html](man/docs/index.html) for user documentation,
   [man/docs/index2.html](man/docs/index2.html) for command reference, and
   [man/docs/design.html](man/docs/design.html) for the mosaic processing stages.
@@ -33,7 +34,7 @@
 - `Windows/`: cross-compilation scripts, alternate Makefiles, and dependencies.
 - `man/`: HTML manuals and tutorials; `data/fonts/`: bundled visualization fonts.
 - `build/`: release packaging notes/scripts; `ChangeHistory`: release history.
-- `Jenkinsfile` and `tests/testsuite.xml`: CI definition and checked-in test report.
+- `Jenkinsfile`: CI definition (build only).
 
 ## Build And Run
 
@@ -78,8 +79,8 @@ Run commands from the repository root unless a different directory is stated.
 
 ## Validation
 
-- `Jenkinsfile` runs `make`; its test stage is a placeholder and publishes the
-  checked-in XML report. A successful CI build does not establish regression coverage.
+- `Jenkinsfile` runs `make`; its test stage is a placeholder and no test results
+  are published. A successful CI build does not establish regression coverage.
 - The root Makefile defines no test, lint, or format target. For behavior changes,
   exercise the affected tool/API with representative FITS inputs and record the
   commands, data, and results; see `CONTRIBUTING.md` for testing limitations.
