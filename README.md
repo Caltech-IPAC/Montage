@@ -4,6 +4,8 @@
 [![PyPI](https://img.shields.io/pypi/v/MontagePy)](https://pypi.org/project/MontagePy/)
 [![ascl:1010.036](https://img.shields.io/badge/ascl-1010.036-blue.svg)](https://ascl.net/1010.036)
 
+> **About this fork:** `larock22/Montage` is a personal fork of [Caltech-IPAC/Montage](https://github.com/Caltech-IPAC/Montage), maintained as a hobby. Changes are made and merged here; they are not proposed upstream unless the maintainer explicitly asks. For the official project, releases, and support, use the upstream repository.
+
 Montage is an open-source toolkit from Caltech-IPAC for assembling Flexible Image Transport System (FITS) images into custom mosaics. You choose the coordinates, projection, pixel scale, and rotation, and whether to match backgrounds. It ships as C command-line programs, a C library, and the MontagePy Python package.
 
 **Releases:** the latest GitHub release is [v6.0](https://github.com/Caltech-IPAC/Montage/releases/tag/v6.0) (November 2018); the later `v6.1` tag (August 2021) has no published release. `main` carries all later work, including the 7.0 additions recorded in [ChangeHistory](ChangeHistory) (HiPS tools, `mAddMem`) and recent fixes. MontagePy is versioned separately.
@@ -160,7 +162,7 @@ The project contact address is montage@ipac.caltech.edu.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is organized and where contributions are welcome. Recent pull requests target `main`, the default branch. [Jenkins](Jenkinsfile) runs `make`; there is no automated test stage yet.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is organized and where contributions are welcome. In this fork, pull requests target this repository's `main` branch, not upstream. [Jenkins](Jenkinsfile) runs `make`; there is no automated test stage yet.
 
 ## Citing
 
