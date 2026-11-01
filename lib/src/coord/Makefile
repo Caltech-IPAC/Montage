@@ -1,9 +1,6 @@
 CC      =	gcc
-# WORKAROUND (issue #96): coord.h declares functions with `()`, which means
-# `(void)` under the GCC 15 C23 default, so calls with arguments and
-# definitions with parameters fail. Remove once coord.h has real prototypes.
 CFLAGS  =	-g -c -fPIC -D_LARGEFILE_SOURCE \
-		-D_FILE_OFFSET_BITS=64 -std=gnu17 -I. -I../../include
+		-D_FILE_OFFSET_BITS=64 -I. -I../../include
 LIBNAME =	libcoord.a
 
 SRCS    =	ccalc.c                    \

@@ -8,8 +8,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-# WORKAROUND (issue #96): pre-C23 until local `svc_value()`/`url_encode()` declarations and coord.h/svc.h get real prototypes.
-CFLAGS =	-g -O2 -std=gnu17 -I. -I../../../lib/include -I../../../Montage
+CFLAGS =	-g -O2 -I. -I../../../lib/include -I../../../Montage
 LIBS   =	-L../../../lib -lsvc -lmtbl -lwcs -lcfitsio -lcoord -lm
 
 .c.o:
