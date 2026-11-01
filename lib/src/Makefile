@@ -1,6 +1,10 @@
 all:
 	(cd bzip2-1.0.6 && $(MAKE) && cp libbz2.a ../.. && cp bzlib.h ../../include)
-	(cd cfitsio-3.49 && ./configure --disable-curl && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
+	# WORKAROUND (issue #96): C23 (GCC 15 default) made `nullptr` a keyword;
+	# cfitsio 3.49 uses it as a variable in putcol.c. Pin to gnu17 and
+	# restore -g -O2 (CFLAGS to configure overrides autoconf defaults).
+	# Remove when bundled cfitsio is upgraded upstream.
+	(cd cfitsio-3.49 && CFLAGS='-g -O2 -std=gnu17' ./configure --disable-curl && $(MAKE) && cp libcfitsio.a ../.. && cp *.h ../../include)
 	(cd cmd && $(MAKE) && $(MAKE) install)
 	(cd coord && $(MAKE) && $(MAKE) install)
 	(cd mtbl && $(MAKE) && $(MAKE) install)
