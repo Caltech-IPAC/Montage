@@ -20,7 +20,6 @@ Version  Developer        Date     Change
 #include <sys/stat.h>
 
 #include <svc.h>
-#include "filePath.h"
 
 #define MAXSTR 4096
 

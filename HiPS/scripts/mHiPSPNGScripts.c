@@ -23,7 +23,6 @@ Version  Developer        Date     Change
 int  mHiPSPNGScripts_localFiles    (char *pathname);
 int  mHiPSPNGScripts_S3Files       (char *bucket);
 int  mHiPSPNGScripts_processFiles  (char *pathname);
-void mHiPSPNGScripts_printFitsError(int status);
 
 int  job, njob, ntile, ntask, ifile, count, offset, haveimages;
 

@@ -53,8 +53,6 @@ extern int getopt(int argc, char *const *argv, const char *options);
 char *mktemp       (char *template);
 int   debugCheck   (char *debugStr);
 
-char *url_encode   ();
-char *keyword_value();
 int   printerr     (char *str);
 int   stradd       (char *header, char *card);
 int   FITSerror    (char *fname, int status);
