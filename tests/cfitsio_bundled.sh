@@ -12,6 +12,12 @@ set -eu
 # An exported CDPATH makes `cd` print the directory, corrupting $root.
 unset CDPATH
 root=$(cd "$(dirname "$0")/.." && pwd)
+
+if [ "$(sed -n 1p "$root/.cfitsio-build-mode" 2>/dev/null)" = 1 ]; then
+    echo "SKIP: needs a bundled CFITSIO build (this tree was built with USE_SYSTEM_CFITSIO=1)"
+    exit 77
+fi
+
 cc=${CC:-cc}
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT

@@ -27,9 +27,13 @@ for t in \
     fits_pipeline.sh \
     wheel_objects.sh \
     system_cfitsio.sh \
+    system_cfitsio_pkgconfig.sh \
+    system_provider.sh \
     system_cve_check.sh \
     mode_transition.sh \
+    system_mode_targets.sh \
     configure_keeps_selection.sh \
+    release_tarball.sh \
     standalone_subdir.sh \
     system_mode_build.sh \
     ; do

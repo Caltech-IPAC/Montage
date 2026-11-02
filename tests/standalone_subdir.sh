@@ -11,8 +11,18 @@
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
+
+if [ "$(sed -n 1p "$root/.cfitsio-build-mode" 2>/dev/null)" = 1 ]; then
+    echo "SKIP: needs a bundled CFITSIO build (this tree was built with USE_SYSTEM_CFITSIO=1)"
+    exit 77
+fi
+
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+trap 'rm -rf "$tmp"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 131' QUIT
 
 if [ ! -f "$root/lib/libcfitsio.a" ] || [ ! -f "$root/MontageLib/util/checkHdr.o" ]; then
     echo "FAIL: lib/libcfitsio.a or MontageLib/util/*.o missing; run make first" >&2
@@ -30,7 +40,7 @@ cp "$root"/MontageLib/Add/Makefile "$root"/MontageLib/Add/*.c "$root"/MontageLib
 mk() {
     env -u USE_SYSTEM_CFITSIO -u CFITSIO_CFLAGS -u CFITSIO_LIBS -u CFITSIO_DIR \
         -u CFITSIO_STATIC -u CFITSIO_ALLOW_UNPATCHED \
-        -u MAKEFLAGS -u MFLAGS -u MAKELEVEL \
+        -u MAKEFLAGS -u MFLAGS -u MAKELEVEL -u GNUMAKEFLAGS \
         make -C "$t/MontageLib/Add" "$@"
 }
 
