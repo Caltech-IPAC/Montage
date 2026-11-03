@@ -6,17 +6,25 @@
 # obstime was whatever was left in the ninth-argument register or stack slot.
 # obstime matters on this path: EQUJ -> GAL goes through the Besselian
 # (FK4) conversion, where obstime drives the equinox and FK4/FK5
-# corrections, so a stray value shifts positions by ~10 arcsec or more.
-# Order-5 tiles (~1.8 deg) are far larger than that shift and always match;
-# order-12 tiles (~51 arcsec) are small enough that the shifted position
-# can land in a neighbouring tile, so those IDs detect a wrong obstime.
+# corrections. Only the exact value 0.0 means 1950; any other value is read
+# as a year. A near-zero stray value (as observed on Apple clang) therefore
+# acts like year 0 and shifts these points by 6-11 arcsec; a stray value
+# equal to a year between 1900 and 2026 shifts them by under 0.5 arcsec,
+# which these checks cannot detect.
+#
+# Order-12 tiles (~51 arcsec) are small enough that a 6-11 arcsec shift can
+# move a point into a neighbouring tile, so those IDs detect a wrong obstime.
+# Order-5 tiles (~1.8 deg) usually match regardless, but a point near a tile
+# edge can flip at any order: galcen is ~4 arcsec from the centre line of
+# its HEALPix base tile, which is a tile edge at every order.
 #
 # Expected IDs were computed with obstime = 0.0 (the default, 1950), the
 # value every other caller passes; GCC 13.3, GCC 15.2 and Apple clang 21
-# agree. Whether the old code fails depends on the compiler: on Apple clang
-# 21 / arm64 it gave wrong order-12 IDs (159541179, 76895557; PR gate,
-# 2026-11-01), while on Linux x86-64 with GCC the stray value happened to
-# act like the default and the old code passed.
+# agree. Whether the old code fails depends on the compiler and on what the
+# preceding calls leave in the floating-point argument register: on Apple
+# clang 21 / arm64 the full build gave wrong order-12 IDs for equinox and
+# galcen (159541179, 76895557; seen 2026-11-01), while m42 order 12 still
+# matched; on Linux x86-64 with GCC the old code gave the same IDs as the fix.
 #
 # Needs a completed `make`. Uses bin/mHPXCoord2Tile under the repository
 # root unless BINDIR is set.
@@ -46,7 +54,7 @@ check() {
     fi
 }
 
-#     order RA        Dec       expected id  label
+#     order RA        Dec       expected id  label   (order 5: coarse, except galcen)
 check 5     0.0       0.0       9737         equinox
 check 5     83.8221   -5.3911   11174        m42
 check 5     266.4168  -29.0078  4693         galcen
