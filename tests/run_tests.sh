@@ -5,9 +5,16 @@
 # is reported as SKIP, not as a failure; anything else is FAIL. Tests that
 # run programs installed by `make` expect it to have completed.
 set -u
+# An exported CDPATH makes `cd` print the directory (and can pick another
+# tree); unsetting it here also clears it for the tests run below.
+unset CDPATH
 cd "$(dirname "$0")/.." || exit 1
-logs=$(mktemp -d)
-trap 'rm -rf "$logs"' EXIT HUP INT TERM
+logs=$(mktemp -d) || exit 1
+trap 'rm -rf "$logs"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 131' QUIT
 
 pass=0
 fail=0
@@ -22,7 +29,7 @@ for t in \
         echo PASS
         pass=$((pass + 1))
     elif [ "$status" -eq 77 ]; then
-        echo "SKIP  ($(tail -n 1 "$logs/$t.log"))"
+        echo "SKIP  ($(tail -n 1 "$logs/$t.log" | sed 's/^SKIP: //'))"
         skip=$((skip + 1))
     else
         echo FAIL
