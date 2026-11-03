@@ -10,16 +10,27 @@
 # If the compiler cannot apply C23's rule that `f()` takes no arguments
 # (GCC <= 12, clang <= 14), check 1 would pass whether or not the headers are
 # fixed, so the test reports SKIP (exit 77). REQUIRE_C23=1 makes that a
-# failure, as in the PR gate.
+# failure (for CI). Only the exact value 1 is recognised. A
+# compiler that cannot build a trivial file is a FAIL.
+#
+# CC may hold a command with options (e.g. CC="cc -O0"); it is split into
+# words (no quote processing).
 #
 # Compile-only; does not need a completed `make`.
 set -eu
 
+# An exported CDPATH makes `cd` print the directory, corrupting $root.
+unset CDPATH
 root=$(cd "$(dirname "$0")/.." && pwd)
 cc=${CC:-cc}
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT HUP INT TERM
-inc="-I$root/lib/src/coord -I$root/lib/src/svc"
+trap 'rm -rf "$tmp"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 131' QUIT
+coord_inc=$root/lib/src/coord
+svc_inc=$root/lib/src/svc
 
 cannot_run() {
     if [ "${REQUIRE_C23:-0}" = 1 ]; then
@@ -30,10 +41,18 @@ cannot_run() {
     exit 77
 }
 
+# A compiler that cannot build a trivial file is broken, not merely old.
+printf 'int main(void) { return 0; }\n' > "$tmp/trivial.c"
+if ! $cc -c "$tmp/trivial.c" -o "$tmp/trivial.o" 2> "$tmp/trivial.err"; then
+    cat "$tmp/trivial.err" >&2
+    echo "FAIL: $cc cannot compile a trivial C file" >&2
+    exit 1
+fi
+
 printf 'int main(void) { return 0; }\n' > "$tmp/probe.c"
 std=
 for s in c23 c2x; do
-    if "$cc" -std=$s -c "$tmp/probe.c" -o "$tmp/probe.o" 2>/dev/null; then
+    if $cc -std=$s -c "$tmp/probe.c" -o "$tmp/probe.o" 2>/dev/null; then
         std=$s
         break
     fi
@@ -43,18 +62,19 @@ if [ -z "$std" ]; then
 fi
 
 printf 'void f();\nint main(void) { f(1); return 0; }\n' > "$tmp/kr.c"
-if "$cc" -std=$std -c "$tmp/kr.c" -o "$tmp/kr.o" 2>/dev/null; then
+if $cc -std=$std -c "$tmp/kr.c" -o "$tmp/kr.o" 2>/dev/null; then
     cannot_run "$cc -std=$std does not apply C23 prototype rules"
 fi
 
-if ! "$cc" -std=$std -Werror=implicit-function-declaration $inc \
+if ! $cc -std=$std -Werror=implicit-function-declaration -I"$coord_inc" -I"$svc_inc" \
         -c "$root/tests/c23_headers_ok.c" -o "$tmp/ok.o"; then
     echo "FAIL: coord.h/svc.h cannot be used from -std=$std code" >&2
     exit 1
 fi
 echo "ok   coord.h and svc.h compile as -std=$std with real arguments"
 
-if "$cc" -std=gnu17 $inc -c "$root/tests/c23_headers_bad.c" \
+# LC_ALL=C: the diagnostic checked below must be in English.
+if LC_ALL=C $cc -std=gnu17 -I"$coord_inc" -I"$svc_inc" -c "$root/tests/c23_headers_bad.c" \
         -o "$tmp/bad.o" 2> "$tmp/bad.log"; then
     echo "FAIL: an 8-argument convertCoordinates call compiled;" \
          "coord.h does not declare its real prototype" >&2

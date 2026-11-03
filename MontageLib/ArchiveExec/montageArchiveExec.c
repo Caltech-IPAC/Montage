@@ -4,7 +4,6 @@
 #include <string.h>
 #include <math.h>
 #include <mtbl.h>
-#include <svc.h>
 
 #include <mArchiveExec.h>
 #include <montage.h>
@@ -16,8 +15,6 @@ extern char *optarg;
 extern int optind, opterr;
 
 extern int getopt(int argc, char *const *argv, const char *options);
-
-
 
 /*-*****************************************************************/
 /*                                                                 */

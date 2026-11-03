@@ -10,6 +10,8 @@ Version  Developer        Date     Change
 #include <stdlib.h>
 #include <string.h>
 
+#include "filePath.h"
+
 /*************************************************************************/
 /*                                                                       */
 /*  filePath                                                             */
