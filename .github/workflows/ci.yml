@@ -1,0 +1,49 @@
+# Build Montage and run `make test` on every pull request and on pushes
+# to main. GCC 13 is the default compiler on the Ubuntu 24.04 runner.
+# GCC 15 (C23 by default) runs in an Ubuntu 26.04 container.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gcc13:
+    name: GCC 13 (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Show compiler
+        run: gcc --version | sed -n 1p
+      - name: Build
+        run: make
+      - name: Test
+        run: REQUIRE_C23=1 make test
+
+  gcc15:
+    name: GCC 15 (Ubuntu 26.04)
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04
+    timeout-minutes: 60
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq build-essential
+      - uses: actions/checkout@v7
+      - name: Show compiler
+        run: gcc --version | sed -n 1p
+      - name: Build
+        run: make
+      - name: Test
+        run: REQUIRE_C23=1 make test
