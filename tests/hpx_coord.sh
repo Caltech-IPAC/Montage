@@ -30,6 +30,8 @@
 # root unless BINDIR is set.
 set -u
 
+# An exported CDPATH makes `cd` print the directory, corrupting $root.
+unset CDPATH
 root=$(cd "$(dirname "$0")/.." && pwd)
 bin=${BINDIR:-$root/bin}/mHPXCoord2Tile
 if [ ! -x "$bin" ]; then
@@ -40,7 +42,8 @@ fi
 fail=0
 check() {
     order=$1 ra=$2 dec=$3 expected=$4 label=$5
-    out=$("$bin" "$order" "$ra" "$dec")
+    out=$("$bin" "$order" "$ra" "$dec") ||
+        { echo "FAIL [$label order $order]: exit status $?: $out"; fail=1; return; }
     case "$out" in
         *'stat="OK"'*) ;;
         *) echo "FAIL [$label order $order]: $out"; fail=1; return ;;
