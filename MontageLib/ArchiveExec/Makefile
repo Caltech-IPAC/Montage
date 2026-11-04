@@ -8,8 +8,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-# WORKAROUND (issue #96): pre-C23 until montageArchiveExec.c's local `svc_value()` declaration gets a real prototype.
-CFLAGS =	-g -O2 -std=gnu17 -I. -I.. -I../../lib/include -fPIC
+CFLAGS =	-g -O2 -I. -I.. -I../../lib/include -fPIC
 LIBS   =	-L../../lib -lwcs -lmtbl -lbz2
 
 .c.o:

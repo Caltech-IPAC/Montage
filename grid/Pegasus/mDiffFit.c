@@ -34,9 +34,6 @@ char cmd          [MAXSTR];
 char msg          [MAXSTR];
 char status       [MAXSTR];
 
-char *svc_value();
-char *filePath ();
-
 extern char *optarg;
 extern int optind, opterr;
 

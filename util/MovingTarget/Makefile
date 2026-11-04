@@ -8,8 +8,7 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-# WORKAROUND (issue #96): pre-C23 until coord.h gets real prototypes.
-CFLAGS =	-g -O2 -std=gnu17 -I. -I./rtree -I../../lib/include -I../../Montage
+CFLAGS =	-g -O2 -I. -I./rtree -I../../lib/include -I../../Montage
 LIBS   =	-Lrtree -lrtree -L../../lib -lcmd -lwcs -lcoord -lmtbl -lcfitsio -lm
 
 .c.o:

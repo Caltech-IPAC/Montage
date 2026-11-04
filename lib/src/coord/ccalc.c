@@ -15,8 +15,6 @@
 #define DD2AS(d) (d * 3600.)
 #define AS2DD(a) (a / 3600.)
 
-extern void convertCoordinates();
-
 static int ExtractEpochInfo(char *from_sys, char *from_epoch, char *to_sys, 
 			    char *to_epoch, int *jsysin, double *eqx1, 
 			    int *jsysou, double *eqx2);

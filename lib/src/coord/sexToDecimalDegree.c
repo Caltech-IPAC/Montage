@@ -4,10 +4,12 @@
 #include <string.h>
 #include <math.h>
 
+#include <coord.h>
+
 #define  FALSE   0
 #define  TRUE  !FALSE
 
-void getSubstrings();
+void getSubstrings(char *string, char **subst, int *nsub);
 int checkFormat(char *);
 
 

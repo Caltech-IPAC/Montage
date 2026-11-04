@@ -34,6 +34,8 @@ Version  Developer        Date     Change
 #include <math.h>
 #include <time.h>
 
+#include "filePath.h"
+
 #define MAXLEN   4096
 #define BUFSIZE 32769
 #define MAXHDR  80000
@@ -51,10 +53,6 @@ extern int getopt(int argc, char *const *argv, const char *options);
 char *mktemp       (char *template);
 int   debugCheck   (char *debugStr);
 
-char *url_encode   ();
-char *svc_value    ();
-char *keyword_value();
-char *filePath     ();
 int   printerr     (char *str);
 int   stradd       (char *header, char *card);
 int   FITSerror    (char *fname, int status);

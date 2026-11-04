@@ -34,11 +34,11 @@ typedef struct
 
 void set_apputil_debug(int flag);
 void svc_debug(FILE *stream);
-void svc_check();
+void svc_check(void);
 int svc_init(char *svcstr);
 int svc_register(int index, char *name, char *sig, char *quit);
 int svc_close(int index);
-int svc_closeall();
+int svc_closeall(void);
 int svc_run(char * svcstr);
 int svc_send(int index, char *cmd);
 char *svc_receive(int index);
@@ -46,8 +46,8 @@ char *svc_fgets(int index);
 int svc_command(int svc, char *cmdstr);
 char *svc_value(char *ref);
 int svc_getargs (char *cmd, char **cmdv);
-void svc_sigset();
-void svc_sighandler();
+void svc_sigset(void);
+void svc_sighandler(int sig);
 SVC *svc_struct(char *instr);
 char *svc_stripblanks(char *ptr, int len, int quotes);
 int svc_free(SVC *svc);
