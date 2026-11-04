@@ -470,7 +470,7 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
       }
 
       convertCoordinates (csys, equinox, lon, lat,
-            EQUJ, 2000., &ra, &dec, 0);
+            EQUJ, 2000., &ra, &dec, 0.);
    }
    else
    {

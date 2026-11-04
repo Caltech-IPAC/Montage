@@ -521,7 +521,7 @@ int main(int argc, char **argv)
          pix2wcs(wcs, xpix, ypix, &lon, &lat);
 
          convertCoordinates (csys, equinox, lon, lat,
-                             EQUJ, 2000., &ra, &dec, 0);
+                             EQUJ, 2000., &ra, &dec, 0.);
       }
       else
       {

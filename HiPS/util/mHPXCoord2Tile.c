@@ -169,7 +169,7 @@ int main(int argc, char **argv)
    // Find the pixel coordinates for ra, dec (Note: we are using Galactic HPX for all our maps)
 
    convertCoordinates(EQUJ, 2000.,  ra,    dec,
-                      GAL,  2000., &glon, &glat);
+                      GAL,  2000., &glon, &glat, 0.0);
 
    if(glon >  180.) glon -= 360.;
    if(glon < -180.) glon += 360.;
