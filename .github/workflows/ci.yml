@@ -1,6 +1,8 @@
 # Build Montage and run `make test` on every pull request and on pushes
 # to main. GCC 13 is the default compiler on the Ubuntu 24.04 runner.
 # GCC 15 (C23 by default) runs in an Ubuntu 26.04 container.
+# Pull requests also compare output from the base and merge builds.
+# A PR meant to change output will fail this job. The log lists differing files.
 
 name: CI
 
@@ -47,3 +49,26 @@ jobs:
         run: make
       - name: Test
         run: REQUIRE_C23=1 make test
+
+  output-compare:
+    name: Output comparison (Ubuntu 24.04)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Build head
+        run: make
+      - name: Build base
+        env:
+          BASE_DIR: ${{ runner.temp }}/montage-base
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git worktree add --detach "$BASE_DIR" "$BASE_SHA"
+          make -C "$BASE_DIR"
+      - name: Compare output
+        env:
+          BASE_DIR: ${{ runner.temp }}/montage-base
+        run: sh tests/output_compare.sh "$BASE_DIR/bin" bin
