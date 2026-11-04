@@ -14,6 +14,7 @@ tar cvf Montage_`date "+%d%b%y"`.tar \
    Montage/MontageLib \
    Montage/HiPS \
    Montage/ancillary \
+   Montage/tests \
    Montage/python \
    Montage/Python_ManyLinux \
    Montage/Windows \

@@ -1,5 +1,10 @@
 CC = gcc -fPIC
 
+# WORKAROUND (issue #96): this bundled legacy WCSTools release declares
+# functions with `()`, which means `(void)` under the GCC 15 C23 default, so
+# its calls with arguments and definitions with parameters fail.
+CFLAGS += -std=gnu17
+
 OBJS =	wcsinit.o wcs.o wcscon.o fitsfile.o imhfile.o \
 			hget.o hput.o iget.o imio.o worldpos.o platepos.o \
 			tnxpos.o zpxpos.o dsspos.o poly.o fileutil.o \

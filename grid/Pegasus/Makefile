@@ -15,7 +15,8 @@
 .SUFFIXES: .c .o
 
 CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../Montage -I../../lib/include
+# WORKAROUND (issue #96): pre-C23 until local `svc_value()`-style declarations and coord.h/svc.h get real prototypes.
+CFLAGS =	-g -O2 -std=gnu17 -I. -I../../Montage -I../../lib/include
 LIBS   =	-L../../lib -lwcs -lcfitsio -lcoord -lmtbl -lsvc \
 		-lboundaries -lm
 
