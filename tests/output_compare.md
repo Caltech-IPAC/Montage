@@ -1,6 +1,6 @@
 # Montage output comparison
 
-`tests/output_compare.sh` runs the same offline pipeline with two Montage builds on one machine. It compares every generated input, FITS image, area image, table, PNG, stdout log and stderr log byte for byte with `cmp`. It also reports files present in only one run.
+`tests/output_compare.sh` runs the same offline pipeline with two Montage builds on one machine. It compares every generated input, FITS image, area image, table, PNG, stdout log and stderr log byte for byte with `cmp`. It also reports files present in only one run. A committed FITS fixture supplies additional input formats without generating them at test time.
 
 This checks the exercised pipeline, not every input or Montage program. Matching output is not an independent check of scientific correctness. Two builds can produce the same incorrect result.
 
@@ -15,7 +15,7 @@ sh tests/output_compare.sh BASE/bin HEAD/bin
 sh tests/output_compare.sh BASE/bin HEAD/bin comparison-work
 ```
 
-The script needs POSIX `sh` and ordinary command-line utilities, including `cmp`, `awk`, `sed`, `dd`, `diff`, `find`, `sort`, `gzip`, `gunzip` and `mktemp`. No image data is downloaded. Python is not needed to run the pipeline or decide the result.
+The script needs POSIX `sh` and ordinary command-line utilities, including `cmp`, `cp`, `awk`, `sed`, `dd`, `diff`, `dirname`, `find`, `sort`, `gzip`, `gunzip` and `mktemp`. No image data is downloaded. Python is not needed to run the pipeline or decide the result.
 
 The optional work directory receives `base`, `candidate` and `compare` directories. Those names must not already exist. Other files are left alone, and a supplied directory is kept on success or failure. Without this argument, a temporary directory is removed on exit. Set `KEEP=1` to keep it and print its path:
 
@@ -45,23 +45,36 @@ Expected differences remain visible and get FITS diagnostics. A pattern does not
 
 The script generates three overlapping 64 by 64 TAN images with different centers, rotations, backgrounds and noise levels. A table supplies three point sources with Gaussian or zero-width profiles. The shared 112 by 112 mosaic template is rotated by 17 degrees. A gzip copy exercises compressed input.
 
+The 16 bit integer and float32 products from `mConvert` are read back as inputs. The integer product has `BSCALE = 0.030518509475997` and `BZERO = 0`, with no `BLANK` keyword. The committed `tests/data/fits_inputs.fits` fixture has an empty primary HDU and three 32 by 32 TAN image HDUs: a RICE compressed float image with NaNs and fixed subtractive dithering, a lossless RICE compressed unsigned 16 bit image with `BZERO` and `BLANK`, and an uncompressed 16 bit image with `BSCALE`, `BZERO` and `BLANK`. All three overlap the mosaic. The script copies the fixture into each run directory and passes it by a relative path, like the other inputs. Its provenance and regeneration command are in `tests/data/README.md`.
+
 The pipeline covers:
 
-- `mMakeImg`, `mImgtbl` and `mTblSort` for generated images, metadata and numeric sorting in both directions
-- `mProject`, `mProjectPP` and optional `mProjectQL` for rotated TAN reprojection, plus gzip input and Galactic HEALPix reprojection with `mProject`
+- `mMakeImg`, `mImgtbl` and `mTblSort` for generated images, metadata and numeric sorting in both directions, plus explicit file lists for integer, float32 and fixture metadata
+- `mProject`, `mProjectPP` and optional `mProjectQL` for rotated TAN reprojection, plus gzip input, integer and float32 readback and Galactic HEALPix reprojection with `mProject`, and `mProjectPP -h` on all three fixture HDUs
 - `mOverlaps`, `mDiffExec`, `mFitExec`, `mBgModel` and `mBgExec` for all three image pairs and level and slope background correction
 - `mAdd` for mean, median, count and sum mosaics with area images
-- `mShrink`, `mSubimage`, `mExamine`, `mFixNaN` and `mConvert` for shrinking, sky and pixel cutouts, statistics, NaN handling, integer and floating-point output
+- `mShrink`, `mSubimage`, `mExamine`, `mFixNaN` and `mConvert` for shrinking, sky and pixel cutouts, statistics, NaN handling, integer and floating-point output, plus pixel cutouts and statistics from the integer and float32 products
 - `mViewer` for a fixed-range grayscale PNG without fonts or overlays
 - `mHPXHdr` and `mHPXCoord2Tile` for a level-zero header and three sky positions at orders 5 and 12
 
 `mHdr` is skipped because it requests a header over the network even for numeric coordinates. The script writes its own headers instead. `mProjectQL` is skipped only when neither build installs it. If just one build has it, setup fails. Its optional `-L` mode is not used because it gave different pixels between two runs of the same build. The default nearest-neighbor mode is used instead.
 
+The fixture contributes three image rows to `mImgtbl`. Its empty primary HDU has no WCS, so the expected `badwcs` count is one. `mProjectPP -h 1`, `-h 2` and `-h 3` read all three HDUs, so the comparison covers tile decompression, `BZERO`, `BSCALE` and `BLANK` handling. `mShrink -h 3` and `mProjectQL -h 3` also read the uncompressed HDU.
+
+`mImgtbl` reports the two compressed HDUs as 24 by 4 and 8 by 4 pixels instead of 32 by 32, so their centers and corners in `fixture.tbl` are also wrong. This output is still compared, so a fix will show as a difference in `fixture.tbl`.
+
+Other programs fail on some of these HDUs, the same way in both builds. They are left out of the comparison:
+
+- `mProject -h N` always exits with `stat="ERROR"` and an empty message. In `mProject_readFits()` the `return 1` after `fits_movabs_hdu` is not inside braces, so it runs even when the move succeeds.
+- `mSubimage -p` and `mShrink` on the compressed HDUs report `row width not = field widths`, except `mShrink -h 1`, which crashes. They copy the compressed table header to the output.
+- `mSubimage -h 3 -p` reports `datatype conversion overflow` on the scaled image with blank pixels.
+- `mProjectQL -h 1` and `-h 2` write a smaller image than `mProjectPP` does for the same HDU.
+
 ## Normalization and limits
 
 Only elapsed time in stdout status lines is normalized. The final numeric `time=` field from `mProject`, `mProjectPP`, `mProjectQL`, `mAdd` and `mShrink` becomes `time=<elapsed>`. Stderr, FITS headers, pixel bytes, padding, tables, filenames and PNG bytes are not normalized. There is no floating-point tolerance.
 
-Both builds use the same relative paths. Explicit image lists fix input order, `LC_ALL=C` fixes locale, `CDPATH` is unset, and `gzip -n` omits filename and modification time. Each `mMakeImg` invocation starts from the C library's default `rand()` sequence because it never calls `srand()`.
+Both builds use the same relative output paths. Explicit image lists fix input order, `LC_ALL=C` fixes locale, `CDPATH` is unset, and `gzip -n` omits filename and modification time. Each `mMakeImg` invocation starts from the C library's default `rand()` sequence because it never calls `srand()`. The committed fixture uses only fixed pixel formulas and a fixed CFITSIO dither seed, with no timestamps or checksums.
 
 Compare on one machine with the same compiler, runtime libraries and build settings. Noise sequences can differ between C libraries, and floating-point results can differ between machines and compilers. This is not a cross-platform reproducibility test.
 
