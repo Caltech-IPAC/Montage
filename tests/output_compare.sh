@@ -37,9 +37,11 @@ for bindir in "$base_bin" "$cand_bin"; do
         [ -x "$bindir/$program" ] || fail "missing program: $bindir/$program"
     done
 done
-for utility in awk cat cmp dd diff find gzip gunzip mkdir mktemp pwd rm sed sort; do
+for utility in awk cat cmp cp dd diff dirname find gzip gunzip mkdir mktemp pwd rm sed sort; do
     command -v "$utility" >/dev/null 2>&1 || fail "missing utility: $utility"
 done
+script_dir=$(cd "$(dirname "$0")" && pwd -P) || fail 'cannot open script directory'
+[ -r "$script_dir/data/fits_inputs.fits" ] || fail 'missing FITS input fixture'
 
 remove_work=0
 if [ "$#" -eq 3 ]; then
@@ -146,7 +148,8 @@ header() {  # header <path> <nx> <ny> <ra> <dec> <rotation>
 pipeline() {  # Runs in a subshell whose cwd is one empty run directory.
     bin=$1
     label=$2
-    mkdir logs templates raw projected pp quick compressed projected-gz diffs corrected hpx products
+    mkdir logs templates raw projected pp quick compressed projected-gz diffs corrected hpx products fixture
+    cp "$script_dir/data/fits_inputs.fits" fixture/
     header templates/a.hdr 64 64 9.85 19.95 0
     header templates/b.hdr 64 64 10.10 20.05 9
     header templates/c.hdr 64 64 10.00 20.20 -7
@@ -164,6 +167,11 @@ pipeline() {  # Runs in a subshell whose cwd is one empty run directory.
         printf '|%16s|\n' char
         printf ' %16s \n' a.fits.gz
     } > gzip-input.tbl
+    {
+        printf '|%16s|\n' fname
+        printf '|%16s|\n' char
+        printf ' %16s \n' fits_inputs.fits
+    } > fixture-input.tbl
     {
         printf '|%12s|%12s|%12s|\n' ra dec flux
         printf '|%12s|%12s|%12s|\n' double double double
@@ -229,6 +237,35 @@ pipeline() {  # Runs in a subshell whose cwd is one empty run directory.
     run fixnan-fill mFixNaN -v -999 products/blanked.fits products/filled.fits
     run convert-int16 mConvert -b 16 -min -1000 -max 1000 products/filled.fits products/int16.fits
     run convert-float32 mConvert -b -32 products/mean.fits products/float32.fits
+    for image in int16 float32; do
+        {
+            printf '|%16s|\n' fname
+            printf '|%16s|\n' char
+            printf ' %16s \n' "$image.fits"
+        } > "$image-input.tbl"
+        run "images-$image" mImgtbl -c -t "$image-input.tbl" products "$image.tbl"
+        expect 'count=1' 'badfits=0' 'badwcs=0'
+        run "project-$image" mProject "products/$image.fits" "products/project-$image.fits" templates/mosaic.hdr
+        run "subimage-$image" mSubimage -p "products/$image.fits" "products/sub-$image.fits" 20 20 24 28
+        run "examine-$image" mExamine "products/$image.fits"
+    done
+
+    run images-fixture mImgtbl -c -t fixture-input.tbl fixture fixture.tbl
+    # The empty primary HDU has no WCS. Only its three image extensions count.
+    expect 'count=3' 'badfits=0' 'badwcs=1'
+    # mProjectPP decompresses and scales every fixture HDU. mProject, mSubimage,
+    # mShrink and mProjectQL fail on some HDUs. See output_compare.md.
+    fixture=fixture/fits_inputs.fits
+    for hdu in 1 2 3; do
+        run "projectpp-fixture-$hdu" mProjectPP -h "$hdu" "$fixture" \
+            "products/projectpp-fixture-$hdu.fits" templates/mosaic.hdr
+    done
+    run shrink-fixture-3 mShrink -h 3 "$fixture" products/shrink-fixture-3.fits 2
+    if [ "$have_ql" -eq 1 ]; then
+        run projectql-fixture-3 mProjectQL -h 3 "$fixture" \
+            products/projectql-fixture-3.fits templates/mosaic.hdr
+    fi
+
     # Plain grayscale needs no fonts, overlays, catalogues, or network.
     run viewer mViewer -ct 0 -gray products/mean.fits 0 65 lin -out products/mean.png
 
