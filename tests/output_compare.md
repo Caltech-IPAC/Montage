@@ -66,7 +66,7 @@ The fixture contributes three image rows to `mImgtbl`. Its empty primary HDU has
 Other programs fail on some of these HDUs, the same way in both builds. They are left out of the comparison:
 
 - `mProject -h N` always exits with `stat="ERROR"` and an empty message. In `mProject_readFits()` the `return 1` after `fits_movabs_hdu` is not inside braces, so it runs even when the move succeeds.
-- `mSubimage -p` and `mShrink` on the compressed HDUs report `row width not = field widths`, except `mShrink -h 1`, which crashes. They copy the compressed table header to the output.
+- `mSubimage -p` and `mShrink` on the compressed HDUs report `row width not = field widths`. They copy the compressed table header to the output. `mShrink` sometimes crashes instead, on either compressed HDU.
 - `mSubimage -h 3 -p` reports `datatype conversion overflow` on the scaled image with blank pixels.
 - `mProjectQL -h 1` and `-h 2` write a smaller image than `mProjectPP` does for the same HDU.
 
