@@ -4,18 +4,11 @@
 # -------  ---------------  -------  -----------------------
 # 1.0      John Good        21Sep07  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I../../lib/include -I../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+LIBS      =	-L../../lib -lsvc -lmtbl -lm
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../lib/include -I../../Montage
-LIBS   =	-L../../lib -lsvc -lmtbl -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mTblExec:	mTblExec.o
-		$(CC) -o mTblExec mTblExec.o $(LIBS)
+mTblExec: mTblExec.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mTblExec ../../bin

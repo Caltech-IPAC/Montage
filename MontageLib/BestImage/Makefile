@@ -4,25 +4,13 @@
 # -------  ---------------  -------  -----------------
 # 1.0      John Good        14Feb05  Original Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I.. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   +=	-std=c99 -fPIC
+LIBS      =	-L../../lib -lwcs -lmtbl -lm
 
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I.. -I../../lib/include -std=c99 -fPIC -Wall
-LIBS   =	-L../../lib -lwcs -lmtbl -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mBestImage:	mBestImage.o montageBestImage.o \
-		../util/checkWCS.o \
-		../util/filePath.o \
-		../util/debugCheck.o
-		$(CC) -o mBestImage \
-		mBestImage.o montageBestImage.o \
-		../util/checkWCS.o \
-		../util/filePath.o \
-		../util/debugCheck.o $(LIBS)
+mBestImage: mBestImage.o montageBestImage.o \
+  ../util/checkWCS.o ../util/filePath.o ../util/debugCheck.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mBestImage ../../bin

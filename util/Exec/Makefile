@@ -4,23 +4,13 @@
 # -------  ---------------  -------  -----------------------
 # 1.0      John Good        04Oct05  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../lib/include -I../../Montage
-LIBS   =	-L../../lib -lsvc -lmtbl -lcmd -lwcs -lcfitsio -lcoord -lboundaries -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+CPPFLAGS +=	-I. -I../../lib/include -I../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+LIBS      =	-L../../lib -lsvc -lmtbl -lcmd -lwcs -lcfitsio -lcoord -lboundaries -lm
 
 all:		mExec
 
-mExec:		mExec.o
-		$(CC) -o mExec mExec.o \
-		../../Montage/debugCheck.o   \
-		../../Montage/filePath.o   \
-		$(LIBS)
+mExec: mExec.o ../../Montage/debugCheck.o ../../Montage/filePath.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mExec ../../bin

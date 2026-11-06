@@ -1,4 +1,4 @@
-CC = gcc -fPIC
+CFLAGS += -fPIC
 
 # WORKAROUND (issue #96): this bundled legacy WCSTools release declares
 # functions with `()`, which means `(void)` under the GCC 15 C23 default, so

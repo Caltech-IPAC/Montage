@@ -1,17 +1,11 @@
-.SUFFIXES:
-.SUFFIXES: .c .o
+CPPFLAGS +=	-I. -I.. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS   +=	-std=c99 -fPIC
+LIBS      =	-L../../lib -lwcs -lmtbl -lpixbounds -lcfitsio -lm
 
-CC     =	gcc
-CFLAGS =	-g -I. -I.. -I../../lib/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 -fPIC -Wall
-LIBS   =	-L../../lib -lwcs -lmtbl -lpixbounds -lcfitsio -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
-
-mDiffFit:		mDiffFit.o montageDiffFit.o
-		$(CC) -o mDiffFit mDiffFit.o montageDiffFit.o \
-                            ../Diff/montageDiff.o ../Fitplane/montageFitplane.o \
-                            ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o $(LIBS)
+mDiffFit: mDiffFit.o montageDiffFit.o \
+  ../Diff/montageDiff.o ../Fitplane/montageFitplane.o \
+  ../util/checkHdr.o ../util/checkWCS.o ../util/filePath.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mDiffFit ../../bin

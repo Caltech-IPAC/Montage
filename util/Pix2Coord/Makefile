@@ -4,26 +4,16 @@
 # -------  ---------------  -------  -----------------------
 # 1.0      John Good        25Sep04  Original SunOS Makefile
 
-.SUFFIXES:
-.SUFFIXES: .c .o
-
-CC     =	gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS =	-g -O2 -I. -I../../lib/include -I../../Montage
-LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
-
-.c.o:
-		$(CC) $(CFLAGS)  -c  $*.c
+CPPFLAGS +=	-I. -I../../lib/include -I../../Montage -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+LIBS      =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -lm
 
 all:		mPix2Coord mFixHdr
 
-mPix2Coord:	mPix2Coord.o
-		$(CC) -o mPix2Coord mPix2Coord.o \
-		../../Montage/checkHdr.o   \
-		../../Montage/checkWCS.o   \
-		$(LIBS)
+mPix2Coord: mPix2Coord.o ../../Montage/checkHdr.o ../../Montage/checkWCS.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-mFixHdr:	mFixHdr.o
-		$(CC) -o mFixHdr mFixHdr.o
+mFixHdr: mFixHdr.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 install:
 		cp mPix2Coord mFixHdr ../../bin
