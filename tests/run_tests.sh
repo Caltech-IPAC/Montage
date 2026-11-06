@@ -25,6 +25,7 @@ for t in \
     c23_headers.sh \
     cfitsio_bundled.sh \
     fits_pipeline.sh \
+    uninit_buffers.sh \
     wheel_objects.sh \
     system_cfitsio.sh \
     system_cfitsio_pkgconfig.sh \
