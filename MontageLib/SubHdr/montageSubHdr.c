@@ -525,6 +525,8 @@ int mSubHdr_readTemplate(char *filename)
    header[0] = malloc(32768);
    header[1] = (char *)NULL;
 
+   strcpy(header[0], "");
+
 
    /********************************************************/
    /* Open the template file, read and parse all the lines */
