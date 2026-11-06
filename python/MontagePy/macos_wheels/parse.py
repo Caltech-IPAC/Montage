@@ -71,6 +71,9 @@ for json_file in glob.glob(os.path.join(MONTAGELIB, '*', '*.json')):
     # Normal list of arguments
     function['arguments'] = [arg['name'] for arg in data['arguments']]
 
+    # List of arguments in Python signature order.
+    function['arguments_python'] = [arg['name'] for arg in sorted_args]
+
     # List of arguments to use in the C function declaration (functions
     # defined using cdef).
     function['arguments_cdef'] = []

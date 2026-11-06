@@ -19,7 +19,7 @@ while True:
     if line[0:11] == 'def mViewer':
         print('    # Next four lines added by clean-up script')
         print('')
-        print('    import importlib_resources')
+        print('    from importlib.resources import files')
         print('')
         print('    if fontFile == "":')
-        print('        fontFile = str(importlib_resources.files("MontagePy") / "FreeSans.ttf")')
+        print('        fontFile = str(files("MontagePy") / "FreeSans.ttf")')

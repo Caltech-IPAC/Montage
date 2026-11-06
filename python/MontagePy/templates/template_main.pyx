@@ -18,6 +18,6 @@ def {{ func.name }}({{ func.arguments_with_defaults|join(', ') }}):
         {{ arg.description}}
     {% endfor %}
     """
-    return _wrappers.{{ func.name }}({{ func.arguments|join(', ') }})
+    return _wrappers.{{ func.name }}({{ func.arguments_python|join(', ') }})
 
 {% endfor %}
