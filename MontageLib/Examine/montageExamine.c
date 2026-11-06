@@ -97,7 +97,7 @@ struct mExamineReturn * mExamine(char *infile, int areaMode, int hdu, int plane3
    double equinox;
 
    long   naxis;
-   long   naxes[10];
+   long   naxes[10] = {0};
 
    double naxis1;
    double naxis2;
