@@ -223,7 +223,10 @@ pythonlibs:
 		# .o files compiled with -fPIC.
 
 		find ../lib/src/bzip2-1.0.6                -name \*\.o -exec cp {} ../python/MontagePy/lib \;
-		find ../lib/src/cfitsio-3.49               -name \*\.o -exec cp {} ../python/MontagePy/lib \;
+		rm -rf ../python/MontagePy/cfitsio-objects && mkdir ../python/MontagePy/cfitsio-objects
+		(cd ../python/MontagePy/cfitsio-objects && $(AR) x ../../../lib/libcfitsio.a && \
+		 for f in *.o; do cp $$f ../lib/cfitsio_$$f; done)
+		rm -rf ../python/MontagePy/cfitsio-objects
 		find ../lib/src/cmd                        -name \*\.o -exec cp {} ../python/MontagePy/lib \;
 		find ../lib/src/coord                      -name \*\.o -exec cp {} ../python/MontagePy/lib \;
 		find ../lib/src/mtbl                       -name \*\.o -exec cp {} ../python/MontagePy/lib \;
@@ -245,7 +248,10 @@ pythonlibs:
 		rm ../python/MontagePy/lib/bzip2.o
 
 		
-                # There are two libraries with conflicting .o file names
+                # There are two libraries with conflicting .o file names.
+                # (CFITSIO and its bundled zlib, unpacked from lib/libcfitsio.a
+                # above, get a cfitsio_ prefix for the same reason: zlib's
+                # compress.o would otherwise replace bzip2's compress.o.)
 
 		cp ../lib/src/two_plane_v1.1/distort.o       ../python/MontagePy/lib/two_plane_distort.o
 		cp ../lib/src/wcssubs3.9.0_montage/distort.o ../python/MontagePy/lib/distort.o

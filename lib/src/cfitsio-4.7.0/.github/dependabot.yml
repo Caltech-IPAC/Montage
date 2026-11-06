@@ -1,0 +1,15 @@
+# Keep the GitHub Actions used in .github/workflows/* up to date
+# Reference: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"                  # Root of the repository
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10    # Prevent too many open PRs
+    labels:
+        - "dependabot"
+    # Group updates together (newer Dependabot feature)
+    groups:
+      actions:
+        dependency-type: "production"

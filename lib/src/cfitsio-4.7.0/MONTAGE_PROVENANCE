@@ -1,0 +1,20 @@
+CFITSIO_SOURCE_VERSION=4.7.0
+CFITSIO_SOURCE_URL=https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-4.7.0.tar.gz
+CFITSIO_SOURCE_SHA256=ce573bbea8e75b429f8c3d3e86498741ba3dc9628a1530d2f65268397ad059e8
+CFITSIO_SECURITY_CVE=CVE-2026-115504
+CFITSIO_SECURITY_PATCH_COMMIT=93dba91ea0356c3840825d8866db41499fcca536
+CFITSIO_SECURITY_PATCH_MERGE_COMMIT=579792e0f85bff0c6733ad5ebdf54c3b5c188686
+CFITSIO_SECURITY_PATCH_URL=https://github.com/HEASARC/cfitsio/commit/93dba91ea0356c3840825d8866db41499fcca536.patch
+CFITSIO_SECURITY_PATCH_SHA256=25c56924d02480b27accfcdf6bea4c639837088027182e7bd34ead7a052268cb
+CFITSIO_APPLIED_PATCH_FILE=MONTAGE_PATCH.diff
+CFITSIO_APPLIED_PATCH_SHA256=3d1a91b9e95512f760670f4a611158399250243f073b354ca83112173b384e01
+ZLIB_SOURCE_VERSION=1.3.2
+ZLIB_SOURCE_URL=https://zlib.net/fossils/zlib-1.3.2.tar.gz
+ZLIB_SOURCE_SHA256=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16
+
+The accepted upstream bounds check and regression test are applied to this
+vendored source tree. MONTAGE_PATCH.diff is the exact diff from the pristine
+4.7.0 tarball to the two changed source files and can be applied with
+`patch -p1`. The upstream patch URL/SHA256 above identify the original commit,
+which cannot be applied verbatim to the release tarball: the tarball already
+lacks its old post-read bounds-check hunk.

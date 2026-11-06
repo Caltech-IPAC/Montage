@@ -23,6 +23,9 @@ for t in \
     c23_default_build.sh \
     hpx_coord.sh \
     c23_headers.sh \
+    cfitsio_bundled.sh \
+    fits_pipeline.sh \
+    wheel_objects.sh \
     ; do
     printf '%-32s ' "$t"
     sh "tests/$t" > "$logs/$t.log" 2>&1
