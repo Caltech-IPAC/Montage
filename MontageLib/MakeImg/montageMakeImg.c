@@ -280,6 +280,23 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
 
    arrayfile      = (char   *)malloc(STRLEN * sizeof(char));
 
+
+   /****************************************************/
+   /* Start every call from the default option         */
+   /* values, so repeated library calls (e.g. from     */
+   /* Python) do not see values left over from a       */
+   /* previous call or uninitialized memory.           */
+   /****************************************************/
+
+   strcpy(arrayfile, "");
+
+   noise    = 0.;
+   bg1      = 0.;
+   bg2      = 0.;
+   bg3      = 0.;
+   bg4      = 0.;
+   replace  = 0;
+
    strcpy(usage, "Usage: mMakeImg [-d level] [-r(eplace)] [-n noise_level] [-b bg1 bg2 bg3 bg4] [-t tblfile col width csys epoch refval mag/flux flat/gaussian] [-i imagetbl refval] [-a array.txt] template.hdr out.fits (-t and -i args can be repeated)");
 
 
@@ -449,8 +466,6 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
 
       // Noise level and background values at four corners
      
-      noise = 0.;
-
       if(json_val(layout, "background.noise", valstr))
       {
          noise = strtod(valstr, &end);
@@ -463,8 +478,6 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
          }
       }
 
-
-      bg1 = 0.;
 
       if(json_val(layout, "background.bg11", valstr))
       {
@@ -479,8 +492,6 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
       }
 
 
-      bg2 = 0.;
-
       if(json_val(layout, "background.bg1N", valstr))
       {
          bg2 = strtod(valstr, &end);
@@ -494,8 +505,6 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
       }
 
 
-      bg3 = 0.;
-
       if(json_val(layout, "background.bgNN", valstr))
       {
          bg3 = strtod(valstr, &end);
@@ -508,8 +517,6 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
          }
       }
 
-
-      bg4 = 0.;
 
       if(json_val(layout, "background.bgN1", valstr))
       {
@@ -687,8 +694,6 @@ struct mMakeImgReturn  *mMakeImg(char *template_file, char *output_file, char *l
 
       // Replace with new pixel value rather than add
       
-      replace = 0;
-
       if(json_val(layout, "replace", valstr))
       {
          if(strcasecmp(valstr, "true") == 0
@@ -1853,6 +1858,8 @@ int mMakeImg_readTemplate(char *filename)
 
    header[0] = malloc(32768);
    header[1] = (char *)NULL;
+
+   strcpy(header[0], "");
 
 
    /********************************************************/
