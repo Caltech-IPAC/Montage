@@ -3,6 +3,8 @@
 # GCC 15 (C23 by default) runs in an Ubuntu 26.04 container.
 # Pull requests also compare output from the base and merge builds.
 # A PR meant to change output will fail this job. The log lists differing files.
+# The python jobs build and install MontagePy wheels, then run installed-wheel
+# regressions for known values and repeatable image and cube pipelines.
 
 name: CI
 
@@ -72,3 +74,29 @@ jobs:
         env:
           BASE_DIR: ${{ runner.temp }}/montage-base
         run: sh tests/output_compare.sh "$BASE_DIR/bin" bin
+
+  python:
+    name: MontagePy (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Build Montage
+        run: make
+      - name: Build wheel
+        working-directory: python/MontagePy
+        run: |
+          python -m pip install build jinja2
+          sh make_local.sh
+      - name: Install wheel
+        run: python -m pip install python/MontagePy/dist/*.whl
+      - name: Test
+        working-directory: ${{ runner.temp }}
+        run: python "$GITHUB_WORKSPACE/tests/montagepy_smoke.py"
