@@ -5,6 +5,8 @@
 *.la
 *~
 bin/
+/.cfitsio-build-mode
+/.cfitsio-build-mode.tmp
 Montage/mConvert
 Montage/mFlattenExec
 Montage/mHdrCheck

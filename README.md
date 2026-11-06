@@ -71,6 +71,59 @@ science community in developing next-generation cyberinfrastructure,
 especially workflow frameworks on distributed platforms, including
 multiple clouds.
 
+Building against a system CFITSIO
+---------------------------------
+
+By default "make" builds and links the bundled CFITSIO (lib/src). To use
+an installed CFITSIO instead, run make from the repository root with
+USE_SYSTEM_CFITSIO=1 and one of (checked in this order):
+
+    make USE_SYSTEM_CFITSIO=1 CFITSIO_CFLAGS=-I/opt/include CFITSIO_LIBS="-L/opt/lib -lcfitsio -lm"
+    make USE_SYSTEM_CFITSIO=1 CFITSIO_DIR=/opt/cfitsio   # <dir>/include, <dir>/lib
+    make USE_SYSTEM_CFITSIO=1                            # pkg-config cfitsio
+
+CFITSIO_DIR links a shared libcfitsio with an rpath to <dir>/lib, and a
+static-only one with -lz -lm (zlib from <dir>/lib or the default library
+path). For other layouts (lib64, or a CFITSIO built with extra libraries
+such as curl or bzip2) use pkg-config, with CFITSIO_STATIC=1 ("pkg-config
+--libs --static") for a static libcfitsio.a, or explicit flags. A shared
+library outside the loader's search path given by explicit flags needs
+-Wl,-rpath,<libdir> in CFITSIO_LIBS or LD_LIBRARY_PATH. The selection
+lives in cfitsio.make; ./configure only sets the install prefix. If
+CFITSIO_LIBS is set (also from the environment), CFITSIO_DIR is ignored
+and make prints a warning. CFITSIO_STATIC applies only to pkg-config; it
+has no effect with CFITSIO_DIR or explicit flags.
+
+Only the root Makefile applies the selection and its checks: "make" run
+inside a subdirectory uses the bundled default (plain -lcfitsio, which in
+a system-mode tree links whatever libcfitsio the linker finds), so run
+system-mode builds from the repository root.
+
+Before building, "make check-system-cfitsio" (run automatically) compiles,
+links and runs test programs against the selected library: its headers and
+library must be the same version, and the CVE-2026-115504 regression test
+(tests/cve_vlen_regression.c) must pass. A CFITSIO without that fix is
+rejected; CFITSIO_ALLOW_UNPATCHED=1 builds anyway with a warning. It does
+not override other probe failures. A distribution CFITSIO with the
+upstream fix applied passes the check without it. Once a CFITSIO release
+includes this fix, the check can become a minimum version. Because the
+check runs the programs it builds, system mode does not support cross
+compiling.
+
+A tree built against one CFITSIO must be cleaned before building against
+another: switching between bundled and system mode, or to a system CFITSIO
+with different flags, without "make clean" stops with an error. The
+selection is recorded in .cfitsio-build-mode when a build starts, so a
+build that fails part way also counts.
+
+The MontagePy wheel objects (MontageLib "pythonlibs") embed the bundled
+CFITSIO, so a system-CFITSIO build skips them; wheels are bundled-only.
+In a tree built with USE_SYSTEM_CFITSIO=1, "make test" reports the tests
+that need the bundled CFITSIO build as SKIP. Run plain "make test" there:
+adding USE_SYSTEM_CFITSIO=1 to "make test" or "make install" repeats the
+CFITSIO selection, which needs the provider settings again (only "make
+clean" is exempt).
+
 Montage provides multiple reprojection algorithms optimized for 
 different needs, maximizing alternately flux conservation, range of
 projections, and speed.

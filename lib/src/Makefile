@@ -1,5 +1,14 @@
+# USE_SYSTEM_CFITSIO=1 (set by the top-level Makefile, see ../../cfitsio.make)
+# links an installed CFITSIO instead, so the bundled one is not built and any
+# bundled archive and headers are removed from ../libcfitsio.a and ../include.
+USE_SYSTEM_CFITSIO ?= 0
+
 all:
 	(cd bzip2-1.0.6 && $(MAKE) && cp libbz2.a ../.. && cp bzlib.h ../../include)
+ifeq ($(USE_SYSTEM_CFITSIO),1)
+	rm -rf zlib-build cfitsio-build ../libcfitsio.a
+	(cd cfitsio-4.7.0 && for h in *.h; do rm -f ../../include/$$h; done)
+else
 	# CFITSIO 4.7.0 with the CVE-2026-115504 fix (see cfitsio-4.7.0/MONTAGE_PROVENANCE)
 	# and the zlib 1.3.2 it requires. Built out of tree so the vendored sources
 	# stay unmodified; static and position-independent because MontagePy links
@@ -18,6 +27,7 @@ all:
 	rm -f ../libcfitsio.a && mkdir cfitsio-build/combined
 	(cd cfitsio-build/combined && $(AR) x ../.libs/libcfitsio.a && \
 	    $(AR) x ../../zlib-build/libz.a && $(AR) crs ../../../libcfitsio.a *.o)
+endif
 	(cd cmd && $(MAKE) && $(MAKE) install)
 	(cd coord && $(MAKE) && $(MAKE) install)
 	(cd mtbl && $(MAKE) && $(MAKE) install)

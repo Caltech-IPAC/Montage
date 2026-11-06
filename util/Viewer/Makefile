@@ -9,11 +9,12 @@
 
 DATA_DIR = $(shell cd ../../data; pwd)
 
+CFITSIO_LIBS ?= -lcfitsio
 CC     =        gcc -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -std=c99 \
                 -DFONT_DIR='"$(DATA_DIR)/fonts/"'
 CFLAGS =	-g -O2 -I. -I../../lib/include -I../../lib/freetype/include \
-		-I../../lib/freetype/include/freetype2 -I../../Montage
-LIBS   =	-L../../lib -lwcs -lcoord -lcfitsio -ljpeg -llodepng -lmtbl -lcmd \
+		-I../../lib/freetype/include/freetype2 -I../../Montage $(CFITSIO_CFLAGS)
+LIBS   =	-L../../lib -lwcs -lcoord $(CFITSIO_LIBS) -ljpeg -llodepng -lmtbl -lcmd \
 		-L../../lib/freetype/lib -lfreetype -lm
 
 .c.o:

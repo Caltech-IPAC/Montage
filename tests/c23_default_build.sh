@@ -125,14 +125,19 @@ chmod -R u+w "$tmp/src"
 
 # Build with only the wrapper's -std in effect: drop inherited compiler/flag
 # and make settings that could mask a missing pin (e.g. CFLAGS=-std=gnu17)
-# or ignore errors (e.g. MAKEFLAGS=-i from `make -i test`).
+# or ignore errors (e.g. MAKEFLAGS=-i from `make -i test`), and the CFITSIO
+# selection, so a system-mode `make test` still builds the bundled default.
 if [ -n "$needs_clean" ]; then
     env -u CC -u CFLAGS -u CPPFLAGS -u LDFLAGS -u MAKEFLAGS -u MFLAGS \
+        -u USE_SYSTEM_CFITSIO -u CFITSIO_CFLAGS -u CFITSIO_LIBS -u CFITSIO_DIR \
+        -u CFITSIO_STATIC -u CFITSIO_ALLOW_UNPATCHED \
         -u MAKELEVEL -u GNUMAKEFLAGS make -C "$tmp/src" clean > /dev/null ||
         { echo "FAIL: make clean failed in the source copy" >&2; exit 1; }
 fi
 echo "compiler: $("$real_gcc" --version | sed -n 1p); default forced to -std=$std"
 if ! env -u CC -u CFLAGS -u CPPFLAGS -u LDFLAGS -u MAKEFLAGS -u MFLAGS \
+        -u USE_SYSTEM_CFITSIO -u CFITSIO_CFLAGS -u CFITSIO_LIBS -u CFITSIO_DIR \
+        -u CFITSIO_STATIC -u CFITSIO_ALLOW_UNPATCHED \
         -u MAKELEVEL -u GNUMAKEFLAGS C23_ORIG_PATH="$PATH" PATH="$tmp/bin:$PATH" \
         C23_REAL_GCC="$real_gcc" C23_REAL_CC="$real_cc" \
         make -C "$tmp/src" > "$tmp/build.log" 2>&1; then
