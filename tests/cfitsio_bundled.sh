@@ -5,6 +5,8 @@
 # - cve_vlen_regression.c: reading a variable-length string longer than
 #   CFITSIO's internal buffer fails with exactly READ_ERROR (the
 #   CVE-2026-115504 fix) instead of overflowing.
+# - cfitsio_dotz_path.c: CFITSIO cannot open a gzip file in a path that
+#   contains ".Z", because it reads that as a Unix compress file.
 #
 # Needs a completed `make` (uses lib/include and lib/libcfitsio.a).
 set -eu
@@ -19,7 +21,9 @@ if [ "$(sed -n 1p "$root/.cfitsio-build-mode" 2>/dev/null)" = 1 ]; then
 fi
 
 cc=${CC:-cc}
-tmp=$(mktemp -d)
+# The name has no dot before the random part, because cfitsio_dotz_path
+# needs a path without ".Z".
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/montage-cfitsio-bundled-XXXXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
@@ -32,7 +36,13 @@ if [ ! -f "$root/lib/libcfitsio.a" ] || [ ! -f "$root/lib/include/fitsio.h" ]; t
 fi
 
 fail=0
-for t in cfitsio_version cve_vlen_regression; do
+for t in cfitsio_version cve_vlen_regression cfitsio_dotz_path; do
+    case $t:$tmp in
+        cfitsio_dotz_path:*.Z*|cfitsio_dotz_path:*.bz2*)
+            echo "SKIP: $t needs a temp path without .Z or .bz2, not $tmp"
+            continue
+            ;;
+    esac
     if ! $cc -I"$root/lib/include" -o "$tmp/$t" "$root/tests/$t.c" \
             "$root/lib/libcfitsio.a" -lm; then
         echo "FAIL: could not build $t" >&2
