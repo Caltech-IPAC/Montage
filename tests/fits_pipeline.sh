@@ -22,12 +22,23 @@ set -eu
 unset CDPATH
 root=$(cd "$(dirname "$0")/.." && pwd)
 bin=$(cd "${BINDIR:-$root/bin}" && pwd)
-tmp=$(mktemp -d)
+# CFITSIO takes ".Z" anywhere in a path as a Unix compress file, and builds
+# with bzip2 do the same for ".bz2", so the .fits.gz step below cannot open a
+# file in such a path. A plain mktemp name is tmp.XXXXXXXXXX, and when the
+# random part began with Z the step failed, about 1 run in 62. This name has
+# no dot before the random part.
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/montage-fits-pipeline-XXXXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 131' QUIT
+case $tmp in
+    *.Z*|*.bz2*)
+        echo "SKIP: the temp path $tmp contains .Z or .bz2, which CFITSIO reads as a compression suffix"
+        exit 77
+        ;;
+esac
 mkdir "$tmp/raw" "$tmp/proj" "$tmp/gz" "$tmp/projgz" "$tmp/writegz"
 
 VALUE=3.25
