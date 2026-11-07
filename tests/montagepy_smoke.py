@@ -1,7 +1,8 @@
 """Regression test for an installed MontagePy wheel, using only the stdlib.
 
-Check bundled CFITSIO, mMakeImg call isolation, mExamine dimensions, and
-known image values. Run a synthetic image and cube pipeline twice with
+Check bundled CFITSIO, mMakeImg call isolation, mExamine dimensions, known
+image values, and that positional arguments in the Python signature order
+reach the library correctly. Run a synthetic image and cube pipeline twice with
 junk-filled allocations and once in a fresh process without memory filling.
 Require successful calls and identical results and output digests.
 Reported run times are left out of results. FITS outputs are compared by
@@ -10,8 +11,8 @@ Other outputs are compared in full. Temporary paths are normalised throughout.
 
 The script re-execs with MALLOC_PERTURB_=165 (glibc) and MallocScribble=1
 (macOS), before importing MontagePy. The private child mode skips that step.
-Network services and mTANHdr, mTileImage, mHistogram, mViewer, mBestImage,
-and mShrinkCube are deliberately outside this regression test.
+Network services and mTANHdr, mBestImage and mShrinkCube are deliberately
+outside this regression test.
 
 Usage, after building and installing the wheel (python/MontagePy/make_local.sh):
     python tests/montagepy_smoke.py
@@ -269,6 +270,57 @@ def baseline(directory):
         value = centre_pixel(projected)
         check("mProject keeps the value", close(value, 5.0),
               "centre pixel %r, expected 5.0" % value)
+
+    def call(fn, *args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            return {"status": "exception", "msg": repr(e)}
+
+    # Python signatures put required arguments first. Pass them by position
+    # so a wrapper that forwards them in another order is caught.
+    tiles = os.path.join(directory, "tile")
+    result = call(m.mTileImage, background, tiles, 2, 2)
+    check("mTileImage status",
+          result.get("status") == "0" and result.get("ntile") == 4
+          and result.get("nfailed") == 0, result)
+    # Only the first tile has a fixed shape. mSubimage pixel mode adds a
+    # pixel to cutouts that do not start at the image edge.
+    for i in (1, 2):
+        for k in (1, 2):
+            tile = "%s_%d_%d.fits" % (tiles, i, k)
+            try:
+                axes, _ = read_image(tile)
+                answer = image_answer(tile, 5.0)
+            except (OSError, ValueError) as e:
+                axes, answer = None, {"ok": False, "error": str(e)}
+            shape_ok = axes == (25, 25) if (i, k) == (1, 1) else axes is not None
+            check("mTileImage tile %d %d" % (i, k),
+                  shape_ok and answer["ok"], {"axes": axes, **answer})
+
+    # A constant image has no value range to measure, so use a gradient
+    # whose minimum and maximum are the corner values.
+    gradient = os.path.join(directory, "gradient.fits")
+    result = m.mMakeImg(hdr, gradient, "-b 1 1 9 9", 2)
+    check("mMakeImg gradient status", result.get("status") == "0", result)
+    result = call(m.mHistogram, gradient, os.path.join(directory, "hist.txt"),
+                  "0%", "100%", "linear")
+    check("mHistogram status", result.get("status") == "0", result)
+    check("mHistogram data range",
+          close(result.get("datamin", math.nan), 1.0)
+          and close(result.get("datamax", math.nan), 9.0), result)
+
+    # mode=2 takes a command string. The default mode reads a JSON file.
+    # parsecmd splits command strings on spaces and commas outside quotes.
+    png = os.path.join(directory, "view.png")
+    result = call(m.mViewer, "-ct 1 -gray \"%s\" 0%% 100%% linear" % gradient, png, mode=2)
+    check("mViewer status", result.get("status") == "0", result)
+    try:
+        with open(png, "rb") as f:
+            magic = f.read(8)
+    except OSError as e:
+        magic = str(e)
+    check("mViewer writes a PNG", magic == b"\x89PNG\r\n\x1a\n", magic)
 
 
 def pipeline(directory):

@@ -32,6 +32,9 @@ target and we are building as many of these as we can and pushing them
 to PyPI but if someone want to extend Montage for their own use they
 can use the same infrastructure to build custom wheels as well.
 
+MontagePy requires Python 3.9 or newer.  Pass ``mode=2`` when giving
+``mViewer`` a command string.  The default ``mode=0`` reads a JSON file.
+
 --------------
 
 Montage (http://montage.ipac.caltech.edu) is an Open Source toolkit,
