@@ -33,6 +33,7 @@ for t in \
     system_cve_check.sh \
     mode_transition.sh \
     system_mode_targets.sh \
+    json_val_short_layout.sh \
     configure_keeps_selection.sh \
     release_tarball.sh \
     standalone_subdir.sh \

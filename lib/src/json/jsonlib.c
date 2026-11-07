@@ -429,12 +429,12 @@ int json_free(JSON *json)
 
 char *json_val(char const *structstr, char const *key, char *val)
 {
-   int  i, inlen, len, found;
+   int  i, inlen, len, sublen, found;
    char *subkey, *tail, *subval;
 
    JSON *sv;
 
-   inlen = strlen(structstr);
+   inlen = strlen(structstr) + strlen(key) + 1;
 
    subkey = (char *)malloc(inlen);
    tail   = (char *)malloc(inlen);
@@ -459,8 +459,10 @@ char *json_val(char const *structstr, char const *key, char *val)
       }
    }
 
-   if(subkey[strlen(subkey) - 1] == ']')
-      subkey[strlen(subkey) - 1] = '\0';
+   sublen = strlen(subkey);
+
+   if(sublen > 0 && subkey[sublen - 1] == ']')
+      subkey[sublen - 1] = '\0';
 
    if(i >= len)
       tail[0] = '\0';

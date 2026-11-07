@@ -240,9 +240,7 @@ def baseline(directory):
     make_image("mMakeImg JSON mode bg 2", os.path.join(directory, "json.fits"), 2.0,
                '{"background": {"bg11": 2, "bg1N": 2, "bgNN": 2, "bgN1": 2}}', 1)
     # A JSON call that sets nothing must not see values from earlier calls.
-    # Keep the layout longer than any key searched in it. The JSON parser
-    # sizes its buffers by the layout length.
-    nothing = '{"note": "padding so this layout is longer than any key searched in it"}'
+    nothing = "{}"
 
     def leave_values(name, path, layout, mode):
         """Call mMakeImg with options, and check that they changed the image."""
