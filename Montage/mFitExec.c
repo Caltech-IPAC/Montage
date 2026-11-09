@@ -37,7 +37,7 @@ Version  Developer        Date     Change
 #define MAXSTR 4096
 
 char *svc_value();
-char *svc_run  (char *cmd);
+int   svc_run  (char *cmd);
 
 #ifdef MPI
 int   i;
