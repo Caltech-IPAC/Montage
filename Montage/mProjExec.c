@@ -71,7 +71,7 @@ Version  Developer        Date     Change
 #define FAILED    2
 
 char *svc_value();
-char *svc_run  (char *cmd);
+int   svc_run  (char *cmd);
 
 char *filePath (char *path, char *fname);
 char *fileName (char *filename);

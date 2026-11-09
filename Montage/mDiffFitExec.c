@@ -18,7 +18,7 @@ Version  Developer        Date     Change
 #define MAXSTR 4096
 
 char *svc_value();
-char *svc_run  (char *cmd);
+int   svc_run  (char *cmd);
 
 char *filePath (char *path, char *fname);
 int   checkFile(char *filename);
