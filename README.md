@@ -30,12 +30,12 @@ a single desktop machine and at arcsecond scale the same tools can
 create a set of jobs that can be submitted to run on a cloud in
 a few days (or a few tens of processors if one has that in-house).
 
-The second addition to Montage is a complete set of modern procedures 
-for building Python binary extension Montage wheels for Linux and Mac 
-systems (and extensible to some others).  This is very much a moving
-target and we are building as many of these as we can and pushing them
-to PyPI but if someone want to extend Montage for their own use they
-can use the same infrastructure to build custom wheels as well.
+The repository also includes procedures for building Python binary
+extension Montage wheels for Linux and macOS. The release workflow
+publishes wheels only to GitHub Releases. The same infrastructure can
+be used to build custom wheels locally. See the
+[MontagePy README](python/MontagePy/README.md) for installation
+instructions.
 
 The Montage 6.0 release can be accessed via git tag "v6.1".
 
@@ -57,7 +57,7 @@ Unix-like platforms, including Linux, Solaris, Mac OSX and Cygwin on
 Windows.  The package provides both stand-alone executables and
 the same functionality in library form.  It has been cross-compiled
 to provide native Windows executables and packaged as a binary Python
-extension (available via "pip install MontagePy").
+extension (see the MontagePy README for installation).
 
 The distribution contains all libraries needed to build the toolkit 
 from a single simple "make" command, including CFITSIO and the WCS
