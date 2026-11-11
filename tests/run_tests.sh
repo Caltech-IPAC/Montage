@@ -36,6 +36,9 @@ for t in \
     json_val_short_layout.sh \
     configure_keeps_selection.sh \
     release_tarball.sh \
+    wheel_staging_guard.sh \
+    check_version.sh \
+    check_macos_wheel.sh \
     standalone_subdir.sh \
     system_mode_build.sh \
     ; do

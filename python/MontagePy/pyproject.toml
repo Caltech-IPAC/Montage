@@ -1,6 +1,6 @@
 [project]
 name             = "MontagePy"
-version          = "2.3.1"
+version          = "2.4.0"
 authors          = [{name = "John Good", email = "jcg@ipac.caltech.edu"}]
 description      = "Montage toolkit for reprojecting, mosaicking, and displaying astronomical images."
 readme           = "README.md"
@@ -21,10 +21,15 @@ requires         = ["setuptools", "cython"]
 build-backend    = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-repair-wheel-command = ""
+build            = "cp39-* cp310-* cp311-* cp312-* cp313-* cp314-* cp315-*"
+skip             = "*-musllinux_*"
+before-all       = "python -m pip install jinja2 && sh \"{package}/prepare_checkout.sh\""
+test-command     = "python \"{project}/tests/montagepy_smoke.py\""
 
 [tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux2014"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 
 [tool.cibuildwheel.macos]
+environment      = {MACOSX_DEPLOYMENT_TARGET = "11.0"}
 repair-wheel-command = ""

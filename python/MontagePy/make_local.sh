@@ -1,28 +1,24 @@
 #!/bin/sh
+set -eu
+unset CDPATH
+if [ -L "$0" ]; then
+    echo "$0: refusing symlink invocation; run the real script path" >&2
+    exit 1
+fi
+cd "$(dirname "$0")"
+# A script that sh found through PATH has no directory in $0, so the cd
+# above stays where the caller is. Stop unless this script is here.
+if [ ! -f ./make_local.sh ]; then
+    echo "$0: cannot find this script's directory, run it by its path" >&2
+    exit 1
+fi
 
-# This script is for our local use but should work on most 
-# systems and is easily modified.
+# This script is for our local use but should work on most
+# systems and is easily modified. It needs the Montage build
+# done first, which fills lib/ with the wheel objects.
 
-rm -rf src
-rm -rf build
 rm -rf dist
-rm -rf MontagePy.egg-info
 
-mkdir -p src/MontagePy
-mkdir -p src/MontagePy/archive
-
-cp __init__.py                   src/MontagePy
-cp __archive__.py                src/MontagePy/archive/__init__.py
-cp mArchiveList.py               src/MontagePy/archive/
-cp mArchiveDownload.py           src/MontagePy/archive/
-cp ../../data/fonts/FreeSans.ttf src/MontagePy
-
-python parse.py
-
-python cleanup.py src/MontagePy/_wrappers.pyx > tmpfile
-
-mv tmpfile src/MontagePy/_wrappers.pyx
-
-cp src/MontagePy/wrappers.pxd .
+sh stage_package.sh
 
 python -m build --wheel
