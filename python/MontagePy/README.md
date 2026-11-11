@@ -25,15 +25,50 @@ a single desktop machine and at arcsecond scale the same tools can
 create a set of jobs that can be submitted to run on a cloud in
 a few days (or a few tens of processors if one has that in-house).
 
-The second addition to Montage is a complete set of modern procedures 
-for building Python binary extension Montage wheels for Linux and Mac 
-systems (and extensible to some others).  This is very much a moving
-target and we are building as many of these as we can and pushing them
-to PyPI but if someone want to extend Montage for their own use they
-can use the same infrastructure to build custom wheels as well.
+The repository also includes procedures for building Python binary
+extension Montage wheels for Linux and macOS. The release workflow
+publishes wheels only to GitHub Releases. The same infrastructure can
+be used to build custom wheels locally.
 
 MontagePy requires Python 3.9 or newer.  Pass ``mode=2`` when giving
 ``mViewer`` a command string.  The default ``mode=0`` reads a JSON file.
+
+Installing MontagePy from GitHub Release wheels
+-----------------------------------------------
+
+The wheel workflow targets CPython 3.9 through 3.15 on Linux x86_64
+and on macOS x86_64 and arm64 (minimum macOS 11.0 on both
+architectures). When a MontagePy GitHub release has rebuilt wheels for
+your system, replace `<version>` with that release version and install
+with the release page as a source.
+
+    pip install "MontagePy==<version>" --only-binary MontagePy \
+        --find-links "https://github.com/Caltech-IPAC/Montage/releases/expanded_assets/MontagePy-v<version>"
+
+The pin selects one exact release. Without a pin, pip selects the
+highest version available across the release page and PyPI.
+Keep --only-binary MontagePy. The release page also lists the
+repository source archives, and pip would otherwise try to install
+MontagePy from them when no wheel matches the system.
+Do not use --no-index. MontagePy depends on requests, which is
+installed from PyPI.
+
+Maintainer release recipe
+-------------------------
+
+Use a new version for rebuilt wheels. The first rebuilt release must
+be newer than the historical 2.3.1 wheels so pip upgrades existing
+installations. Tagged versions must use numeric `x.y.z` form.
+
+Set the package version in `python/MontagePy/pyproject.toml`.
+
+Merge the changes before pushing the matching `MontagePy-v<version>`
+tag. The tag runs the wheel workflow and publishes to GitHub Releases
+only after all build legs succeed. If a build leg fails, no release is
+created. Rerun failed jobs from Actions. A manual workflow run builds
+artifacts without publishing a release. PyPI upload is not part of this
+workflow. WHEELS.md in this directory describes how the wheels are
+built and tested.
 
 --------------
 
@@ -53,7 +88,7 @@ Unix-like platforms, including Linux, Solaris, Mac OSX and Cygwin on
 Windows.  The package provides both stand-alone executables and
 the same functionality in library form.  It has been cross-compiled
 to provide native Windows executables and packaged as a binary Python
-extension (available via "pip install MontagePy").
+extension (see Installing MontagePy from GitHub Release wheels above).
 
 The distribution contains all libraries needed to build the toolkit 
 from a single simple "make" command, including CFITSIO and the WCS

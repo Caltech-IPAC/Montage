@@ -1,12 +1,13 @@
+### Historical MontagePy 2.3.1 wheels
 
-### MontagePy 2.3.1 wheels
+These binaries are retained for historical reference and should not be
+used for current installations. They predate the image-buffer,
+argument-order, and mViewer font-import fixes.
 
-The MontagePy 2.3.1 wheels are available as downloads from Montage/python/MontagePy/built_wheels_v2.3.1.  This is an update from the released version to support visualization of images in  the  Keck Observatory Archive Data Discovery Archive Notebook available here: https://koa.ipac.caltech.edu
+The CPython 3.11 macOS arm64 wheel has been seen to crash in
+`mMakeImg`. The crash depends on what an uncleared buffer holds, so it
+does not happen on every call. The fix is commit
+[972ee04](https://github.com/Caltech-IPAC/Montage/commit/972ee04888f6a005e2705a97b7527d37b9587934).
 
-This v2.3.1 version is  fully compatible with all Montage applications.
-
-This release will be available in PyPi at a future date, once the beta release is deployed operationally.
-
-The wheel can be installed  for your operating system with a command like this:
-
-<code>pip install montage-2.3.1-xxxx.whl</code>
+See the [main MontagePy README](../README.md) for GitHub release
+installation instructions and rebuilt wheels when available.

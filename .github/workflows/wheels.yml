@@ -1,0 +1,160 @@
+# Build and release MontagePy wheels. A manual dispatch builds the full
+# matrix as artifacts. A tag push matching MontagePy-v* builds the same
+# matrix and attaches the wheels to a GitHub Release, which is not
+# marked latest so it does not displace the Montage source releases.
+# A pull request that touches the package, the smoke test, the
+# architecture checker test, lib/src/Makefile, or this workflow builds
+# one CPython per runner so the release path, including both macOS
+# architectures, is exercised before merge. lib/src/Makefile is listed
+# because a CFITSIO upgrade edits it and prepare_checkout.sh names the
+# CFITSIO directory. ci.yml already builds Montage and Linux wheels on
+# every pull request, so other Montage library changes rely on that
+# and on a manual dispatch here.
+# Every wheel is installed and run through tests/montagepy_smoke.py,
+# and macOS wheels have their extension architectures checked against
+# the platform tag. Builds always come from the checked out commit.
+#
+# To release, set the version in python/MontagePy/pyproject.toml. After
+# merging, push the matching MontagePy-v<version> tag. No release is
+# created if any build leg fails. Rerun failed jobs from Actions.
+# If a release already exists for the tag, the run updates its wheels
+# and publishes it if it is still a draft.
+
+name: MontagePy wheels
+
+on:
+  push:
+    tags: ['MontagePy-v*']
+  pull_request:
+    paths:
+      - '.github/workflows/wheels.yml'
+      - 'python/MontagePy/**'
+      - 'tests/montagepy_smoke.py'
+      - 'tests/check_macos_wheel.sh'
+      - 'lib/src/Makefile'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A tag or dispatch run that has started is not cancelled by a newer
+# one. A run still waiting is replaced by a newer one. Pull request
+# runs are superseded by a newer push to the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  version:
+    name: Check package version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      - name: Check metadata and release tag
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+        run: |
+          if [ -n "$RELEASE_TAG" ]; then
+            python python/MontagePy/check_version.py --tag "$RELEASE_TAG"
+          else
+            python python/MontagePy/check_version.py
+          fi
+
+  build:
+    name: Wheels (${{ matrix.runner }})
+    needs: version
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x86_64
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      CIBW_ARCHS: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # cibuildwheel runs before-all on the macOS host with the host PATH,
+      # so this Python stages the package there and runs the checker steps.
+      # The Linux leg stages inside the manylinux container.
+      - name: Set up Python for macOS builds and checks
+        if: runner.os == 'macOS'
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.11'
+      # Runs before the build because it does not need the wheels.
+      # Exit 77 fails this step because these macOS runners must exercise it.
+      - name: Test the architecture checker
+        if: runner.os == 'macOS'
+        run: sh tests/check_macos_wheel.sh
+      - name: Limit pull request builds to one CPython
+        if: github.event_name == 'pull_request'
+        run: echo 'CIBW_BUILD=cp312-*' >> "$GITHUB_ENV"
+      - name: Build and test wheels
+        uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
+        with:
+          package-dir: python/MontagePy
+          output-dir: wheelhouse
+      - name: Check macOS wheel architectures
+        if: runner.os == 'macOS'
+        run: python python/MontagePy/check_macos_wheel.py wheelhouse/*.whl
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: montagepy-wheels-${{ matrix.runner }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  release:
+    name: Release wheels
+    # startsWith guards against future broadening of on.push (e.g. branches).
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/MontagePy-v')
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: montagepy-wheels-*
+          path: wheelhouse
+          merge-multiple: true
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          notes="Prebuilt MontagePy wheels for Linux x86_64 and macOS x86_64 and arm64. \
+          See the installation instructions at \
+          $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$RELEASE_TAG/python/MontagePy/README.md \
+          for supported Python versions."
+          if gh release view "$RELEASE_TAG" \
+               --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" wheelhouse/*.whl \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            # An existing release may still be a draft. Publish it after upload.
+            # Name the tag explicitly so --verify-tag checks it before publishing.
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --tag "$RELEASE_TAG" --verify-tag \
+              --draft=false --latest=false
+          else
+            gh release create "$RELEASE_TAG" wheelhouse/*.whl \
+              --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "$RELEASE_TAG" \
+              --notes "$notes" \
+              --latest=false
+          fi
